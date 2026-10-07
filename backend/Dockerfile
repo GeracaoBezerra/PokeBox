@@ -1,13 +1,15 @@
 FROM node:lts-alpine
 
-WORKDIR /app 
+WORKDIR /app
 
 COPY package*.json ./
 
 RUN npm ci
 
-COPY . . 
+COPY . .
 
-EXPOSE 3000 
+RUN npx prisma generate
 
-CMD ["npm", "start"]
+EXPOSE 3000
+
+CMD ["sh", "-c", "npx prisma migrate deploy && npm start"]
