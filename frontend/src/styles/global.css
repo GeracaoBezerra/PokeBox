@@ -1,0 +1,310 @@
+/* ==========================================================================
+   PokeBox — globals.css
+   Convenções:
+   - Espaçamento: número = valor em px (--esp-16 = 16px)
+   - Tempo: --tempo-rapido / medio / lento
+   - Tamanhos pequeno→grande: xs, sm, md, lg, xl, 2xl, 3xl
+   - "(sugerido)" = não está no DESIGN.md
+   ⚠ Conferir contraste AA das cores de tipo e do acento antes de travar.
+   ========================================================================== */
+
+/* Fontes: se usar Vite, prefira <link> no index.html; se Next, use next/font */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap");
+
+:root {
+  color-scheme: dark;
+
+  /* ---------- COR: BASE ---------- */
+  --fundo: #14261f;
+  --superficie: #1d352b;
+  --texto: #efe9dc;
+  --texto-suave: #a9b5aa;
+  --acento: #e8b230;
+  --acento-texto: #14261f;   /* texto sobre o acento */
+  --borda: #5a8269;
+
+  /* derivadas (sugerido) */
+  --acento-hover: color-mix(in srgb, var(--acento) 88%, white);
+  --acento-press: color-mix(in srgb, var(--acento) 85%, black);
+  --superficie-hover: color-mix(in srgb, var(--superficie) 90%, white);
+  --superficie-funda: color-mix(in srgb, var(--fundo) 70%, black);
+  --borda-suave: color-mix(in srgb, var(--borda) 45%, transparent);
+  --overlay: rgb(0 0 0 / 0.6);
+  --overlay-reservada: color-mix(in srgb, var(--fundo) 70%, transparent);
+
+  --textura-feltro: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.06'/></svg>");
+
+  /* ---------- COR: FEEDBACK (sempre com ícone ou texto) ---------- */
+  --sucesso: #7bd389;
+  --aviso: #f59e5b;
+  --erro: #ff7a7a;
+  --info: #7fb6e6;
+
+  --sucesso-fundo: color-mix(in srgb, var(--sucesso) 14%, var(--superficie));
+  --aviso-fundo: color-mix(in srgb, var(--aviso) 14%, var(--superficie));
+  --erro-fundo: color-mix(in srgb, var(--erro) 14%, var(--superficie));
+  --info-fundo: color-mix(in srgb, var(--info) 14%, var(--superficie));
+
+  /* ---------- COR: TIPO DE CARTA (fundo + texto sobre ele) ---------- */
+  --tipo-incolor: #b9b6aa;   --tipo-incolor-texto: #1a1a1a;
+  --tipo-sombrio: #3b3550;   --tipo-sombrio-texto: #f2eefa;
+  --tipo-dragao: #6b5bd6;    --tipo-dragao-texto: #ffffff;
+  --tipo-fada: #f2a6d0;      --tipo-fada-texto: #3a1530;
+  --tipo-lutador: #b5532f;   --tipo-lutador-texto: #ffffff;
+  --tipo-fogo: #c8401f;      --tipo-fogo-texto: #ffffff;
+  --tipo-planta: #2f7a3c;    --tipo-planta-texto: #ffffff;
+  --tipo-eletrico: #f4c430;  --tipo-eletrico-texto: #1a1a1a;
+  --tipo-metal: #8a97a6;     --tipo-metal-texto: #10161c;
+  --tipo-psiquico: #a44a9e;  --tipo-psiquico-texto: #ffffff;
+  --tipo-agua: #2569b8;      --tipo-agua-texto: #ffffff;
+
+  /* preenchidos pelo data-tipo (ver final do arquivo) */
+  --tipo: transparent;
+  --tipo-texto: var(--texto);
+
+  /* palco da carta: luz de cima + leve tom do tipo */
+  --palco-luz: radial-gradient(
+    ellipse 70% 60% at 50% 0%,
+    color-mix(in srgb, var(--tipo) 22%, transparent),
+    transparent 70%
+  );
+
+  /* ---------- TIPOGRAFIA ---------- */
+  --fonte-titulo: "Bricolage Grotesque", system-ui, sans-serif;
+  --fonte-corpo: "Figtree", system-ui, sans-serif;
+  --fonte-dados: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --peso-normal: 400;
+  --peso-medio: 500;
+  --peso-semi: 600;
+  --peso-forte: 800;   /* só Bricolage: logo e nome da carta */
+
+  /* rem para respeitar o zoom do navegador (px no comentário) */
+  --fs-xs: 0.75rem;     /* 12px legendas */
+  --fs-sm: 0.875rem;    /* 14px interface densa */
+  --fs-md: 1rem;        /* 16px corpo */
+  --fs-lg: 1.25rem;     /* 20px subtítulos */
+  --fs-xl: 1.5625rem;   /* 25px títulos de seção */
+  --fs-2xl: 1.9375rem;  /* 31px títulos de página */
+  --fs-3xl: clamp(2.4375rem, 1.9rem + 1.6vw, 3.25rem); /* 39px+ display */
+
+  --lh-xs: 1.4;
+  --lh-sm: 1.5;
+  --lh-md: 1.6;
+  --lh-lg: 1.4;
+  --lh-xl: 1.3;
+  --lh-2xl: 1.2;
+  --lh-3xl: 1.1;
+
+  --linha-max: 75ch;
+
+  /* ---------- ESPAÇAMENTO (número = px) ---------- */
+  --esp-4: 4px;
+  --esp-8: 8px;
+  --esp-12: 12px;
+  --esp-16: 16px;
+  --esp-24: 24px;
+  --esp-32: 32px;
+  --esp-48: 48px;
+  --esp-64: 64px;
+  --esp-96: 96px;
+
+  /* ritmo: compacto no catálogo/propostas, arejado no detalhe da carta */
+  --ritmo-compacto: var(--esp-12);   /* até --esp-24 */
+  --ritmo-arejado: var(--esp-48);    /* até --esp-96 */
+
+  /* ---------- RAIO ---------- */
+  --raio-carta: 4.8% / 3.4%;
+  --raio-botao: 6px;      /* botões e inputs */
+  --raio-painel: 14px;    /* painéis e modais */
+  --raio-pilula: 999px;   /* badges */
+
+  /* ---------- SOMBRA ---------- */
+  --sombra-sm: 0 1px 0 rgb(0 0 0 / 0.4);        /* elementos apoiados */
+  --sombra-md: 0 8px 24px rgb(0 0 0 / 0.35);    /* menus, popovers */
+  /* a sombra da carta é recalculada pelo JS conforme o tilt */
+  --sombra-x: 0px;
+  --sombra-y: 12px;
+  --sombra-blur: 32px;
+  --sombra-opac: 0.45;
+  --sombra-carta: var(--sombra-x) var(--sombra-y) var(--sombra-blur) rgb(0 0 0 / var(--sombra-opac));
+
+  /* ---------- BORDA, SELEÇÃO E FOCO (borda só codifica informação) ---------- */
+  --borda-painel: 1px solid var(--borda);
+  --borda-selecao: 2px solid var(--acento);
+  --borda-slot: 2px dashed var(--borda);   /* ÚNICO uso de tracejado: slot vazio */
+  --foco-largura: 2px;
+  --foco-cor: var(--acento);
+  --foco-offset: 2px;
+
+  /* ---------- LAYOUT ----------
+     Breakpoints (var() não funciona em @media, use os valores):
+     390px mobile · 768px tablet · 1024px desktop · 1440px wide */
+  --largura-max: 1280px;
+  --colunas: 12;
+  --gutter: var(--esp-16);         /* 24px a partir de 1024px */
+  --colunas-cartas: 2;             /* 4 tablet, 6 desktop */
+  --colunas-cartas-filtros: 5;     /* desktop com filtros laterais */
+
+  --nav-topo: 64px;                /* (sugerido) */
+  --nav-base: 64px;                /* barra inferior mobile (sugerido) */
+  --filtros-largura: 280px;        /* (sugerido) */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* ---------- CARTA ---------- */
+  --carta-proporcao: 63 / 88;
+  --carta-thumb: 100%;               /* ocupa a célula do grid */
+  --carta-medium: 160px;             /* (sugerido) */
+  --carta-hero: min(70vw, 360px);    /* ~70% da largura no mobile */
+
+  /* ---------- ACESSIBILIDADE ---------- */
+  --alvo-min: 44px;                  /* alvo de toque mínimo */
+  --altura-controle: var(--alvo-min);
+  --icone-sm: 16px;                  /* (sugerido) */
+  --icone-md: 20px;
+  --icone-lg: 24px;
+  --opac-desabilitado: 0.45;
+
+  /* ---------- MOVIMENTO (só transform e opacity) ---------- */
+  --tempo-rapido: 120ms;    /* hover, foco, pressionar */
+  --tempo-medio: 240ms;     /* abrir/fechar, toasts, troca de página */
+  --tempo-lento: 480ms;     /* carta, layoutId, troca aceita */
+  --tempo-feltro: 300ms;    /* feltro escurece no detalhe */
+  --tempo-skeleton: 1400ms; /* (sugerido) */
+  --tempo-toast: 4000ms;
+  --stagger: 60ms;          /* nome, raridade e ataques em sequência */
+
+  --curva-entrar: cubic-bezier(0.22, 1, 0.36, 1);  /* para entradas */
+  --curva-sair: cubic-bezier(0.64, 0, 0.78, 0);    /* para saídas */
+
+  /* mola da carta (ler via JS/Motion) */
+  --mola-rigidez: 170;
+  --mola-amortecimento: 20;
+  --mola-massa: 1;
+
+  /* ---------- CARTA: VARIÁVEIS QUE O JS ESCREVE ---------- */
+  --perspectiva: 1000px;
+  --tilt-max-hero: 14deg;
+  --tilt-max-thumb: 8deg;     /* (sugerido) só hover com mouse */
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --carta-escala: 1;
+  --ponteiro-x: 50%;
+  --ponteiro-y: 50%;
+  --ponteiro-dist: 0;         /* 0 no centro, 1 na borda */
+  --glare: 0;                 /* opacidade do reflexo */
+  --holo-x: 50%;
+  --holo-y: 50%;
+
+  /* ---------- RARIDADE (intensidade 1–5; valores iniciais sugeridos) ---------- */
+  --foil-1: 0;
+  --foil-2: 0.25;
+  --foil-3: 0.45;
+  --foil-4: 0.65;
+  --foil-5: 0.85;
+  --foil: var(--foil-1);      /* sobrescrito por data-raridade-nivel */
+
+  --holo: linear-gradient(
+    115deg,
+    hsl(0 85% 70%) 0%,
+    hsl(45 90% 70%) 20%,
+    hsl(130 70% 70%) 40%,
+    hsl(190 85% 70%) 60%,
+    hsl(265 80% 75%) 80%,
+    hsl(325 80% 72%) 100%
+  );
+  --foil-ouro: linear-gradient(   /* Secret / Hyper Rare */
+    115deg,
+    #8f6a14 0%,
+    var(--acento) 30%,
+    #fff1b8 50%,
+    var(--acento) 70%,
+    #8f6a14 100%
+  );
+  --glare-luz: radial-gradient(
+    farthest-corner circle at var(--ponteiro-x) var(--ponteiro-y),
+    rgb(255 255 255 / 0.55) 0%,
+    rgb(255 255 255 / 0.12) 40%,
+    transparent 70%
+  );
+
+  --skeleton-base: color-mix(in srgb, var(--superficie) 94%, white);
+  --skeleton-brilho: color-mix(in srgb, var(--superficie) 86%, white);
+
+  /* ---------- CAMADAS (sugerido) ---------- */
+  --z-carta: 1;
+  --z-nav: 10;
+  --z-banner: 20;
+  --z-gaveta: 30;
+  --z-sheet: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+  --z-tooltip: 70;
+}
+
+/* ---------- Responsivo ---------- */
+@media (min-width: 768px) {
+  :root { --colunas-cartas: 4; }
+}
+@media (min-width: 1024px) {
+  :root {
+    --gutter: var(--esp-24);
+    --colunas-cartas: 6;
+  }
+}
+
+/* ---------- Tipo ativo: <div data-tipo="fogo"> ---------- */
+[data-tipo="incolor"]  { --tipo: var(--tipo-incolor);  --tipo-texto: var(--tipo-incolor-texto); }
+[data-tipo="sombrio"]  { --tipo: var(--tipo-sombrio);  --tipo-texto: var(--tipo-sombrio-texto); }
+[data-tipo="dragao"]   { --tipo: var(--tipo-dragao);   --tipo-texto: var(--tipo-dragao-texto); }
+[data-tipo="fada"]     { --tipo: var(--tipo-fada);     --tipo-texto: var(--tipo-fada-texto); }
+[data-tipo="lutador"]  { --tipo: var(--tipo-lutador);  --tipo-texto: var(--tipo-lutador-texto); }
+[data-tipo="fogo"]     { --tipo: var(--tipo-fogo);     --tipo-texto: var(--tipo-fogo-texto); }
+[data-tipo="planta"]   { --tipo: var(--tipo-planta);   --tipo-texto: var(--tipo-planta-texto); }
+[data-tipo="eletrico"] { --tipo: var(--tipo-eletrico); --tipo-texto: var(--tipo-eletrico-texto); }
+[data-tipo="metal"]    { --tipo: var(--tipo-metal);    --tipo-texto: var(--tipo-metal-texto); }
+[data-tipo="psiquico"] { --tipo: var(--tipo-psiquico); --tipo-texto: var(--tipo-psiquico-texto); }
+[data-tipo="agua"]     { --tipo: var(--tipo-agua);     --tipo-texto: var(--tipo-agua-texto); }
+
+/* ---------- Raridade: <div data-raridade-nivel="3"> ---------- */
+[data-raridade-nivel="1"] { --foil: var(--foil-1); }
+[data-raridade-nivel="2"] { --foil: var(--foil-2); }
+[data-raridade-nivel="3"] { --foil: var(--foil-3); }
+[data-raridade-nivel="4"] { --foil: var(--foil-4); }
+[data-raridade-nivel="5"] { --foil: var(--foil-5); }
+
+/* ---------- Movimento reduzido: versão estática de todo efeito ---------- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --tempo-rapido: 0.01ms;
+    --tempo-medio: 0.01ms;
+    --tempo-lento: 0.01ms;
+    --tempo-feltro: 0.01ms;
+    --tempo-skeleton: 0.01ms;
+    --stagger: 0ms;
+    --tilt-max-hero: 0deg;
+    --tilt-max-thumb: 0deg;
+    --glare: 0;
+  }
+}
+
+/* ---------- Base do projeto (não é reset) ---------- */
+body {
+  background-color: var(--fundo);
+  background-image: var(--textura-feltro);
+  color: var(--texto);
+  font-family: var(--fonte-corpo);
+  font-size: var(--fs-md);
+  line-height: var(--lh-md);
+}
+
+:focus-visible {
+  outline: var(--foco-largura) solid var(--foco-cor);
+  outline-offset: var(--foco-offset);
+}
+
+.dados {
+  font-family: var(--fonte-dados);
+  font-weight: var(--peso-medio);
+  font-variant-numeric: tabular-nums;
+}
