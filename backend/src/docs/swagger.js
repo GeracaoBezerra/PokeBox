@@ -22,8 +22,108 @@ export const swaggerSpec = {
     description: 'API do PokeBox',
   },
   servers: [{ url: `http://localhost:${process.env.BACKEND_PORT ?? process.env.PORT ?? 3000}` }],
-  tags: [{ name: 'Cards', description: 'Cartas (TCGdex + cache)' }],
+  tags: [
+    { name: 'Auth', description: 'Cadastro, login e sessão' },
+    { name: 'Cards', description: 'Cartas (TCGdex + cache)' },
+  ],
   paths: {
+    '/auth/register': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Cadastra um novo usuário',
+        description: 'Cria a conta e já devolve um token válido. A senha é gravada com hash bcrypt e nunca retorna na resposta.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/RegisterRequest' } } },
+        },
+        responses: {
+          201: {
+            description: 'Usuário criado',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } },
+          },
+          400: {
+            description: 'Corpo inválido',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiValidationError' } } },
+          },
+          409: {
+            description: 'E-mail ou username já cadastrado',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+          500: {
+            description: 'Erro interno',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+        },
+      },
+    },
+    '/auth/login': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Autentica e devolve o token',
+        description: 'Em caso de credencial inválida a resposta é a mesma para e-mail inexistente e senha errada, de propósito: mensagens diferentes permitiriam descobrir quais e-mails estão cadastrados.',
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/LoginRequest' } } },
+        },
+        responses: {
+          200: {
+            description: 'Autenticado',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } },
+          },
+          400: {
+            description: 'Corpo inválido',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiValidationError' } } },
+          },
+          401: {
+            description: 'E-mail ou senha inválidos',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+          403: {
+            description: 'Conta suspensa ou inativa',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+          500: {
+            description: 'Erro interno',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+        },
+      },
+    },
+    '/auth/me': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Dados do usuário autenticado',
+        description: 'Usada pelo front para saber quem está logado ao recarregar a página. O usuário é relido do banco a cada chamada, então suspender uma conta invalida a sessão na hora.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Usuário da sessão',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: { user: { $ref: '#/components/schemas/AuthUser' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Token ausente, inválido, expirado ou sessão encerrada',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+          500: {
+            description: 'Erro interno',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
+          },
+        },
+      },
+    },
     '/cards': {
       get: {
         tags: ['Cards'],
@@ -48,11 +148,11 @@ export const swaggerSpec = {
           },
           400: {
             description: 'Parâmetros inválidos',
-            content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } },
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiValidationError' } } },
           },
           500: {
             description: 'Erro interno',
-            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
           },
         },
       },
@@ -79,22 +179,119 @@ export const swaggerSpec = {
           },
           400: {
             description: 'Parâmetros inválidos',
-            content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationError' } } },
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiValidationError' } } },
           },
           404: {
             description: 'Carta não encontrada',
-            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
           },
           500: {
             description: 'Erro interno',
-            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
           },
         },
       },
     },
   },
   components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Token devolvido por /auth/login ou /auth/register. Enviar como: Authorization: Bearer <token>',
+      },
+    },
     schemas: {
+      RegisterRequest: {
+        type: 'object',
+        required: ['username', 'name', 'email', 'password'],
+        properties: {
+          username: {
+            type: 'string',
+            pattern: '^[a-z0-9_]{3,20}$',
+            description: 'Identificador público, usado na URL do perfil. Só minúsculas, números e underscore.',
+            example: 'ash_ketchum',
+          },
+          name: { type: 'string', minLength: 2, maxLength: 120, example: 'Ash Ketchum' },
+          email: { type: 'string', format: 'email', description: 'Normalizado para minúsculas.', example: 'ash@pokebox.com' },
+          password: {
+            type: 'string',
+            minLength: 8,
+            maxLength: 72,
+            description: 'O limite de 72 é do bcrypt, que trunca acima disso.',
+            example: 'senhaForte123',
+          },
+        },
+      },
+      LoginRequest: {
+        type: 'object',
+        required: ['email', 'password'],
+        properties: {
+          email: { type: 'string', format: 'email', example: 'ash@pokebox.com' },
+          password: { type: 'string', example: 'senhaForte123' },
+        },
+      },
+      AuthUser: {
+        type: 'object',
+        description: 'Dados públicos do usuário. O hash da senha nunca é retornado.',
+        properties: {
+          id: { type: 'string', format: 'uuid', example: 'f323730d-c965-42b2-b3f4-a059e009dfe7' },
+          username: { type: 'string', example: 'ash_ketchum' },
+          name: { type: 'string', example: 'Ash Ketchum' },
+          email: { type: 'string', format: 'email', example: 'ash@pokebox.com' },
+          role: { type: 'string', enum: ['USER', 'ADMIN'], example: 'USER' },
+          accountStatus: {
+            type: 'string',
+            enum: ['PENDING_VERIFICATION', 'ACTIVE', 'INACTIVE', 'SUSPENDED'],
+            example: 'PENDING_VERIFICATION',
+          },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      AuthResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          data: {
+            type: 'object',
+            properties: {
+              user: { $ref: '#/components/schemas/AuthUser' },
+              token: {
+                type: 'string',
+                description: 'JWT válido por 1 dia. Carrega apenas o id do usuário.',
+                example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+              },
+            },
+          },
+        },
+      },
+      ApiError: {
+        type: 'object',
+        description: 'Formato único de erro da API.',
+        properties: {
+          success: { type: 'boolean', example: false },
+          error: { type: 'string', example: 'E-mail ou senha inválidos' },
+        },
+      },
+      ApiValidationError: {
+        type: 'object',
+        description: 'Erro de validação. Todos os campos inválidos vêm de uma vez.',
+        properties: {
+          success: { type: 'boolean', example: false },
+          error: { type: 'string', example: 'Dados inválidos' },
+          details: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                field: { type: 'string', example: 'username' },
+                message: { type: 'string', example: 'username: 3 a 20 caracteres, apenas a-z, 0-9 e _' },
+              },
+            },
+          },
+        },
+      },
       CardSummary: {
         type: 'object',
         properties: {
@@ -110,6 +307,7 @@ export const swaggerSpec = {
       CardListResponse: {
         type: 'object',
         properties: {
+          success: { type: 'boolean', example: true },
           data: { type: 'array', items: { $ref: '#/components/schemas/CardSummary' } },
           pagination: {
             type: 'object',
@@ -216,20 +414,15 @@ export const swaggerSpec = {
       CardDetailsResponse: {
         type: 'object',
         properties: {
-          card: { $ref: '#/components/schemas/CardDetails' },
-          user: { $ref: '#/components/schemas/CardUserInfo' },
-          listings: { type: 'array', items: { $ref: '#/components/schemas/Listing' } },
-        },
-      },
-      Error: {
-        type: 'object',
-        properties: { message: { type: 'string' } },
-      },
-      ValidationError: {
-        type: 'object',
-        properties: {
-          message: { type: 'string', example: 'Parâmetros inválidos' },
-          errors: { type: 'array', items: { type: 'string' }, example: ['ID de carta inválido'] },
+          success: { type: 'boolean', example: true },
+          data: {
+            type: 'object',
+            properties: {
+              card: { $ref: '#/components/schemas/CardDetails' },
+              user: { $ref: '#/components/schemas/CardUserInfo' },
+              listings: { type: 'array', items: { $ref: '#/components/schemas/Listing' } },
+            },
+          },
         },
       },
     },
