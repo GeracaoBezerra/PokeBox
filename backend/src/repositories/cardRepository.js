@@ -1,4 +1,4 @@
-import { prisma } from '../database/prisma.js';
+import { prisma } from '../lib/prisma.js';
 import { MemoryCache } from '../utils/memoryCache.js';
 import { cardMock } from '../mocks/cardMock.js';
 import { fetchCardFromTcgdex, searchCardsInTcgdex } from './tcgdexRepository.js';
