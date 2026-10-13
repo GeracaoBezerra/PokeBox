@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 
 export const LANGS = ['en', 'pt', 'es', 'fr', 'de', 'it', 'ja'];
 
@@ -31,8 +31,7 @@ export function validateCardParams(req, res, next) {
   const query = cardQuerySchema.safeParse({ lang: normalizeLang(req.query.lang) });
 
   if (!params.success || !query.success) {
-    const issues = [...(params.error?.issues ?? []), ...(query.error?.issues ?? [])];
-    return res.status(400).json({ message: 'Parâmetros inválidos', errors: issues.map((i) => i.message) });
+    throw new ZodError([...(params.error?.issues ?? []), ...(query.error?.issues ?? [])]);
   }
 
   res.locals.lang = query.data.lang;
@@ -48,7 +47,7 @@ export function validateCardListQuery(req, res, next) {
   });
 
   if (!query.success) {
-    return res.status(400).json({ message: 'Parâmetros inválidos', errors: query.error.issues.map((i) => i.message) });
+    throw new ZodError(query.error.issues);
   }
 
   res.locals.query = query.data;

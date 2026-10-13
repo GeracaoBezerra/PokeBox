@@ -1,5 +1,6 @@
 import { findCardById, findCards, findListingsByCard, findUserCardInfo } from '../repositories/cardRepository.js';
 import { CardNotFoundError } from '../repositories/tcgdexRepository.js';
+import { AppError } from '../utils/AppError.js';
 
 
 export async function getCardDetails(req, res, next) {
@@ -14,9 +15,9 @@ export async function getCardDetails(req, res, next) {
     ]);
 
     res.set('Cache-Control', 'private, max-age=60');
-    return res.json({ card, user, listings });
+    return res.json({ success: true, data: { card, user, listings } });
   } catch (err) {
-    if (err instanceof CardNotFoundError) return res.status(404).json({ message: err.message });
+    if (err instanceof CardNotFoundError) return next(new AppError(404, err.message));
     return next(err);
   }
 
@@ -30,6 +31,7 @@ export async function listCards(req, res, next) {
 
     res.set('Cache-Control', 'public, max-age=300');
     return res.json({
+      success: true,
       data: cards,
       pagination: { page, limit, hasNextPage: cards.length === limit },
     });
