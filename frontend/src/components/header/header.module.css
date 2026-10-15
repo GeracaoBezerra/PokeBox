@@ -1,0 +1,264 @@
+
+.header {
+  padding: var(--esp-16) var(--esp-24);
+  background: var(--superficie) var(--textura-feltro);
+  color: var(--texto);
+
+  border-bottom: var(--borda-painel);
+  box-shadow: var(--sombra-sm);
+  font-family: var(--fonte-corpo);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-16);
+
+  max-width: var(--largura-max);
+  margin: 0 auto;
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-16);
+}
+
+/* Logo */
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-12);
+
+  color: var(--texto);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.monograma {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 48px;
+
+  background-color: var(--fundo);
+  border: var(--borda-painel);
+  border-radius: 4px;
+  box-shadow: var(--sombra-sm);
+
+  color: var(--acento);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-forte);
+
+  transform: rotate(-4deg);
+}
+
+.logoTexto {
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-xl);
+  font-weight: var(--peso-forte);
+  letter-spacing: -0.5px;
+}
+
+/* Busca */
+
+.buscaContainer {
+  position: relative;
+  flex: 1;
+  max-width: 520px;
+  min-width: 0;
+}
+
+.iconeBusca {
+  position: absolute;
+  top: 50%;
+  left: var(--esp-12);
+  transform: translateY(-50%);
+
+  color: var(--texto-suave);
+  pointer-events: none;
+}
+
+.inputBusca {
+  width: 100%;
+  height: var(--altura-controle);
+  padding: 0 var(--esp-16) 0 40px;
+
+  background-color: var(--fundo);
+  border: var(--borda-painel);
+  border-radius: var(--raio-botao);
+
+  color: var(--texto);
+  font-family: var(--fonte-corpo);
+  font-size: var(--fs-sm);
+}
+
+.inputBusca::placeholder {
+  color: var(--texto-suave);
+}
+
+.inputBusca:focus {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--acento) 30%, transparent);
+}
+
+.buscaMobile {
+  display: none;
+}
+
+/* Perfil e botão do menu */
+
+.acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-12);
+}
+
+.botaoPerfil,
+.botaoMenu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: var(--altura-controle);
+  height: var(--altura-controle);
+
+  background-color: var(--fundo);
+  border: var(--borda-painel);
+  border-radius: var(--raio-botao);
+
+  color: var(--texto);
+  cursor: pointer;
+  text-decoration: none;
+
+  transition:
+    background-color var(--tempo-rapido),
+    border-color var(--tempo-rapido),
+    color var(--tempo-rapido);
+}
+
+.botaoPerfil:hover,
+.botaoMenu:hover {
+  background-color: var(--superficie-hover);
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.botaoMenu {
+  display: none;
+}
+
+/* Navegação */
+
+.navegacao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-32);
+
+  padding-top: var(--esp-12);
+  border-top: 1px solid var(--borda-suave);
+}
+
+.linkNav {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-8);
+
+  padding: var(--esp-8) var(--esp-12);
+  border-radius: var(--raio-botao);
+
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-medio);
+  text-decoration: none;
+
+  transition:
+    color var(--tempo-rapido),
+    background-color var(--tempo-rapido);
+}
+
+.linkNav:hover {
+  color: var(--acento);
+  background-color: color-mix(in srgb, var(--acento) 10%, transparent);
+}
+
+/* Tablet e celular */
+
+@media (max-width: 768px) {
+  .header {
+    padding: var(--esp-12) var(--esp-16);
+  }
+
+  .buscaDesktop {
+    display: none;
+  }
+
+  .buscaMobile {
+    display: block;
+    max-width: none;
+    width: 100%;
+  }
+
+  .botaoMenu {
+    display: flex;
+  }
+
+  .navegacao {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--esp-8);
+
+    padding-top: var(--esp-12);
+  }
+
+  .navegacaoAberta {
+    display: flex;
+  }
+
+  .linkNav {
+    min-height: var(--alvo-min);
+    padding: var(--esp-12);
+
+    background-color: var(--fundo);
+    border: var(--borda-painel);
+  }
+}
+
+/* Celulares estreitos */
+
+@media (max-width: 390px) {
+  .header {
+    padding-right: var(--esp-12);
+    padding-left: var(--esp-12);
+  }
+
+  .topo {
+    gap: var(--esp-8);
+  }
+
+  .logo {
+    gap: var(--esp-8);
+  }
+
+  .logoTexto {
+    font-size: var(--fs-lg);
+  }
+
+  .monograma {
+    width: 32px;
+    height: 42px;
+  }
+
+  .acoes {
+    gap: var(--esp-8);
+  }
+}
