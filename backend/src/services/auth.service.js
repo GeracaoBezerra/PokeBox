@@ -1,12 +1,14 @@
+// backend/src/services/auth.service.js
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-import * as userRepository from '../repositories/user.repository.js';
+import * as userRepository from '../repositories/userRepository.js';
 import { isAccountUsable } from '../utils/accountStatus.js';
 import { AppError } from '../utils/AppError.js';
 
 const SALT_ROUNDS = 12;
 const INVALID_CREDENTIALS = 'E-mail ou senha inválidos';
+const DUMMY_HASH = bcrypt.hashSync('dummy-password', SALT_ROUNDS); // <- nova
 
 function signToken(user) {
   return jwt.sign(
@@ -32,14 +34,12 @@ export async function register({ username, name, email, password }) {
 
 export async function login({ email, password }) {
   const user = await userRepository.findByEmail(email);
+  const passwordMatches = await bcrypt.compare(
+    password,
+    user?.passwordHash ?? DUMMY_HASH,
+  );
 
-  if (!user) {
-    throw new AppError(401, INVALID_CREDENTIALS);
-  }
-
-  const passwordMatches = await bcrypt.compare(password, user.passwordHash);
-
-  if (!passwordMatches) {
+  if (!user || !passwordMatches) {
     throw new AppError(401, INVALID_CREDENTIALS);
   }
 

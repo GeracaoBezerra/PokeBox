@@ -3,7 +3,9 @@ import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 
 import authRoutes from './routes/auth.routes.js';
-import cardRoutes from './routes/cardRoutes.js';
+// backend/src/app.js
+import cardRoutes from './routes/card.routes.js';
+import userRoutes from './routes/user.routes.js'
 import { swaggerSpec } from './docs/swagger.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
@@ -20,6 +22,8 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/auth', authRoutes);
 app.use('/cards', cardRoutes);
+
+app.use('/user', userRoutes)
 
 app.use(notFoundHandler);
 app.use(errorHandler);
