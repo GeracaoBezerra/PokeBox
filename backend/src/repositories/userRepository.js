@@ -1,4 +1,3 @@
-// backend/src/repositories/userRepository.js
 import { prisma } from '../lib/prisma.js';
 
 const publicFields = {
@@ -63,7 +62,7 @@ export function update(id, data) {
 export function deactivate(id) {
   return prisma.user.update({
     where: { id },
-    data: { accountStatus: 'INACTIVE' },
+    data: { accountStatus: 'INACTIVE', deletedAt: new Date() },
     select: { id: true },
   });
 }

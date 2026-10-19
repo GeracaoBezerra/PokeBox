@@ -1,4 +1,3 @@
-// backend/src/routes/user.routes.js
 import { Router } from 'express';
 import * as userController from '../controllers/userController.js';
 import { requireAuth } from '../middlewares/authMiddlewares.js';

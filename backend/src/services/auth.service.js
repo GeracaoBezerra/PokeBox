@@ -8,7 +8,7 @@ import { AppError } from '../utils/AppError.js';
 
 const SALT_ROUNDS = 12;
 const INVALID_CREDENTIALS = 'E-mail ou senha inválidos';
-const DUMMY_HASH = bcrypt.hashSync('dummy-password', SALT_ROUNDS); // <- nova
+const DUMMY_HASH = bcrypt.hashSync('dummy-password', SALT_ROUNDS);
 
 function signToken(user) {
   return jwt.sign(
