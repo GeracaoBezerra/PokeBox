@@ -1,0 +1,201 @@
+
+.bannerSection {
+  width: 100%;
+  overflow: hidden;
+  background-color: #14261f;
+}
+
+.swiper {
+  width: 100%;
+  position: relative;
+}
+
+.banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1920 / 600;
+  overflow: hidden;
+  background-color: #14261f;
+}
+
+.bannerPicture {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bannerImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.bannerContent {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 8%;
+  transform: translateY(-50%);
+  width: min(42%, 560px);
+  color: #efe9dc;
+}
+
+.bannerTitle {
+  margin: 0 0 16px;
+  color: #efe9dc;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: clamp(28px, 3.2vw, 56px);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.bannerDescription {
+  margin: 0 0 24px;
+  color: #efe9dc;
+  font-family: 'Figtree', sans-serif;
+  font-size: clamp(15px, 1.2vw, 19px);
+  line-height: 1.6;
+}
+
+.bannerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border: 1px solid #e8b230;
+  border-radius: 6px;
+  background-color: #e8b230;
+  color: #14261f;
+  font-family: 'Figtree', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.bannerButton:hover {
+  background-color: transparent;
+  color: #e8b230;
+  transform: translateY(-2px);
+}
+
+.bannerButton:focus-visible {
+  outline: 3px solid #efe9dc;
+  outline-offset: 4px;
+}
+
+/* Setas de navegação do Swiper */
+.swiper :global(.swiper-button-prev),
+.swiper :global(.swiper-button-next) {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgb(239 233 220 / 35%);
+  border-radius: 50%;
+  background-color: rgb(20 38 31 / 70%);
+  color: #efe9dc;
+}
+
+.swiper :global(.swiper-button-prev)::after,
+.swiper :global(.swiper-button-next)::after {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.swiper :global(.swiper-button-prev) {
+  left: 24px;
+}
+
+.swiper :global(.swiper-button-next) {
+  right: 24px;
+}
+
+/* Paginação */
+.swiper :global(.swiper-pagination) {
+  bottom: 18px;
+}
+
+.swiper :global(.swiper-pagination-bullet) {
+  width: 9px;
+  height: 9px;
+  background-color: #efe9dc;
+  opacity: 0.65;
+}
+
+.swiper :global(.swiper-pagination-bullet-active) {
+  width: 24px;
+  border-radius: 6px;
+  background-color: #e8b230;
+  opacity: 1;
+}
+
+/* Versão mobile */
+@media (max-width: 768px) {
+  .banner {
+    aspect-ratio: 750 / 900;
+  }
+
+  .bannerContent {
+    top: auto;
+    bottom: 12%;
+    left: 7%;
+    width: 86%;
+    transform: none;
+  }
+
+  .bannerTitle {
+    max-width: 440px;
+    margin-bottom: 12px;
+    font-size: clamp(28px, 7vw, 42px);
+  }
+
+  .bannerDescription {
+    max-width: 400px;
+    margin-bottom: 18px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .bannerButton {
+    min-height: 44px;
+    padding: 0 20px;
+    font-size: 14px;
+  }
+
+  .swiper :global(.swiper-button-prev),
+  .swiper :global(.swiper-button-next) {
+    width: 34px;
+    height: 34px;
+  }
+
+  .swiper :global(.swiper-button-prev)::after,
+  .swiper :global(.swiper-button-next)::after {
+    font-size: 13px;
+  }
+
+  .swiper :global(.swiper-button-prev) {
+    left: 10px;
+  }
+
+  .swiper :global(.swiper-button-next) {
+    right: 10px;
+  }
+
+  .swiper :global(.swiper-pagination) {
+    bottom: 12px;
+  }
+}
+
+/* Respeita a preferência por movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  .bannerButton {
+    transition: none;
+  }
+}
