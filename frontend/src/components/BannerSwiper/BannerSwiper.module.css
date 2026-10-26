@@ -2,7 +2,7 @@
 .bannerSection {
   width: 100%;
   overflow: hidden;
-  background-color: #14261f;
+  background-color: var(--fundo);
 }
 
 .swiper {
@@ -15,7 +15,7 @@
   width: 100%;
   aspect-ratio: 1920 / 600;
   overflow: hidden;
-  background-color: #14261f;
+  background-color: var(--fundo);
 }
 
 .bannerPicture {
@@ -41,12 +41,12 @@
   left: 8%;
   transform: translateY(-50%);
   width: min(42%, 560px);
-  color: #efe9dc;
+  color: var(--acento);
 }
 
 .bannerTitle {
   margin: 0 0 16px;
-  color: #efe9dc;
+  color: var(--acento);
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: clamp(28px, 3.2vw, 56px);
   font-weight: 700;
@@ -55,7 +55,7 @@
 
 .bannerDescription {
   margin: 0 0 24px;
-  color: #efe9dc;
+  color: var(--texto);
   font-family: 'Figtree', sans-serif;
   font-size: clamp(15px, 1.2vw, 19px);
   line-height: 1.6;
@@ -67,10 +67,10 @@
   justify-content: center;
   min-height: 48px;
   padding: 0 24px;
-  border: 1px solid #e8b230;
+  border: 1px solid var(--acento);
   border-radius: 6px;
-  background-color: #e8b230;
-  color: #14261f;
+  background-color: var(--acento);
+  color: var(--fundo);
   font-family: 'Figtree', sans-serif;
   font-size: 15px;
   font-weight: 700;
@@ -83,12 +83,12 @@
 
 .bannerButton:hover {
   background-color: transparent;
-  color: #e8b230;
+  color: var(--acento);
   transform: translateY(-2px);
 }
 
 .bannerButton:focus-visible {
-  outline: 3px solid #efe9dc;
+  outline: 3px solid var(--texto);
   outline-offset: 4px;
 }
 
@@ -125,14 +125,14 @@
 .swiper :global(.swiper-pagination-bullet) {
   width: 9px;
   height: 9px;
-  background-color: #efe9dc;
+  background-color: var(--texto);
   opacity: 0.65;
 }
 
 .swiper :global(.swiper-pagination-bullet-active) {
   width: 24px;
   border-radius: 6px;
-  background-color: #e8b230;
+  background-color: var(--acento);
   opacity: 1;
 }
 
