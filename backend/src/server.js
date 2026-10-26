@@ -1,3 +1,4 @@
+// backend/src/server.js
 import './config/env.js';
 import app from './app.js';
 
