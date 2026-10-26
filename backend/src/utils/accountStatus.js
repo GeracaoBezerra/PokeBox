@@ -1,3 +1,4 @@
+// backend/src/utils/accountStatus.js
 const USABLE_STATUSES = ['ACTIVE', 'PENDING_VERIFICATION'];
 
 export function isAccountUsable(accountStatus) {
