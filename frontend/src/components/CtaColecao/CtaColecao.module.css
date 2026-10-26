@@ -1,0 +1,15 @@
+.ctaSection{
+    width: 100%;
+    background-color: var(--fundo);
+    overflow: hidden;
+}
+
+.ctaContainer{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+
+    width: var(--largura-max);
+    margin: 0 auto;
+}
