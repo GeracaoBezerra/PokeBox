@@ -1,10 +1,12 @@
-.ctaSection{
+.ctaSection {
     width: 100%;
     background-color: var(--fundo);
     overflow: hidden;
+    padding: var(--esp-16) var(--esp-24);
+    font-family: var(--fonte-corpo);
 }
 
-.ctaContainer{
+.ctaContainer {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -12,4 +14,23 @@
 
     width: var(--largura-max);
     margin: 0 auto;
+}
+
+.ctaText {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-16);
+    max-width: 400px;
+
+}
+
+.ctaTitle {
+    font-family: var(--fonte-corpo);
+    font-size: var(--fs-xl);
+    font-family: var(--fonte-corpo);
+
+}
+
+.ctaDescription{
+    
 }

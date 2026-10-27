@@ -3,7 +3,6 @@
   padding: var(--esp-16) var(--esp-24);
   background: var(--superficie) var(--textura-feltro);
   color: var(--texto);
-
   border-bottom: var(--borda-painel);
   box-shadow: var(--sombra-sm);
   font-family: var(--fonte-corpo);

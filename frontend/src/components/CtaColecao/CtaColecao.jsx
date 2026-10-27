@@ -11,11 +11,14 @@ export default function CtaColecao() {
   return (
     <section className={styles.ctaSection}>
       <div className={styles.ctaContainer}>
-        <div>
-          <h2>Monte sua coleção</h2>
-          <p>Crie sua coleção e faça trocas!</p>
+        <div className={styles.ctaText}>
+          
+          <h2 className={styles.ctaTitle}>Monte sua coleção</h2>
+          <p className={styles.ctaDescription}>
+            Crie sua coleção e faça trocas. Nosso site tem o objetivo é facilitar a troca de cartas
+          </p>
 
-          <Link to="/">
+          <Link to="/" className={styles.ctaButton}>
             Monte sua coleção
           </Link>
         </div>
