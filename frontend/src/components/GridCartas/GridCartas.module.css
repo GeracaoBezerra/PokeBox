@@ -1,0 +1,313 @@
+.secao {
+  width: 100%;
+  padding: var(--esp-48) var(--esp-24);
+  font-family: var(--fonte-corpo);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--largura-max);
+  margin: 0 auto;
+}
+
+/* Cabeçalho */
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-16);
+  margin-bottom: var(--esp-24);
+}
+
+.titulo {
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-lg);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-lg);
+}
+
+.verTodas {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-8);
+
+  color: var(--acento);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+}
+
+.verTodas svg {
+  transition: transform var(--tempo-medio) var(--curva-entrar);
+}
+
+.verTodas:hover svg {
+  transform: translateX(4px);
+}
+
+/* Grid: 12 cartas em 4 colunas */
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--esp-32) var(--esp-24);
+}
+
+/* Cada item é só a célula do grid: ela não se move, então a área de hover
+   é estável. Quem se move é o .palco. O z-index só volta ao normal depois
+   que a carta termina de descer, para ela não passar por trás das vizinhas
+   no meio do movimento. */
+.item {
+  position: relative;
+  z-index: 0;
+  transition: z-index 0s linear calc(var(--tempo-lento) * 1.25);
+}
+
+/* Carta + painel andam juntos ("salto" para a frente) */
+.palco {
+  position: relative;
+  transform-origin: center;
+  transition: transform calc(var(--tempo-lento) * 1.25) var(--curva-entrar);
+}
+
+.link {
+  position: relative;
+  z-index: 1; /* fica por cima do painel, que sai de trás dela */
+  display: block;
+  border-radius: var(--raio-carta);
+}
+
+.imagem {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--carta-proporcao);
+  object-fit: cover;
+  user-select: none;
+
+  background-color: var(--superficie); /* enquanto a imagem carrega */
+  border-radius: var(--raio-carta);
+  box-shadow: var(--sombra-carta);
+
+  transition: box-shadow calc(var(--tempo-lento) * 1.25) ease;
+}
+
+/* Painel de dados: gaveta que sai de trás da carta.
+   Por padrão abre para a direita; a última coluna abre para a esquerda
+   (veja as regras com nth-child abaixo). */
+
+.painel {
+  --esconde: inset(0 100% 0 0);
+  --raio-lado: 0 var(--raio-painel) var(--raio-painel) 0;
+  --pad-esq: calc(var(--esp-16) * 2); /* o 1º esp-16 fica sob a carta */
+  --pad-dir: var(--esp-16);
+
+  position: absolute;
+  z-index: 0;
+  top: 8%;
+  bottom: 8%;
+  left: calc(100% - var(--esp-16));
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--esp-12);
+  overflow: hidden;
+  padding: var(--esp-16) var(--pad-dir) var(--esp-16) var(--pad-esq);
+
+  background-color: var(--superficie);
+  border: var(--borda-painel);
+  border-radius: var(--raio-lado);
+
+  clip-path: var(--esconde);
+  transition: clip-path calc(var(--tempo-lento) * 1.25) var(--curva-entrar);
+}
+
+/* Última coluna (4ª, 8ª, 12ª): abre para a esquerda */
+.item:nth-child(4n) .painel {
+  --esconde: inset(0 0 0 100%);
+  --raio-lado: var(--raio-painel) 0 0 var(--raio-painel);
+  --pad-esq: var(--esp-16);
+  --pad-dir: calc(var(--esp-16) * 2);
+
+  left: auto;
+  right: calc(100% - var(--esp-16));
+}
+
+.nome {
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-lg);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-lg);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-8);
+  padding: var(--esp-8) 0;
+  border-bottom: 1px solid var(--borda-suave);
+}
+
+.linha:last-child {
+  border-bottom: 0;
+}
+
+.linha dt {
+  flex-shrink: 0;
+  color: var(--texto-suave);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.linha dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--texto);
+  font-size: var(--fs-sm);
+  text-align: right;
+}
+
+/* Badge de tipo: usa as variáveis --tipo / --tipo-texto do global.css,
+   preenchidas pelo atributo data-tipo */
+.tipo {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--esp-8);
+
+  background-color: var(--tipo);
+  border-radius: var(--raio-pilula);
+
+  color: var(--tipo-texto);
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-semi);
+}
+
+.ranking {
+  color: var(--acento);
+}
+
+/* Estado "ativo": salto da carta e abertura do painel.
+   Mouse (hover) e teclado (foco no link) têm o mesmo efeito. */
+
+.item:has(.link:focus-visible) {
+  z-index: 10;
+  transition-delay: 0s;
+}
+
+.item:has(.link:focus-visible) .palco {
+  transform: translateY(-12px) scale(1.04);
+}
+
+.item:has(.link:focus-visible) .imagem {
+  box-shadow: 0 28px 48px rgb(0 0 0 / 0.55);
+}
+
+.item:has(.link:focus-visible) .painel {
+  clip-path: inset(0);
+}
+
+/* Só em dispositivos com mouse: em touch o hover ficaria "preso" */
+@media (hover: hover) {
+  .item:hover {
+    z-index: 10;
+    transition-delay: 0s;
+  }
+
+  .item:hover .palco {
+    transform: translateY(-12px) scale(1.04);
+  }
+
+  .item:hover .imagem {
+    box-shadow: 0 28px 48px rgb(0 0 0 / 0.55);
+  }
+
+  .item:hover .painel {
+    clip-path: inset(0);
+  }
+}
+
+/* Tablet: 3 colunas, e a última coluna passa a ser a 3ª, 6ª, 9ª, 12ª */
+@media (max-width: 1023px) {
+  .grade {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--esp-24) var(--esp-16);
+  }
+
+  /* desfaz a regra da 4ª coluna... */
+  .item:nth-child(4n) .painel {
+    --esconde: inset(0 100% 0 0);
+    --raio-lado: 0 var(--raio-painel) var(--raio-painel) 0;
+    --pad-esq: calc(var(--esp-16) * 2);
+    --pad-dir: var(--esp-16);
+
+    left: calc(100% - var(--esp-16));
+    right: auto;
+  }
+
+  /* ...e aplica na 3ª */
+  .item:nth-child(3n) .painel {
+    --esconde: inset(0 0 0 100%);
+    --raio-lado: var(--raio-painel) 0 0 var(--raio-painel);
+    --pad-esq: var(--esp-16);
+    --pad-dir: calc(var(--esp-16) * 2);
+
+    left: auto;
+    right: calc(100% - var(--esp-16));
+  }
+
+  .painel {
+    gap: var(--esp-8);
+  }
+
+  .nome {
+    font-size: var(--fs-md);
+  }
+
+  .linha {
+    padding: var(--esp-4) 0;
+  }
+
+  .linha dd {
+    font-size: var(--fs-xs);
+  }
+}
+
+/* Celular: 2 colunas, sem painel (não há hover). Tocar na carta abre
+   a página dela, que terá todos os dados. */
+@media (max-width: 600px) {
+  .secao {
+    padding: var(--esp-32) var(--esp-16);
+  }
+
+  .grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--esp-16);
+  }
+
+  .painel {
+    display: none;
+  }
+}
+
+/* Respeita a preferência por movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  .item,
+  .palco,
+  .imagem,
+  .painel,
+  .verTodas svg {
+    transition: none;
+  }
+}
