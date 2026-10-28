@@ -10,6 +10,18 @@ const publicFields = {
   createdAt: true,
 };
 
+const profileFields = {
+  ...publicFields,
+  phone: true,
+  cep: true,
+  street: true,
+  number: true,
+  complement: true,
+  neighborhood: true,
+  city: true,
+  state: true,
+};
+
 export function findByEmail(email) {
   return prisma.user.findUnique({
     where: { email },
@@ -27,7 +39,7 @@ export function findByEmailOrUsername(email, username) {
 export function findById(id) {
   return prisma.user.findUnique({
     where: { id },
-    select: publicFields,
+    select: profileFields,
   });
 }
 
@@ -35,6 +47,23 @@ export function create(data) {
   return prisma.user.create({
     data,
     select: publicFields,
+  });
+}
+
+export function update(id, data) {
+  return prisma.user.update({
+    where: { id },
+    data,
+    select: profileFields,
+  });
+}
+
+// "Delete" é soft delete: só muda o status, o registro continua no banco
+export function deactivate(id) {
+  return prisma.user.update({
+    where: { id },
+    data: { accountStatus: 'INACTIVE', deletedAt: new Date() },
+    select: { id: true },
   });
 }
 

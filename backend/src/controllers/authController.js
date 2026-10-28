@@ -1,3 +1,4 @@
+// backend/src/controllers/authController.js
 import * as authService from '../services/auth.service.js';
 import { registerSchema, loginSchema } from '../schemas/auth.schema.js';
 
