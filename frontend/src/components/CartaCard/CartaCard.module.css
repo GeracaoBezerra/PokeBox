@@ -1,0 +1,206 @@
+/* CartaCard: carta do catálogo + painel de dados que abre ao lado dela.
+   Quem usa o componente pode definir --lado: 1 abre o painel para a direita
+   (padrão) e -1 para a esquerda. Mouse (hover) e teclado (foco no link)
+   têm o mesmo efeito. */
+
+/* A raiz não se move, então a área de hover é estável. Quem se move é o
+   .palco. O z-index só volta ao normal depois que a carta termina de descer,
+   para ela não passar por trás das vizinhas no meio do movimento. */
+.carta {
+  position: relative;
+  z-index: 0;
+  transition: z-index 0s linear var(--tempo-medio);
+}
+
+/* Carta + painel andam juntos ("salto" para a frente) */
+.palco {
+  position: relative;
+  transform-origin: center;
+  transition: transform var(--tempo-medio) var(--curva-entrar);
+}
+
+.link {
+  position: relative;
+  z-index: 1; /* fica por cima do painel, que sai de trás dela */
+  display: block;
+  border-radius: var(--raio-carta);
+}
+
+.imagem {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--carta-proporcao);
+  object-fit: cover;
+  user-select: none;
+
+  background-color: var(--superficie); /* enquanto a imagem carrega */
+  border-radius: var(--raio-carta);
+  box-shadow: var(--sombra-carta);
+
+  transition: box-shadow var(--tempo-medio) var(--curva-entrar);
+}
+
+/* Painel de dados: fica escondido atrás da carta, com exatamente o mesmo
+   tamanho dela, e desliza para o lado quando a carta fica ativa. */
+.painel {
+  --sentido: var(--lado, 1);
+  --encaixe: 2px; /* quanto do painel fica sob a carta, para não abrir fresta */
+
+  /* arredonda só a ponta de fora: 1 = direita, -1 = esquerda */
+  --r-esq: calc(var(--raio-painel) * (1 - var(--sentido)) / 2);
+  --r-dir: calc(var(--raio-painel) * (1 + var(--sentido)) / 2);
+
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--esp-8);
+  overflow: hidden;
+  padding: var(--esp-8) var(--esp-12);
+
+  /* escuro, com um toque da cor do tipo da carta (--tipo vem do data-tipo) */
+  background-color: color-mix(in srgb, var(--tipo) 22%, var(--superficie-funda));
+  border: 1px solid color-mix(in srgb, var(--tipo) 45%, transparent);
+  border-radius: var(--r-esq) var(--r-dir) var(--r-dir) var(--r-esq);
+
+  opacity: 0;
+  transform: translateX(0);
+  transition:
+    transform var(--tempo-medio) var(--curva-entrar),
+    opacity var(--tempo-rapido) linear;
+}
+
+.nome {
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-md);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-xs);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.linha {
+  display: flex;
+  flex-wrap: wrap; /* valor comprido cai para a linha de baixo */
+  align-items: center;
+  justify-content: space-between;
+  column-gap: var(--esp-8);
+  padding: var(--esp-4) 0;
+  border-bottom: 1px solid var(--borda-suave);
+}
+
+.linha:last-child {
+  border-bottom: 0;
+}
+
+.linha dt {
+  flex-shrink: 0;
+  color: var(--texto-suave);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.linha dd {
+  min-width: 0;
+  margin: 0 0 0 auto;
+  color: var(--texto);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-xs);
+  text-align: right;
+}
+
+/* Badge de tipo: usa as variáveis --tipo / --tipo-texto do global.css,
+   preenchidas pelo data-tipo da raiz */
+.tipo {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--esp-8);
+
+  background-color: var(--tipo);
+  border-radius: var(--raio-pilula);
+  /* contorno fino para o badge não se perder em tipos escuros (Sombrio) */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tipo-texto) 30%, transparent);
+
+  color: var(--tipo-texto);
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-semi);
+}
+
+.ranking {
+  color: var(--acento);
+}
+
+/* Estado "ativo": salto da carta e abertura do painel.
+   Teclado (foco no link): */
+
+.carta:has(.link:focus-visible) {
+  z-index: 10;
+  transition-delay: 0s;
+}
+
+.carta:has(.link:focus-visible) .palco {
+  transform: translateY(-12px) scale(1.04);
+}
+
+.carta:has(.link:focus-visible) .imagem {
+  box-shadow: 0 28px 48px rgb(0 0 0 / 0.55);
+}
+
+.carta:has(.link:focus-visible) .painel {
+  opacity: 1;
+  transform: translateX(calc(var(--sentido) * (100% - var(--encaixe))));
+}
+
+/* Mouse: só em dispositivos com hover (em touch ele ficaria "preso") */
+@media (hover: hover) {
+  .carta:hover {
+    z-index: 10;
+    transition-delay: 0s;
+  }
+
+  .carta:hover .palco {
+    transform: translateY(-12px) scale(1.04);
+  }
+
+  .carta:hover .imagem {
+    box-shadow: 0 28px 48px rgb(0 0 0 / 0.55);
+  }
+
+  .carta:hover .painel {
+    opacity: 1;
+    transform: translateX(calc(var(--sentido) * (100% - var(--encaixe))));
+  }
+}
+
+/* Tablet: cartas um pouco menores, painel mais compacto */
+@media (max-width: 1023px) {
+  .linha dd {
+    font-size: var(--fs-xs);
+  }
+}
+
+/* Celular: sem painel (não há hover). Tocar na carta abre a página dela. */
+@media (max-width: 600px) {
+  .painel {
+    display: none;
+  }
+}
+
+/* Respeita a preferência por movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  .carta,
+  .palco,
+  .imagem,
+  .painel {
+    transition: none;
+  }
+}
