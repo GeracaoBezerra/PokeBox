@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
@@ -9,6 +9,7 @@ datasource db {
 
 model User {
   id            String        @id @default(uuid())
+  username      String        @unique
   name          String
   email         String        @unique
   phone         String?
@@ -27,6 +28,19 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
+}
+
+
+model CardCache {
+  id        String   @id @default(uuid())
+  cardId    String
+  lang      String   @default("en")
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cardId, lang])
+  @@index([updatedAt])
 }
 
 enum AccountStatus {
