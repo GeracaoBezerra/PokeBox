@@ -159,7 +159,7 @@
 .navegacao {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-evenly;
   gap: var(--esp-32);
 
   padding-top: var(--esp-12);
