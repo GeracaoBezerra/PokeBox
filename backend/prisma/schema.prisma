@@ -39,15 +39,26 @@ model User {
 }
 
 model Card {
-  id        String   @id
-  name      String
-  setId     String
-  setName   String
-  number    String
-  rarity    String?
-  imageUrl  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String    @id
+  name           String
+  setId          String
+  setName        String
+  setSeries      String?
+  releaseDate    DateTime? @db.Date
+  number         String
+  rarity         String?
+  imageUrl       String?
+  category       String?
+  types          String[]  @default([])
+  hp             Int?
+  stage          String?
+  illustrator    String?
+  dexId          Int[]     @default([])
+  regulationMark String?
+  trainerType    String?
+  energyType     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   collectionItems CollectionItem[]
   wishlistItems   WishlistItem[]
@@ -55,6 +66,7 @@ model Card {
 
   @@index([name])
   @@index([setId])
+  @@index([category])
 }
 
 model CollectionItem {
@@ -64,6 +76,8 @@ model CollectionItem {
   quantity         Int
   reservedQuantity Int           @default(0)
   condition        CardCondition @default(NEAR_MINT)
+  finish           CardFinish
+  firstEdition     Boolean       @default(false)
   isPublic         Boolean       @default(true)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -73,7 +87,7 @@ model CollectionItem {
   listings   Listing[]
   tradeItems TradeItem[]
 
-  @@unique([userId, cardId, condition])
+  @@unique([userId, cardId, condition, finish, firstEdition])
   @@index([cardId])
 }
 
@@ -153,6 +167,8 @@ model TradeItem {
   collectionItemId String?
   cardId           String
   condition        CardCondition
+  finish           CardFinish
+  firstEdition     Boolean       @default(false)
   quantity         Int
   fromUserId       String
   toUserId         String
@@ -199,6 +215,12 @@ enum CardCondition {
   LIGHT_PLAYED
   PLAYED
   POOR
+}
+
+enum CardFinish {
+  NORMAL
+  HOLO
+  REVERSE
 }
 
 enum ListingType {
