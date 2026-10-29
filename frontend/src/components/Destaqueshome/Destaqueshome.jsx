@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
-import styles from "./DestaquesHome.module.css";
+import styles from "./Destaqueshome.module.css";
 
 // Imagens da TCGdex (Base Set). Troque por arquivos locais em
 // assets/cards/ importando como no BannerSwiper:

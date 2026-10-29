@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation, Pagination } from "swiper/modules";
 import { Link } from "react-router-dom";
@@ -16,6 +17,8 @@ import expansoesMobile from "../../assets/banners/pokebox-expansoes-mobile.webp"
 import batalhaDesktop from "../../assets/banners/pokebox-batalha-desktop.webp";
 import batalhaMobile from "../../assets/banners/pokebox-batalha-mobile.webp";
 
+const mediaQuery = "(prefers-reduced-motion: reduce)";
+
 const banners = [
   {
     id: 1,
@@ -31,12 +34,12 @@ const banners = [
     id: 2,
     titulo: "Troque suas cartas repetidas.",
     descricao:
-      "Anuncie o que sobra na sua coleção e enconte quem tem o que você procura.",
+      "Anuncie o que sobra na sua coleção e encontre quem tem o que você procura.",
     textoBotao: "Ver marketplace",
     link: "/cartas",
     imagemDesktop: batalhaDesktop,
     imagemMobile: batalhaMobile,
-    alt: "Banner promocional de batalhas de Pokémon TCG",
+    alt: "Banner promocional de troca de cartas repetidas",
   },
   {
     id: 3,
@@ -50,11 +53,36 @@ const banners = [
   },
 ];
 
+function subscribe(callback) {
+  const query = window.matchMedia(mediaQuery);
 
+  query.addEventListener("change", callback);
+
+  return () => {
+    query.removeEventListener("change", callback);
+  };
+}
+
+function getSnapshot() {
+  return window.matchMedia(mediaQuery).matches;
+}
+
+function getServerSnapshot() {
+  return false;
+}
 
 export default function BannerSwiper() {
+  const reduzirMovimento = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot
+  );
+
   return (
-    <section className={styles.bannerSection} aria-label="Destaques da PokeBox">
+    <section
+      className={styles.bannerSection}
+      aria-label="Destaques da PokeBox"
+    >
       <Swiper
         className={styles.swiper}
         modules={[Autoplay, Navigation, Pagination]}
@@ -62,12 +90,16 @@ export default function BannerSwiper() {
         loop={true}
         navigation={false}
         pagination={{ clickable: true }}
-        autoplay={{
-          delay: 3000,
-          disableOnInteraction: false,
-          pauseOnMouseEnter: true,
-        }}
-        speed={600}
+        autoplay={
+          reduzirMovimento
+            ? false
+            : {
+                delay: 5000,
+                disableOnInteraction: false,
+                pauseOnMouseEnter: true,
+              }
+        }
+        speed={reduzirMovimento ? 0 : 600}
       >
         {banners.map((banner) => (
           <SwiperSlide key={banner.id}>
@@ -88,11 +120,18 @@ export default function BannerSwiper() {
               </picture>
 
               <div className={styles.bannerContent}>
-                <h2 className={styles.bannerTitle}>{banner.titulo}</h2>
+                <h2 className={styles.bannerTitle}>
+                  {banner.titulo}
+                </h2>
 
-                <p className={styles.bannerDescription}>{banner.descricao}</p>
+                <p className={styles.bannerDescription}>
+                  {banner.descricao}
+                </p>
 
-                <Link to={banner.link} className={styles.bannerButton}>
+                <Link
+                  to={banner.link}
+                  className={styles.bannerButton}
+                >
                   {banner.textoBotao}
                 </Link>
               </div>
