@@ -45,7 +45,10 @@
    tamanho dela, e desliza para o lado quando a carta fica ativa. */
 .painel {
   --sentido: var(--lado, 1);
-  --encaixe: 2px; /* quanto do painel fica sob a carta, para não abrir fresta */
+  /* Quanto do painel fica escondido sob a carta. Precisa ser maior que o
+     arredondamento da carta (4,8% da largura), senão o canto arredondado
+     deixa uma fresta entre a carta e a borda do painel. */
+  --encaixe: 6%;
 
   /* arredonda só a ponta de fora: 1 = direita, -1 = esquerda */
   --r-esq: calc(var(--raio-painel) * (1 - var(--sentido)) / 2);
@@ -60,11 +63,24 @@
   justify-content: center;
   gap: var(--esp-8);
   overflow: hidden;
-  padding: var(--esp-8) var(--esp-12);
+  /* o conteúdo foge da parte que fica sob a carta */
+  padding:
+    var(--esp-8)
+    calc(var(--esp-12) + var(--encaixe) * (1 - var(--sentido)) / 2)
+    var(--esp-8)
+    calc(var(--esp-12) + var(--encaixe) * (1 + var(--sentido)) / 2);
 
   /* escuro, com um toque da cor do tipo da carta (--tipo vem do data-tipo) */
   background-color: color-mix(in srgb, var(--tipo) 22%, var(--superficie-funda));
-  border: 1px solid color-mix(in srgb, var(--tipo) 45%, transparent);
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--tipo) 45%, transparent);
+  /* sem borda no lado que encosta na carta: em cima e embaixo a linha
+     continua por baixo dela, então não sobra nenhum pedaço solto */
+  border-width:
+    1px
+    calc(1px * (1 + var(--sentido)) / 2)
+    1px
+    calc(1px * (1 - var(--sentido)) / 2);
   border-radius: var(--r-esq) var(--r-dir) var(--r-dir) var(--r-esq);
 
   opacity: 0;

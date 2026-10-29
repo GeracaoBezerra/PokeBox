@@ -1,6 +1,7 @@
-
 .footer {
-  padding: clamp(28px, 4.2vw, 56px);
+  /* laterais iguais às das outras seções (esp-24); o fundo continua
+     ocupando a largura toda, só o conteúdo é limitado pela --largura-max */
+  padding: clamp(28px, 4.2vw, 56px) var(--esp-24);
   background-color: var(--superficie);
   background-image: var(--textura-feltro);
   border-top: var(--borda-painel);
@@ -9,6 +10,10 @@
 }
 
 .footerContent {
+  width: 100%;
+  max-width: var(--largura-max);
+  margin: 0 auto;
+
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) repeat(3, minmax(0, 1fr));
   gap: clamp(24px, 3vw, 48px);
@@ -169,7 +174,9 @@
 }
 
 .footerBottom {
-  margin-top: var(--esp-48);
+  width: 100%;
+  max-width: var(--largura-max);
+  margin: var(--esp-48) auto 0;
   padding-top: var(--esp-16);
   border-top: 1px solid var(--borda-suave);
 }
@@ -206,7 +213,7 @@
 @media (max-width: 600px) {
   .footer {
     margin-top: var(--esp-32);
-    padding: var(--esp-24);
+    padding: var(--esp-24) var(--esp-16);
   }
 
   .footerContent {

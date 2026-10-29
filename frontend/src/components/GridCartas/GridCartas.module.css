@@ -1,8 +1,4 @@
 .secao {
-  /* Largura do conteúdo: é ela que define o tamanho das cartas
-     (4 colunas ≈ 212px cada). Para cartas maiores ou menores, mexa aqui. */
-  --largura-grade: 920px;
-
   width: 100%;
   padding: var(--esp-48) var(--esp-24);
   font-family: var(--fonte-corpo);
@@ -10,7 +6,7 @@
 
 .container {
   width: 100%;
-  max-width: var(--largura-grade);
+  max-width: var(--largura-max);
   margin: 0 auto;
 }
 
@@ -53,8 +49,13 @@
 /* Grid: 12 cartas em 4 colunas */
 
 .grade {
+  /* Largura de cada carta (antes eram ≈ 212px). A grade ocupa a largura
+     toda da seção, e a sobra vira espaço entre as colunas. */
+  --carta-largura: 212px;
+
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, var(--carta-largura)));
+  justify-content: space-between;
   gap: var(--esp-32) var(--esp-24);
 }
 
@@ -81,12 +82,8 @@
 }
 
 @media (max-width: 1023px) {
-  .secao {
-    --largura-grade: 680px;
-  }
-
   .grade {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, var(--carta-largura)));
     gap: var(--esp-24) var(--esp-16);
   }
 }
