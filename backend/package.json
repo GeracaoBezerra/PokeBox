@@ -10,6 +10,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
     "contract:emit": "prisma contract emit",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
