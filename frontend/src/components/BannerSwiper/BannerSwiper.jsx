@@ -1,54 +1,56 @@
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Navigation, Pagination } from "swiper/modules";
+import { Link } from "react-router-dom";
 
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, Navigation, Pagination } from 'swiper/modules';
+import "swiper/css";
+import "swiper/css/pagination";
 
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'swiper/css/pagination';
+import styles from "./BannerSwiper.module.css";
 
-import styles from './BannerSwiper.module.css';
+import colecionismoDesktop from "../../assets/banners/pokebox-colecionismo-desktop.webp";
+import colecionismoMobile from "../../assets/banners/pokebox-colecionismo-mobile.webp";
 
-import colecionismoDesktop from '../../assets/banners/pokebox-colecionismo-desktop.jpg';
-import colecionismoMobile from '../../assets/banners/pokebox-colecionismo-mobile.jpg';
+import expansoesDesktop from "../../assets/banners/pokebox-expansoes-desktop.webp";
+import expansoesMobile from "../../assets/banners/pokebox-expansoes-mobile.webp";
 
-import expansoesDesktop from '../../assets/banners/pokebox-expansoes-desktop.jpg';
-import expansoesMobile from '../../assets/banners/pokebox-expansoes-mobile.jpg';
-
-import batalhaDesktop from '../../assets/banners/pokebox-batalha-desktop.jpg';
-import batalhaMobile from '../../assets/banners/pokebox-batalha-mobile.jpg';
+import batalhaDesktop from "../../assets/banners/pokebox-batalha-desktop.webp";
+import batalhaMobile from "../../assets/banners/pokebox-batalha-mobile.webp";
 
 const banners = [
   {
     id: 1,
-    titulo: 'Encontre sua próxima raridade',
-    descricao: 'Expanda sua coleção com cartas incríveis de Pokémon TCG.',
-    textoBotao: 'Explorar coleção',
-    link: '/colecao',
+    titulo: "Encontre sua próxima raridade",
+    descricao: "Expanda sua coleção com cartas incríveis de Pokémon TCG.",
+    textoBotao: "Explorar coleção",
+    link: "/colecao",
     imagemDesktop: colecionismoDesktop,
     imagemMobile: colecionismoMobile,
-    alt: 'Banner promocional de cartas raras de Pokémon TCG',
+    alt: "Banner promocional de cartas raras de Pokémon TCG",
   },
   {
     id: 2,
-    titulo: 'Monte seu deck. Domine a batalha.',
-    descricao: 'Encontre as cartas certas para sua estratégia.',
-    textoBotao: 'Montar meu deck',
-    link: '/cartas',
+    titulo: "Troque suas cartas repetidas.",
+    descricao:
+      "Anuncie o que sobra na sua coleção e enconte quem tem o que você procura.",
+    textoBotao: "Ver marketplace",
+    link: "/cartas",
     imagemDesktop: batalhaDesktop,
     imagemMobile: batalhaMobile,
-    alt: 'Banner promocional de batalhas de Pokémon TCG',
+    alt: "Banner promocional de batalhas de Pokémon TCG",
   },
   {
     id: 3,
-    titulo: 'Novas expansões, novas possibilidades',
-    descricao: 'Descubra cartas e novidades para sua coleção.',
-    textoBotao: 'Ver expansões',
-    link: '/expansoes',
+    titulo: "Novas expansões, novas possibilidades",
+    descricao: "Descubra cartas e novidades para sua coleção.",
+    textoBotao: "Ver expansões",
+    link: "/expansoes",
     imagemDesktop: expansoesDesktop,
     imagemMobile: expansoesMobile,
-    alt: 'Banner promocional de novas expansões de Pokémon TCG',
+    alt: "Banner promocional de novas expansões de Pokémon TCG",
   },
 ];
+
+
 
 export default function BannerSwiper() {
   return (
@@ -80,26 +82,19 @@ export default function BannerSwiper() {
                   className={styles.bannerImage}
                   src={banner.imagemDesktop}
                   alt={banner.alt}
-                  fetchPriority={banner.id === 1 ? 'high' : 'auto'}
-                  loading={banner.id === 1 ? 'eager' : 'lazy'}
+                  fetchPriority={banner.id === 1 ? "high" : "auto"}
+                  loading={banner.id === 1 ? "eager" : "lazy"}
                 />
               </picture>
 
               <div className={styles.bannerContent}>
-                <h2 className={styles.bannerTitle}>
-                  {banner.titulo}
-                </h2>
+                <h2 className={styles.bannerTitle}>{banner.titulo}</h2>
 
-                <p className={styles.bannerDescription}>
-                  {banner.descricao}
-                </p>
+                <p className={styles.bannerDescription}>{banner.descricao}</p>
 
-                <a
-                  href={banner.link}
-                  className={styles.bannerButton}
-                >
+                <Link to={banner.link} className={styles.bannerButton}>
                   {banner.textoBotao}
-                </a>
+                </Link>
               </div>
             </article>
           </SwiperSlide>

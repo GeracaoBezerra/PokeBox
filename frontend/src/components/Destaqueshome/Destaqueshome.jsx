@@ -10,7 +10,7 @@ const destaques = [
   {
     id: 1,
     titulo: "Novas adições",
-    texto: "As últimas cartas Foil, Holo e Reverse Holo anunciadas para troca.",
+    texto: "As últimas cartas anunciadas para troca.",
     to: "/", // TODO: "/marketplace?ordem=recentes"
     src: "https://assets.tcgdex.net/en/base/base1/10/high.webp",
   },
