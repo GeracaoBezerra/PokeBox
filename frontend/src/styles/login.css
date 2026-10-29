@@ -1,0 +1,299 @@
+.login-page {
+  /* Cores base */
+  --text: #efe9dc;
+  --muted: #efe9dc;
+  --line: rgb(255 255 255 / 0.2);
+  --card: #14261f;
+  --brand: #08eb90;
+  --brand-accent: #e8b230;
+  --brand-link: #eec35d;
+  --err: #a9b5aa;
+  --ok: #5a8271;
+ 
+  /* Fundo da página */
+  --page-from: #0b1030;
+  --page-to: #2a0a24;
+  --shade: rgb(5 8 30 / 0.38);
+ 
+  /* Superfícies derivadas */
+  --input-bg: rgb(255 255 255 / 0.06);
+  --focus-ring: #08eb90;
+  --brand-glow: #08eb90;
+ 
+  /* Raios */
+  --radius-sm: 12px;
+  --radius-lg: 22px;
+ 
+  /* Sombras */
+  --shadow-card: 0 20px 60px rgb(0 0 0 / 0.35);
+  --shadow-button: 0 8px 20px var(--brand-glow);
+ 
+  /* Tipografia */
+  --font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+ 
+  /* Transições */
+  --transition-fast: 0.15s;
+  --transition-base: 0.2s;
+  --transition-slow: 0.8s;
+ 
+  /* Camadas */
+  --z-bg: 0;
+  --z-content: 1;
+}
+ 
+ 
+/* ==========================================================================
+   2. BASE E LAYOUT DA PÁGINA
+   Responsabilidade: posicionar o conteúdo e definir o contexto tipográfico.
+   ========================================================================== */
+.login-page {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-bg);
+ 
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+ 
+  font-family: var(--font-family);
+  color: var(--text);
+  text-align: left;
+  letter-spacing: normal;
+  background: linear-gradient(160deg, var(--page-from), var(--page-to));
+}
+ 
+.login-page *,
+.login-page *::before,
+.login-page *::after {
+  box-sizing: border-box;
+}
+ 
+ 
+/* ==========================================================================
+   3. BACKGROUND
+   Responsabilidade: apenas a camada visual de fundo.
+   ========================================================================== */
+.login-page .bg {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-bg);
+  background: var(--page-from) url("/assets/fundo.webp") center / cover no-repeat;
+}
+ 
+.login-page .bg video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--transition-slow);
+}
+ 
+.login-page .bg video.on {
+  opacity: 1;
+}
+ 
+.login-page .bg .shade {
+  position: absolute;
+  inset: 0;
+  background: var(--shade);
+}
+ 
+ 
+/* ==========================================================================
+   4. CARD
+   Responsabilidade: o container visual do formulário.
+   ========================================================================== */
+.login-page .card {
+  position: relative;
+  z-index: var(--z-content);
+  width: min(600px, 92vw);
+  padding: 32px 28px;
+ 
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+ 
+ 
+/* ==========================================================================
+   5. LOGO E SUBTÍTULO
+   ========================================================================== */
+.login-page .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+ 
+.login-page .logo b {
+  color: var(--brand);
+}
+ 
+.login-page .sub {
+  margin: 6px 0 22px;
+  font-size: 14px;
+  color: var(--muted);
+}
+ 
+ 
+/* ==========================================================================
+   6. FORMULÁRIO
+   Responsabilidade: campos de entrada e seus estados.
+   ========================================================================== */
+.login-page label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+ 
+.login-page .field {
+  position: relative;
+}
+ 
+.login-page input {
+  width: 100%;
+  padding: 12px 14px;
+ 
+  font-size: 16px; /* 16px evita zoom automático no iOS */
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+ 
+.login-page input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+ 
+.login-page input[aria-invalid="true"] {
+  border-color: var(--err);
+}
+ 
+.login-page .err {
+  min-height: 16px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--err);
+}
+ 
+ 
+/* ==========================================================================
+   7. BOTÕES
+   ========================================================================== */
+ 
+/* Botão primário (enviar) */
+.login-page .go {
+  width: 100%;
+  margin-top: 8px;
+  padding: 13px;
+ 
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand), var(--brand-accent));
+  border: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-button);
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    opacity var(--transition-base);
+}
+ 
+.login-page .go:hover {
+  transform: translateY(-2px);
+}
+ 
+.login-page .go:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+}
+ 
+/* Botão de mostrar/ocultar senha */
+.login-page .eye {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+ 
+  padding: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+ 
+ 
+/* ==========================================================================
+   8. MENSAGENS DE FEEDBACK
+   .msg é o componente base; .error e .ok são variações que podem ser
+   trocadas entre si sem quebrar o layout (Liskov).
+   ========================================================================== */
+.login-page .msg {
+  min-height: 20px;
+  margin-top: 10px;
+  font-size: 13px;
+  text-align: center;
+}
+ 
+.login-page .msg.error {
+  color: var(--err);
+}
+ 
+.login-page .msg.ok {
+  color: var(--ok);
+}
+ 
+ 
+/* ==========================================================================
+   9. RODAPÉ
+   ========================================================================== */
+.login-page .foot {
+  margin-top: 16px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--muted);
+}
+ 
+.login-page .foot a {
+  font-weight: 600;
+  color: var(--brand-link);
+  text-decoration: none;
+}
+ 
+ 
+/* ==========================================================================
+   10. ACESSIBILIDADE E PREFERÊNCIAS DO USUÁRIO
+   ========================================================================== */
+.login-page .go:focus-visible,
+.login-page .eye:focus-visible,
+.login-page .foot a:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+ 
+@media (prefers-reduced-motion: reduce) {
+  .login-page .bg video {
+    display: none;
+  }
+ 
+  .login-page * {
+    transition-duration: 0.01ms !important;
+  }
+}
+ 
