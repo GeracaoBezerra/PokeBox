@@ -1,0 +1,109 @@
+.secao {
+  width: 100%;
+  padding: var(--esp-48) var(--esp-24);
+  font-family: var(--fonte-corpo);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--largura-max);
+  margin: 0 auto;
+}
+
+/* Cabeçalho */
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-16);
+  margin-bottom: var(--esp-24);
+}
+
+.titulo {
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-lg);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-lg);
+}
+
+.verTodas {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-8);
+
+  color: var(--acento);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+}
+
+.verTodas svg {
+  transition: transform var(--tempo-medio) var(--curva-entrar);
+}
+
+.verTodas:hover svg {
+  transform: translateX(4px);
+}
+
+/* Grid: 12 cartas em 4 colunas */
+
+.grade {
+  /* Largura de cada carta (antes eram ≈ 212px). A grade ocupa a largura
+     toda da seção, e a sobra vira espaço entre as colunas. */
+  --carta-largura: 212px;
+
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, var(--carta-largura)));
+  justify-content: space-between;
+  gap: var(--esp-32) var(--esp-24);
+}
+
+/* Cada item é só a célula do grid. O CartaCard lê a variável --lado para
+   saber de que lado abrir o painel de dados: sempre em direção ao centro do
+   grid (1 = direita, -1 = esquerda). */
+.item {
+  --lado: 1;
+}
+
+/* 4 colunas: a 3ª e a 4ª abrem para a esquerda */
+@media (min-width: 1024px) {
+  .item:nth-child(4n + 3),
+  .item:nth-child(4n) {
+    --lado: -1;
+  }
+}
+
+/* Tablet: 3 colunas, e só a 3ª abre para a esquerda */
+@media (min-width: 601px) and (max-width: 1023px) {
+  .item:nth-child(3n) {
+    --lado: -1;
+  }
+}
+
+@media (max-width: 1023px) {
+  .grade {
+    grid-template-columns: repeat(3, minmax(0, var(--carta-largura)));
+    gap: var(--esp-24) var(--esp-16);
+  }
+}
+
+/* Celular: 2 colunas, sem painel (não há hover). Tocar na carta abre
+   a página dela, que terá todos os dados. */
+@media (max-width: 600px) {
+  .secao {
+    padding: var(--esp-32) var(--esp-16);
+  }
+
+  .grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--esp-16);
+  }
+}
+
+/* Respeita a preferência por movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  .verTodas svg {
+    transition: none;
+  }
+}

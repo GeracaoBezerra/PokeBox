@@ -5,7 +5,7 @@ const informacoes = [
   { label: "Sobre PokeBox", href: "/sobre" },
   { label: "Segurança", href: "/seguranca" },
   { label: "Trabalhe Conosco", href: "/trabalhe-conosco" },
-  { label: "Wishlist", href: "/wishlist", destaque: true },
+  { label: "Wishlist", href: "/wishlist"},
 ];
 
 const categorias = [

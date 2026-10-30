@@ -9,7 +9,7 @@ import {
   ArrowLeftRight,
   Home,
 } from "lucide-react";
-
+import { Link } from "react-router-dom";
 import styles from "./header.module.css";
 
 export default function Header() {
@@ -25,10 +25,10 @@ export default function Header() {
       <div className={styles.container}>
         {/* Logo, busca e ações */}
         <div className={styles.topo}>
-          <a href="/" className={styles.logo}>
+          <Link to="/" className={styles.logo}>
             <span className={styles.monograma}>PB</span>
             <span className={styles.logoTexto}>PokeBox</span>
-          </a>
+          </Link>
 
           {/* Busca para desktop */}
           <form
@@ -49,13 +49,13 @@ export default function Header() {
           </form>
 
           <div className={styles.acoes}>
-            <a
-              href="/perfil"
+            <Link
+              to="/perfil"
               className={styles.botaoPerfil}
               aria-label="Perfil do usuário"
             >
               <User size={20} />
-            </a>
+            </Link>
 
             <button
               type="button"
@@ -96,25 +96,25 @@ export default function Header() {
           }`}
           aria-label="Navegação principal"
         >
-          <a href="/" className={styles.linkNav} onClick={fecharMenu}>
+          <Link to="/" className={styles.linkNav} onClick={fecharMenu}>
             <Home size={16} />
             <span>Home</span>
-          </a>
+          </Link>
 
-          <a href="/catalogo" className={styles.linkNav} onClick={fecharMenu}>
+          <Link to="/catalogo" className={styles.linkNav} onClick={fecharMenu}>
             <Layers size={16} />
             <span>Cards</span>
-          </a>
+          </Link>
 
-          <a href="/procuro" className={styles.linkNav} onClick={fecharMenu}>
+          <Link to="/procuro" className={styles.linkNav} onClick={fecharMenu}>
             <Heart size={16} />
             <span>Wishlist</span>
-          </a>
+          </Link>
 
-          <a href="/propostas" className={styles.linkNav} onClick={fecharMenu}>
+          <Link to="/propostas" className={styles.linkNav} onClick={fecharMenu}>
             <ArrowLeftRight size={16} />
             <span>Minhas Trocas</span>
-          </a>
+          </Link>
         </nav>
       </div>
     </header>
