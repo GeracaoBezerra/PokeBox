@@ -619,6 +619,8 @@ export const swaggerSpec = {
               name: { type: "string" },
               logo: nullableString,
               symbol: nullableString,
+              series: { type: "string", nullable: true, example: "Base" },
+              releaseDate: { type: "string", format: "date", nullable: true, example: "1999-01-09" },
             },
           },
           hp: { type: "integer", nullable: true, example: 120 },
@@ -656,6 +658,17 @@ export const swaggerSpec = {
           weaknesses: { type: "array", items: typeValue },
           resistances: { type: "array", items: typeValue },
           retreat: { type: "integer", nullable: true },
+          dexId: { type: "array", items: { type: "integer" }, example: [6] },
+          regulationMark: { type: "string", nullable: true, example: "G" },
+          legal: {
+            type: "object",
+            properties: {
+              standard: { type: "boolean" },
+              expanded: { type: "boolean" },
+            },
+          },
+          trainerType: { type: "string", nullable: true, example: "Item" },
+          energyType: { type: "string", nullable: true, example: "Normal" },
           variants: {
             type: "object",
             properties: {

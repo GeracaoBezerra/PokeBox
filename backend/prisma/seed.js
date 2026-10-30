@@ -1,4 +1,6 @@
 import '../src/config/env.js';
+import { readFile } from 'node:fs/promises';
+
 import bcrypt from 'bcrypt';
 
 import { prisma } from '../src/lib/prisma.js';
@@ -12,28 +14,30 @@ const users = [
   { username: 'misty', name: 'Misty Waterflower', email: 'misty@pokebox.dev', role: 'USER' },
 ];
 
-const cards = [
-  { id: 'base1-4', name: 'Charizard', setId: 'base1', setName: 'Base Set', number: '4', rarity: 'Rare', imageUrl: 'https://assets.tcgdex.net/en/base/base1/4' },
-  { id: 'base1-2', name: 'Blastoise', setId: 'base1', setName: 'Base Set', number: '2', rarity: 'Rare', imageUrl: 'https://assets.tcgdex.net/en/base/base1/2' },
-  { id: 'base1-58', name: 'Pikachu', setId: 'base1', setName: 'Base Set', number: '58', rarity: 'Common', imageUrl: 'https://assets.tcgdex.net/en/base/base1/58' },
-  { id: 'sv03.5-025', name: 'Pikachu', setId: 'sv03.5', setName: '151', number: '025', rarity: 'Common', imageUrl: 'https://assets.tcgdex.net/en/sv/sv03.5/025' },
-  { id: 'swsh3-136', name: 'Furret', setId: 'swsh3', setName: 'Darkness Ablaze', number: '136', rarity: 'Uncommon', imageUrl: 'https://assets.tcgdex.net/en/swsh/swsh3/136' },
-  { id: 'sv01-001', name: 'Pineco', setId: 'sv01', setName: 'Scarlet & Violet', number: '001', rarity: 'Common', imageUrl: 'https://assets.tcgdex.net/en/sv/sv01/001' },
-];
-
 const collection = [
-  { username: 'ash', cardId: 'base1-4', condition: 'NEAR_MINT', quantity: 2 },
-  { username: 'ash', cardId: 'base1-58', condition: 'GOOD', quantity: 3 },
-  { username: 'ash', cardId: 'swsh3-136', condition: 'MINT', quantity: 1, isPublic: false },
-  { username: 'misty', cardId: 'base1-2', condition: 'MINT', quantity: 1 },
-  { username: 'misty', cardId: 'sv03.5-025', condition: 'NEAR_MINT', quantity: 4 },
+  { key: 'ash-charizard', username: 'ash', cardId: 'base1-4', condition: 'NEAR_MINT', finish: 'HOLO', firstEdition: true, quantity: 1 },
+  { key: 'ash-pikachu-base', username: 'ash', cardId: 'base1-58', condition: 'GOOD', finish: 'NORMAL', quantity: 3 },
+  { key: 'ash-pikachu-151', username: 'ash', cardId: 'sv03.5-025', condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 2 },
+  { key: 'ash-pikachu-151-reverse', username: 'ash', cardId: 'sv03.5-025', condition: 'MINT', finish: 'REVERSE', quantity: 1 },
+  { key: 'ash-furret', username: 'ash', cardId: 'swsh3-136', condition: 'MINT', finish: 'REVERSE', quantity: 1, isPublic: false },
+  { key: 'ash-ultra-ball', username: 'ash', cardId: 'sv01-196', condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 4 },
+  { key: 'misty-blastoise', username: 'misty', cardId: 'base1-2', condition: 'MINT', finish: 'HOLO', quantity: 1 },
+  { key: 'misty-mew', username: 'misty', cardId: 'sv03.5-151', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1 },
+  { key: 'misty-fire-energy', username: 'misty', cardId: 'sve-002', condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 10 },
+  { key: 'misty-pikachu-151', username: 'misty', cardId: 'sv03.5-025', condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 4 },
 ];
 
 const wishlist = [
   { username: 'ash', cardId: 'base1-2' },
+  { username: 'ash', cardId: 'sv03.5-006' },
   { username: 'misty', cardId: 'base1-4' },
   { username: 'misty', cardId: 'sv01-001' },
 ];
+
+async function loadCards() {
+  const file = await readFile(new URL('./seed-data/cards.json', import.meta.url), 'utf8');
+  return JSON.parse(file);
+}
 
 async function seedUsers() {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, SALT_ROUNDS);
@@ -51,20 +55,25 @@ async function seedUsers() {
 }
 
 async function seedCards() {
-  for (const card of cards) {
-    await prisma.card.upsert({ where: { id: card.id }, update: card, create: card });
+  const cards = await loadCards();
+
+  for (const { variants, releaseDate, ...card } of cards) {
+    const data = { ...card, releaseDate: releaseDate ? new Date(releaseDate) : null };
+    await prisma.card.upsert({ where: { id: card.id }, update: data, create: data });
   }
+
+  return cards;
 }
 
 async function seedCollection(byUsername) {
   const items = {};
 
-  for (const { username, cardId, condition, quantity, isPublic = true } of collection) {
+  for (const { key, username, cardId, condition, finish, firstEdition = false, quantity, isPublic = true } of collection) {
     const userId = byUsername[username].id;
-    items[`${username}:${cardId}`] = await prisma.collectionItem.upsert({
-      where: { userId_cardId_condition: { userId, cardId, condition } },
+    items[key] = await prisma.collectionItem.upsert({
+      where: { userId_cardId_condition_finish_firstEdition: { userId, cardId, condition, finish, firstEdition } },
       update: {},
-      create: { userId, cardId, condition, quantity, isPublic },
+      create: { userId, cardId, condition, finish, firstEdition, quantity, isPublic },
     });
   }
 
@@ -89,15 +98,15 @@ async function findOrCreateListing(data) {
 
 async function seedMarketplace(byUsername, items) {
   const charizardListing = await findOrCreateListing({
-    collectionItemId: items['ash:base1-4'].id,
+    collectionItemId: items['ash-charizard'].id,
     type: 'SALE_OR_TRADE',
     quantity: 1,
     priceCents: 150000,
-    description: 'Charizard Base Set, sem marcas na frente.',
+    description: 'Charizard Base Set 1ª edição, sem marcas na frente.',
   });
 
   await findOrCreateListing({
-    collectionItemId: items['misty:base1-2'].id,
+    collectionItemId: items['misty-blastoise'].id,
     type: 'TRADE',
     quantity: 1,
     description: 'Troco por Charizard ou cartas da 151.',
@@ -121,12 +130,12 @@ async function seedMarketplace(byUsername, items) {
 
 async function main() {
   const byUsername = await seedUsers();
-  await seedCards();
+  const cards = await seedCards();
   const items = await seedCollection(byUsername);
   await seedWishlist(byUsername);
   await seedMarketplace(byUsername, items);
 
-  console.log(`Seed ok. Usuários: ${users.map((user) => user.username).join(', ')} · senha: ${SEED_PASSWORD}`);
+  console.log(`Seed ok. ${cards.length} cartas · usuários: ${users.map((user) => user.username).join(', ')} · senha: ${SEED_PASSWORD}`);
 }
 
 main()

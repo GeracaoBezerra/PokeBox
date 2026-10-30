@@ -11,6 +11,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:snapshot-cards": "node scripts/snapshot-cards.js",
     "contract:emit": "prisma contract emit",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch"
   },
