@@ -1,0 +1,294 @@
+[
+  {
+    "id": "base1-4",
+    "name": "Charizard",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "4/102",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/4/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fire"
+    ],
+    "hp": 120,
+    "stage": "Stage2",
+    "illustrator": "Mitsuhiro Arita",
+    "dexId": [
+      6
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-2",
+    "name": "Blastoise",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "2/102",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/2/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Water"
+    ],
+    "hp": 100,
+    "stage": "Stage2",
+    "illustrator": "Ken Sugimori",
+    "dexId": [
+      9
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-58",
+    "name": "Pikachu",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "58/102",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/58/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Lightning"
+    ],
+    "hp": 40,
+    "stage": "Basic",
+    "illustrator": "Mitsuhiro Arita",
+    "dexId": [
+      25
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "sv03.5-006",
+    "name": "Charizard ex",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "006/165",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/006/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fire"
+    ],
+    "hp": 330,
+    "stage": "Stage2",
+    "illustrator": "PLANETA Mochizuki",
+    "dexId": [
+      6
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-025",
+    "name": "Pikachu",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "025/165",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/025/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Lightning"
+    ],
+    "hp": 60,
+    "stage": "Basic",
+    "illustrator": "Naoyo Kimura",
+    "dexId": [
+      25
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-151",
+    "name": "Mew ex",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "151/165",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/151/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 180,
+    "stage": "Basic",
+    "illustrator": "aky CG Works",
+    "dexId": [
+      151
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh3-136",
+    "name": "Furret",
+    "setId": "swsh3",
+    "setName": "Darkness Ablaze",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2020-08-14T00:00:00.000Z",
+    "number": "136/189",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh3/136/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Colorless"
+    ],
+    "hp": 110,
+    "stage": "Stage1",
+    "illustrator": "tetsuya koizumi",
+    "dexId": [
+      162
+    ],
+    "regulationMark": "D",
+    "trainerType": null,
+    "energyType": null,
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv01-001",
+    "name": "Pineco",
+    "setId": "sv01",
+    "setName": "Scarlet & Violet",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-03-31T00:00:00.000Z",
+    "number": "001/198",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/001/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Grass"
+    ],
+    "hp": 60,
+    "stage": "Basic",
+    "illustrator": "Shigenori Negishi",
+    "dexId": [
+      204
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv01-196",
+    "name": "Ultra Ball",
+    "setId": "sv01",
+    "setName": "Scarlet & Violet",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-03-31T00:00:00.000Z",
+    "number": "196/198",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/196/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "Ayaka Yoshida",
+    "dexId": [],
+    "regulationMark": "G",
+    "trainerType": "Item",
+    "energyType": null,
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sve-002",
+    "name": "Fire Energy",
+    "setId": "sve",
+    "setName": "Scarlet & Violet Energy",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-03-31T00:00:00.000Z",
+    "number": "002/24",
+    "rarity": "Common",
+    "imageUrl": null,
+    "category": "Energy",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": null,
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": "Normal",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  }
+]

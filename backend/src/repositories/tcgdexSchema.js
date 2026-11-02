@@ -39,7 +39,19 @@ export const tcgdexCardSchema = z.object({
   weaknesses: z.array(typeValue).optional(),
   resistances: z.array(typeValue).optional(),
   retreat: z.number().optional(),
+  dexId: z.array(z.number()).optional(),
+  regulationMark: z.string().optional(),
+  legal: z.object({ standard: z.boolean(), expanded: z.boolean() }).partial().optional(),
+  trainerType: z.string().optional(),
+  energyType: z.string().optional(),
   pricing: z.any().optional(),
+});
+
+export const tcgdexSetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  serie: z.object({ id: z.string(), name: z.string() }).optional(),
+  releaseDate: z.string().optional(),
 });
 
 export const tcgdexCardBriefListSchema = z.array(
