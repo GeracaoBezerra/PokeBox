@@ -34,10 +34,6 @@ export function useRegisterForm(onSuccess) {
     setLoading(false);
 
     if (r.ok) {
-      setMessage({
-        text: `Conta criada! Bem-vindo, ${r.user.name}.`,
-        kind: "ok",
-      });
       onSuccess?.(r.user);
     } else if (r.errors) {
       setErrors(r.errors);

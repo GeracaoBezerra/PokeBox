@@ -24,8 +24,7 @@ export function useLoginForm(onSuccess) {
 
     setLoading(false);
 
-    if (r.ok) {
-      setMessage({ text: `Bem-vindo, ${r.user.name}!`, kind: "ok" });
+    if (r.ok) {     
       onSuccess?.(r.user);
     } else if (r.errors) {
       setErrors(r.errors);
