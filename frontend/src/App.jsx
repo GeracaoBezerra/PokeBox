@@ -1,30 +1,25 @@
-import { useMemo } from "react";
-import { Routes, Route, Outlet } from "react-router-dom";
-import { createAuthService } from "./auth/createAuthService";
-import Header from "./components/header/header";
-import Footer from "./components/footer/footer";
-import * as Pages from "./pages";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import MainLayout from "./components/MainLayout/MainLayout";
+import HomePage from "./pages/home";
+import { LoginPage, RegisterPage } from "./pages/index";
 
-function MainLayout() {
+
+
+
+function App() {
   return (
     <>
-      <Header />
-      <Outlet />
-      <Footer />
+      <Router>
+        <Routes>
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Route>
+        </Routes>
+      </Router>
     </>
   );
 }
 
-export default function App() {
-  return (
-    <Routes>
-      {/* Sem header/footer */}
-      <Route path="/login" element={<Pages.LoginPage />} />
-      <Route path="/register" element={<Pages.RegisterPage />} />
-
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Pages.Home />} />
-      </Route>
-    </Routes>
-  );
-}
+export default App;

@@ -1,0 +1,253 @@
+.secao {
+  width: 100%;
+  padding: var(--esp-48) var(--esp-24);
+  font-family: var(--fonte-corpo);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--largura-max);
+  margin: 0 auto;
+}
+
+.titulo {
+  margin-bottom: var(--esp-16);
+
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-lg);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-lg);
+}
+
+/* Fileira de 3 blocos */
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--esp-12);
+}
+
+/* Bloco (proporção 8:5, como na referência).
+   container-type: size permite usar cqw/cqh (largura/altura do próprio bloco)
+   nas medidas da carta, então ela escala junto com o bloco em qualquer tela.
+   Por isso o tamanho vem do aspect-ratio, e não do conteúdo. */
+
+.card {
+  --carta-h: 135cqh;
+  --carta-w: calc(var(--carta-h) * 63 / 88);
+  --centro-x: calc(100cqw - 22cqh); /* centro da carta em repouso */
+  --centro-y: 60cqh;
+  --rotacao: 16deg;
+
+  /* Quanto a carta "invade" o bloco no hover (ajuste à vontade) */
+  --hover-escala: 1.15;
+  --hover-x: -6cqh;                 /* negativo = anda para a esquerda */
+  --hover-y: -4cqh;                 /* negativo = sobe */
+  --hover-rotacao: 8deg;
+
+  position: relative;
+  isolation: isolate;
+  display: block;
+  container-type: size;
+  aspect-ratio: 8 / 5;
+  overflow: hidden;
+
+  background-color: var(--superficie);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-botao);
+
+  transition: border-color var(--tempo-medio) ease;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--acento);
+}
+
+/* Camada da carta: inclinada, sangrando pela direita e por baixo */
+
+.carta {
+  position: absolute;
+  z-index: 0;
+  top: calc(var(--centro-y) - var(--carta-h) / 2);
+  left: calc(var(--centro-x) - var(--carta-w) / 2);
+  width: var(--carta-w);
+  height: var(--carta-h);
+
+  rotate: var(--rotacao);
+  transition:
+    translate calc(var(--tempo-lento) * 1.25) var(--curva-entrar),
+    rotate calc(var(--tempo-lento) * 1.25) var(--curva-entrar),
+    scale calc(var(--tempo-lento) * 1.25) var(--curva-entrar);
+}
+
+.face {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  border-radius: var(--raio-carta);
+  box-shadow: var(--sombra-carta);
+}
+
+.imagem {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+
+/* Escurece a lateral esquerda no hover, para o texto continuar legível */
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--fundo) 92%, transparent) 0%,
+    color-mix(in srgb, var(--fundo) 55%, transparent) 45%,
+    transparent 80%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--tempo-lento) ease;
+}
+
+/* Texto: centralizado no eixo Y */
+
+.conteudo {
+  position: absolute;
+  z-index: 2;
+  inset: 0 auto 0 0;
+  width: calc(100cqw - 72cqh);
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--esp-8);
+  padding: var(--esp-16) var(--esp-24);
+}
+
+.cardTitulo {
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-lg);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-lg);
+}
+
+.cardTexto {
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.explorar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-8);
+  margin-top: var(--esp-4);
+
+  color: var(--acento);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+}
+
+.explorar svg {
+  transition: transform var(--tempo-medio) var(--curva-entrar);
+}
+
+/* Hover: a carta endireita um pouco, cresce e invade levemente o bloco.
+   Teclado (focus-visible) tem o mesmo efeito. */
+
+.card:focus-visible .carta {
+  translate: var(--hover-x) var(--hover-y);
+  rotate: var(--hover-rotacao);
+  scale: var(--hover-escala);
+}
+
+.card:focus-visible::after {
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .card:hover .carta {
+    translate: var(--hover-x) var(--hover-y);
+    rotate: var(--hover-rotacao);
+    scale: var(--hover-escala);
+  }
+
+  .card:hover::after {
+    opacity: 1;
+  }
+
+  .card:hover .explorar svg {
+    transform: translateX(4px);
+  }
+}
+
+/* Tablet: continua em 3 colunas, com texto menor */
+@media (max-width: 1023px) {
+  .conteudo {
+    gap: var(--esp-4);
+    padding: var(--esp-12) var(--esp-16);
+  }
+
+  .cardTitulo {
+    font-size: var(--fs-md);
+  }
+
+  .cardTexto {
+    font-size: var(--fs-xs);
+    line-height: var(--lh-xs);
+  }
+
+  .explorar {
+    font-size: var(--fs-xs);
+  }
+}
+
+/* Celular: um bloco por linha */
+@media (max-width: 600px) {
+  .secao {
+    padding: var(--esp-32) var(--esp-16);
+  }
+
+  .grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .conteudo {
+    gap: var(--esp-8);
+    padding: var(--esp-16) var(--esp-24);
+  }
+
+  .cardTitulo {
+    font-size: var(--fs-lg);
+  }
+
+  .cardTexto {
+    font-size: var(--fs-sm);
+    line-height: var(--lh-sm);
+  }
+
+  .explorar {
+    font-size: var(--fs-sm);
+  }
+}
+
+/* Respeita a preferência por movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .carta,
+  .card::after,
+  .explorar svg {
+    transition: none;
+  }
+}
