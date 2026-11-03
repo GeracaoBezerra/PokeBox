@@ -1,4 +1,3 @@
 export const CONFIG = {
-  apiBaseUrl: "http://localhost:3000", 
-  useMock: false,
+  apiBaseUrl: import.meta.env.VITE_API_URL ?? "http://localhost:3000",
 };
