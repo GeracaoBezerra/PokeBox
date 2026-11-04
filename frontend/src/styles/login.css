@@ -202,7 +202,7 @@
  
   font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--acento-texto);
   background: linear-gradient(135deg, var(--brand), var(--brand-accent));
   border: 0;
   border-radius: var(--radius-sm);

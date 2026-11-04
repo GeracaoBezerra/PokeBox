@@ -46,5 +46,4 @@ export const registerRules = {
     (v) => (v ? null : "Confirme sua senha."),
     (v, all) => (v === all?.password ? null : "As senhas não coincidem."),
   ],
-  
 };
