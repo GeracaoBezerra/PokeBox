@@ -1,24 +1,24 @@
 .login-page {
   /* Cores base */
-  --text: #efe9dc;
-  --muted: #efe9dc;
-  --line: rgb(255 255 255 / 0.2);
-  --card: #14261f;
-  --brand: #08eb90;
-  --brand-accent: #e8b230;
-  --brand-link: #eec35d;
-  --err: #a9b5aa;
-  --ok: #5a8271;
- 
+  --text: var(--texto);
+  --muted: var(--texto-suave);
+  --line: var(--borda-suave);
+  --card: var(--fundo);
+  --brand: var(--acento);
+  --brand-accent: var(--acento-hover);
+  --brand-link: var(--acento);
+  --err: var(--erro);
+  --ok: var(--sucesso);
+
   /* Fundo da página */
   --page-from: #0b1030;
   --page-to: #2a0a24;
   --shade: rgb(5 8 30 / 0.38);
- 
+
   /* Superfícies derivadas */
   --input-bg: rgb(255 255 255 / 0.06);
-  --focus-ring: #08eb90;
-  --brand-glow: #08eb90;
+  --focus-ring: color-mix(in srgb, var(--acento) 30%, transparent);
+  --brand-glow: color-mix(in srgb, var(--acento) 35%, transparent);
  
   /* Raios */
   --radius-sm: 12px;
