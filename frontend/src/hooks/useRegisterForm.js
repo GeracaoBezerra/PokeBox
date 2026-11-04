@@ -14,7 +14,7 @@ export function useRegisterForm(onSuccess) {
   const [message, setMessage] = useState({ text: "", kind: "" });
   const [loading, setLoading] = useState(false);
 
-  const setField = (name) => (e) =>
+  const setField = (name) => (e) =>  
     setValues((v) => ({ ...v, [name]: e.target.value }));
 
   const submit = async (e) => {

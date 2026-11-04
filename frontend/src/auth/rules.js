@@ -1,4 +1,3 @@
-
 const EMAIL_REGEX =
   /^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9-]*\.)+[A-Za-z]{2,}$/;
 
@@ -47,4 +46,5 @@ export const registerRules = {
     (v) => (v ? null : "Confirme sua senha."),
     (v, all) => (v === all?.password ? null : "As senhas não coincidem."),
   ],
+  
 };
