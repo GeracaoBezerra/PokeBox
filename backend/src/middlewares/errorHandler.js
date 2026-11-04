@@ -1,6 +1,7 @@
 import { ZodError } from 'zod';
 
 import { AppError } from '../utils/AppError.js';
+import { translatePrismaError } from '../utils/prismaError.js';
 
 export function notFoundHandler(req, res) {
   return res.status(404).json({
@@ -25,6 +26,11 @@ export function errorHandler(err, req, res, next) {
 
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({ success: false, error: err.message });
+  }
+
+  const prismaError = translatePrismaError(err);
+  if (prismaError) {
+    return res.status(prismaError.statusCode).json({ success: false, error: prismaError.message });
   }
 
   console.error('[erro inesperado]', err);

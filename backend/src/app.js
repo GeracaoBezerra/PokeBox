@@ -4,6 +4,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import authRoutes from './routes/auth.routes.js';
 import cardRoutes from './routes/card.routes.js';
+import collectionRoutes from './routes/collection.routes.js';
 import userRoutes from './routes/user.routes.js';
 import { swaggerSpec } from './docs/swagger.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
@@ -21,6 +22,7 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/auth', authRoutes);
 app.use('/cards', cardRoutes);
+app.use('/collection', collectionRoutes);
 app.use('/user', userRoutes);
 
 app.use(notFoundHandler);
