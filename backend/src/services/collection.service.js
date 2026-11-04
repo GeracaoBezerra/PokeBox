@@ -1,9 +1,10 @@
 import * as collectionRepository from '../repositories/collectionRepository.js';
-import { findCardById } from '../repositories/cardRepository.js';
+import { findCardById, upsertCard } from '../repositories/cardRepository.js';
 import { CardNotFoundError } from '../repositories/tcgdexRepository.js';
 import { AppError } from '../utils/AppError.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import {
+  assertNotReserved,
   assertOwner,
   assertQuantity,
   assertVariant,
@@ -36,7 +37,7 @@ export async function add(userId, input) {
   const card = await fetchCard(input.cardId);
   assertVariant(card.variants, input.finish, input.firstEdition);
 
-  await collectionRepository.upsertCard(toCardRecord(card));
+  await upsertCard(toCardRecord(card));
   const item = await collectionRepository.addOrIncrement({ ...input, cardId: card.id, userId });
 
   return toCollectionItemResponse(item);
@@ -54,6 +55,7 @@ export async function update(userId, id, input) {
 }
 
 export async function remove(userId, id) {
-  await findOwnItem(userId, id);
+  const item = await findOwnItem(userId, id);
+  assertNotReserved(item);
   await collectionRepository.remove(id);
 }

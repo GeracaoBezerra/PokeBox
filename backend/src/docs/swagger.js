@@ -522,7 +522,7 @@ export const swaggerSpec = {
         tags: ["Collection"],
         summary: "Remove um item da própria coleção",
         description:
-          "Só o dono pode remover. Item com anúncio ligado não pode ser apagado.",
+          "Só o dono pode remover. Item com anúncio ligado ou com unidades reservadas em negociações não pode ser apagado.",
         security: [{ bearerAuth: [] }],
         parameters: [collectionItemIdParam],
         responses: {
@@ -530,7 +530,7 @@ export const swaggerSpec = {
           400: errorResponse("Id inválido", "ApiValidationError"),
           403: errorResponse("O item pertence a outro usuário"),
           404: errorResponse("Item não encontrado"),
-          409: errorResponse("O item tem anúncio ligado"),
+          409: errorResponse("O item tem anúncio ligado ou unidades reservadas"),
           ...authErrors,
         },
       },

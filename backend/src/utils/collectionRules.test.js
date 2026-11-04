@@ -1,4 +1,5 @@
 import {
+  assertNotReserved,
   assertOwner,
   assertQuantity,
   assertVariant,
@@ -42,6 +43,16 @@ describe('assertQuantity', () => {
 
   it('recusa quantidade abaixo da reservada com 422', () => {
     expect(statusOf(() => assertQuantity(1, 2))).toBe(422);
+  });
+});
+
+describe('assertNotReserved', () => {
+  it('libera item sem reserva', () => {
+    expect(() => assertNotReserved({ reservedQuantity: 0 })).not.toThrow();
+  });
+
+  it('bloqueia item com reserva com 409', () => {
+    expect(statusOf(() => assertNotReserved({ reservedQuantity: 1 }))).toBe(409);
   });
 });
 

@@ -21,6 +21,15 @@ export function assertQuantity(quantity, reservedQuantity) {
   }
 }
 
+export function assertNotReserved(item) {
+  if (item.reservedQuantity > 0) {
+    throw new AppError(
+      409,
+      `Este item tem ${item.reservedQuantity} unidade(s) reservadas em negociações e não pode ser apagado`,
+    );
+  }
+}
+
 export function assertVariant(variants = {}, finish, firstEdition) {
   const hasAnyVariant = Object.values(variants).some(Boolean);
   if (!hasAnyVariant) return;

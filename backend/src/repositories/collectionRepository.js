@@ -15,14 +15,6 @@ export function findById(id) {
   });
 }
 
-export function upsertCard(record) {
-  return prisma.card.upsert({
-    where: { id: record.id },
-    create: record,
-    update: record,
-  });
-}
-
 export function addOrIncrement({ userId, cardId, condition, finish, firstEdition, quantity, isPublic }) {
   return prisma.collectionItem.upsert({
     where: {
