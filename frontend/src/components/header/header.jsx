@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   Search,
-  User,
   Menu,
   X,
   Heart,
@@ -10,6 +9,7 @@ import {
   Home,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import MenuUsuario from "../MenuUsuario/MenuUsuario";
 import styles from "./header.module.css";
 
 export default function Header() {
@@ -49,13 +49,7 @@ export default function Header() {
           </form>
 
           <div className={styles.acoes}>
-            <Link
-              to="/perfil"
-              className={styles.botaoPerfil}
-              aria-label="Perfil do usuário"
-            >
-              <User size={20} />
-            </Link>
+            <MenuUsuario />
 
             <button
               type="button"

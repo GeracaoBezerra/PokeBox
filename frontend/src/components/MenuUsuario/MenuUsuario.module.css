@@ -1,0 +1,133 @@
+.usuario {
+  position: relative;
+}
+
+.botao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-8);
+
+  min-width: var(--altura-controle);
+  height: var(--altura-controle);
+
+  background-color: var(--fundo);
+  border: var(--borda-painel);
+  border-radius: var(--raio-botao);
+
+  color: var(--texto);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-medio);
+  cursor: pointer;
+  text-decoration: none;
+
+  transition:
+    background-color var(--tempo-rapido),
+    border-color var(--tempo-rapido),
+    color var(--tempo-rapido);
+}
+
+.botao:hover,
+.botao[aria-expanded="true"] {
+  background-color: var(--superficie-hover);
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.botaoEntrar {
+  padding: 0 var(--esp-16) 0 var(--esp-12);
+}
+
+.painel {
+  position: absolute;
+  top: calc(100% + var(--esp-8));
+  right: 0;
+  z-index: 20;
+
+  width: max-content;
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 2 * var(--esp-16)));
+
+  background-color: var(--superficie);
+  border: var(--borda-painel);
+  border-radius: var(--raio-painel);
+  box-shadow: var(--sombra-md);
+  overflow: hidden;
+}
+
+.identificacao {
+  padding: var(--esp-12) var(--esp-16);
+  border-bottom: 1px solid var(--borda-suave);
+}
+
+.nome,
+.username {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nome {
+  color: var(--texto);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-sm);
+}
+
+.username {
+  color: var(--texto-suave);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.item + .item {
+  border-top: 1px solid var(--borda-suave);
+}
+
+.opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-8);
+
+  width: 100%;
+  min-height: var(--alvo-min);
+  padding: var(--esp-12) var(--esp-16);
+
+  background: none;
+  border: 0;
+
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+
+  transition:
+    color var(--tempo-rapido),
+    background-color var(--tempo-rapido);
+}
+
+.opcao:hover {
+  color: var(--texto);
+  background-color: var(--superficie-hover);
+}
+
+.opcao:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (max-width: 768px) {
+  .botaoEntrar {
+    padding: 0;
+  }
+
+  .textoEntrar {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
