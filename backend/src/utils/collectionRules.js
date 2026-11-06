@@ -22,11 +22,33 @@ export function assertQuantity(quantity, reservedQuantity) {
   }
 }
 
+export function assertCoversListings(quantity, reservedQuantity, listedQuantity) {
+  if (quantity < reservedQuantity + listedQuantity) {
+    throw new AppError(
+      422,
+      `A quantidade não pode ficar abaixo de ${reservedQuantity + listedQuantity}: este item tem ${listedQuantity} unidade(s) anunciada(s)`,
+    );
+  }
+}
+
 export function assertNotReserved(item) {
   if (item.reservedQuantity > 0) {
     throw new AppError(
       409,
       `Este item tem ${item.reservedQuantity} unidade(s) reservadas em negociações e não pode ser apagado`,
+    );
+  }
+}
+
+export function assertNoListings({ open, total }) {
+  if (open > 0) {
+    throw new AppError(409, 'Este item tem anúncio aberto. Feche o anúncio antes de remover o item');
+  }
+
+  if (total > 0) {
+    throw new AppError(
+      409,
+      'Este item já foi anunciado e fica guardado no histórico. Para tirá-lo do perfil, deixe a quantidade em 0',
     );
   }
 }

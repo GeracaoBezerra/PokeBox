@@ -1,5 +1,6 @@
-import { findCardById, findCards, findListingsByCard, findUserCardInfo } from '../repositories/cardRepository.js';
+import { findCardById, findCards, findUserCardInfo } from '../repositories/cardRepository.js';
 import { CardNotFoundError } from '../repositories/tcgdexRepository.js';
+import { listByCard } from '../services/listing.service.js';
 import { AppError } from '../utils/AppError.js';
 
 
@@ -11,7 +12,7 @@ export async function getCardDetails(req, res, next) {
     const [card, user, listings] = await Promise.all([
       findCardById(id, lang),
       userId ? findUserCardInfo(userId, id) : Promise.resolve(null),
-      findListingsByCard(id),
+      listByCard(id),
     ]);
 
     res.set('Cache-Control', 'private, max-age=60');

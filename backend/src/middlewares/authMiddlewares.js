@@ -38,6 +38,11 @@ export async function requireAuth(req, res, next) {
   }
 }
 
+export function optionalAuth(req, res, next) {
+  if (!req.headers.authorization) return next();
+  return requireAuth(req, res, next);
+}
+
 export function requireRole(...allowedRoles) {
   return function roleGuard(req, res, next) {
     if (!req.user) {
