@@ -41,8 +41,19 @@ export function addOrIncrement({ userId, cardId, condition, finish, firstEdition
   });
 }
 
-export function update(id, data) {
-  return prisma.collectionItem.update({
+export async function lockById(id, tx) {
+  const rows = await tx.$queryRaw`
+    SELECT "id", "userId", "quantity", "reservedQuantity"
+    FROM "CollectionItem"
+    WHERE "id" = ${id}
+    FOR UPDATE
+  `;
+
+  return rows[0] ?? null;
+}
+
+export function update(id, data, db = prisma) {
+  return db.collectionItem.update({
     where: { id },
     data,
     include: { card: true },

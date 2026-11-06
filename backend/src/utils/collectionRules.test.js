@@ -1,4 +1,5 @@
 import {
+  assertCoversListings,
   assertNotReserved,
   assertOwner,
   assertQuantity,
@@ -44,6 +45,24 @@ describe('assertQuantity', () => {
 
   it('recusa quantidade abaixo da reservada com 422', () => {
     expect(statusOf(() => assertQuantity(1, 2))).toBe(422);
+  });
+});
+
+describe('assertCoversListings', () => {
+  it('aceita quantidade que cobre reserva e anúncios', () => {
+    expect(() => assertCoversListings(4, 1, 3)).not.toThrow();
+  });
+
+  it('aceita qualquer quantidade quando não há anúncio nem reserva', () => {
+    expect(() => assertCoversListings(0, 0, 0)).not.toThrow();
+  });
+
+  it('recusa com 422 quantidade abaixo do que está anunciado', () => {
+    expect(statusOf(() => assertCoversListings(1, 0, 2))).toBe(422);
+  });
+
+  it('soma reserva e anúncios', () => {
+    expect(statusOf(() => assertCoversListings(3, 1, 3))).toBe(422);
   });
 });
 

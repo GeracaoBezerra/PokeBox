@@ -22,6 +22,15 @@ export function assertQuantity(quantity, reservedQuantity) {
   }
 }
 
+export function assertCoversListings(quantity, reservedQuantity, listedQuantity) {
+  if (quantity < reservedQuantity + listedQuantity) {
+    throw new AppError(
+      422,
+      `A quantidade não pode ficar abaixo de ${reservedQuantity + listedQuantity}: este item tem ${listedQuantity} unidade(s) anunciada(s)`,
+    );
+  }
+}
+
 export function assertNotReserved(item) {
   if (item.reservedQuantity > 0) {
     throw new AppError(
