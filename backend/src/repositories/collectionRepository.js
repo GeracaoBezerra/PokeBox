@@ -54,3 +54,15 @@ export function remove(id) {
     select: { id: true },
   });
 }
+
+export function findOwnersOfCards(cardIds, userId) {
+  return prisma.collectionItem.groupBy({
+    by: ['cardId', 'userId'],
+    where: {
+      cardId: { in: cardIds },
+      userId: { not: userId },
+      isPublic: true,
+      quantity: { gt: prisma.collectionItem.fields.reservedQuantity },
+    },
+  });
+}

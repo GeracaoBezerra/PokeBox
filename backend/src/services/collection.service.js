@@ -1,6 +1,5 @@
 import * as collectionRepository from '../repositories/collectionRepository.js';
-import { findCardById, upsertCard } from '../repositories/cardRepository.js';
-import { CardNotFoundError } from '../repositories/tcgdexRepository.js';
+import { upsertCard } from '../repositories/cardRepository.js';
 import { AppError } from '../utils/AppError.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import {
@@ -10,15 +9,7 @@ import {
   assertVariant,
   toCollectionItemResponse,
 } from '../utils/collectionRules.js';
-
-async function fetchCard(cardId) {
-  try {
-    return await findCardById(cardId, 'en');
-  } catch (err) {
-    if (err instanceof CardNotFoundError) throw new AppError(404, 'Carta não encontrada');
-    throw err;
-  }
-}
+import { fetchCard } from './card.service.js';
 
 async function findOwnItem(userId, id) {
   const item = await collectionRepository.findById(id);

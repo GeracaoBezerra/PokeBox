@@ -7,6 +7,7 @@ import cardRoutes from './routes/card.routes.js';
 import collectionRoutes from './routes/collection.routes.js';
 import userRoutes from './routes/user.routes.js';
 import usersRoutes from './routes/users.routes.js';
+import wishlistRoutes from './routes/wishlist.routes.js';
 import { swaggerSpec } from './docs/swagger.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
@@ -26,6 +27,7 @@ app.use('/cards', cardRoutes);
 app.use('/collection', collectionRoutes);
 app.use('/user', userRoutes);
 app.use('/users', usersRoutes);
+app.use('/wishlist', wishlistRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
