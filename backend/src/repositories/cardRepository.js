@@ -87,6 +87,14 @@ export async function findCards({ lang, name, page, limit }) {
 
 
 
+export function upsertCard(record) {
+  return prisma.card.upsert({
+    where: { id: record.id },
+    create: record,
+    update: record,
+  });
+}
+
 export async function findUserCardInfo(userId, cardId) {
   return { inCollection: 0, inWishlist: false, onTradeList: false };
 }

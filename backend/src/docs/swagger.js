@@ -1,3 +1,4 @@
+import { CardCondition, CardFinish } from "../generated/prisma/index.js";
 import { LANGS } from "../middlewares/validateCardParams.js";
 
 const nullableString = { type: "string", nullable: true };
@@ -13,6 +14,51 @@ const langParam = {
   description: "Idioma da carta (pt-br é aceito e convertido para pt)",
   schema: { type: "string", enum: LANGS, default: "en" },
 };
+
+const errorResponse = (description, schema = "ApiError") => ({
+  description,
+  content: {
+    "application/json": {
+      schema: { $ref: `#/components/schemas/${schema}` },
+    },
+  },
+});
+
+const authErrors = {
+  401: errorResponse("Token ausente, inválido, expirado ou sessão encerrada"),
+  500: errorResponse("Erro interno"),
+};
+
+const collectionItemResponse = (description) => ({
+  description,
+  content: {
+    "application/json": {
+      schema: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
+            type: "object",
+            properties: {
+              item: { $ref: "#/components/schemas/CollectionItem" },
+            },
+          },
+        },
+      },
+    },
+  },
+});
+
+const collectionItemIdParam = {
+  name: "id",
+  in: "path",
+  required: true,
+  description: "ID do item da coleção",
+  schema: { type: "string", format: "uuid" },
+};
+
+const cardConditions = Object.values(CardCondition);
+const cardFinishes = Object.values(CardFinish);
 
 export const swaggerSpec = {
   openapi: "3.0.3",
@@ -30,6 +76,7 @@ export const swaggerSpec = {
     { name: "Auth", description: "Cadastro, login e sessão" },
     { name: "User", description: "Perfil do usuário autenticado" },
     { name: "Cards", description: "Cartas (TCGdex + cache)" },
+    { name: "Collection", description: "Coleção do usuário autenticado" },
   ],
   paths: {
     "/auth/register": {
@@ -389,6 +436,105 @@ export const swaggerSpec = {
         },
       },
     },
+    "/collection": {
+      get: {
+        tags: ["Collection"],
+        summary: "Lista a coleção do usuário autenticado",
+        description:
+          "Traz todos os itens, inclusive os com quantidade 0, ordenados pelo nome da carta. available = quantity - reservedQuantity.",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Itens da coleção",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: {
+                        items: {
+                          type: "array",
+                          items: { $ref: "#/components/schemas/CollectionItem" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          ...authErrors,
+        },
+      },
+      post: {
+        tags: ["Collection"],
+        summary: "Adiciona uma carta à coleção",
+        description:
+          "Busca a carta na TCGdex (com cache), grava em Card e cria o item. Se o usuário já tem a mesma carta com a mesma condição, finish e 1ª edição, soma a quantidade no item existente. finish e firstEdition são conferidos contra as variantes da carta; se a TCGdex não informar nenhuma variante, a conferência é ignorada.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateCollectionItemRequest" },
+            },
+          },
+        },
+        responses: {
+          201: collectionItemResponse("Item criado ou quantidade somada"),
+          400: errorResponse("Corpo inválido", "ApiValidationError"),
+          404: errorResponse("Carta não encontrada na TCGdex"),
+          422: errorResponse("A carta não existe nesse finish ou em 1ª edição"),
+          ...authErrors,
+        },
+      },
+    },
+    "/collection/{id}": {
+      patch: {
+        tags: ["Collection"],
+        summary: "Altera um item da própria coleção",
+        description:
+          "Só o dono pode alterar; ADMIN também recebe 403 em item de outra pessoa. A quantidade pode ser 0, mas não pode ficar abaixo da reservada em negociações. finish e firstEdition não mudam: para isso, apague e crie de novo.",
+        security: [{ bearerAuth: [] }],
+        parameters: [collectionItemIdParam],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateCollectionItemRequest" },
+            },
+          },
+        },
+        responses: {
+          200: collectionItemResponse("Item atualizado"),
+          400: errorResponse("Corpo ou id inválido", "ApiValidationError"),
+          403: errorResponse("O item pertence a outro usuário"),
+          404: errorResponse("Item não encontrado"),
+          409: errorResponse("Já existe outro item igual com essa condição"),
+          422: errorResponse("Quantidade abaixo da reservada"),
+          ...authErrors,
+        },
+      },
+      delete: {
+        tags: ["Collection"],
+        summary: "Remove um item da própria coleção",
+        description:
+          "Só o dono pode remover. Item com anúncio ligado ou com unidades reservadas em negociações não pode ser apagado.",
+        security: [{ bearerAuth: [] }],
+        parameters: [collectionItemIdParam],
+        responses: {
+          204: { description: "Item removido" },
+          400: errorResponse("Id inválido", "ApiValidationError"),
+          403: errorResponse("O item pertence a outro usuário"),
+          404: errorResponse("Item não encontrado"),
+          409: errorResponse("O item tem anúncio ligado ou unidades reservadas"),
+          ...authErrors,
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -713,6 +859,87 @@ export const swaggerSpec = {
           condition: { type: "string" },
           price: { type: "number", nullable: true },
           type: { type: "string", enum: ["TRADE", "SALE", "TRADE_SALE"] },
+        },
+      },
+      StoredCard: {
+        type: "object",
+        description: "Carta gravada no banco quando entra na coleção de alguém.",
+        properties: {
+          id: { type: "string", example: "base1-4" },
+          name: { type: "string", example: "Charizard" },
+          setId: { type: "string", example: "base1" },
+          setName: { type: "string", example: "Base Set" },
+          setSeries: nullableString,
+          releaseDate: { type: "string", format: "date-time", nullable: true },
+          number: { type: "string", example: "4/102" },
+          rarity: nullableString,
+          imageUrl: nullableString,
+          category: nullableString,
+          types: { type: "array", items: { type: "string" } },
+          hp: { type: "integer", nullable: true },
+          stage: nullableString,
+          illustrator: nullableString,
+          dexId: { type: "array", items: { type: "integer" } },
+          regulationMark: nullableString,
+          trainerType: nullableString,
+          energyType: nullableString,
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      CollectionItem: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          userId: { type: "string", format: "uuid" },
+          cardId: { type: "string", example: "base1-4" },
+          quantity: { type: "integer", minimum: 0, example: 2 },
+          reservedQuantity: {
+            type: "integer",
+            minimum: 0,
+            description: "Unidades presas em negociações em andamento.",
+            example: 0,
+          },
+          available: {
+            type: "integer",
+            description: "quantity - reservedQuantity",
+            example: 2,
+          },
+          condition: { type: "string", enum: cardConditions, example: "NEAR_MINT" },
+          finish: { type: "string", enum: cardFinishes, example: "HOLO" },
+          firstEdition: { type: "boolean", example: false },
+          isPublic: { type: "boolean", example: true },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+          card: { $ref: "#/components/schemas/StoredCard" },
+        },
+      },
+      CreateCollectionItemRequest: {
+        type: "object",
+        required: ["cardId", "quantity", "finish", "firstEdition"],
+        additionalProperties: false,
+        properties: {
+          cardId: { type: "string", description: "ID da carta na TCGdex", example: "sv01-001" },
+          quantity: { type: "integer", minimum: 1, example: 1 },
+          condition: {
+            type: "string",
+            enum: cardConditions,
+            default: "NEAR_MINT",
+          },
+          finish: { type: "string", enum: cardFinishes, example: "NORMAL" },
+          firstEdition: { type: "boolean", example: false },
+          isPublic: { type: "boolean", default: true },
+        },
+      },
+      UpdateCollectionItemRequest: {
+        type: "object",
+        minProperties: 1,
+        additionalProperties: false,
+        description: "Todos os campos são opcionais, mas ao menos um deve ser enviado.",
+        properties: {
+          quantity: { type: "integer", minimum: 0, example: 3 },
+          condition: { type: "string", enum: cardConditions },
+          isPublic: { type: "boolean" },
         },
       },
       CardDetailsResponse: {
