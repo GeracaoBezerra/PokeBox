@@ -1,9 +1,37 @@
 export class AuthService {
-  constructor(gateway, tokenStore, loginValidator, registerValidator) {
+  constructor(gateway, tokenStore, userStore, loginValidator, registerValidator) {
     this.gateway = gateway;
     this.tokenStore = tokenStore;
+    this.userStore = userStore;
     this.loginValidator = loginValidator;
     this.registerValidator = registerValidator;
+    this.listeners = new Set();
+    this.session = tokenStore.get() ? { user: userStore.get() } : null;
+  }
+
+  getSession = () => this.session;
+
+  subscribe = (listener) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  logout() {
+    this.tokenStore.clear();
+    this.userStore.clear();
+    this.setSession(null);
+  }
+
+  startSession(token, user) {
+    const sessionUser = { name: user.name, username: user.username };
+    this.tokenStore.set(token);
+    this.userStore.set(sessionUser);
+    this.setSession({ user: sessionUser });
+  }
+
+  setSession(session) {
+    this.session = session;
+    this.listeners.forEach((listener) => listener());
   }
 
   async login(credentials) {
@@ -12,7 +40,7 @@ export class AuthService {
 
     try {
       const { token, user } = await this.gateway.login(credentials);
-      this.tokenStore.set(token);
+      this.startSession(token, user);
       return { ok: true, user };
     } catch (e) {
       return { ok: false, message: e.message };
@@ -30,7 +58,7 @@ export class AuthService {
         email: payload.email,
         password: payload.password,
       });
-      this.tokenStore.set(token);
+      this.startSession(token, user);
       return { ok: true, user };
     } catch (e) {
       return { ok: false, message: e.message };
