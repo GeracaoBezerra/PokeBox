@@ -1,5 +1,6 @@
 import styles from "./CtaColecao.module.css";
 import { Link } from "react-router-dom";
+import { useSession } from "../../auth/useSession";
 import blastoise from "../../assets/cards/blastoise.webp"
 import charizard from "../../assets/cards/charizard.webp"
 import venusaur from "../../assets/cards/venasaur.webp"
@@ -95,6 +96,8 @@ function handlePointerLeave(event) {
 }
 
 export default function CtaColecao() {
+  const session = useSession();
+
   return (
     <section
       className={styles.ctaSection}
@@ -127,8 +130,7 @@ export default function CtaColecao() {
             ))}
           </ol>
 
-          {/* TODO: trocar por "/collection" quando a rota existir */}
-          <Link to="/" className={styles.ctaButton}>
+          <Link to={session ? "/" : "/register"} className={styles.ctaButton}>
             Começar minha coleção
           </Link>
         </div>

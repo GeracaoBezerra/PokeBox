@@ -2,6 +2,7 @@ import { CONFIG } from "../config";
 import { AuthService } from "./authService";
 import { Validator } from "./validator";
 import { LocalTokenStore } from "./localTokenStore";
+import { LocalUserStore } from "./localUserStore";
 import { loginRules, registerRules } from "./rules";
 import { HttpAuthGateway } from "./gateways/httpAuthGateway";
 
@@ -12,6 +13,7 @@ export function createAuthService() {
   return new AuthService(
     gateway,
     tokenStore,
+    new LocalUserStore(),
     new Validator(loginRules),
     new Validator(registerRules)
   );
