@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-import { usernameRule } from './auth.schema.js';
+export const usernameRule = z
+  .string()
+  .regex(/^[a-z0-9_]{3,20}$/, 'username: 3 a 20 caracteres, apenas a-z, 0-9 e _');
 
 const optionalText = (max) => z.string().trim().max(max).nullable();
 

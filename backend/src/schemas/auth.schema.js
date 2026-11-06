@@ -1,8 +1,6 @@
 import { z } from 'zod';
 
-export const usernameRule = z
-  .string()
-  .regex(/^[a-z0-9_]{3,20}$/, 'username: 3 a 20 caracteres, apenas a-z, 0-9 e _');
+import { usernameRule } from './user.schema.js';
 
 export const registerSchema = z.object({
   username: usernameRule,
