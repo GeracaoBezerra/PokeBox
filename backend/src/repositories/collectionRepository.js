@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import { USABLE_STATUSES } from '../utils/accountStatus.js';
 
 export function findManyByUser(userId) {
   return prisma.collectionItem.findMany({
@@ -63,6 +64,7 @@ export function findOwnersOfCards(cardIds, userId) {
       userId: { not: userId },
       isPublic: true,
       quantity: { gt: prisma.collectionItem.fields.reservedQuantity },
+      user: { deletedAt: null, accountStatus: { in: USABLE_STATUSES } },
     },
   });
 }

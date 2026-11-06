@@ -25,14 +25,13 @@ export async function add(userId, input) {
   const card = await fetchCard(input.cardId);
   await upsertCard(toCardRecord(card));
 
-  try {
-    const item = await wishlistRepository.create({ userId, cardId: card.id });
-    const owners = await ownersByCard([card.id], userId);
-    return toWishlistItemResponse(item, owners);
-  } catch (err) {
+  const item = await wishlistRepository.create({ userId, cardId: card.id }).catch((err) => {
     if (err?.code === 'P2002') throw new AppError(409, 'Esta carta já está na sua wishlist');
     throw err;
-  }
+  });
+
+  const owners = await ownersByCard([card.id], userId);
+  return toWishlistItemResponse(item, owners);
 }
 
 export async function remove(userId, id) {
