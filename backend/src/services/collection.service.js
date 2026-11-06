@@ -6,6 +6,7 @@ import { AppError } from '../utils/AppError.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import {
   assertCoversListings,
+  assertNoListings,
   assertNotReserved,
   assertOwner,
   assertQuantity,
@@ -59,5 +60,6 @@ export async function update(userId, id, input) {
 export async function remove(userId, id) {
   const item = await findOwnItem(userId, id);
   assertNotReserved(item);
+  assertNoListings(await listingRepository.countByItem(id));
   await collectionRepository.remove(id);
 }

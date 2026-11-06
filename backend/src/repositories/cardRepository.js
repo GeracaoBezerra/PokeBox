@@ -1,9 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { MemoryCache } from '../utils/memoryCache.js';
 import { toMarketPriceFields } from '../utils/cardRecord.js';
-import { toListingResponse } from '../utils/listingRules.js';
 import { cardMock } from '../mocks/cardMock.js';
-import { findActive } from './listingRepository.js';
 import { fetchCardFromTcgdex, searchCardsInTcgdex } from './tcgdexRepository.js';
 
 
@@ -13,7 +11,6 @@ const memory = new MemoryCache(ONE_HOUR);
 const inFlight = new Map(); 
 const TEN_MINUTES = 10 * 60 * 1000;
 const listMemory = new MemoryCache(TEN_MINUTES);
-const LISTINGS_PER_CARD = 50;
 
 async function readDbCache(cardId, lang) {
   try {
@@ -113,9 +110,4 @@ export function upsertCard(record) {
 
 export async function findUserCardInfo(userId, cardId) {
   return { inCollection: 0, inWishlist: false, onTradeList: false };
-}
-
-export async function findListingsByCard(cardId) {
-  const listings = await findActive({ cardId, take: LISTINGS_PER_CARD });
-  return listings.map(toListingResponse);
 }

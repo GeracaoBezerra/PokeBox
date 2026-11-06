@@ -1,5 +1,6 @@
 import {
   assertCoversListings,
+  assertNoListings,
   assertNotReserved,
   assertOwner,
   assertQuantity,
@@ -63,6 +64,22 @@ describe('assertCoversListings', () => {
 
   it('soma reserva e anúncios', () => {
     expect(statusOf(() => assertCoversListings(3, 1, 3))).toBe(422);
+  });
+});
+
+describe('assertNoListings', () => {
+  it('libera item que nunca foi anunciado', () => {
+    expect(() => assertNoListings({ open: 0, total: 0 })).not.toThrow();
+  });
+
+  it('bloqueia item com anúncio aberto com 409', () => {
+    expect(statusOf(() => assertNoListings({ open: 1, total: 1 }))).toBe(409);
+  });
+
+  it('bloqueia item com anúncio só no histórico com 409 e mensagem própria', () => {
+    expect(statusOf(() => assertNoListings({ open: 0, total: 2 }))).toBe(409);
+    expect(() => assertNoListings({ open: 0, total: 2 })).toThrow(/histórico/);
+    expect(() => assertNoListings({ open: 1, total: 2 })).toThrow(/Feche o anúncio/);
   });
 });
 

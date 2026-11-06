@@ -18,6 +18,10 @@ describe('createListingSchema', () => {
     expect(result.description).toBe('troco');
   });
 
+  it('descrição só com espaços vira null', () => {
+    expect(createListingSchema.parse({ ...validCreate, description: '   ' }).description).toBeNull();
+  });
+
   it.each(['collectionItemId', 'quantity'])('recusa sem %s', (field) => {
     const { [field]: _, ...body } = validCreate;
     expect(createListingSchema.safeParse(body).success).toBe(false);
@@ -47,6 +51,10 @@ describe('updateListingSchema', () => {
       expect(updateListingSchema.safeParse(body).success).toBe(true);
     },
   );
+
+  it('descrição só com espaços vira null', () => {
+    expect(updateListingSchema.parse({ description: '   ' })).toEqual({ description: null });
+  });
 
   it('recusa corpo vazio', () => {
     expect(updateListingSchema.safeParse({}).success).toBe(false);
@@ -82,6 +90,19 @@ describe('listListingsQuerySchema', () => {
       expect(listListingsQuerySchema.safeParse(query).success).toBe(false);
     },
   );
+});
+
+describe('mensagens da paginação', () => {
+  const messageOf = (query) => listListingsQuerySchema.safeParse(query).error.issues[0].message;
+
+  it.each([
+    [{ limit: '0' }, 'limit mínimo é 1'],
+    [{ page: '0' }, 'page mínima é 1'],
+    [{ limit: '101' }, 'limit máximo é 100'],
+    [{ limit: 'abc' }, 'limit deve ser um número'],
+  ])('%o → %s', (query, message) => {
+    expect(messageOf(query)).toBe(message);
+  });
 });
 
 describe('listingIdSchema', () => {

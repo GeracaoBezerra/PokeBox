@@ -11,6 +11,8 @@ import {
   toListingResponse,
 } from '../utils/listingRules.js';
 
+const LISTINGS_PER_CARD = 50;
+
 async function assertStock(tx, item, requested, exceptId) {
   const otherListed = await listingRepository.sumOpenByItem(item.id, tx, exceptId);
   assertListingQuantity({ requested, otherListed, available: item.quantity - item.reservedQuantity });
@@ -28,6 +30,11 @@ export async function list({ cardId, username, page, limit }) {
     items: listings.slice(0, limit).map(toListingResponse),
     hasNextPage: listings.length > limit,
   };
+}
+
+export async function listByCard(cardId) {
+  const listings = await listingRepository.findActive({ cardId, take: LISTINGS_PER_CARD });
+  return listings.map(toListingResponse);
 }
 
 export async function listMine(userId) {

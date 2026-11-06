@@ -54,6 +54,22 @@ export async function sumOpenByItem(collectionItemId, db = prisma, exceptId = un
   return result._sum.quantity ?? 0;
 }
 
+export async function countByItem(collectionItemId) {
+  const groups = await prisma.listing.groupBy({
+    by: ['status'],
+    where: { collectionItemId },
+    _count: { _all: true },
+  });
+
+  return groups.reduce(
+    (counts, group) => ({
+      open: counts.open + (OPEN_STATUSES.includes(group.status) ? group._count._all : 0),
+      total: counts.total + group._count._all,
+    }),
+    { open: 0, total: 0 },
+  );
+}
+
 export function create(data, db = prisma) {
   return db.listing.create({ data, include: listingInclude });
 }

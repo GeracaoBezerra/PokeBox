@@ -40,6 +40,19 @@ export function assertNotReserved(item) {
   }
 }
 
+export function assertNoListings({ open, total }) {
+  if (open > 0) {
+    throw new AppError(409, 'Este item tem anúncio aberto. Feche o anúncio antes de remover o item');
+  }
+
+  if (total > 0) {
+    throw new AppError(
+      409,
+      'Este item já foi anunciado e fica guardado no histórico. Para tirá-lo do perfil, deixe a quantidade em 0',
+    );
+  }
+}
+
 export function assertVariant(variants = {}, finish, firstEdition) {
   const hasAnyVariant = Object.values(variants).some(Boolean);
   if (!hasAnyVariant) return;

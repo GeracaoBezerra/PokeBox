@@ -3,7 +3,11 @@ import { z } from 'zod';
 import { ListingStatus } from '../generated/prisma/index.js';
 import { usernameRule } from './user.schema.js';
 
-const description = z.string().trim().max(500);
+const description = z
+  .string()
+  .trim()
+  .max(500)
+  .transform((value) => value || null);
 
 export const createListingSchema = z
   .object({
@@ -30,7 +34,7 @@ export const listListingsQuerySchema = z.object({
     .optional(),
   username: usernameRule.optional(),
   page: z.coerce.number({ message: 'page deve ser um número' }).int().min(1, 'page mínima é 1').default(1),
-  limit: z.coerce.number({ message: 'limit deve ser um número' }).int().min(1).max(100, 'limit máximo é 100').default(20),
+  limit: z.coerce.number({ message: 'limit deve ser um número' }).int().min(1, 'limit mínimo é 1').max(100, 'limit máximo é 100').default(20),
 });
 
 export const listingIdSchema = z.object({ id: z.uuid() });
