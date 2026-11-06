@@ -43,6 +43,20 @@ export function findById(id) {
   });
 }
 
+export function findPublicByUsername(username) {
+  return prisma.user.findUnique({
+    where: { username },
+    select: {
+      id: true,
+      username: true,
+      name: true,
+      accountStatus: true,
+      deletedAt: true,
+      createdAt: true,
+    },
+  });
+}
+
 export function create(data) {
   return prisma.user.create({
     data,

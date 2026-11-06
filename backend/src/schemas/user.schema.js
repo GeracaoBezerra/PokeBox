@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { usernameRule } from './auth.schema.js';
+
 const optionalText = (max) => z.string().trim().max(max).nullable();
 
 export const updateUserSchema = z
@@ -30,3 +32,5 @@ export const updateUserSchema = z
   .partial()
   .strict()
   .refine((data) => Object.keys(data).length > 0, 'Envie ao menos um campo');
+
+export const usernameParamSchema = z.object({ username: usernameRule });

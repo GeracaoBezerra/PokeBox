@@ -49,3 +49,14 @@ export function toCollectionItemResponse(item) {
     available: item.quantity - item.reservedQuantity,
   };
 }
+
+export function toPublicCollectionItem(item) {
+  return {
+    id: item.id,
+    card: item.card,
+    quantity: item.quantity,
+    condition: item.condition,
+    finish: item.finish,
+    firstEdition: item.firstEdition,
+  };
+}

@@ -1,9 +1,11 @@
 import { z } from 'zod';
 
+export const usernameRule = z
+  .string()
+  .regex(/^[a-z0-9_]{3,20}$/, 'username: 3 a 20 caracteres, apenas a-z, 0-9 e _');
+
 export const registerSchema = z.object({
-  username: z
-    .string()
-    .regex(/^[a-z0-9_]{3,20}$/, 'username: 3 a 20 caracteres, apenas a-z, 0-9 e _'),
+  username: usernameRule,
   name: z.string().trim().min(2, 'name: mínimo 2 caracteres').max(120),
   email: z.email('email inválido').toLowerCase(),
   password: z

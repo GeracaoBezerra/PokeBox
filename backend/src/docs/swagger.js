@@ -77,6 +77,7 @@ export const swaggerSpec = {
     { name: "User", description: "Perfil do usuário autenticado" },
     { name: "Cards", description: "Cartas (TCGdex + cache)" },
     { name: "Collection", description: "Coleção do usuário autenticado" },
+    { name: "Users", description: "Perfil público dos colecionadores" },
   ],
   paths: {
     "/auth/register": {
@@ -535,6 +536,51 @@ export const swaggerSpec = {
         },
       },
     },
+    "/users/{username}/collection": {
+      get: {
+        tags: ["Users"],
+        summary: "Coleção pública de um colecionador",
+        description:
+          "Rota pública, sem login. Mostra só os itens com isPublic = true e quantidade maior que 0, ordenados pelo nome da carta. Itens privados não aparecem nem para o próprio dono (ele vê tudo em GET /collection). Conta inativa, suspensa ou apagada responde 404.",
+        parameters: [
+          {
+            name: "username",
+            in: "path",
+            required: true,
+            description: "3 a 20 caracteres, apenas a-z, 0-9 e _",
+            schema: { type: "string", pattern: "^[a-z0-9_]{3,20}$", example: "ash" },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Perfil e itens públicos",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: {
+                        user: { $ref: "#/components/schemas/PublicProfile" },
+                        items: {
+                          type: "array",
+                          items: { $ref: "#/components/schemas/PublicCollectionItem" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: errorResponse("Username fora do formato", "ApiValidationError"),
+          404: errorResponse("Usuário não encontrado"),
+          500: errorResponse("Erro interno"),
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -911,6 +957,25 @@ export const swaggerSpec = {
           isPublic: { type: "boolean", example: true },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
+          card: { $ref: "#/components/schemas/StoredCard" },
+        },
+      },
+      PublicProfile: {
+        type: "object",
+        properties: {
+          username: { type: "string", example: "ash" },
+          name: { type: "string", example: "Ash Ketchum" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      PublicCollectionItem: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          quantity: { type: "integer", minimum: 1, example: 2 },
+          condition: { type: "string", enum: cardConditions, example: "NEAR_MINT" },
+          finish: { type: "string", enum: cardFinishes, example: "HOLO" },
+          firstEdition: { type: "boolean", example: false },
           card: { $ref: "#/components/schemas/StoredCard" },
         },
       },
