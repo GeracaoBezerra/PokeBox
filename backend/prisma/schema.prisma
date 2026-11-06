@@ -85,6 +85,7 @@ model CollectionItem {
   user       User        @relation(fields: [userId], references: [id])
   card       Card        @relation(fields: [cardId], references: [id])
   listings   Listing[]
+  offerItems OfferItem[]
   tradeItems TradeItem[]
 
   @@unique([userId, cardId, condition, finish, firstEdition])
@@ -107,9 +108,7 @@ model WishlistItem {
 model Listing {
   id               String        @id @default(uuid())
   collectionItemId String
-  type             ListingType
   quantity         Int
-  priceCents       Int?
   description      String?
   status           ListingStatus @default(ACTIVE)
   createdAt        DateTime      @default(now())
@@ -127,19 +126,32 @@ model Offer {
   listingId   String
   proposerId  String
   quantity    Int
-  priceCents  Int?
   message     String?
   status      OfferStatus @default(PROPOSED)
   respondedAt DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  listing  Listing @relation(fields: [listingId], references: [id])
-  proposer User    @relation("OfferProposer", fields: [proposerId], references: [id])
+  listing  Listing     @relation(fields: [listingId], references: [id])
+  proposer User        @relation("OfferProposer", fields: [proposerId], references: [id])
+  items    OfferItem[]
   trade    Trade?
 
   @@index([listingId])
   @@index([proposerId])
+}
+
+model OfferItem {
+  id               String @id @default(uuid())
+  offerId          String
+  collectionItemId String
+  quantity         Int
+
+  offer          Offer          @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  collectionItem CollectionItem @relation(fields: [collectionItemId], references: [id])
+
+  @@unique([offerId, collectionItemId])
+  @@index([collectionItemId])
 }
 
 model Trade {
@@ -221,12 +233,6 @@ enum CardFinish {
   NORMAL
   HOLO
   REVERSE
-}
-
-enum ListingType {
-  SALE
-  TRADE
-  SALE_OR_TRADE
 }
 
 enum ListingStatus {

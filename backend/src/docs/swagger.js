@@ -1002,8 +1002,6 @@ export const swaggerSpec = {
             },
           },
           condition: { type: "string" },
-          price: { type: "number", nullable: true },
-          type: { type: "string", enum: ["TRADE", "SALE", "TRADE_SALE"] },
         },
       },
       StoredCard: {
