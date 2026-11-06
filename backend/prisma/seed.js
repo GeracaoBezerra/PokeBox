@@ -99,33 +99,29 @@ async function findOrCreateListing(data) {
 async function seedMarketplace(byUsername, items) {
   const charizardListing = await findOrCreateListing({
     collectionItemId: items['ash-charizard'].id,
-    type: 'SALE_OR_TRADE',
     quantity: 1,
-    priceCents: 150000,
     description: 'Charizard Base Set 1ª edição, sem marcas na frente.',
   });
 
   await findOrCreateListing({
     collectionItemId: items['misty-blastoise'].id,
-    type: 'TRADE',
     quantity: 1,
     description: 'Troco por Charizard ou cartas da 151.',
   });
 
   const proposerId = byUsername.misty.id;
+  const message = 'Troco meu Mew holo pelo seu Charizard?';
   const existingOffer = await prisma.offer.findFirst({ where: { listingId: charizardListing.id, proposerId } });
+  const offer = existingOffer
+    ? await prisma.offer.update({ where: { id: existingOffer.id }, data: { message } })
+    : await prisma.offer.create({ data: { listingId: charizardListing.id, proposerId, quantity: 1, message } });
 
-  if (!existingOffer) {
-    await prisma.offer.create({
-      data: {
-        listingId: charizardListing.id,
-        proposerId,
-        quantity: 1,
-        priceCents: 120000,
-        message: 'Topa R$ 1.200?',
-      },
-    });
-  }
+  const collectionItemId = items['misty-mew'].id;
+  await prisma.offerItem.upsert({
+    where: { offerId_collectionItemId: { offerId: offer.id, collectionItemId } },
+    update: {},
+    create: { offerId: offer.id, collectionItemId, quantity: 1 },
+  });
 }
 
 async function main() {
