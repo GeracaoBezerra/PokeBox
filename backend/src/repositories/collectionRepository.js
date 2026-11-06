@@ -8,6 +8,14 @@ export function findManyByUser(userId) {
   });
 }
 
+export function findPublicByUser(userId) {
+  return prisma.collectionItem.findMany({
+    where: { userId, isPublic: true, quantity: { gt: 0 } },
+    include: { card: true },
+    orderBy: [{ card: { name: 'asc' } }, { createdAt: 'asc' }],
+  });
+}
+
 export function findById(id) {
   return prisma.collectionItem.findUnique({
     where: { id },

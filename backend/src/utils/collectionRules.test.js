@@ -4,6 +4,7 @@ import {
   assertQuantity,
   assertVariant,
   toCollectionItemResponse,
+  toPublicCollectionItem,
 } from './collectionRules.js';
 
 const statusOf = (fn) => {
@@ -95,4 +96,39 @@ describe('toCollectionItemResponse', () => {
 
     expect(toCollectionItemResponse(item)).toEqual({ ...item, available: 3 });
   });
+});
+
+describe('toPublicCollectionItem', () => {
+  const item = {
+    id: 'item-1',
+    userId: 'ash',
+    cardId: 'base1-4',
+    quantity: 3,
+    reservedQuantity: 1,
+    condition: 'NEAR_MINT',
+    finish: 'HOLO',
+    firstEdition: false,
+    isPublic: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    card: { id: 'base1-4', name: 'Charizard' },
+  };
+
+  it('devolve só os campos públicos', () => {
+    expect(toPublicCollectionItem(item)).toEqual({
+      id: 'item-1',
+      card: { id: 'base1-4', name: 'Charizard' },
+      quantity: 3,
+      condition: 'NEAR_MINT',
+      finish: 'HOLO',
+      firstEdition: false,
+    });
+  });
+
+  it.each(['userId', 'reservedQuantity', 'isPublic', 'available', 'createdAt', 'updatedAt'])(
+    'não expõe %s',
+    (field) => {
+      expect(toPublicCollectionItem(item)).not.toHaveProperty(field);
+    },
+  );
 });
