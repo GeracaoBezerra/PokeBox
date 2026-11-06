@@ -57,6 +57,14 @@ const collectionItemIdParam = {
   schema: { type: "string", format: "uuid" },
 };
 
+const wishlistItemIdParam = {
+  name: "id",
+  in: "path",
+  required: true,
+  description: "ID do item da wishlist",
+  schema: { type: "string", format: "uuid" },
+};
+
 const cardConditions = Object.values(CardCondition);
 const cardFinishes = Object.values(CardFinish);
 
@@ -78,6 +86,7 @@ export const swaggerSpec = {
     { name: "Cards", description: "Cartas (TCGdex + cache)" },
     { name: "Collection", description: "Coleção do usuário autenticado" },
     { name: "Users", description: "Perfil público dos colecionadores" },
+    { name: "Wishlist", description: "Cartas que o usuário autenticado quer ter" },
   ],
   paths: {
     "/auth/register": {
@@ -581,6 +590,96 @@ export const swaggerSpec = {
         },
       },
     },
+    "/wishlist": {
+      get: {
+        tags: ["Wishlist"],
+        summary: "Lista a wishlist do usuário autenticado",
+        description:
+          "Traz as cartas desejadas, ordenadas pelo nome. opportunities é quantos outros usuários têm a carta em item público com unidade disponível (quantity > reservedQuantity). Contas apagadas, suspensas ou inativas não entram. A wishlist nunca altera a coleção.",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Itens da wishlist",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: {
+                        items: {
+                          type: "array",
+                          items: { $ref: "#/components/schemas/WishlistItem" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          ...authErrors,
+        },
+      },
+      post: {
+        tags: ["Wishlist"],
+        summary: "Adiciona uma carta à wishlist",
+        description:
+          "Busca a carta na TCGdex (com cache), grava em Card e cria o item. Sem variante: quem quer a carta aceita qualquer versão. Ter a carta na coleção não impede pôr na wishlist, e a coleção não muda.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AddWishlistItemRequest" },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: "Item criado",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: {
+                        item: { $ref: "#/components/schemas/WishlistItem" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: errorResponse("Corpo inválido", "ApiValidationError"),
+          404: errorResponse("Carta não encontrada na TCGdex"),
+          409: errorResponse("Esta carta já está na sua wishlist"),
+          ...authErrors,
+        },
+      },
+    },
+    "/wishlist/{id}": {
+      delete: {
+        tags: ["Wishlist"],
+        summary: "Remove um item da própria wishlist",
+        description: "Só o dono pode remover; ADMIN também recebe 403 em item de outra pessoa.",
+        security: [{ bearerAuth: [] }],
+        parameters: [wishlistItemIdParam],
+        responses: {
+          204: { description: "Item removido" },
+          400: errorResponse("Id inválido", "ApiValidationError"),
+          403: errorResponse("O item pertence a outro usuário"),
+          404: errorResponse("Item não encontrado"),
+          ...authErrors,
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -1005,6 +1104,30 @@ export const swaggerSpec = {
           quantity: { type: "integer", minimum: 0, example: 3 },
           condition: { type: "string", enum: cardConditions },
           isPublic: { type: "boolean" },
+        },
+      },
+      WishlistItem: {
+        type: "object",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          cardId: { type: "string", example: "base1-4" },
+          createdAt: { type: "string", format: "date-time" },
+          opportunities: {
+            type: "integer",
+            minimum: 0,
+            description:
+              "Quantos outros usuários têm a carta em item público com unidade disponível. Contas apagadas, suspensas ou inativas não entram.",
+            example: 1,
+          },
+          card: { $ref: "#/components/schemas/StoredCard" },
+        },
+      },
+      AddWishlistItemRequest: {
+        type: "object",
+        required: ["cardId"],
+        additionalProperties: false,
+        properties: {
+          cardId: { type: "string", description: "ID da carta na TCGdex", example: "sv01-001" },
         },
       },
       CardDetailsResponse: {
