@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { MemoryCache } from '../utils/memoryCache.js';
+import { toMarketPriceFields } from '../utils/cardRecord.js';
 import { cardMock } from '../mocks/cardMock.js';
 import { fetchCardFromTcgdex, searchCardsInTcgdex } from './tcgdexRepository.js';
 
@@ -32,6 +33,17 @@ async function writeDbCache(cardId, lang, data) {
   }
 }
 
+async function refreshStoredPrice(cardId, marketPrice) {
+  try {
+    await prisma.card.updateMany({
+      where: { id: cardId },
+      data: toMarketPriceFields(marketPrice),
+    });
+  } catch (err) {
+    console.error('Falha ao atualizar preço da Card:', err.message);
+  }
+}
+
 export async function findCardById(id, lang) {
   if (process.env.USE_MOCK === 'true') return cardMock;
 
@@ -52,6 +64,7 @@ export async function findCardById(id, lang) {
     try {
       const card = await fetchCardFromTcgdex(id, lang);
       await writeDbCache(id, lang, card);
+      await refreshStoredPrice(id, card.marketPrice);
       memory.set(key, card);
       return card;
     } catch (err) {

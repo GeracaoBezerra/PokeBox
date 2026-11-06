@@ -39,26 +39,30 @@ model User {
 }
 
 model Card {
-  id             String    @id
-  name           String
-  setId          String
-  setName        String
-  setSeries      String?
-  releaseDate    DateTime? @db.Date
-  number         String
-  rarity         String?
-  imageUrl       String?
-  category       String?
-  types          String[]  @default([])
-  hp             Int?
-  stage          String?
-  illustrator    String?
-  dexId          Int[]     @default([])
-  regulationMark String?
-  trainerType    String?
-  energyType     String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                   String    @id
+  name                 String
+  setId                String
+  setName              String
+  setSeries            String?
+  releaseDate          DateTime? @db.Date
+  number               String
+  rarity               String?
+  imageUrl             String?
+  category             String?
+  types                String[]  @default([])
+  hp                   Int?
+  stage                String?
+  illustrator          String?
+  dexId                Int[]     @default([])
+  regulationMark       String?
+  trainerType          String?
+  energyType           String?
+  marketPrice          Decimal?  @db.Decimal(10, 2)
+  marketPriceCurrency  String?
+  marketPriceSource    String?
+  marketPriceUpdatedAt DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   collectionItems CollectionItem[]
   wishlistItems   WishlistItem[]
