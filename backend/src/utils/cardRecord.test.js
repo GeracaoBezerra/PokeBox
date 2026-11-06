@@ -76,6 +76,12 @@ describe('toCardRecord', () => {
 });
 
 describe('toMarketPriceFields', () => {
+  it('usa a data do preço na fonte quando a TCGdex informa', () => {
+    const marketPrice = { source: 'tcgplayer', value: 1, currency: 'USD', updatedAt: '2026-11-04T10:00:00.000Z' };
+
+    expect(toMarketPriceFields(marketPrice, now).marketPriceUpdatedAt).toEqual(new Date('2026-11-04T10:00:00.000Z'));
+  });
+
   it('converte o preço da TCGdex nas colunas da Card', () => {
     const marketPrice = { source: 'cardmarket', value: 4.2, currency: 'EUR' };
 

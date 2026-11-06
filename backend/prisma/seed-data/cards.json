@@ -25,7 +25,7 @@
     "marketPrice": 987.13,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-06T02:55:44.237Z",
+    "marketPriceUpdatedAt": "2026-11-05T22:54:33.246Z",
     "variants": {
       "normal": false,
       "reverse": false,
@@ -59,7 +59,7 @@
     "marketPrice": 229.29,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-06T02:55:44.336Z",
+    "marketPriceUpdatedAt": "2026-11-05T22:54:33.246Z",
     "variants": {
       "normal": false,
       "reverse": false,
@@ -93,7 +93,7 @@
     "marketPrice": 11.94,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-06T02:55:44.462Z",
+    "marketPriceUpdatedAt": "2026-11-05T22:54:33.246Z",
     "variants": {
       "normal": true,
       "reverse": false,
@@ -127,7 +127,7 @@
     "marketPrice": 9.16,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-06T02:55:44.685Z",
+    "marketPriceUpdatedAt": "2026-11-05T22:54:46.974Z",
     "variants": {
       "normal": false,
       "reverse": false,
@@ -161,7 +161,7 @@
     "marketPrice": 0.29,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-06T02:55:44.829Z",
+    "marketPriceUpdatedAt": "2026-11-05T22:54:46.974Z",
     "variants": {
       "normal": true,
       "reverse": true,
@@ -195,7 +195,7 @@
     "marketPrice": 6.67,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-06T02:55:44.983Z",
+    "marketPriceUpdatedAt": "2026-11-05T22:54:46.974Z",
     "variants": {
       "normal": false,
       "reverse": false,
@@ -229,7 +229,7 @@
     "marketPrice": 0.29,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-06T02:55:45.202Z",
+    "marketPriceUpdatedAt": "2026-11-05T22:54:45.308Z",
     "variants": {
       "normal": true,
       "reverse": true,
@@ -263,7 +263,7 @@
     "marketPrice": 0.12,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-06T02:55:45.458Z",
+    "marketPriceUpdatedAt": "2026-11-05T22:54:46.691Z",
     "variants": {
       "normal": true,
       "reverse": true,
@@ -293,7 +293,7 @@
     "marketPrice": 0.26,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-06T02:55:45.565Z",
+    "marketPriceUpdatedAt": "2026-11-05T22:54:46.691Z",
     "variants": {
       "normal": true,
       "reverse": true,
@@ -323,7 +323,7 @@
     "marketPrice": 0.03,
     "marketPriceCurrency": "EUR",
     "marketPriceSource": "cardmarket",
-    "marketPriceUpdatedAt": "2026-11-06T02:55:45.839Z",
+    "marketPriceUpdatedAt": "2026-11-05T22:54:32.855Z",
     "variants": {
       "normal": true,
       "reverse": true,

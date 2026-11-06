@@ -100,10 +100,12 @@ function pickMarketPrice(card) {
   const tcg = card.pricing?.tcgplayer;
   if (tcg) {
     const v = tcg.holofoil ?? tcg['unlimited-holofoil'] ?? tcg.normal ?? tcg.reverse ?? tcg['reverse-holofoil'];
-    if (v?.marketPrice) return { source: 'tcgplayer', value: v.marketPrice, currency: tcg.unit ?? 'USD' };
+    if (v?.marketPrice) {
+      return { source: 'tcgplayer', value: v.marketPrice, currency: tcg.unit ?? 'USD', updatedAt: tcg.updated ?? null };
+    }
   }
   const cm = card.pricing?.cardmarket;
-  if (cm?.trend) return { source: 'cardmarket', value: cm.trend, currency: cm.unit ?? 'EUR' };
+  if (cm?.trend) return { source: 'cardmarket', value: cm.trend, currency: cm.unit ?? 'EUR', updatedAt: cm.updated ?? null };
   return null;
 }
 

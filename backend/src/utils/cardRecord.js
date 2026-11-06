@@ -12,7 +12,7 @@ export function toMarketPriceFields(marketPrice, now = new Date()) {
     marketPrice: marketPrice.value,
     marketPriceCurrency: marketPrice.currency,
     marketPriceSource: marketPrice.source,
-    marketPriceUpdatedAt: now,
+    marketPriceUpdatedAt: marketPrice.updatedAt ? new Date(marketPrice.updatedAt) : now,
   };
 }
 
