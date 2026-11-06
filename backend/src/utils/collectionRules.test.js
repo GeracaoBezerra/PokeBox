@@ -92,9 +92,15 @@ describe('assertVariant', () => {
 
 describe('toCollectionItemResponse', () => {
   it('calcula available e mantém os dados da carta', () => {
-    const item = { id: 'item-1', quantity: 5, reservedQuantity: 2, card: { id: 'base1-4' } };
+    const item = { id: 'item-1', quantity: 5, reservedQuantity: 2, card: { id: 'base1-4', marketPrice: null } };
 
     expect(toCollectionItemResponse(item)).toEqual({ ...item, available: 3 });
+  });
+
+  it('devolve o preço de referência como número', () => {
+    const item = { id: 'item-1', quantity: 1, reservedQuantity: 0, card: { id: 'base1-4', marketPrice: '312.5' } };
+
+    expect(toCollectionItemResponse(item).card.marketPrice).toBe(312.5);
   });
 });
 
@@ -111,13 +117,13 @@ describe('toPublicCollectionItem', () => {
     isPublic: true,
     createdAt: new Date(),
     updatedAt: new Date(),
-    card: { id: 'base1-4', name: 'Charizard' },
+    card: { id: 'base1-4', name: 'Charizard', marketPrice: '312.5' },
   };
 
   it('devolve só os campos públicos', () => {
     expect(toPublicCollectionItem(item)).toEqual({
       id: 'item-1',
-      card: { id: 'base1-4', name: 'Charizard' },
+      card: { id: 'base1-4', name: 'Charizard', marketPrice: 312.5 },
       quantity: 3,
       condition: 'NEAR_MINT',
       finish: 'HOLO',

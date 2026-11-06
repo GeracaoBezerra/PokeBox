@@ -1,4 +1,4 @@
-import { toCardRecord } from './cardRecord.js';
+import { toCardRecord, toCardResponse, toMarketPriceFields } from './cardRecord.js';
 
 const charizard = {
   id: 'base1-4',
@@ -16,11 +16,14 @@ const charizard = {
   regulationMark: null,
   trainerType: null,
   energyType: null,
+  marketPrice: { source: 'tcgplayer', value: 312.5, currency: 'USD' },
 };
+
+const now = new Date('2026-11-05T12:00:00Z');
 
 describe('toCardRecord', () => {
   it('converte a ficha da carta na linha da tabela Card', () => {
-    expect(toCardRecord(charizard)).toEqual({
+    expect(toCardRecord(charizard, now)).toEqual({
       id: 'base1-4',
       name: 'Charizard',
       setId: 'base1',
@@ -39,6 +42,10 @@ describe('toCardRecord', () => {
       regulationMark: null,
       trainerType: null,
       energyType: null,
+      marketPrice: 312.5,
+      marketPriceCurrency: 'USD',
+      marketPriceSource: 'tcgplayer',
+      marketPriceUpdatedAt: now,
     });
   });
 
@@ -61,5 +68,47 @@ describe('toCardRecord', () => {
     expect(record.dexId).toEqual([]);
     expect(record.hp).toBeNull();
     expect(record.trainerType).toBe('Item');
+    expect(record.marketPrice).toBeNull();
+    expect(record.marketPriceCurrency).toBeNull();
+    expect(record.marketPriceSource).toBeNull();
+    expect(record.marketPriceUpdatedAt).toBeNull();
+  });
+});
+
+describe('toMarketPriceFields', () => {
+  it('usa a data do preço na fonte quando a TCGdex informa', () => {
+    const marketPrice = { source: 'tcgplayer', value: 1, currency: 'USD', updatedAt: '2026-11-04T10:00:00.000Z' };
+
+    expect(toMarketPriceFields(marketPrice, now).marketPriceUpdatedAt).toEqual(new Date('2026-11-04T10:00:00.000Z'));
+  });
+
+  it('converte o preço da TCGdex nas colunas da Card', () => {
+    const marketPrice = { source: 'cardmarket', value: 4.2, currency: 'EUR' };
+
+    expect(toMarketPriceFields(marketPrice, now)).toEqual({
+      marketPrice: 4.2,
+      marketPriceCurrency: 'EUR',
+      marketPriceSource: 'cardmarket',
+      marketPriceUpdatedAt: now,
+    });
+  });
+
+  it('zera as colunas quando a carta não tem preço', () => {
+    expect(toMarketPriceFields(null)).toEqual({
+      marketPrice: null,
+      marketPriceCurrency: null,
+      marketPriceSource: null,
+      marketPriceUpdatedAt: null,
+    });
+  });
+});
+
+describe('toCardResponse', () => {
+  it('converte o Decimal do banco em número', () => {
+    expect(toCardResponse({ id: 'base1-4', marketPrice: '312.5' })).toEqual({ id: 'base1-4', marketPrice: 312.5 });
+  });
+
+  it('mantém null quando não há preço', () => {
+    expect(toCardResponse({ id: 'sv01-196', marketPrice: null }).marketPrice).toBeNull();
   });
 });

@@ -24,7 +24,7 @@ describe('toWishlistItemResponse', () => {
     userId: 'misty',
     cardId: 'base1-4',
     createdAt: new Date('2026-11-05T00:00:00Z'),
-    card: { id: 'base1-4', name: 'Charizard' },
+    card: { id: 'base1-4', name: 'Charizard', marketPrice: '312.5' },
   };
 
   it('devolve os dados da carta e as oportunidades', () => {
@@ -33,7 +33,7 @@ describe('toWishlistItemResponse', () => {
     expect(toWishlistItemResponse(item, owners)).toEqual({
       id: 'item-1',
       cardId: 'base1-4',
-      card: { id: 'base1-4', name: 'Charizard' },
+      card: { id: 'base1-4', name: 'Charizard', marketPrice: 312.5 },
       createdAt: item.createdAt,
       opportunities: 2,
     });

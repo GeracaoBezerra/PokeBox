@@ -1,4 +1,5 @@
 import { AppError } from './AppError.js';
+import { toCardResponse } from './cardRecord.js';
 
 const FINISH_TO_VARIANT = {
   NORMAL: 'normal',
@@ -46,6 +47,7 @@ export function assertVariant(variants = {}, finish, firstEdition) {
 export function toCollectionItemResponse(item) {
   return {
     ...item,
+    card: toCardResponse(item.card),
     available: item.quantity - item.reservedQuantity,
   };
 }
@@ -53,7 +55,7 @@ export function toCollectionItemResponse(item) {
 export function toPublicCollectionItem(item) {
   return {
     id: item.id,
-    card: item.card,
+    card: toCardResponse(item.card),
     quantity: item.quantity,
     condition: item.condition,
     finish: item.finish,

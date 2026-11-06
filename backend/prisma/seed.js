@@ -57,8 +57,12 @@ async function seedUsers() {
 async function seedCards() {
   const cards = await loadCards();
 
-  for (const { variants, releaseDate, ...card } of cards) {
-    const data = { ...card, releaseDate: releaseDate ? new Date(releaseDate) : null };
+  for (const { variants, releaseDate, marketPriceUpdatedAt, ...card } of cards) {
+    const data = {
+      ...card,
+      releaseDate: releaseDate ? new Date(releaseDate) : null,
+      marketPriceUpdatedAt: marketPriceUpdatedAt ? new Date(marketPriceUpdatedAt) : null,
+    };
     await prisma.card.upsert({ where: { id: card.id }, update: data, create: data });
   }
 

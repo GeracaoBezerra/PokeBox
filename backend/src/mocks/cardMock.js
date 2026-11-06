@@ -26,5 +26,5 @@ export const cardMock = {
   trainerType: null,
   energyType: null,
   variants: { normal: false, reverse: false, holo: true, firstEdition: true },
-  marketPrice: { source: 'tcgplayer', value: 390, currency: 'USD' },
+  marketPrice: { source: 'tcgplayer', value: 390, currency: 'USD', updatedAt: '2026-11-05T22:54:33.246Z' },
 };
