@@ -1,1 +1,333 @@
 # PokeBox
+
+Plataforma para colecionadores de cartas **Pokémon TCG**: organizar a coleção, montar a wishlist, ver a coleção pública de outros colecionadores e **trocar cartas** entre si.
+
+O PokeBox é **só de trocas**. Não existe venda, preço de venda nem pagamento. O preço que aparece nas cartas é uma **referência de mercado** (vinda da TCGdex), útil para comparar o que se dá e o que se recebe numa troca.
+
+Projeto em equipe do curso **Geração Tech**.
+
+> Este README descreve o que está na branch `develop`.
+
+## Sumário
+
+- [Stack](#stack)
+- [Estrutura do repositório](#estrutura-do-repositório)
+- [Como rodar](#como-rodar)
+- [Usuários de teste (seed)](#usuários-de-teste-seed)
+- [Testes](#testes)
+- [API](#api)
+- [Regras de negócio](#regras-de-negócio)
+- [Status do projeto](#status-do-projeto)
+- [Como contribuir](#como-contribuir)
+
+## Stack
+
+| Parte | Tecnologia |
+|---|---|
+| Backend | Node.js (LTS), Express 5, Prisma 7 (`@prisma/adapter-pg`), zod 4, JWT, bcrypt |
+| Banco | PostgreSQL 17 |
+| Frontend | React 19, Vite, React Router, axios |
+| Dados das cartas | API pública [TCGdex](https://tcgdex.dev), com cache no banco |
+| Testes | Jest (backend), ESLint e build (frontend) |
+| Documentação da API | Swagger em `/docs` |
+| Infra | Docker Compose, GitHub Actions (CI) |
+
+## Estrutura do repositório
+
+```
+.
+├── backend/
+│   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json)
+│   ├── docs/db.md         modelo de dados, constraints, migrations e seed
+│   ├── scripts/           snapshot-cards.js (regera as cartas do seed)
+│   └── src/
+│       ├── routes/        URLs e middlewares de cada rota
+│       ├── controllers/   lê a requisição, valida com zod e responde
+│       ├── services/      regras de negócio
+│       ├── repositories/  acesso ao banco (Prisma) e à TCGdex
+│       ├── schemas/       validação de entrada (zod)
+│       ├── middlewares/   autenticação, papéis, validação e erros
+│       ├── utils/         regras puras (testadas com jest), AppError, tradutor de erros do Prisma
+│       └── docs/          especificação do Swagger
+├── frontend/              app React (Vite)
+├── docker-compose.yml     banco, backend e frontend
+└── .env.example           variáveis de ambiente
+```
+
+O backend segue as camadas **routes → controllers → services → repositories**.
+
+## Como rodar
+
+### Pré-requisitos
+
+- Docker e Docker Compose
+- Node.js LTS, se for rodar sem Docker ou rodar os testes
+
+### 1. Variáveis de ambiente
+
+Copie o exemplo e preencha. O arquivo `.env` fica **na raiz** e é lido pelo Docker, pelo backend e pelo Prisma.
+
+```bash
+cp .env.example .env
+```
+
+Exemplo para desenvolvimento local:
+
+```env
+POSTGRES_USER=pokebox
+POSTGRES_PASSWORD=pokebox
+POSTGRES_DB=pokebox
+POSTGRES_PORT=5432
+
+BACKEND_PORT=3000
+DATABASE_URL=postgresql://pokebox:pokebox@localhost:5432/pokebox?schema=public
+PRISMA_DATABASE_URL="postgresql://pokebox:pokebox@localhost:5432/pokebox?schema=public"
+
+FRONTEND_PORT=5173
+
+JWT_SECRET=troque-por-um-segredo-longo
+JWT_EXPIRES_IN=1d
+```
+
+Use `localhost` nas URLs: dentro do Docker o `docker-compose.yml` troca o host para `tcg-db` sozinho.
+
+### 2a. Tudo no Docker
+
+```bash
+docker compose up -d --build
+docker compose exec tcg-backend npm run db:seed
+```
+
+O backend aplica as migrations sozinho ao subir (`prisma migrate deploy`). O seed é manual.
+
+| Serviço | Endereço |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API | http://localhost:3000 |
+| Swagger | http://localhost:3000/docs |
+| Saúde da API | http://localhost:3000/health |
+| PostgreSQL | `localhost:5432` |
+
+### 2b. Banco no Docker, backend e frontend na máquina
+
+Bom para desenvolver, porque o backend reinicia sozinho a cada alteração.
+
+```bash
+docker compose up -d tcg-db
+
+cd backend
+npm install
+npx prisma migrate dev
+npx prisma generate
+npm run db:seed
+npm run dev
+```
+
+Em outro terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+O frontend chama a API em `http://localhost:3000`. Para outro endereço, defina `VITE_API_URL`.
+
+### Depois de puxar a develop
+
+Se chegou migration nova (pasta `backend/prisma/migrations`), atualize o banco e o cliente do Prisma:
+
+```bash
+cd backend
+npx prisma migrate dev
+npx prisma generate
+npm run db:seed
+```
+
+No Docker: `docker compose up -d --build tcg-backend` e rode o seed de novo.
+
+### Começar o banco do zero
+
+Apaga **todos** os dados locais:
+
+```bash
+docker compose down -v
+docker compose up -d --build
+docker compose exec tcg-backend npm run db:seed
+```
+
+### Ver o banco
+
+- Prisma Studio: `cd backend && npx prisma studio` (abre no navegador).
+- Ou qualquer cliente PostgreSQL (DBeaver, extensão do VS Code etc.) com os dados do `.env`.
+
+## Usuários de teste (seed)
+
+Senha de todos: **`pokebox123`**
+
+| Usuário | E-mail | Papel | O que tem |
+|---|---|---|---|
+| `admin` | `admin@pokebox.dev` | ADMIN | nada na coleção |
+| `ash` | `ash@pokebox.dev` | USER | Charizard holo 1ª edição (anunciado), Pikachus, Ultra Ball (4), Furret (privado) |
+| `misty` | `misty@pokebox.dev` | USER | Blastoise holo (anunciado), Mew holo, Fire Energy (10), Pikachu |
+
+Também há 4 itens de wishlist e uma oferta em aberto: a misty oferece o Mew holo dela pelo Charizard do ash. Detalhes em [`backend/docs/db.md`](backend/docs/db.md#seed).
+
+O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, porque as cartas ficam em `backend/prisma/seed-data/cards.json`.
+
+### Testar rápido no Swagger
+
+1. Abra http://localhost:3000/docs.
+2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "pokebox123" }`.
+3. Copie o `token` da resposta, clique em **Authorize** e cole.
+4. Chame `GET /collection`, `GET /wishlist` etc.
+
+## Testes
+
+```bash
+cd backend
+npm test
+```
+
+São testes de unidade (jest) das regras puras e dos schemas. Não precisam de banco.
+
+A CI (GitHub Actions) roda em toda PR para `develop` e `main`:
+
+| Job | O que roda |
+|---|---|
+| `backend` | `npm ci`, `npx prisma generate`, `npm test` |
+| `frontend` | `npm ci`, `npm run lint`, `npm run build` |
+
+Os dois precisam passar para mergear.
+
+## API
+
+Todas as respostas seguem o mesmo formato:
+
+```json
+{ "success": true, "data": { } }
+{ "success": false, "error": "mensagem", "details": [{ "field": "quantity", "message": "..." }] }
+```
+
+`details` só aparece em erro de validação (400). Rotas com 🔒 exigem `Authorization: Bearer <token>`.
+
+### Autenticação e conta
+
+| Rota | | O que faz |
+|---|---|---|
+| `POST /auth/register` | | cria conta (`username`, `name`, `email`, `password`) e devolve o token |
+| `POST /auth/login` | | login com e-mail e senha, devolve o token |
+| `GET /auth/me` | 🔒 | dados do usuário logado |
+| `GET /auth/admin-check` | 🔒 ADMIN | testa o acesso de admin |
+| `PATCH /user/me` | 🔒 | edita nome, telefone e endereço |
+| `DELETE /user/me` | 🔒 | desativa a conta (soft delete) |
+
+### Cartas (catálogo)
+
+| Rota | | O que faz |
+|---|---|---|
+| `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação |
+| `GET /cards/:id` | | detalhe da carta (ataques, variantes, preço de referência) |
+
+### Coleção
+
+| Rota | | O que faz |
+|---|---|---|
+| `GET /collection` | 🔒 | minha coleção, com `available` (quantidade menos reservada) |
+| `POST /collection` | 🔒 | adiciona carta: `cardId`, `quantity`, `finish`, `firstEdition`, `condition?`, `isPublic?` |
+| `PATCH /collection/:id` | 🔒 | muda `quantity`, `condition` ou `isPublic` |
+| `DELETE /collection/:id` | 🔒 | remove o item |
+| `GET /users/:username/collection` | | coleção pública de um colecionador |
+
+### Wishlist
+
+| Rota | | O que faz |
+|---|---|---|
+| `GET /wishlist` | 🔒 | minha wishlist, com `opportunities` em cada carta |
+| `POST /wishlist` | 🔒 | adiciona carta (`cardId`) |
+| `DELETE /wishlist/:id` | 🔒 | remove |
+
+A documentação completa, com exemplos de corpo e resposta, está no **Swagger (`/docs`)**.
+
+### Códigos de status
+
+| Código | Quando |
+|---|---|
+| 400 | dados inválidos (campo faltando, formato errado, campo a mais) |
+| 401 | sem token, token inválido ou expirado, senha errada |
+| 403 | logado, mas sem permissão (item de outra pessoa, rota de admin, conta suspensa) |
+| 404 | não encontrado (inclui perfil de conta desativada) |
+| 409 | conflito (e-mail/username já usados, carta repetida na wishlist, item com reserva ou ligado a anúncio/oferta) |
+| 422 | regra de negócio violada (ex.: quantidade abaixo da reservada, variante que a carta não tem) |
+| 500 | erro inesperado |
+
+## Regras de negócio
+
+### Implementadas na develop
+
+| Regra | Como funciona |
+|---|---|
+| **RN-01** Catálogo × coleção | Ao adicionar uma carta à coleção ou à wishlist, os dados dela são buscados na TCGdex e gravados **uma vez** na tabela `Card`. A coleção só aponta para essa carta, nunca duplica. |
+| **RN-02** Dono do item | Só o dono vê, edita ou apaga os próprios itens. Mexer no item de outra pessoa → **403**, inclusive para ADMIN. Item que não existe → **404**. |
+| **RN-03** Quantidade | Quantidade nunca negativa (validação + CHECK no banco). Mesma carta com mesma condição e variante **soma** na quantidade em vez de criar outro item. Não pode baixar a quantidade abaixo do que está reservado em negociação (**422**) nem apagar item com reserva (**409**). |
+| **RN-04** Wishlist | Cada carta entra uma vez na wishlist (repetida → **409**). Cada item mostra `opportunities`: quantos **outros** colecionadores têm essa carta pública e disponível (contas desativadas não contam). A wishlist não tem variante: quem deseja aceita qualquer versão. |
+| **RN-10** Privacidade | Item com `isPublic: false` não aparece no perfil público. O perfil público nunca mostra e-mail, reserva nem dados internos. Conta desativada ou suspensa → **404**. |
+
+Outras regras que já valem:
+
+- **Variante da carta:** cada item tem `finish` (`NORMAL`, `HOLO`, `REVERSE`) e `firstEdition`. Só aceita combinações que a carta realmente tem na TCGdex (senão **422**).
+- **Condição:** `MINT`, `NEAR_MINT`, `EXCELLENT`, `GOOD`, `LIGHT_PLAYED`, `PLAYED` ou `POOR`.
+- **Conta:** login de conta suspensa ou inativa → **403**. Excluir a conta só desativa (soft delete); o histórico fica.
+- **Cache das cartas:** o detalhe de uma carta é buscado na TCGdex só na primeira vez e guardado por 24h no banco (`CardCache`) e por 1h em memória. Se a TCGdex cair, a API usa a última cópia guardada.
+- **Preço de referência:** cada carta guarda o preço de mercado da TCGdex (TCGplayer em USD ou Cardmarket em EUR), atualizado quando a carta é consultada de novo. É **só informativo**.
+- **Integridade no banco:** chaves estrangeiras, uniques e CHECKs em todas as tabelas. Lista completa em [`backend/docs/db.md`](backend/docs/db.md).
+
+### Adaptação: só trocas
+
+O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox é só de trocas** (sem venda nem pagamento). Por isso:
+
+- o anúncio não tem tipo nem preço;
+- a oferta diz **quais cartas da coleção** o proponente dá em troca;
+- a RN-05 vira "só anuncia o que tem disponível para troca".
+
+### Em andamento
+
+| Regra | Situação |
+|---|---|
+| **RN-05** Anúncios: só anuncia o que tem disponível | PR #56 em revisão |
+| **RN-06** Ofertas: proponente ≠ dono, só o dono do anúncio responde | próxima |
+| **RN-07** Troca atômica: as cartas trocam de dono numa transação só | depois da RN-06 |
+| **RN-08** Reserva: revalidar disponibilidade ao aceitar | junto com a RN-07 |
+
+As tabelas de anúncio, oferta e troca **já existem** no banco e no seed; faltam as rotas.
+
+## Status do projeto
+
+| Parte | Situação |
+|---|---|
+| Autenticação e autorização | ✅ backend e frontend (login, cadastro, logout) |
+| Coleção, perfil público, wishlist | ✅ backend · frontend a fazer |
+| Anúncios, ofertas, trocas | 🟡 backend em andamento |
+| Frontend | 🟡 home, login e cadastro prontos; demais telas a fazer |
+
+Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).
+
+## Como contribuir
+
+1. Pegue uma issue no board e mova para **In progress**.
+2. Crie a branch a partir da `develop` atualizada:
+   ```bash
+   git switch develop
+   git pull origin develop
+   git switch -c feat/<numero-da-issue>-<descricao>
+   ```
+3. **Uma issue → uma branch → uma PR**, sempre apontando para a `develop`.
+4. Use o template de PR: `Closes #<issue>`, o que muda e **como testar**.
+5. A CI precisa passar e um colega precisa revisar antes do merge.
+6. A `main` só recebe a `develop` por PR, em releases.
+
+Mudou o banco? Altere o `schema.prisma`, rode `npx prisma migrate dev --name <descricao>` e atualize o [`backend/docs/db.md`](backend/docs/db.md) no mesmo PR. CHECK constraints vão escritas à mão no SQL da migration.
+
+Padrão de commits: `tipo(escopo): descrição`, por exemplo `feat(wishlist): ...`, `fix(db): ...`, `docs: ...`.
+
+Respostas e erros da API seguem o contrato `{ success, data }` / `{ success: false, error }`. Erros de regra são lançados com `AppError(status, mensagem)` no service.
