@@ -1,63 +1,8 @@
 .lista {
   display: flex;
   flex-direction: column;
-}
-
-.item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: var(--esp-16);
-  padding: var(--esp-16) 0;
-  border-bottom: 1px solid var(--borda-suave);
-}
-
-.item:last-child {
-  border-bottom: 0;
-}
-
-.resumo {
-  color: var(--texto);
-  font-size: var(--fs-md);
-  font-weight: var(--peso-semi);
-  line-height: var(--lh-md);
-}
-
-.por {
-  color: var(--texto-suave);
-  font-weight: var(--peso-normal);
-}
-
-.detalhe {
-  color: var(--texto-suave);
-  font-size: var(--fs-sm);
-  line-height: var(--lh-sm);
-}
-
-/* Status: sempre com texto (não depende só da cor) */
-.status {
-  flex-shrink: 0;
-  padding: 2px var(--esp-12);
-
-  border-radius: var(--raio-pilula);
-
-  font-size: var(--fs-xs);
-  font-weight: var(--peso-semi);
-}
-
-.concluida {
-  background-color: var(--sucesso-fundo);
-  color: var(--sucesso);
-}
-
-.pendente {
-  background-color: var(--aviso-fundo);
-  color: var(--aviso);
-}
-
-.cancelada {
-  background-color: var(--erro-fundo);
-  color: var(--erro);
+  padding: var(--esp-24) 0;
 }
 
 .vazio {

@@ -20,30 +20,77 @@ export const informacoesExemplo = {
   cep: "60000-000",
 };
 
+// Cada troca guarda as duas cartas (nome, set, número e imagem; na API vêm do
+// snapshot local da carta).
 // status: "concluida" | "pendente" | "cancelada"
+// propostaPor: "voce" | "parceiro"
+// respondidaEm: data em que foi aceita (concluida) ou cancelada (cancelada);
+// fica null enquanto estiver pendente.
 export const trocasExemplo = [
   {
-    id: 1,
-    data: "2026-10-24",
-    parceiro: "brock_cards",
-    ofereceu: "Charizard ex",
-    recebeu: "Umbreon ex",
+    id: 1042,
     status: "pendente",
+    parceiro: "brock_cards",
+    propostaPor: "voce",
+    propostaEm: "2026-10-24",
+    respondidaEm: null,
+    ofereceu: {
+      id: "sv03.5-199",
+      nome: "Charizard ex",
+      set: "151",
+      numero: "199/165",
+      src: "https://assets.tcgdex.net/en/sv/sv03.5/199/low.webp",
+    },
+    recebeu: {
+      id: "sv08.5-161",
+      nome: "Umbreon ex",
+      set: "Prismatic Evolutions",
+      numero: "161/131",
+      src: "https://assets.tcgdex.net/en/sv/sv08.5/161/low.webp",
+    },
   },
   {
-    id: 2,
-    data: "2026-10-12",
-    parceiro: "misty_tcg",
-    ofereceu: "Squirtle",
-    recebeu: "Eevee ex",
+    id: 1037,
     status: "concluida",
+    parceiro: "misty_tcg",
+    propostaPor: "parceiro",
+    propostaEm: "2026-10-10",
+    respondidaEm: "2026-10-12",
+    ofereceu: {
+      id: "sv03.5-170",
+      nome: "Squirtle",
+      set: "151",
+      numero: "170/165",
+      src: "https://assets.tcgdex.net/en/sv/sv03.5/170/low.webp",
+    },
+    recebeu: {
+      id: "sv08.5-167",
+      nome: "Eevee ex",
+      set: "Prismatic Evolutions",
+      numero: "167/131",
+      src: "https://assets.tcgdex.net/en/sv/sv08.5/167/low.webp",
+    },
   },
   {
-    id: 3,
-    data: "2026-09-30",
-    parceiro: "gary_oak",
-    ofereceu: "Mew ex",
-    recebeu: "Gardevoir ex",
+    id: 1029,
     status: "cancelada",
+    parceiro: "gary_oak",
+    propostaPor: "voce",
+    propostaEm: "2026-09-28",
+    respondidaEm: "2026-09-30",
+    ofereceu: {
+      id: "sv03.5-151",
+      nome: "Mew ex",
+      set: "151",
+      numero: "151/165",
+      src: "https://assets.tcgdex.net/en/sv/sv03.5/151/low.webp",
+    },
+    recebeu: {
+      id: "sv01-245",
+      nome: "Gardevoir ex",
+      set: "Scarlet & Violet",
+      numero: "245/198",
+      src: "https://assets.tcgdex.net/en/sv/sv01/245/low.webp",
+    },
   },
 ];

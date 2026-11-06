@@ -1,11 +1,3 @@
-// DADOS DE EXEMPLO. Quando o backend existir, estes campos vêm da API:
-// nome, set, numero, raridade, artista (illustrator) e tipo vêm da TCGdex;
-// wishlist e ranking vêm do banco (contagem de wishlist_items por carta).
-// Este arquivo some quando o GridCartas passar a buscar da API.
-//
-// Cartas da era Scarlet & Violet. O id segue o padrão da TCGdex (<set>-<número>)
-// e a imagem segue https://assets.tcgdex.net/en/<serie>/<set>/<numero>/high.webp
-// (ou importe arquivos locais de assets/cards/, como no BannerSwiper).
 export const cartasDestaque = [
   {
     id: "sv08.5-161",
@@ -18,7 +10,7 @@ export const cartasDestaque = [
     tipoKey: "sombrio",
     wishlist: 3120,
     ranking: 1,
-    src: "https://assets.tcgdex.net/en/sv/sv08.5/161/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv08.5/161/low.webp",
   },
   {
     id: "sv03.5-199",
@@ -31,7 +23,7 @@ export const cartasDestaque = [
     tipoKey: "fogo",
     wishlist: 2874,
     ranking: 2,
-    src: "https://assets.tcgdex.net/en/sv/sv03.5/199/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv03.5/199/low.webp",
   },
   {
     id: "sv08-238",
@@ -44,7 +36,7 @@ export const cartasDestaque = [
     tipoKey: "eletrico",
     wishlist: 2455,
     ranking: 3,
-    src: "https://assets.tcgdex.net/en/sv/sv08/238/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv08/238/low.webp",
   },
   {
     id: "sv01-245",
@@ -57,7 +49,7 @@ export const cartasDestaque = [
     tipoKey: "psiquico",
     wishlist: 2210,
     ranking: 4,
-    src: "https://assets.tcgdex.net/en/sv/sv01/245/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv01/245/low.webp",
   },
   {
     id: "sv08.5-167",
@@ -70,7 +62,7 @@ export const cartasDestaque = [
     tipoKey: "incolor",
     wishlist: 1986,
     ranking: 5,
-    src: "https://assets.tcgdex.net/en/sv/sv08.5/167/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv08.5/167/low.webp",
   },
   {
     id: "sv03.5-151",
@@ -83,7 +75,7 @@ export const cartasDestaque = [
     tipoKey: "psiquico",
     wishlist: 1742,
     ranking: 6,
-    src: "https://assets.tcgdex.net/en/sv/sv03.5/151/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv03.5/151/low.webp",
   },
   {
     id: "sv06-130",
@@ -96,7 +88,7 @@ export const cartasDestaque = [
     tipoKey: "dragao",
     wishlist: 1530,
     ranking: 7,
-    src: "https://assets.tcgdex.net/en/sv/sv06/130/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv06/130/low.webp",
   },
   {
     id: "sv01-247",
@@ -109,7 +101,7 @@ export const cartasDestaque = [
     tipoKey: "lutador",
     wishlist: 1288,
     ranking: 8,
-    src: "https://assets.tcgdex.net/en/sv/sv01/247/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv01/247/low.webp",
   },
   {
     id: "sv01-244",
@@ -122,7 +114,7 @@ export const cartasDestaque = [
     tipoKey: "eletrico",
     wishlist: 1104,
     ranking: 9,
-    src: "https://assets.tcgdex.net/en/sv/sv01/244/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv01/244/low.webp",
   },
   {
     id: "sv06-211",
@@ -135,7 +127,7 @@ export const cartasDestaque = [
     tipoKey: "planta",
     wishlist: 897,
     ranking: 10,
-    src: "https://assets.tcgdex.net/en/sv/sv06/211/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv06/211/low.webp",
   },
   {
     id: "sv03.5-170",
@@ -148,7 +140,7 @@ export const cartasDestaque = [
     tipoKey: "agua",
     wishlist: 764,
     ranking: 11,
-    src: "https://assets.tcgdex.net/en/sv/sv03.5/170/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv03.5/170/low.webp",
   },
   {
     id: "sv08-130",
@@ -161,6 +153,6 @@ export const cartasDestaque = [
     tipoKey: "metal",
     wishlist: 620,
     ranking: 12,
-    src: "https://assets.tcgdex.net/en/sv/sv08/130/high.webp",
+    src: "https://assets.tcgdex.net/en/sv/sv08/130/low.webp",
   },
 ];
