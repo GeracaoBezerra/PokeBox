@@ -595,7 +595,7 @@ export const swaggerSpec = {
         tags: ["Wishlist"],
         summary: "Lista a wishlist do usuário autenticado",
         description:
-          "Traz as cartas desejadas, ordenadas pelo nome. opportunities é quantos outros usuários têm a carta em item público com unidade disponível (quantity > reservedQuantity). A wishlist nunca altera a coleção.",
+          "Traz as cartas desejadas, ordenadas pelo nome. opportunities é quantos outros usuários têm a carta em item público com unidade disponível (quantity > reservedQuantity). Contas apagadas, suspensas ou inativas não entram. A wishlist nunca altera a coleção.",
         security: [{ bearerAuth: [] }],
         responses: {
           200: {
@@ -1116,7 +1116,7 @@ export const swaggerSpec = {
             type: "integer",
             minimum: 0,
             description:
-              "Quantos outros usuários têm a carta em item público com unidade disponível.",
+              "Quantos outros usuários têm a carta em item público com unidade disponível. Contas apagadas, suspensas ou inativas não entram.",
             example: 1,
           },
           card: { $ref: "#/components/schemas/StoredCard" },
