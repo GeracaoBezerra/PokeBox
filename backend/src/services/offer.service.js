@@ -97,6 +97,8 @@ export async function changeStatus(userId, id, nextStatus) {
         : null;
 
     const locked = await offerRepository.lockById(id, tx);
+    if (!locked) throw new AppError(404, 'Oferta não encontrada');
+
     const listing = await listingRepository.findById(locked.listingId, tx);
 
     assertStatusChange({
