@@ -69,7 +69,8 @@ Efeitos colaterais feitos pelo service, na mesma transação da mudança:
 
 - **Oferta recusada ou cancelada** apaga os `OfferItem` dela. Sem isso, a FK `RESTRICT` deixaria a carta oferecida presa na coleção para sempre.
 - **Anúncio fechado (`CLOSED`) ou bloqueado (`BLOCKED`)** cancela as ofertas `PROPOSED` dele (`CANCELED`, `respondedAt` = agora) e apaga os `OfferItem` delas. Pausar não mexe nas ofertas; desbloquear não as reabre.
-- **Oferta não reserva:** criar ou aceitar oferta não muda `reservedQuantity`. A reserva fica para a troca (RN-07/RN-08).
+- **Oferta não reserva:** criar ou aceitar oferta não muda `reservedQuantity`. A reserva fica para a troca (RN-07/RN-08). Por isso o aceite trava e confere de novo o item do anúncio e as cartas oferecidas: anúncio com menos unidades do que a oferta pede ou carta oferecida sem disponível → 422.
+- **Apagar item de coleção** que está numa oferta `PROPOSED` ou `ACCEPTED` → 409 com mensagem própria (o `OfferItem` da oferta aceita fica até a troca existir).
 
 ## Migrations
 

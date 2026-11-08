@@ -633,7 +633,7 @@ export const swaggerSpec = {
           400: errorResponse("Id inválido", "ApiValidationError"),
           403: errorResponse("O item pertence a outro usuário"),
           404: errorResponse("Item não encontrado"),
-          409: errorResponse("O item tem anúncio ligado ou unidades reservadas"),
+          409: errorResponse("O item tem anúncio ligado, unidades reservadas ou está numa oferta aberta ou aceita"),
           ...authErrors,
         },
       },
@@ -978,7 +978,7 @@ export const swaggerSpec = {
         tags: ["Offers"],
         summary: "Aceita, recusa ou cancela uma oferta",
         description:
-          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED). Oferta finalizada não muda mais de status nem volta para PROPOSED. Recusar ou cancelar apaga os itens oferecidos (items vem vazio). Aceitar exige o anúncio ACTIVE e, por enquanto, só muda o status: a troca nasce na #18.",
+          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED). Oferta finalizada não muda mais de status nem volta para PROPOSED. Recusar ou cancelar apaga os itens oferecidos (items vem vazio). Aceitar exige o anúncio ACTIVE e confere de novo se a oferta ainda dá para cumprir: o anúncio tem a quantidade pedida e quem ofertou ainda tem as cartas oferecidas disponíveis. Por enquanto, aceitar só muda o status: a troca nasce na #18.",
         security: [{ bearerAuth: [] }],
         parameters: [offerIdParam],
         requestBody: {
@@ -994,7 +994,7 @@ export const swaggerSpec = {
           400: errorResponse("Corpo ou id inválido (inclui status PROPOSED)", "ApiValidationError"),
           403: errorResponse("Não participa da oferta (inclui ADMIN) ou papel errado para o status"),
           404: errorResponse("Oferta não encontrada"),
-          422: errorResponse("Oferta já finalizada (RN-06) ou anúncio que não está ACTIVE no aceite"),
+          422: errorResponse("Oferta já finalizada (RN-06); no aceite, anúncio fora de ACTIVE, anúncio com menos unidades do que a oferta pede ou carta oferecida que não está mais disponível"),
           ...authErrors,
         },
       },

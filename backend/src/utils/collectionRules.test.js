@@ -1,6 +1,7 @@
 import {
   assertCoversListings,
   assertNoListings,
+  assertNoOffers,
   assertNotReserved,
   assertOwner,
   assertQuantity,
@@ -80,6 +81,22 @@ describe('assertNoListings', () => {
     expect(statusOf(() => assertNoListings({ open: 0, total: 2 }))).toBe(409);
     expect(() => assertNoListings({ open: 0, total: 2 })).toThrow(/histórico/);
     expect(() => assertNoListings({ open: 1, total: 2 })).toThrow(/Feche o anúncio/);
+  });
+});
+
+describe('assertNoOffers', () => {
+  it('libera item que não está em oferta aberta nem aceita', () => {
+    expect(() => assertNoOffers({ open: 0, accepted: 0 })).not.toThrow();
+  });
+
+  it('bloqueia item em oferta aberta com 409 e mensagem própria', () => {
+    expect(statusOf(() => assertNoOffers({ open: 1, accepted: 0 }))).toBe(409);
+    expect(() => assertNoOffers({ open: 1, accepted: 1 })).toThrow(/Cancele a oferta/);
+  });
+
+  it('bloqueia item em oferta aceita com 409', () => {
+    expect(statusOf(() => assertNoOffers({ open: 0, accepted: 1 }))).toBe(409);
+    expect(() => assertNoOffers({ open: 0, accepted: 1 })).toThrow(/aguardando a troca/);
   });
 });
 

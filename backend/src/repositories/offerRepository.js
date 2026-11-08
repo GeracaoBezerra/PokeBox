@@ -54,6 +54,15 @@ export function findReceived(userId, status) {
   });
 }
 
+export async function countByItem(collectionItemId) {
+  const [open, accepted] = await Promise.all([
+    prisma.offerItem.count({ where: { collectionItemId, offer: { status: 'PROPOSED' } } }),
+    prisma.offerItem.count({ where: { collectionItemId, offer: { status: 'ACCEPTED' } } }),
+  ]);
+
+  return { open, accepted };
+}
+
 export function updateStatus(id, status, tx) {
   return tx.offer.update({
     where: { id },

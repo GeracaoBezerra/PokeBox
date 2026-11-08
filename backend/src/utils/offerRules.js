@@ -49,6 +49,25 @@ export function assertListingActive(listing) {
   }
 }
 
+export function assertStillFulfillable({ offerQuantity, listing, offeredItems }) {
+  if (offerQuantity > listing.quantity) {
+    throw new AppError(
+      422,
+      `O anúncio agora tem só ${listing.quantity} unidade(s) e a oferta pede ${offerQuantity}. Recuse a oferta ou aumente o anúncio`,
+    );
+  }
+
+  for (const { item, requested } of offeredItems) {
+    const available = item.quantity - item.reservedQuantity;
+    if (requested > available) {
+      throw new AppError(
+        422,
+        `Quem fez a oferta não tem mais as cartas oferecidas: ${available} unidade(s) disponível(is), a oferta pede ${requested}`,
+      );
+    }
+  }
+}
+
 export function toOfferResponse(offer) {
   return {
     id: offer.id,

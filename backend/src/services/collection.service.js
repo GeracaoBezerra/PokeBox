@@ -1,12 +1,14 @@
 import * as collectionRepository from '../repositories/collectionRepository.js';
 import { upsertCard } from '../repositories/cardRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
+import * as offerRepository from '../repositories/offerRepository.js';
 import { withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../utils/AppError.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import {
   assertCoversListings,
   assertNoListings,
+  assertNoOffers,
   assertNotReserved,
   assertOwner,
   assertQuantity,
@@ -61,5 +63,6 @@ export async function remove(userId, id) {
   const item = await findOwnItem(userId, id);
   assertNotReserved(item);
   assertNoListings(await listingRepository.countByItem(id));
+  assertNoOffers(await offerRepository.countByItem(id));
   await collectionRepository.remove(id);
 }

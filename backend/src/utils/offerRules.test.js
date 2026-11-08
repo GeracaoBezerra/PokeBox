@@ -3,6 +3,7 @@ import {
   assertListingActive,
   assertOfferItem,
   assertStatusChange,
+  assertStillFulfillable,
   toOfferResponse,
 } from './offerRules.js';
 
@@ -107,6 +108,31 @@ describe('assertListingActive', () => {
 
   it.each(['PAUSED', 'CLOSED', 'BLOCKED'])('recusa anúncio %s com 422', (status) => {
     expect(statusOf(() => assertListingActive({ status }))).toBe(422);
+  });
+});
+
+describe('assertStillFulfillable', () => {
+  const listing = { quantity: 2 };
+  const item = (quantity, reservedQuantity = 0) => ({ quantity, reservedQuantity });
+
+  it('aceita quando o anúncio e as cartas oferecidas ainda cobrem a oferta', () => {
+    const offeredItems = [{ item: item(1), requested: 1 }, { item: item(3, 1), requested: 2 }];
+    expect(() => assertStillFulfillable({ offerQuantity: 2, listing, offeredItems })).not.toThrow();
+  });
+
+  it('recusa com 422 quando o dono baixou o anúncio abaixo do que a oferta pede', () => {
+    const offeredItems = [{ item: item(1), requested: 1 }];
+    expect(statusOf(() => assertStillFulfillable({ offerQuantity: 3, listing, offeredItems }))).toBe(422);
+  });
+
+  it('recusa com 422 quando quem ofertou zerou a carta oferecida', () => {
+    const offeredItems = [{ item: item(0), requested: 1 }];
+    expect(statusOf(() => assertStillFulfillable({ offerQuantity: 1, listing, offeredItems }))).toBe(422);
+  });
+
+  it('desconta a reserva da carta oferecida', () => {
+    const offeredItems = [{ item: item(2, 2), requested: 1 }];
+    expect(statusOf(() => assertStillFulfillable({ offerQuantity: 1, listing, offeredItems }))).toBe(422);
   });
 });
 

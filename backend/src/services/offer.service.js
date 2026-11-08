@@ -9,6 +9,7 @@ import {
   assertListingActive,
   assertOfferItem,
   assertStatusChange,
+  assertStillFulfillable,
   toOfferResponse,
 } from '../utils/offerRules.js';
 
@@ -86,10 +87,16 @@ export async function getById(userId, id) {
 }
 
 export async function changeStatus(userId, id, nextStatus) {
-  const offer = await withTransaction(async (tx) => {
-    const locked = await offerRepository.lockById(id, tx);
-    if (!locked) throw new AppError(404, 'Oferta não encontrada');
+  const found = await offerRepository.findById(id);
+  if (!found) throw new AppError(404, 'Oferta não encontrada');
 
+  const offer = await withTransaction(async (tx) => {
+    const lockedItems =
+      nextStatus === 'ACCEPTED'
+        ? await lockInOrder([found.listing.collectionItemId, ...found.items.map((item) => item.collectionItemId)], tx)
+        : null;
+
+    const locked = await offerRepository.lockById(id, tx);
     const listing = await listingRepository.findById(locked.listingId, tx);
 
     assertStatusChange({
@@ -99,7 +106,18 @@ export async function changeStatus(userId, id, nextStatus) {
       isListingOwner: listing.collectionItem.userId === userId,
     });
 
-    if (nextStatus === 'ACCEPTED') assertListingActive(listing);
+    if (nextStatus === 'ACCEPTED') {
+      assertListingActive(listing);
+      assertStillFulfillable({
+        offerQuantity: found.quantity,
+        listing,
+        offeredItems: found.items.map((item) => ({
+          item: lockedItems.get(item.collectionItemId),
+          requested: item.quantity,
+        })),
+      });
+    }
+
     if (RELEASES_ITEMS.includes(nextStatus)) await offerRepository.deleteItems(id, tx);
 
     return offerRepository.updateStatus(id, nextStatus, tx);
