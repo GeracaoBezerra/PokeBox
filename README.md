@@ -180,7 +180,7 @@ O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, p
 1. Abra http://localhost:3000/docs.
 2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "pokebox123" }`.
 3. Copie o `token` da resposta, clique em **Authorize** e cole.
-4. Chame `GET /collection`, `GET /wishlist` etc.
+4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me` etc.
 
 ## Testes
 
@@ -209,7 +209,7 @@ Todas as respostas seguem o mesmo formato:
 { "success": false, "error": "mensagem", "details": [{ "field": "quantity", "message": "..." }] }
 ```
 
-`details` só aparece em erro de validação (400). Rotas com 🔒 exigem `Authorization: Bearer <token>`.
+`details` só aparece em erro de validação (400). Rotas com 🔒 exigem `Authorization: Bearer <token>`; com 🔓 o token é opcional (muda o que a pessoa enxerga).
 
 ### Autenticação e conta
 
@@ -227,7 +227,7 @@ Todas as respostas seguem o mesmo formato:
 | Rota | | O que faz |
 |---|---|---|
 | `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação |
-| `GET /cards/:id` | | detalhe da carta (ataques, variantes, preço de referência) |
+| `GET /cards/:id` | | detalhe da carta (ataques, variantes, preço de referência) e os anúncios ativos dela |
 
 ### Coleção
 
@@ -236,7 +236,7 @@ Todas as respostas seguem o mesmo formato:
 | `GET /collection` | 🔒 | minha coleção, com `available` (quantidade menos reservada) |
 | `POST /collection` | 🔒 | adiciona carta: `cardId`, `quantity`, `finish`, `firstEdition`, `condition?`, `isPublic?` |
 | `PATCH /collection/:id` | 🔒 | muda `quantity`, `condition` ou `isPublic` |
-| `DELETE /collection/:id` | 🔒 | remove o item |
+| `DELETE /collection/:id` | 🔒 | remove o item (não remove se tiver reserva ou se já foi anunciado; nesse caso, zere a quantidade) |
 | `GET /users/:username/collection` | | coleção pública de um colecionador |
 
 ### Wishlist
@@ -246,6 +246,16 @@ Todas as respostas seguem o mesmo formato:
 | `GET /wishlist` | 🔒 | minha wishlist, com `opportunities` em cada carta |
 | `POST /wishlist` | 🔒 | adiciona carta (`cardId`) |
 | `DELETE /wishlist/:id` | 🔒 | remove |
+
+### Anúncios de troca
+
+| Rota | | O que faz |
+|---|---|---|
+| `GET /listings?cardId=&username=&page=&limit=` | | anúncios ativos, mais novos primeiro, com `hasNextPage` |
+| `GET /listings/me` | 🔒 | meus anúncios, em qualquer status |
+| `GET /listings/:id` | 🔓 | detalhe; anúncio pausado, fechado ou bloqueado só aparece para o dono e para o ADMIN |
+| `POST /listings` | 🔒 | anuncia um item da minha coleção: `collectionItemId`, `quantity`, `description?` |
+| `PATCH /listings/:id` | 🔒 | muda `quantity`, `description` ou `status` (`ACTIVE`, `PAUSED`, `CLOSED`); ADMIN só bloqueia (`BLOCKED`) ou desbloqueia |
 
 A documentação completa, com exemplos de corpo e resposta, está no **Swagger (`/docs`)**.
 
@@ -257,8 +267,8 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | 401 | sem token, token inválido ou expirado, senha errada |
 | 403 | logado, mas sem permissão (item de outra pessoa, rota de admin, conta suspensa) |
 | 404 | não encontrado (inclui perfil de conta desativada) |
-| 409 | conflito (e-mail/username já usados, carta repetida na wishlist, item com reserva ou ligado a anúncio/oferta) |
-| 422 | regra de negócio violada (ex.: quantidade abaixo da reservada, variante que a carta não tem) |
+| 409 | conflito (e-mail/username já usados, carta repetida na wishlist, apagar item com reserva ou que já foi anunciado) |
+| 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem) |
 | 500 | erro inesperado |
 
 ## Regras de negócio
@@ -271,6 +281,7 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | **RN-02** Dono do item | Só o dono vê, edita ou apaga os próprios itens. Mexer no item de outra pessoa → **403**, inclusive para ADMIN. Item que não existe → **404**. |
 | **RN-03** Quantidade | Quantidade nunca negativa (validação + CHECK no banco). Mesma carta com mesma condição e variante **soma** na quantidade em vez de criar outro item. Não pode baixar a quantidade abaixo do que está reservado em negociação (**422**) nem apagar item com reserva (**409**). |
 | **RN-04** Wishlist | Cada carta entra uma vez na wishlist (repetida → **409**). Cada item mostra `opportunities`: quantos **outros** colecionadores têm essa carta pública e disponível (contas desativadas não contam). A wishlist não tem variante: quem deseja aceita qualquer versão. |
+| **RN-05** Anúncios (adaptada: só trocas) | Só anuncia item da **própria** coleção (**403**). A soma das quantidades dos anúncios abertos (ativos e pausados) de um item não passa do disponível (quantidade menos reservada); senão **422**. Vale ao criar, ao aumentar a quantidade e ao desbloquear. A coleção também não deixa baixar a quantidade abaixo do que está anunciado (**422**). Anunciar **não reserva**: a reserva só acontece quando uma oferta é aceita. Pedidos ao mesmo tempo no mesmo item são tratados um de cada vez (trava no banco). |
 | **RN-10** Privacidade | Item com `isPublic: false` não aparece no perfil público. O perfil público nunca mostra e-mail, reserva nem dados internos. Conta desativada ou suspensa → **404**. |
 
 Outras regras que já valem:
@@ -280,6 +291,7 @@ Outras regras que já valem:
 - **Conta:** login de conta suspensa ou inativa → **403**. Excluir a conta só desativa (soft delete); o histórico fica.
 - **Cache das cartas:** o detalhe de uma carta é buscado na TCGdex só na primeira vez e guardado por 24h no banco (`CardCache`) e por 1h em memória. Se a TCGdex cair, a API usa a última cópia guardada.
 - **Preço de referência:** cada carta guarda o preço de mercado da TCGdex (TCGplayer em USD ou Cardmarket em EUR), atualizado quando a carta é consultada de novo. É **só informativo**.
+- **Status do anúncio:** o dono alterna entre ativo e pausado e pode fechar; anúncio fechado não volta. Só o ADMIN bloqueia, e só ele desbloqueia (volta como pausado). Um item que já foi anunciado não pode mais ser apagado da coleção, porque o anúncio fica no histórico; para tirá-lo do perfil, zere a quantidade.
 - **Integridade no banco:** chaves estrangeiras, uniques e CHECKs em todas as tabelas. Lista completa em [`backend/docs/db.md`](backend/docs/db.md).
 
 ### Adaptação: só trocas
@@ -294,12 +306,11 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 
 | Regra | Situação |
 |---|---|
-| **RN-05** Anúncios: só anuncia o que tem disponível | PR #56 em revisão |
 | **RN-06** Ofertas: proponente ≠ dono, só o dono do anúncio responde | próxima |
 | **RN-07** Troca atômica: as cartas trocam de dono numa transação só | depois da RN-06 |
 | **RN-08** Reserva: revalidar disponibilidade ao aceitar | junto com a RN-07 |
 
-As tabelas de anúncio, oferta e troca **já existem** no banco e no seed; faltam as rotas.
+As tabelas de oferta e troca **já existem** no banco e no seed; faltam as rotas.
 
 ## Status do projeto
 
@@ -307,7 +318,8 @@ As tabelas de anúncio, oferta e troca **já existem** no banco e no seed; falta
 |---|---|
 | Autenticação e autorização | ✅ backend e frontend (login, cadastro, logout) |
 | Coleção, perfil público, wishlist | ✅ backend · frontend a fazer |
-| Anúncios, ofertas, trocas | 🟡 backend em andamento |
+| Anúncios | ✅ backend · frontend a fazer |
+| Ofertas, trocas | 🟡 backend em andamento |
 | Frontend | 🟡 home, login e cadastro prontos; demais telas a fazer |
 
 Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).

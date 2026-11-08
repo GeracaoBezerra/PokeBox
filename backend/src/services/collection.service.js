@@ -1,8 +1,12 @@
 import * as collectionRepository from '../repositories/collectionRepository.js';
 import { upsertCard } from '../repositories/cardRepository.js';
+import * as listingRepository from '../repositories/listingRepository.js';
+import { withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../utils/AppError.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import {
+  assertCoversListings,
+  assertNoListings,
   assertNotReserved,
   assertOwner,
   assertQuantity,
@@ -35,18 +39,27 @@ export async function add(userId, input) {
 }
 
 export async function update(userId, id, input) {
-  const item = await findOwnItem(userId, id);
+  const updated = await withTransaction(async (tx) => {
+    const item = await collectionRepository.lockById(id, tx);
+    if (!item) throw new AppError(404, 'Item da coleção não encontrado');
 
-  if (input.quantity !== undefined) {
-    assertQuantity(input.quantity, item.reservedQuantity);
-  }
+    assertOwner(item, userId);
 
-  const updated = await collectionRepository.update(id, input);
+    if (input.quantity !== undefined) {
+      assertQuantity(input.quantity, item.reservedQuantity);
+      const listed = await listingRepository.sumOpenByItem(id, tx);
+      assertCoversListings(input.quantity, item.reservedQuantity, listed);
+    }
+
+    return collectionRepository.update(id, input, tx);
+  });
+
   return toCollectionItemResponse(updated);
 }
 
 export async function remove(userId, id) {
   const item = await findOwnItem(userId, id);
   assertNotReserved(item);
+  assertNoListings(await listingRepository.countByItem(id));
   await collectionRepository.remove(id);
 }

@@ -1,4 +1,4 @@
-import { CardCondition, CardFinish } from "../generated/prisma/index.js";
+import { CardCondition, CardFinish, ListingStatus } from "../generated/prisma/index.js";
 import { LANGS } from "../middlewares/validateCardParams.js";
 
 const nullableString = { type: "string", nullable: true };
@@ -65,8 +65,70 @@ const wishlistItemIdParam = {
   schema: { type: "string", format: "uuid" },
 };
 
+const listingIdParam = {
+  name: "id",
+  in: "path",
+  required: true,
+  description: "ID do anúncio",
+  schema: { type: "string", format: "uuid" },
+};
+
+const listingResponse = (description) => ({
+  description,
+  content: {
+    "application/json": {
+      schema: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
+            type: "object",
+            properties: {
+              listing: { $ref: "#/components/schemas/Listing" },
+            },
+          },
+        },
+      },
+    },
+  },
+});
+
+const listingListResponse = (description, withPagination) => ({
+  description,
+  content: {
+    "application/json": {
+      schema: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: { $ref: "#/components/schemas/Listing" },
+              },
+            },
+          },
+          ...(withPagination && {
+            pagination: {
+              type: "object",
+              properties: {
+                page: { type: "integer", example: 1 },
+                limit: { type: "integer", example: 20 },
+                hasNextPage: { type: "boolean" },
+              },
+            },
+          }),
+        },
+      },
+    },
+  },
+});
+
 const cardConditions = Object.values(CardCondition);
 const cardFinishes = Object.values(CardFinish);
+const listingStatuses = Object.values(ListingStatus);
 
 export const swaggerSpec = {
   openapi: "3.0.3",
@@ -87,6 +149,7 @@ export const swaggerSpec = {
     { name: "Collection", description: "Coleção do usuário autenticado" },
     { name: "Users", description: "Perfil público dos colecionadores" },
     { name: "Wishlist", description: "Cartas que o usuário autenticado quer ter" },
+    { name: "Listings", description: "Anúncios de troca (RN-05: só anuncia o que tem)" },
   ],
   paths: {
     "/auth/register": {
@@ -507,7 +570,7 @@ export const swaggerSpec = {
         tags: ["Collection"],
         summary: "Altera um item da própria coleção",
         description:
-          "Só o dono pode alterar; ADMIN também recebe 403 em item de outra pessoa. A quantidade pode ser 0, mas não pode ficar abaixo da reservada em negociações. finish e firstEdition não mudam: para isso, apague e crie de novo.",
+          "Só o dono pode alterar; ADMIN também recebe 403 em item de outra pessoa. A quantidade pode ser 0, mas não pode ficar abaixo da reservada em negociações somada às unidades em anúncios ACTIVE/PAUSED (RN-05). finish e firstEdition não mudam: para isso, apague e crie de novo.",
         security: [{ bearerAuth: [] }],
         parameters: [collectionItemIdParam],
         requestBody: {
@@ -524,7 +587,7 @@ export const swaggerSpec = {
           403: errorResponse("O item pertence a outro usuário"),
           404: errorResponse("Item não encontrado"),
           409: errorResponse("Já existe outro item igual com essa condição"),
-          422: errorResponse("Quantidade abaixo da reservada"),
+          422: errorResponse("Quantidade abaixo da reservada ou das unidades anunciadas"),
           ...authErrors,
         },
       },
@@ -676,6 +739,123 @@ export const swaggerSpec = {
           400: errorResponse("Id inválido", "ApiValidationError"),
           403: errorResponse("O item pertence a outro usuário"),
           404: errorResponse("Item não encontrado"),
+          ...authErrors,
+        },
+      },
+    },
+    "/listings": {
+      get: {
+        tags: ["Listings"],
+        summary: "Vitrine de anúncios",
+        description:
+          "Anúncios ACTIVE, mais recentes primeiro. Não precisa de login. Donos com conta apagada, suspensa ou inativa não aparecem.",
+        parameters: [
+          {
+            name: "cardId",
+            in: "query",
+            required: false,
+            description: "Só anúncios desta carta",
+            schema: { type: "string", example: "base1-4" },
+          },
+          {
+            name: "username",
+            in: "query",
+            required: false,
+            description: "Só anúncios deste colecionador",
+            schema: { type: "string", example: "ash" },
+          },
+          {
+            name: "page",
+            in: "query",
+            required: false,
+            schema: { type: "integer", minimum: 1, default: 1 },
+          },
+          {
+            name: "limit",
+            in: "query",
+            required: false,
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+          },
+        ],
+        responses: {
+          200: listingListResponse("Anúncios ativos", true),
+          400: errorResponse("Filtro ou paginação inválidos", "ApiValidationError"),
+          500: errorResponse("Erro interno"),
+        },
+      },
+      post: {
+        tags: ["Listings"],
+        summary: "Anuncia um item da própria coleção para troca",
+        description:
+          "RN-05: o item tem que ser do usuário, e quantity somada aos outros anúncios ACTIVE/PAUSED do mesmo item não pode passar do disponível (quantity - reservedQuantity). O anúncio não reserva unidades. Item privado (isPublic false) pode ser anunciado.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateListingRequest" },
+            },
+          },
+        },
+        responses: {
+          201: listingResponse("Anúncio criado"),
+          400: errorResponse("Corpo inválido", "ApiValidationError"),
+          403: errorResponse("O item pertence a outro usuário"),
+          404: errorResponse("Item da coleção não encontrado"),
+          422: errorResponse("Quantidade acima do disponível (RN-05)"),
+          ...authErrors,
+        },
+      },
+    },
+    "/listings/me": {
+      get: {
+        tags: ["Listings"],
+        summary: "Anúncios do usuário autenticado",
+        description: "Todos os status (ACTIVE, PAUSED, CLOSED, BLOCKED), mais recentes primeiro.",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: listingListResponse("Anúncios do usuário", false),
+          ...authErrors,
+        },
+      },
+    },
+    "/listings/{id}": {
+      get: {
+        tags: ["Listings"],
+        summary: "Um anúncio",
+        description:
+          "Login opcional. ACTIVE aparece para qualquer um; os outros status só para o dono ou ADMIN (senão 404).",
+        security: [{}, { bearerAuth: [] }],
+        parameters: [listingIdParam],
+        responses: {
+          200: listingResponse("Anúncio"),
+          400: errorResponse("Id inválido", "ApiValidationError"),
+          401: errorResponse("Token enviado, mas inválido ou expirado"),
+          404: errorResponse("Anúncio não encontrado"),
+          500: errorResponse("Erro interno"),
+        },
+      },
+      patch: {
+        tags: ["Listings"],
+        summary: "Altera um anúncio",
+        description:
+          "Dono: quantity, description e status (ACTIVE, PAUSED, CLOSED). ADMIN: só status, para BLOCKED ou de BLOCKED para PAUSED. CLOSED é final. Aumentar quantity ou sair de BLOCKED revalida a RN-05.",
+        security: [{ bearerAuth: [] }],
+        parameters: [listingIdParam],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateListingRequest" },
+            },
+          },
+        },
+        responses: {
+          200: listingResponse("Anúncio alterado"),
+          400: errorResponse("Corpo ou id inválido", "ApiValidationError"),
+          403: errorResponse("Anúncio de outro usuário, bloqueado pela moderação, ou ADMIN mudando quantidade/descrição"),
+          404: errorResponse("Anúncio não encontrado"),
+          422: errorResponse("Anúncio fechado, transição de status não permitida ou quantidade acima do disponível"),
           ...authErrors,
         },
       },
@@ -998,16 +1178,56 @@ export const swaggerSpec = {
       },
       Listing: {
         type: "object",
+        description: "Anúncio de troca. Nunca traz userId, e-mail, reservedQuantity nem isPublic.",
         properties: {
-          id: { type: "string" },
-          user: {
+          id: { type: "string", format: "uuid" },
+          quantity: { type: "integer", minimum: 1, example: 1 },
+          description: { type: "string", nullable: true, example: "Troco por Blastoise" },
+          status: { type: "string", enum: listingStatuses, example: "ACTIVE" },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+          owner: {
             type: "object",
             properties: {
-              username: { type: "string" },
-              avatarUrl: nullableString,
+              username: { type: "string", example: "ash" },
+              name: { type: "string", example: "Ash Ketchum" },
             },
           },
-          condition: { type: "string" },
+          item: {
+            type: "object",
+            description: "Item da coleção que lastreia o anúncio.",
+            properties: {
+              id: { type: "string", format: "uuid" },
+              condition: { type: "string", enum: cardConditions, example: "NEAR_MINT" },
+              finish: { type: "string", enum: cardFinishes, example: "HOLO" },
+              firstEdition: { type: "boolean", example: false },
+            },
+          },
+          card: { $ref: "#/components/schemas/StoredCard" },
+        },
+      },
+      CreateListingRequest: {
+        type: "object",
+        required: ["collectionItemId", "quantity"],
+        additionalProperties: false,
+        properties: {
+          collectionItemId: { type: "string", format: "uuid" },
+          quantity: { type: "integer", minimum: 1, example: 1 },
+          description: { type: "string", maxLength: 500, example: "Troco por Blastoise" },
+        },
+      },
+      UpdateListingRequest: {
+        type: "object",
+        minProperties: 1,
+        additionalProperties: false,
+        properties: {
+          quantity: { type: "integer", minimum: 1, example: 2 },
+          description: { type: "string", nullable: true, maxLength: 500 },
+          status: {
+            type: "string",
+            enum: listingStatuses,
+            description: "Dono: ACTIVE, PAUSED ou CLOSED. ADMIN: BLOCKED, ou PAUSED para desbloquear.",
+          },
         },
       },
       StoredCard: {

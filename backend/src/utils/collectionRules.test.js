@@ -1,4 +1,6 @@
 import {
+  assertCoversListings,
+  assertNoListings,
   assertNotReserved,
   assertOwner,
   assertQuantity,
@@ -44,6 +46,40 @@ describe('assertQuantity', () => {
 
   it('recusa quantidade abaixo da reservada com 422', () => {
     expect(statusOf(() => assertQuantity(1, 2))).toBe(422);
+  });
+});
+
+describe('assertCoversListings', () => {
+  it('aceita quantidade que cobre reserva e anúncios', () => {
+    expect(() => assertCoversListings(4, 1, 3)).not.toThrow();
+  });
+
+  it('aceita qualquer quantidade quando não há anúncio nem reserva', () => {
+    expect(() => assertCoversListings(0, 0, 0)).not.toThrow();
+  });
+
+  it('recusa com 422 quantidade abaixo do que está anunciado', () => {
+    expect(statusOf(() => assertCoversListings(1, 0, 2))).toBe(422);
+  });
+
+  it('soma reserva e anúncios', () => {
+    expect(statusOf(() => assertCoversListings(3, 1, 3))).toBe(422);
+  });
+});
+
+describe('assertNoListings', () => {
+  it('libera item que nunca foi anunciado', () => {
+    expect(() => assertNoListings({ open: 0, total: 0 })).not.toThrow();
+  });
+
+  it('bloqueia item com anúncio aberto com 409', () => {
+    expect(statusOf(() => assertNoListings({ open: 1, total: 1 }))).toBe(409);
+  });
+
+  it('bloqueia item com anúncio só no histórico com 409 e mensagem própria', () => {
+    expect(statusOf(() => assertNoListings({ open: 0, total: 2 }))).toBe(409);
+    expect(() => assertNoListings({ open: 0, total: 2 })).toThrow(/histórico/);
+    expect(() => assertNoListings({ open: 1, total: 2 })).toThrow(/Feche o anúncio/);
   });
 });
 
