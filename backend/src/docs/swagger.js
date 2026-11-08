@@ -1,4 +1,4 @@
-import { CardCondition, CardFinish, ListingStatus } from "../generated/prisma/index.js";
+import { CardCondition, CardFinish, ListingStatus, OfferStatus } from "../generated/prisma/index.js";
 import { LANGS } from "../middlewares/validateCardParams.js";
 
 const nullableString = { type: "string", nullable: true };
@@ -129,6 +129,35 @@ const listingListResponse = (description, withPagination) => ({
 const cardConditions = Object.values(CardCondition);
 const cardFinishes = Object.values(CardFinish);
 const listingStatuses = Object.values(ListingStatus);
+const offerStatuses = Object.values(OfferStatus);
+
+const offerIdParam = {
+  name: "id",
+  in: "path",
+  required: true,
+  description: "ID da oferta",
+  schema: { type: "string", format: "uuid" },
+};
+
+const offerResponse = (description) => ({
+  description,
+  content: {
+    "application/json": {
+      schema: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
+            type: "object",
+            properties: {
+              offer: { $ref: "#/components/schemas/Offer" },
+            },
+          },
+        },
+      },
+    },
+  },
+});
 
 export const swaggerSpec = {
   openapi: "3.0.3",
@@ -150,6 +179,7 @@ export const swaggerSpec = {
     { name: "Users", description: "Perfil público dos colecionadores" },
     { name: "Wishlist", description: "Cartas que o usuário autenticado quer ter" },
     { name: "Listings", description: "Anúncios de troca (RN-05: só anuncia o que tem)" },
+    { name: "Offers", description: "Ofertas de troca em anúncios (RN-06: oferta finalizada não volta para PROPOSED)" },
   ],
   paths: {
     "/auth/register": {
@@ -603,7 +633,7 @@ export const swaggerSpec = {
           400: errorResponse("Id inválido", "ApiValidationError"),
           403: errorResponse("O item pertence a outro usuário"),
           404: errorResponse("Item não encontrado"),
-          409: errorResponse("O item tem anúncio ligado ou unidades reservadas"),
+          409: errorResponse("O item tem anúncio ligado, unidades reservadas ou está numa oferta aberta ou aceita"),
           ...authErrors,
         },
       },
@@ -839,7 +869,7 @@ export const swaggerSpec = {
         tags: ["Listings"],
         summary: "Altera um anúncio",
         description:
-          "Dono: quantity, description e status (ACTIVE, PAUSED, CLOSED). ADMIN: só status, para BLOCKED ou de BLOCKED para PAUSED. CLOSED é final. Aumentar quantity ou sair de BLOCKED revalida a RN-05.",
+          "Dono: quantity, description e status (ACTIVE, PAUSED, CLOSED). ADMIN: só status, para BLOCKED ou de BLOCKED para PAUSED. CLOSED é final. Aumentar quantity ou sair de BLOCKED revalida a RN-05. Fechar (CLOSED) ou bloquear (BLOCKED) cancela as ofertas PROPOSED do anúncio e solta as cartas oferecidas; pausar não mexe nelas. Desbloquear não reabre ofertas canceladas.",
         security: [{ bearerAuth: [] }],
         parameters: [listingIdParam],
         requestBody: {
@@ -856,6 +886,115 @@ export const swaggerSpec = {
           403: errorResponse("Anúncio de outro usuário, bloqueado pela moderação, ou ADMIN mudando quantidade/descrição"),
           404: errorResponse("Anúncio não encontrado"),
           422: errorResponse("Anúncio fechado, transição de status não permitida ou quantidade acima do disponível"),
+          ...authErrors,
+        },
+      },
+    },
+    "/listings/{id}/offers": {
+      post: {
+        tags: ["Offers"],
+        summary: "Faz uma oferta de troca num anúncio",
+        description:
+          "Diz quantas cartas do anúncio quer (quantity) e quais cartas da própria coleção dá em troca (items). O anúncio tem que estar ACTIVE e ser de outro usuário. Cada item oferecido tem que ser do proponente e caber no disponível (quantity - reservedQuantity). Só uma oferta PROPOSED por proponente em cada anúncio. A oferta não reserva unidades.",
+        security: [{ bearerAuth: [] }],
+        parameters: [listingIdParam],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateOfferRequest" },
+            },
+          },
+        },
+        responses: {
+          201: offerResponse("Oferta criada"),
+          400: errorResponse("Corpo inválido: items vazio, mais de 20, item repetido ou campo extra", "ApiValidationError"),
+          403: errorResponse("Item oferecido pertence a outro usuário"),
+          404: errorResponse("Anúncio inexistente ou que não aceita ofertas (pausado, fechado, bloqueado), ou item oferecido inexistente"),
+          409: errorResponse("Você já tem uma oferta aberta neste anúncio"),
+          422: errorResponse("Oferta no próprio anúncio, quantidade acima da do anúncio ou item oferecido acima do disponível"),
+          ...authErrors,
+        },
+      },
+    },
+    "/offers/me": {
+      get: {
+        tags: ["Offers"],
+        summary: "Ofertas feitas e recebidas pelo usuário autenticado",
+        description: "sent: ofertas que o usuário fez. received: ofertas nos anúncios dele. Mais recentes primeiro.",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "status",
+            in: "query",
+            required: false,
+            description: "Só ofertas neste status",
+            schema: { type: "string", enum: offerStatuses },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Ofertas do usuário",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: {
+                        sent: { type: "array", items: { $ref: "#/components/schemas/Offer" } },
+                        received: { type: "array", items: { $ref: "#/components/schemas/Offer" } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: errorResponse("Status inválido", "ApiValidationError"),
+          ...authErrors,
+        },
+      },
+    },
+    "/offers/{id}": {
+      get: {
+        tags: ["Offers"],
+        summary: "Uma oferta",
+        description: "Só o proponente ou o dono do anúncio veem a oferta. Para os outros (inclusive ADMIN), 404.",
+        security: [{ bearerAuth: [] }],
+        parameters: [offerIdParam],
+        responses: {
+          200: offerResponse("Oferta"),
+          400: errorResponse("Id inválido", "ApiValidationError"),
+          404: errorResponse("Oferta não encontrada"),
+          ...authErrors,
+        },
+      },
+    },
+    "/offers/{id}/status": {
+      patch: {
+        tags: ["Offers"],
+        summary: "Aceita, recusa ou cancela uma oferta",
+        description:
+          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED). Oferta finalizada não muda mais de status nem volta para PROPOSED. Recusar ou cancelar apaga os itens oferecidos (items vem vazio). Aceitar exige o anúncio ACTIVE e confere de novo se a oferta ainda dá para cumprir: o anúncio tem a quantidade pedida e quem ofertou ainda tem as cartas oferecidas disponíveis. Por enquanto, aceitar só muda o status: a troca nasce na #18.",
+        security: [{ bearerAuth: [] }],
+        parameters: [offerIdParam],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateOfferStatusRequest" },
+            },
+          },
+        },
+        responses: {
+          200: offerResponse("Status alterado"),
+          400: errorResponse("Corpo ou id inválido (inclui status PROPOSED)", "ApiValidationError"),
+          403: errorResponse("Não participa da oferta (inclui ADMIN) ou papel errado para o status"),
+          404: errorResponse("Oferta não encontrada"),
+          422: errorResponse("Oferta já finalizada (RN-06); no aceite, anúncio fora de ACTIVE, anúncio com menos unidades do que a oferta pede ou carta oferecida que não está mais disponível"),
           ...authErrors,
         },
       },
@@ -1204,6 +1343,77 @@ export const swaggerSpec = {
             },
           },
           card: { $ref: "#/components/schemas/StoredCard" },
+        },
+      },
+      Offer: {
+        type: "object",
+        description: "Oferta de troca. Nunca traz userId, proposerId, e-mail, reservedQuantity nem isPublic.",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          status: { type: "string", enum: offerStatuses, example: "PROPOSED" },
+          quantity: { type: "integer", minimum: 1, description: "Quantas cartas do anúncio o proponente quer", example: 1 },
+          message: { type: "string", nullable: true, example: "Troco meu Mew holo pelo seu Charizard?" },
+          createdAt: { type: "string", format: "date-time" },
+          respondedAt: { type: "string", format: "date-time", nullable: true, description: "null enquanto PROPOSED" },
+          proposer: {
+            type: "object",
+            properties: {
+              username: { type: "string", example: "misty" },
+              name: { type: "string", example: "Misty Waterflower" },
+            },
+          },
+          listing: { $ref: "#/components/schemas/Listing" },
+          items: {
+            type: "array",
+            description: "Cartas oferecidas em troca. Vazio quando a oferta foi recusada ou cancelada.",
+            items: {
+              type: "object",
+              properties: {
+                collectionItemId: { type: "string", format: "uuid" },
+                quantity: { type: "integer", minimum: 1, example: 1 },
+                condition: { type: "string", enum: cardConditions, example: "NEAR_MINT" },
+                finish: { type: "string", enum: cardFinishes, example: "HOLO" },
+                firstEdition: { type: "boolean", example: false },
+                card: { $ref: "#/components/schemas/StoredCard" },
+              },
+            },
+          },
+        },
+      },
+      CreateOfferRequest: {
+        type: "object",
+        required: ["quantity", "items"],
+        additionalProperties: false,
+        properties: {
+          quantity: { type: "integer", minimum: 1, example: 1 },
+          message: { type: "string", maxLength: 500, example: "Troco meu Mew holo pelo seu Charizard?" },
+          items: {
+            type: "array",
+            minItems: 1,
+            maxItems: 20,
+            description: "Cada collectionItemId só pode aparecer uma vez.",
+            items: {
+              type: "object",
+              required: ["collectionItemId", "quantity"],
+              additionalProperties: false,
+              properties: {
+                collectionItemId: { type: "string", format: "uuid" },
+                quantity: { type: "integer", minimum: 1, example: 1 },
+              },
+            },
+          },
+        },
+      },
+      UpdateOfferStatusRequest: {
+        type: "object",
+        required: ["status"],
+        additionalProperties: false,
+        properties: {
+          status: {
+            type: "string",
+            enum: ["ACCEPTED", "REJECTED", "CANCELED"],
+            description: "Dono do anúncio: ACCEPTED ou REJECTED. Proponente: CANCELED.",
+          },
         },
       },
       CreateListingRequest: {

@@ -63,7 +63,14 @@ Além de PK, FK, `NOT NULL` e `UNIQUE`, existem estas CHECK constraints:
 | `card_name_not_blank_check` | carta com nome |
 | `card_market_price_check` | preço de referência nulo ou `>= 0` |
 
-Regras que dependem de outra tabela ficam no service: anúncio não pode passar do disponível no item (RN-05), o item oferecido é do proponente, cabe no disponível e a oferta tem pelo menos um item, proponente ≠ dono do anúncio, só o destinatário responde a oferta (RN-06), a troca é revalidada e gravada em `$transaction` (RN-07/RN-08).
+Regras que dependem de outra tabela ficam no service: anúncio não pode passar do disponível no item (RN-05), o item oferecido é do proponente, cabe no disponível e a oferta tem pelo menos um item, proponente ≠ dono do anúncio, só o destinatário responde a oferta (RN-06), uma oferta `PROPOSED` por proponente em cada anúncio, a troca é revalidada e gravada em `$transaction` (RN-07/RN-08).
+
+Efeitos colaterais feitos pelo service, na mesma transação da mudança:
+
+- **Oferta recusada ou cancelada** apaga os `OfferItem` dela. Sem isso, a FK `RESTRICT` deixaria a carta oferecida presa na coleção para sempre.
+- **Anúncio fechado (`CLOSED`) ou bloqueado (`BLOCKED`)** cancela as ofertas `PROPOSED` dele (`CANCELED`, `respondedAt` = agora) e apaga os `OfferItem` delas. Pausar não mexe nas ofertas; desbloquear não as reabre.
+- **Oferta não reserva:** criar ou aceitar oferta não muda `reservedQuantity`. A reserva fica para a troca (RN-07/RN-08). Por isso o aceite trava e confere de novo o item do anúncio e as cartas oferecidas: anúncio com menos unidades do que a oferta pede ou carta oferecida sem disponível → 422.
+- **Apagar item de coleção** que está numa oferta `PROPOSED` ou `ACCEPTED` → 409 com mensagem própria (o `OfferItem` da oferta aceita fica até a troca existir).
 
 ## Migrations
 

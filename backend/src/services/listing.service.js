@@ -1,5 +1,6 @@
 import * as collectionRepository from '../repositories/collectionRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
+import * as offerRepository from '../repositories/offerRepository.js';
 import { withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../utils/AppError.js';
 import { assertOwner } from '../utils/collectionRules.js';
@@ -12,6 +13,7 @@ import {
 } from '../utils/listingRules.js';
 
 const LISTINGS_PER_CARD = 50;
+const CANCELS_OFFERS = ['CLOSED', 'BLOCKED'];
 
 async function assertStock(tx, item, requested, exceptId) {
   const otherListed = await listingRepository.sumOpenByItem(item.id, tx, exceptId);
@@ -85,6 +87,10 @@ export async function update(user, id, input) {
 
     if (needsStockCheck(current, next)) {
       await assertStock(tx, item, next.quantity, id);
+    }
+
+    if (CANCELS_OFFERS.includes(next.status)) {
+      await offerRepository.cancelOpenByListing(id, tx);
     }
 
     return listingRepository.update(id, input, tx);

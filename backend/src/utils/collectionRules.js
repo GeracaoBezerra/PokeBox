@@ -53,6 +53,16 @@ export function assertNoListings({ open, total }) {
   }
 }
 
+export function assertNoOffers({ open, accepted }) {
+  if (open > 0) {
+    throw new AppError(409, 'Esta carta está numa oferta aberta. Cancele a oferta antes de remover o item');
+  }
+
+  if (accepted > 0) {
+    throw new AppError(409, 'Esta carta está numa oferta aceita, aguardando a troca, e não pode ser removida');
+  }
+}
+
 export function assertVariant(variants = {}, finish, firstEdition) {
   const hasAnyVariant = Object.values(variants).some(Boolean);
   if (!hasAnyVariant) return;
