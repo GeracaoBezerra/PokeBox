@@ -180,7 +180,7 @@ O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, p
 1. Abra http://localhost:3000/docs.
 2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "pokebox123" }`.
 3. Copie o `token` da resposta, clique em **Authorize** e cole.
-4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me` etc.
+4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me`, `GET /offers/me` etc.
 
 ## Testes
 
@@ -255,7 +255,16 @@ Todas as respostas seguem o mesmo formato:
 | `GET /listings/me` | 🔒 | meus anúncios, em qualquer status |
 | `GET /listings/:id` | 🔓 | detalhe; anúncio pausado, fechado ou bloqueado só aparece para o dono e para o ADMIN |
 | `POST /listings` | 🔒 | anuncia um item da minha coleção: `collectionItemId`, `quantity`, `description?` |
-| `PATCH /listings/:id` | 🔒 | muda `quantity`, `description` ou `status` (`ACTIVE`, `PAUSED`, `CLOSED`); ADMIN só bloqueia (`BLOCKED`) ou desbloqueia |
+| `PATCH /listings/:id` | 🔒 | muda `quantity`, `description` ou `status` (`ACTIVE`, `PAUSED`, `CLOSED`); ADMIN só bloqueia (`BLOCKED`) ou desbloqueia. Fechar ou bloquear cancela as ofertas abertas do anúncio |
+
+### Ofertas de troca
+
+| Rota | | O que faz |
+|---|---|---|
+| `POST /listings/:id/offers` | 🔒 | faz uma oferta num anúncio: `quantity` (quantas cartas do anúncio quero), `message?` e `items` (de 1 a 20 cartas da minha coleção, cada uma com `collectionItemId` e `quantity`) |
+| `GET /offers/me?status=` | 🔒 | minhas ofertas: `sent` (que fiz) e `received` (nos meus anúncios), mais novas primeiro |
+| `GET /offers/:id` | 🔒 | detalhe; só quem fez a oferta e o dono do anúncio veem (outros → 404) |
+| `PATCH /offers/:id/status` | 🔒 | `{ status }`: o dono do anúncio aceita (`ACCEPTED`) ou recusa (`REJECTED`); quem fez a oferta cancela (`CANCELED`) |
 
 A documentação completa, com exemplos de corpo e resposta, está no **Swagger (`/docs`)**.
 
@@ -267,8 +276,8 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | 401 | sem token, token inválido ou expirado, senha errada |
 | 403 | logado, mas sem permissão (item de outra pessoa, rota de admin, conta suspensa) |
 | 404 | não encontrado (inclui perfil de conta desativada) |
-| 409 | conflito (e-mail/username já usados, carta repetida na wishlist, apagar item com reserva ou que já foi anunciado) |
-| 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem) |
+| 409 | conflito (e-mail/username já usados, carta repetida na wishlist, apagar item com reserva ou que já foi anunciado, segunda oferta aberta no mesmo anúncio) |
+| 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem, oferta no próprio anúncio, mudar oferta já finalizada) |
 | 500 | erro inesperado |
 
 ## Regras de negócio
@@ -281,7 +290,8 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | **RN-02** Dono do item | Só o dono vê, edita ou apaga os próprios itens. Mexer no item de outra pessoa → **403**, inclusive para ADMIN. Item que não existe → **404**. |
 | **RN-03** Quantidade | Quantidade nunca negativa (validação + CHECK no banco). Mesma carta com mesma condição e variante **soma** na quantidade em vez de criar outro item. Não pode baixar a quantidade abaixo do que está reservado em negociação (**422**) nem apagar item com reserva (**409**). |
 | **RN-04** Wishlist | Cada carta entra uma vez na wishlist (repetida → **409**). Cada item mostra `opportunities`: quantos **outros** colecionadores têm essa carta pública e disponível (contas desativadas não contam). A wishlist não tem variante: quem deseja aceita qualquer versão. |
-| **RN-05** Anúncios (adaptada: só trocas) | Só anuncia item da **própria** coleção (**403**). A soma das quantidades dos anúncios abertos (ativos e pausados) de um item não passa do disponível (quantidade menos reservada); senão **422**. Vale ao criar, ao aumentar a quantidade e ao desbloquear. A coleção também não deixa baixar a quantidade abaixo do que está anunciado (**422**). Anunciar **não reserva**: a reserva só acontece quando uma oferta é aceita. Pedidos ao mesmo tempo no mesmo item são tratados um de cada vez (trava no banco). |
+| **RN-05** Anúncios (adaptada: só trocas) | Só anuncia item da **própria** coleção (**403**). A soma das quantidades dos anúncios abertos (ativos e pausados) de um item não passa do disponível (quantidade menos reservada); senão **422**. Vale ao criar, ao aumentar a quantidade e ao desbloquear. A coleção também não deixa baixar a quantidade abaixo do que está anunciado (**422**). Anunciar **não reserva**: a reserva fica para a troca (RN-07/08). Pedidos ao mesmo tempo no mesmo item são tratados um de cada vez (trava no banco). |
+| **RN-06** Ofertas | Só faz oferta em anúncio **ativo** de outra pessoa (próprio anúncio → **422**; pausado, fechado ou bloqueado → **404**). Pede no máximo a quantidade do anúncio e oferece só cartas da **própria** coleção (**403**) que caibam no disponível (**422**). Uma oferta aberta por pessoa em cada anúncio (**409**). Só o **dono do anúncio** aceita ou recusa; só **quem fez** cancela (**403**, inclusive para ADMIN). Oferta finalizada (aceita, recusada ou cancelada) **não muda mais** nem volta para `PROPOSED` (**422**). Recusar ou cancelar solta as cartas oferecidas. Fechar ou bloquear o anúncio cancela as ofertas abertas dele; pausar não. A oferta **não reserva** cartas. |
 | **RN-10** Privacidade | Item com `isPublic: false` não aparece no perfil público. O perfil público nunca mostra e-mail, reserva nem dados internos. Conta desativada ou suspensa → **404**. |
 
 Outras regras que já valem:
@@ -306,11 +316,10 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 
 | Regra | Situação |
 |---|---|
-| **RN-06** Ofertas: proponente ≠ dono, só o dono do anúncio responde | próxima |
-| **RN-07** Troca atômica: as cartas trocam de dono numa transação só | depois da RN-06 |
+| **RN-07** Troca atômica: as cartas trocam de dono numa transação só | próxima: a troca nasce da oferta aceita |
 | **RN-08** Reserva: revalidar disponibilidade ao aceitar | junto com a RN-07 |
 
-As tabelas de oferta e troca **já existem** no banco e no seed; faltam as rotas.
+As tabelas de troca **já existem** no banco; faltam as rotas. Por enquanto, aceitar uma oferta só muda o status dela.
 
 ## Status do projeto
 
@@ -319,7 +328,8 @@ As tabelas de oferta e troca **já existem** no banco e no seed; faltam as rotas
 | Autenticação e autorização | ✅ backend e frontend (login, cadastro, logout) |
 | Coleção, perfil público, wishlist | ✅ backend · frontend a fazer |
 | Anúncios | ✅ backend · frontend a fazer |
-| Ofertas, trocas | 🟡 backend em andamento |
+| Ofertas | ✅ backend · frontend a fazer |
+| Trocas | 🟡 backend em andamento |
 | Frontend | 🟡 home, login e cadastro prontos; demais telas a fazer |
 
 Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).

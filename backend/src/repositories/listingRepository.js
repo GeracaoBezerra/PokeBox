@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma.js';
 import { USABLE_STATUSES } from '../utils/accountStatus.js';
 import { OPEN_STATUSES } from '../utils/listingRules.js';
 
-const listingInclude = {
+export const listingInclude = {
   collectionItem: {
     include: {
       card: true,

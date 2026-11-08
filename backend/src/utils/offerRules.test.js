@@ -1,0 +1,207 @@
+import {
+  assertCanPropose,
+  assertListingActive,
+  assertOfferItem,
+  assertStatusChange,
+  toOfferResponse,
+} from './offerRules.js';
+
+const statusOf = (fn) => {
+  try {
+    fn();
+  } catch (err) {
+    return err.statusCode;
+  }
+  return null;
+};
+
+const OWNER_ID = 'owner-id';
+const PROPOSER_ID = 'proposer-id';
+
+describe('assertCanPropose', () => {
+  const listing = { quantity: 2, collectionItem: { userId: OWNER_ID } };
+
+  it('aceita oferta de outro usuário dentro da quantidade do anúncio', () => {
+    expect(() => assertCanPropose({ listing, proposerId: PROPOSER_ID, quantity: 2 })).not.toThrow();
+  });
+
+  it('recusa oferta no próprio anúncio com 422', () => {
+    expect(statusOf(() => assertCanPropose({ listing, proposerId: OWNER_ID, quantity: 1 }))).toBe(422);
+  });
+
+  it('recusa quantidade acima da do anúncio com 422', () => {
+    expect(statusOf(() => assertCanPropose({ listing, proposerId: PROPOSER_ID, quantity: 3 }))).toBe(422);
+  });
+});
+
+describe('assertOfferItem', () => {
+  const item = { userId: PROPOSER_ID, quantity: 3, reservedQuantity: 0 };
+
+  it('aceita item do proponente que cabe no disponível', () => {
+    expect(() => assertOfferItem({ item, proposerId: PROPOSER_ID, requested: 3 })).not.toThrow();
+  });
+
+  it('recusa item de outro usuário com 403', () => {
+    expect(statusOf(() => assertOfferItem({ item, proposerId: OWNER_ID, requested: 1 }))).toBe(403);
+  });
+
+  it('recusa quantidade acima do disponível com 422', () => {
+    expect(statusOf(() => assertOfferItem({ item, proposerId: PROPOSER_ID, requested: 4 }))).toBe(422);
+  });
+
+  it('desconta a reserva do disponível', () => {
+    const reserved = { ...item, reservedQuantity: 2 };
+    expect(() => assertOfferItem({ item: reserved, proposerId: PROPOSER_ID, requested: 1 })).not.toThrow();
+    expect(statusOf(() => assertOfferItem({ item: reserved, proposerId: PROPOSER_ID, requested: 2 }))).toBe(422);
+  });
+});
+
+describe('assertStatusChange', () => {
+  const owner = { isProposer: false, isListingOwner: true };
+  const proposer = { isProposer: true, isListingOwner: false };
+  const stranger = { isProposer: false, isListingOwner: false };
+  const proposed = { status: 'PROPOSED' };
+
+  it.each([
+    ['dono', owner, 'ACCEPTED'],
+    ['dono', owner, 'REJECTED'],
+    ['proponente', proposer, 'CANCELED'],
+  ])('%s pode mudar oferta PROPOSED para %s', (_, who, nextStatus) => {
+    expect(() => assertStatusChange({ offer: proposed, nextStatus, ...who })).not.toThrow();
+  });
+
+  it.each(['ACCEPTED', 'REJECTED', 'CANCELED'])('quem não participa recebe 403 em %s', (nextStatus) => {
+    expect(statusOf(() => assertStatusChange({ offer: proposed, nextStatus, ...stranger }))).toBe(403);
+  });
+
+  it.each(['ACCEPTED', 'REJECTED'])('proponente não pode %s: 403', (nextStatus) => {
+    expect(statusOf(() => assertStatusChange({ offer: proposed, nextStatus, ...proposer }))).toBe(403);
+  });
+
+  it('dono do anúncio não pode cancelar: 403', () => {
+    expect(statusOf(() => assertStatusChange({ offer: proposed, nextStatus: 'CANCELED', ...owner }))).toBe(403);
+  });
+
+  describe('RN-06: oferta finalizada não muda mais', () => {
+    const cases = ['ACCEPTED', 'REJECTED', 'CANCELED'].flatMap((from) => [
+      [from, 'ACCEPTED', owner],
+      [from, 'REJECTED', owner],
+      [from, 'CANCELED', proposer],
+    ]);
+
+    it.each(cases)('de %s para %s: 422', (from, nextStatus, who) => {
+      expect(statusOf(() => assertStatusChange({ offer: { status: from }, nextStatus, ...who }))).toBe(422);
+    });
+  });
+
+  it('papel errado vem antes do status finalizado: 403', () => {
+    expect(statusOf(() => assertStatusChange({ offer: { status: 'CANCELED' }, nextStatus: 'ACCEPTED', ...proposer }))).toBe(403);
+    expect(statusOf(() => assertStatusChange({ offer: { status: 'ACCEPTED' }, nextStatus: 'REJECTED', ...stranger }))).toBe(403);
+  });
+});
+
+describe('assertListingActive', () => {
+  it('aceita anúncio ACTIVE', () => {
+    expect(() => assertListingActive({ status: 'ACTIVE' })).not.toThrow();
+  });
+
+  it.each(['PAUSED', 'CLOSED', 'BLOCKED'])('recusa anúncio %s com 422', (status) => {
+    expect(statusOf(() => assertListingActive({ status }))).toBe(422);
+  });
+});
+
+describe('toOfferResponse', () => {
+  const card = { id: 'base1-4', name: 'Charizard', marketPrice: '312.50' };
+  const offer = {
+    id: 'offer-1',
+    listingId: 'listing-1',
+    proposerId: PROPOSER_ID,
+    quantity: 1,
+    message: 'Troco?',
+    status: 'PROPOSED',
+    respondedAt: null,
+    createdAt: new Date('2026-11-08T00:00:00Z'),
+    updatedAt: new Date('2026-11-08T00:00:00Z'),
+    proposer: { username: 'misty', name: 'Misty', email: 'misty@pokebox.dev' },
+    listing: {
+      id: 'listing-1',
+      quantity: 1,
+      description: null,
+      status: 'ACTIVE',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      collectionItemId: 'item-ash',
+      collectionItem: {
+        id: 'item-ash',
+        userId: OWNER_ID,
+        quantity: 1,
+        reservedQuantity: 0,
+        isPublic: true,
+        condition: 'NEAR_MINT',
+        finish: 'HOLO',
+        firstEdition: true,
+        card,
+        user: { username: 'ash', name: 'Ash', accountStatus: 'ACTIVE', deletedAt: null },
+      },
+    },
+    items: [
+      {
+        id: 'offer-item-1',
+        offerId: 'offer-1',
+        collectionItemId: 'item-misty',
+        quantity: 1,
+        collectionItem: {
+          id: 'item-misty',
+          userId: PROPOSER_ID,
+          quantity: 2,
+          reservedQuantity: 1,
+          isPublic: false,
+          condition: 'LIGHTLY_PLAYED',
+          finish: 'HOLO',
+          firstEdition: false,
+          card: { id: 'base1-10', name: 'Mew', marketPrice: '20.00' },
+        },
+      },
+    ],
+  };
+
+  const response = toOfferResponse(offer);
+
+  it('monta a oferta com proponente, anúncio e itens', () => {
+    expect(response).toMatchObject({
+      id: 'offer-1',
+      status: 'PROPOSED',
+      quantity: 1,
+      message: 'Troco?',
+      respondedAt: null,
+      proposer: { username: 'misty', name: 'Misty' },
+      listing: { id: 'listing-1', owner: { username: 'ash', name: 'Ash' } },
+      items: [
+        {
+          collectionItemId: 'item-misty',
+          quantity: 1,
+          condition: 'LIGHTLY_PLAYED',
+          finish: 'HOLO',
+          firstEdition: false,
+          card: { id: 'base1-10', name: 'Mew' },
+        },
+      ],
+    });
+  });
+
+  it('converte o preço de referência para número', () => {
+    expect(response.items[0].card.marketPrice).toBe(20);
+    expect(response.listing.card.marketPrice).toBe(312.5);
+  });
+
+  it('não vaza ids de usuário, e-mail, reserva nem visibilidade', () => {
+    const json = JSON.stringify(response);
+    for (const field of ['userId', 'proposerId', 'email', 'reservedQuantity', 'isPublic', 'accountStatus', 'deletedAt']) {
+      expect(json).not.toContain(`"${field}"`);
+    }
+  });
+
+  it('oferta sem itens (recusada ou cancelada) vem com items vazio', () => {
+    expect(toOfferResponse({ ...offer, status: 'REJECTED', items: [] }).items).toEqual([]);
+  });
+});
