@@ -178,7 +178,7 @@ O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, p
 ### Testar rápido no Swagger
 
 1. Abra http://localhost:3000/docs.
-2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "pokebox123" }`.
+2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "pokebox123" }`. Esse já é o exemplo do Swagger: basta clicar em **Try it out** e **Execute**. Os exemplos das outras rotas também seguem o seed (o Charizard do ash, a oferta da misty); o do cadastro usa `brock`, que não está no seed, para não dar 409.
 3. Copie o `token` da resposta, clique em **Authorize** e cole.
 4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me`, `GET /offers/me` etc.
 
