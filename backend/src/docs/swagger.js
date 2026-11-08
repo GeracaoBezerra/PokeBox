@@ -1120,7 +1120,6 @@ export const swaggerSpec = {
             example: "ACTIVE",
           },
           createdAt: { type: "string", format: "date-time" },
-          createdAt: { type: "string", format: "date-time" },
           phone: nullableString,
           cep: nullableString,
           street: nullableString,
