@@ -1,5 +1,6 @@
 import * as listingRepository from '../repositories/listingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
+import * as tradeRepository from '../repositories/tradeRepository.js';
 import { lockInOrder, withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../utils/AppError.js';
 import { isListingVisible } from '../utils/listingRules.js';
@@ -97,6 +98,7 @@ export async function changeStatus(userId, id, nextStatus) {
       nextStatus,
       isProposer: locked.proposerId === userId,
       isListingOwner: listing.collectionItem.userId === userId,
+      hasTrade: locked.status === 'ACCEPTED' && Boolean(await tradeRepository.findByOfferId(id, tx)),
     });
 
     if (nextStatus === 'ACCEPTED') {

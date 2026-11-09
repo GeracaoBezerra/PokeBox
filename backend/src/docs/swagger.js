@@ -216,7 +216,7 @@ export const swaggerSpec = {
     { name: "Users", description: "Perfil público dos colecionadores" },
     { name: "Wishlist", description: "Cartas que o usuário autenticado quer ter" },
     { name: "Listings", description: "Anúncios de troca (RN-05: só anuncia o que tem)" },
-    { name: "Offers", description: "Ofertas de troca em anúncios (RN-06: oferta finalizada não volta para PROPOSED)" },
+    { name: "Offers", description: "Ofertas de troca em anúncios (RN-06: oferta finalizada não volta para PROPOSED; aceita sem troca ainda pode ser encerrada)" },
     { name: "Trades", description: "Trocas: oferta aceita vira troca (RN-07: tudo ou nada no aceite; RN-08: cartas reservadas)" },
   ],
   paths: {
@@ -1016,7 +1016,7 @@ export const swaggerSpec = {
         tags: ["Offers"],
         summary: "Aceita, recusa ou cancela uma oferta",
         description:
-          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED). Oferta finalizada não muda mais de status nem volta para PROPOSED. Recusar ou cancelar apaga os itens oferecidos (items vem vazio). Aceitar exige o anúncio ACTIVE e confere de novo se a oferta ainda dá para cumprir: o anúncio tem a quantidade pedida e quem ofertou ainda tem as cartas oferecidas disponíveis. Aceitar só muda o status: depois, quem ofertou cria a troca em POST /trades.",
+          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED). Oferta finalizada não muda mais de status nem volta para PROPOSED, com uma exceção: oferta ACCEPTED que ainda não virou troca pode ser recusada pelo dono (REJECTED) ou cancelada por quem ofertou (CANCELED); se já virou troca, dá 409 e quem age é a troca (POST /trades/{id}/reject ou /cancel). Recusar ou cancelar apaga os itens oferecidos (items vem vazio). Aceitar exige o anúncio ACTIVE e confere de novo se a oferta ainda dá para cumprir: o anúncio tem a quantidade pedida e quem ofertou ainda tem as cartas oferecidas disponíveis. Aceitar só muda o status: depois, quem ofertou cria a troca em POST /trades.",
         security: [{ bearerAuth: [] }],
         parameters: [offerIdParam],
         requestBody: {
@@ -1032,6 +1032,7 @@ export const swaggerSpec = {
           400: errorResponse("Corpo ou id inválido (inclui status PROPOSED)", "ApiValidationError"),
           403: errorResponse("Não participa da oferta (inclui ADMIN) ou papel errado para o status"),
           404: errorResponse("Oferta não encontrada"),
+          409: errorResponse("Oferta aceita que já virou troca"),
           422: errorResponse("Oferta já finalizada (RN-06); no aceite, anúncio fora de ACTIVE, anúncio com menos unidades do que a oferta pede ou carta oferecida que não está mais disponível"),
           ...authErrors,
         },

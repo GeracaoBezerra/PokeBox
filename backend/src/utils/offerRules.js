@@ -3,6 +3,7 @@ import { toCardResponse } from './cardRecord.js';
 import { toListingResponse } from './listingRules.js';
 
 const RESPONSES_BY_OWNER = ['ACCEPTED', 'REJECTED'];
+const ENDS_ACCEPTED = ['REJECTED', 'CANCELED'];
 
 export function assertCanPropose({ listing, proposerId, quantity }) {
   if (listing.collectionItem.userId === proposerId) {
@@ -25,7 +26,7 @@ export function assertOfferItem({ item, proposerId, requested }) {
   }
 }
 
-export function assertStatusChange({ offer, nextStatus, isProposer, isListingOwner }) {
+export function assertStatusChange({ offer, nextStatus, isProposer, isListingOwner, hasTrade }) {
   if (!isProposer && !isListingOwner) {
     throw new AppError(403, 'Esta oferta é de outros usuários');
   }
@@ -38,9 +39,14 @@ export function assertStatusChange({ offer, nextStatus, isProposer, isListingOwn
     throw new AppError(403, 'Só quem fez a oferta pode cancelá-la');
   }
 
-  if (offer.status !== 'PROPOSED') {
-    throw new AppError(422, `Oferta já finalizada (${offer.status}) não pode mudar de status`);
+  if (offer.status === 'PROPOSED') return;
+
+  if (offer.status === 'ACCEPTED' && ENDS_ACCEPTED.includes(nextStatus)) {
+    if (hasTrade) throw new AppError(409, 'Esta oferta já virou troca');
+    return;
   }
+
+  throw new AppError(422, `Oferta já finalizada (${offer.status}) não pode mudar de status`);
 }
 
 export function assertListingActive(listing) {
@@ -53,7 +59,7 @@ export function assertStillFulfillable({ offerQuantity, listing, offeredItems })
   if (offerQuantity > listing.quantity) {
     throw new AppError(
       422,
-      `O anúncio agora tem só ${listing.quantity} unidade(s) e a oferta pede ${offerQuantity}. Recuse a oferta ou aumente o anúncio`,
+      `O anúncio agora tem só ${listing.quantity} unidade(s) e a oferta pede ${offerQuantity}. Aumente o anúncio ou encerre a oferta (quem ofertou cancela, o dono recusa)`,
     );
   }
 
