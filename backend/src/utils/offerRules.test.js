@@ -84,14 +84,40 @@ describe('assertStatusChange', () => {
   });
 
   describe('RN-06: oferta finalizada não muda mais', () => {
-    const cases = ['ACCEPTED', 'REJECTED', 'CANCELED'].flatMap((from) => [
-      [from, 'ACCEPTED', owner],
-      [from, 'REJECTED', owner],
-      [from, 'CANCELED', proposer],
-    ]);
+    const cases = [
+      ['ACCEPTED', 'ACCEPTED', owner],
+      ...['REJECTED', 'CANCELED'].flatMap((from) => [
+        [from, 'ACCEPTED', owner],
+        [from, 'REJECTED', owner],
+        [from, 'CANCELED', proposer],
+      ]),
+    ];
 
     it.each(cases)('de %s para %s: 422', (from, nextStatus, who) => {
       expect(statusOf(() => assertStatusChange({ offer: { status: from }, nextStatus, ...who }))).toBe(422);
+    });
+  });
+
+  describe('oferta aceita que ainda não virou troca pode ser encerrada', () => {
+    const accepted = { status: 'ACCEPTED' };
+
+    it.each([
+      ['dono recusa', owner, 'REJECTED'],
+      ['proponente cancela', proposer, 'CANCELED'],
+    ])('%s', (_, who, nextStatus) => {
+      expect(() => assertStatusChange({ offer: accepted, nextStatus, ...who, hasTrade: false })).not.toThrow();
+    });
+
+    it.each([
+      [owner, 'REJECTED'],
+      [proposer, 'CANCELED'],
+    ])('oferta que já virou troca dá 409 em %#', (who, nextStatus) => {
+      expect(statusOf(() => assertStatusChange({ offer: accepted, nextStatus, ...who, hasTrade: true }))).toBe(409);
+    });
+
+    it('papéis continuam valendo: dono não cancela, proponente não recusa', () => {
+      expect(statusOf(() => assertStatusChange({ offer: accepted, nextStatus: 'CANCELED', ...owner }))).toBe(403);
+      expect(statusOf(() => assertStatusChange({ offer: accepted, nextStatus: 'REJECTED', ...proposer }))).toBe(403);
     });
   });
 
@@ -123,6 +149,13 @@ describe('assertStillFulfillable', () => {
   it('recusa com 422 quando o dono baixou o anúncio abaixo do que a oferta pede', () => {
     const offeredItems = [{ item: item(1), requested: 1 }];
     expect(statusOf(() => assertStillFulfillable({ offerQuantity: 3, listing, offeredItems }))).toBe(422);
+  });
+
+  it('a mensagem mostra como sair: aumentar o anúncio ou encerrar a oferta', () => {
+    const offeredItems = [{ item: item(1), requested: 1 }];
+    expect(() => assertStillFulfillable({ offerQuantity: 3, listing, offeredItems })).toThrow(
+      'Aumente o anúncio ou encerre a oferta (quem ofertou cancela, o dono recusa)',
+    );
   });
 
   it('recusa com 422 quando quem ofertou zerou a carta oferecida', () => {

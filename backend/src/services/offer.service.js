@@ -1,7 +1,7 @@
-import * as collectionRepository from '../repositories/collectionRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
-import { withTransaction } from '../repositories/transaction.js';
+import * as tradeRepository from '../repositories/tradeRepository.js';
+import { lockInOrder, withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../utils/AppError.js';
 import { isListingVisible } from '../utils/listingRules.js';
 import {
@@ -23,14 +23,6 @@ function assertCanReceiveOffers(listing, user) {
   if (!listing || !isListingVisible(listing, user) || listing.status !== 'ACTIVE') {
     throw new AppError(404, 'Anúncio não encontrado');
   }
-}
-
-async function lockInOrder(ids, tx) {
-  const locked = new Map();
-  for (const id of [...new Set(ids)].sort()) {
-    locked.set(id, await collectionRepository.lockById(id, tx));
-  }
-  return locked;
 }
 
 export async function create(user, listingId, input) {
@@ -106,6 +98,7 @@ export async function changeStatus(userId, id, nextStatus) {
       nextStatus,
       isProposer: locked.proposerId === userId,
       isListingOwner: listing.collectionItem.userId === userId,
+      hasTrade: locked.status === 'ACCEPTED' && Boolean(await tradeRepository.findByOfferId(id, tx)),
     });
 
     if (nextStatus === 'ACCEPTED') {

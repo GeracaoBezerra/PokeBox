@@ -63,6 +63,23 @@ export function assertNoOffers({ open, accepted }) {
   }
 }
 
+export function assertConditionChangeable({ reservedQuantity, offers, listings }) {
+  if (reservedQuantity > 0) {
+    throw new AppError(409, 'Este item está numa troca em andamento. A condição só pode mudar depois que a troca terminar');
+  }
+
+  if (offers.open > 0 || offers.accepted > 0) {
+    throw new AppError(
+      409,
+      'Este item está numa oferta aberta ou aceita. A condição só pode mudar depois que a oferta terminar',
+    );
+  }
+
+  if (listings.open > 0) {
+    throw new AppError(409, 'Este item tem anúncio aberto. Feche o anúncio antes de mudar a condição');
+  }
+}
+
 export function assertVariant(variants = {}, finish, firstEdition) {
   const hasAnyVariant = Object.values(variants).some(Boolean);
   if (!hasAnyVariant) return;

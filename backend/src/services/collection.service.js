@@ -6,6 +6,7 @@ import { withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../utils/AppError.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import {
+  assertConditionChangeable,
   assertCoversListings,
   assertNoListings,
   assertNoOffers,
@@ -51,6 +52,14 @@ export async function update(userId, id, input) {
       assertQuantity(input.quantity, item.reservedQuantity);
       const listed = await listingRepository.sumOpenByItem(id, tx);
       assertCoversListings(input.quantity, item.reservedQuantity, listed);
+    }
+
+    if (input.condition !== undefined && input.condition !== item.condition) {
+      assertConditionChangeable({
+        reservedQuantity: item.reservedQuantity,
+        offers: await offerRepository.countByItem(id, tx),
+        listings: await listingRepository.countByItem(id, tx),
+      });
     }
 
     return collectionRepository.update(id, input, tx);

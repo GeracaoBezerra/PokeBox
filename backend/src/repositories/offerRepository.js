@@ -54,11 +54,9 @@ export function findReceived(userId, status) {
   });
 }
 
-export async function countByItem(collectionItemId) {
-  const [open, accepted] = await Promise.all([
-    prisma.offerItem.count({ where: { collectionItemId, offer: { status: 'PROPOSED' } } }),
-    prisma.offerItem.count({ where: { collectionItemId, offer: { status: 'ACCEPTED' } } }),
-  ]);
+export async function countByItem(collectionItemId, db = prisma) {
+  const open = await db.offerItem.count({ where: { collectionItemId, offer: { status: 'PROPOSED' } } });
+  const accepted = await db.offerItem.count({ where: { collectionItemId, offer: { status: 'ACCEPTED' } } });
 
   return { open, accepted };
 }
@@ -75,15 +73,7 @@ export function deleteItems(offerId, tx) {
   return tx.offerItem.deleteMany({ where: { offerId } });
 }
 
-export async function cancelOpenByListing(listingId, tx) {
-  const open = await tx.$queryRaw`
-    SELECT "id"
-    FROM "Offer"
-    WHERE "listingId" = ${listingId} AND "status" = 'PROPOSED'
-    ORDER BY "id"
-    FOR UPDATE
-  `;
-  const ids = open.map((offer) => offer.id);
+export async function cancelByIds(ids, tx) {
   if (ids.length === 0) return 0;
 
   await tx.offerItem.deleteMany({ where: { offerId: { in: ids } } });
@@ -93,4 +83,31 @@ export async function cancelOpenByListing(listingId, tx) {
   });
 
   return ids.length;
+}
+
+export async function cancelOpenByListing(listingId, tx) {
+  const open = await tx.$queryRaw`
+    SELECT "id"
+    FROM "Offer"
+    WHERE "listingId" = ${listingId} AND "status" = 'PROPOSED'
+    ORDER BY "id"
+    FOR UPDATE
+  `;
+
+  return cancelByIds(
+    open.map((offer) => offer.id),
+    tx,
+  );
+}
+
+export function lockAcceptedWithoutTrade(listingId, tx) {
+  return tx.$queryRaw`
+    SELECT o."id", o."quantity"
+    FROM "Offer" o
+    WHERE o."listingId" = ${listingId}
+      AND o."status" = 'ACCEPTED'
+      AND NOT EXISTS (SELECT 1 FROM "Trade" t WHERE t."offerId" = o."id")
+    ORDER BY o."id"
+    FOR UPDATE
+  `;
 }

@@ -1,4 +1,4 @@
-import { CardCondition, CardFinish, ListingStatus, OfferStatus } from "../generated/prisma/index.js";
+import { CardCondition, CardFinish, ListingStatus, OfferStatus, TradeStatus } from "../generated/prisma/index.js";
 import { LANGS } from "../middlewares/validateCardParams.js";
 
 const nullableString = { type: "string", nullable: true };
@@ -130,6 +130,7 @@ const cardConditions = Object.values(CardCondition);
 const cardFinishes = Object.values(CardFinish);
 const listingStatuses = Object.values(ListingStatus);
 const offerStatuses = Object.values(OfferStatus);
+const tradeStatuses = Object.values(TradeStatus);
 
 const offerIdParam = {
   name: "id",
@@ -159,6 +160,42 @@ const offerResponse = (description) => ({
   },
 });
 
+const tradeIdParam = {
+  name: "id",
+  in: "path",
+  required: true,
+  description: "ID da troca",
+  schema: { type: "string", format: "uuid" },
+};
+
+const tradeResponse = (description) => ({
+  description,
+  content: {
+    "application/json": {
+      schema: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
+            type: "object",
+            properties: {
+              trade: { $ref: "#/components/schemas/Trade" },
+            },
+          },
+        },
+      },
+    },
+  },
+});
+
+const tradeActionErrors = (wrongRole) => ({
+  400: errorResponse("Id inválido", "ApiValidationError"),
+  403: errorResponse(`Não faz parte da troca (inclui ADMIN) ou ${wrongRole}`),
+  404: errorResponse("Troca não encontrada"),
+  409: errorResponse("Troca já finalizada (não está mais PROPOSED)"),
+  ...authErrors,
+});
+
 export const swaggerSpec = {
   openapi: "3.0.3",
   info: {
@@ -179,7 +216,8 @@ export const swaggerSpec = {
     { name: "Users", description: "Perfil público dos colecionadores" },
     { name: "Wishlist", description: "Cartas que o usuário autenticado quer ter" },
     { name: "Listings", description: "Anúncios de troca (RN-05: só anuncia o que tem)" },
-    { name: "Offers", description: "Ofertas de troca em anúncios (RN-06: oferta finalizada não volta para PROPOSED)" },
+    { name: "Offers", description: "Ofertas de troca em anúncios (RN-06: oferta finalizada não volta para PROPOSED; aceita sem troca ainda pode ser encerrada)" },
+    { name: "Trades", description: "Trocas: oferta aceita vira troca (RN-07: tudo ou nada no aceite; RN-08: cartas reservadas)" },
   ],
   paths: {
     "/auth/register": {
@@ -600,7 +638,7 @@ export const swaggerSpec = {
         tags: ["Collection"],
         summary: "Altera um item da própria coleção",
         description:
-          "Só o dono pode alterar; ADMIN também recebe 403 em item de outra pessoa. A quantidade pode ser 0, mas não pode ficar abaixo da reservada em negociações somada às unidades em anúncios ACTIVE/PAUSED (RN-05). finish e firstEdition não mudam: para isso, apague e crie de novo.",
+          "Só o dono pode alterar; ADMIN também recebe 403 em item de outra pessoa. A quantidade pode ser 0, mas não pode ficar abaixo da reservada em negociações somada às unidades em anúncios ACTIVE/PAUSED (RN-05). finish e firstEdition não mudam: para isso, apague e crie de novo. A condition não muda enquanto o item está numa negociação em andamento (troca aberta, oferta aberta ou aceita, anúncio ACTIVE/PAUSED); mandar a mesma condition que o item já tem passa.",
         security: [{ bearerAuth: [] }],
         parameters: [collectionItemIdParam],
         requestBody: {
@@ -616,7 +654,7 @@ export const swaggerSpec = {
           400: errorResponse("Corpo ou id inválido", "ApiValidationError"),
           403: errorResponse("O item pertence a outro usuário"),
           404: errorResponse("Item não encontrado"),
-          409: errorResponse("Já existe outro item igual com essa condição"),
+          409: errorResponse("Já existe outro item igual com essa condição, ou mudança de condição com o item numa troca aberta, numa oferta aberta ou aceita ou com anúncio aberto"),
           422: errorResponse("Quantidade abaixo da reservada ou das unidades anunciadas"),
           ...authErrors,
         },
@@ -978,7 +1016,7 @@ export const swaggerSpec = {
         tags: ["Offers"],
         summary: "Aceita, recusa ou cancela uma oferta",
         description:
-          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED). Oferta finalizada não muda mais de status nem volta para PROPOSED. Recusar ou cancelar apaga os itens oferecidos (items vem vazio). Aceitar exige o anúncio ACTIVE e confere de novo se a oferta ainda dá para cumprir: o anúncio tem a quantidade pedida e quem ofertou ainda tem as cartas oferecidas disponíveis. Por enquanto, aceitar só muda o status: a troca nasce na #18.",
+          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED). Oferta finalizada não muda mais de status nem volta para PROPOSED, com uma exceção: oferta ACCEPTED que ainda não virou troca pode ser recusada pelo dono (REJECTED) ou cancelada por quem ofertou (CANCELED); se já virou troca, dá 409 e quem age é a troca (POST /trades/{id}/reject ou /cancel). Recusar ou cancelar apaga os itens oferecidos (items vem vazio). Aceitar exige o anúncio ACTIVE e confere de novo se a oferta ainda dá para cumprir: o anúncio tem a quantidade pedida e quem ofertou ainda tem as cartas oferecidas disponíveis. Aceitar só muda o status: depois, quem ofertou cria a troca em POST /trades.",
         security: [{ bearerAuth: [] }],
         parameters: [offerIdParam],
         requestBody: {
@@ -994,8 +1032,133 @@ export const swaggerSpec = {
           400: errorResponse("Corpo ou id inválido (inclui status PROPOSED)", "ApiValidationError"),
           403: errorResponse("Não participa da oferta (inclui ADMIN) ou papel errado para o status"),
           404: errorResponse("Oferta não encontrada"),
+          409: errorResponse("Oferta aceita que já virou troca"),
           422: errorResponse("Oferta já finalizada (RN-06); no aceite, anúncio fora de ACTIVE, anúncio com menos unidades do que a oferta pede ou carta oferecida que não está mais disponível"),
           ...authErrors,
+        },
+      },
+    },
+    "/trades": {
+      post: {
+        tags: ["Trades"],
+        summary: "Cria a troca a partir de uma oferta aceita",
+        description:
+          "Só quem fez a oferta cria a troca, depois que o dono do anúncio aceitou (PATCH /offers/{id}/status). Na mesma transação: as cartas dos dois lados ficam reservadas (reservedQuantity), os itens da oferta passam para a troca (a oferta fica ACCEPTED e com items vazio), o anúncio baixa a quantidade da oferta (se chegar a 0, fecha e cancela as ofertas abertas dele) e anúncios abertos de quem ofertou que ficarem acima do disponível são reduzidos ou fechados. Em cada anúncio que fecha ou diminui, as ofertas ACCEPTED que ainda não viraram troca e não cabem mais (anúncio fechado, ou oferta pedindo mais do que sobrou) viram CANCELED e soltam as cartas oferecidas. O anúncio pode estar ACTIVE ou PAUSED.",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateTradeRequest" },
+            },
+          },
+        },
+        responses: {
+          201: tradeResponse("Troca criada"),
+          400: errorResponse("Corpo inválido: offerId ausente, não uuid ou campo extra", "ApiValidationError"),
+          403: errorResponse("Quem chamou é o dono do anúncio: só quem fez a oferta cria a troca"),
+          404: errorResponse("Oferta não encontrada ou de outros usuários"),
+          409: errorResponse("Esta oferta já virou troca"),
+          422: errorResponse("Oferta não está ACCEPTED, anúncio fechado ou bloqueado, anúncio com menos unidades do que a oferta pede ou cartas oferecidas que não estão mais disponíveis"),
+          ...authErrors,
+        },
+      },
+    },
+    "/trades/me": {
+      get: {
+        tags: ["Trades"],
+        summary: "Trocas do usuário autenticado",
+        description: "sent: trocas em que o usuário fez a oferta. received: trocas dos anúncios dele. Mais recentes primeiro.",
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "status",
+            in: "query",
+            required: false,
+            description: "Só trocas neste status",
+            schema: { type: "string", enum: tradeStatuses },
+          },
+        ],
+        responses: {
+          200: {
+            description: "Trocas do usuário",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: {
+                        sent: { type: "array", items: { $ref: "#/components/schemas/Trade" } },
+                        received: { type: "array", items: { $ref: "#/components/schemas/Trade" } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: errorResponse("Status inválido", "ApiValidationError"),
+          ...authErrors,
+        },
+      },
+    },
+    "/trades/{id}": {
+      get: {
+        tags: ["Trades"],
+        summary: "Uma troca",
+        description: "Só as duas partes veem a troca. Para os outros (inclusive ADMIN), 403.",
+        security: [{ bearerAuth: [] }],
+        parameters: [tradeIdParam],
+        responses: {
+          200: tradeResponse("Troca"),
+          400: errorResponse("Id inválido", "ApiValidationError"),
+          403: errorResponse("Esta troca é de outros usuários"),
+          404: errorResponse("Troca não encontrada"),
+          ...authErrors,
+        },
+      },
+    },
+    "/trades/{id}/accept": {
+      post: {
+        tags: ["Trades"],
+        summary: "Conclui a troca (RN-07)",
+        description:
+          "Só o dono do anúncio. Numa transação só: trava os itens, confere de novo que cada carta ainda é de quem entrega e tem quantidade e reserva suficientes, tira as cartas de quem entrega (quantity e reservedQuantity juntas) e soma em quem recebe (no item igual: carta, condição, acabamento e 1ª edição; se não houver, cria um item público). Qualquer erro no meio desfaz tudo. Quem entrega fica com o item, mesmo que chegue a 0.",
+        security: [{ bearerAuth: [] }],
+        parameters: [tradeIdParam],
+        responses: {
+          200: tradeResponse("Troca concluída (ACCEPTED, completedAt preenchido)"),
+          ...tradeActionErrors("quem chamou fez a oferta"),
+          422: errorResponse("As cartas desta troca não estão mais disponíveis"),
+        },
+      },
+    },
+    "/trades/{id}/reject": {
+      post: {
+        tags: ["Trades"],
+        summary: "Recusa a troca",
+        description: "Só o dono do anúncio. Libera a reserva dos dois lados. Os anúncios reduzidos quando a troca nasceu não voltam. A oferta continua ACCEPTED e não gera outra troca.",
+        security: [{ bearerAuth: [] }],
+        parameters: [tradeIdParam],
+        responses: {
+          200: tradeResponse("Troca recusada (REJECTED)"),
+          ...tradeActionErrors("quem chamou fez a oferta"),
+        },
+      },
+    },
+    "/trades/{id}/cancel": {
+      post: {
+        tags: ["Trades"],
+        summary: "Cancela a troca",
+        description: "Só quem fez a oferta. Libera a reserva dos dois lados. Os anúncios reduzidos quando a troca nasceu não voltam. A oferta continua ACCEPTED e não gera outra troca.",
+        security: [{ bearerAuth: [] }],
+        parameters: [tradeIdParam],
+        responses: {
+          200: tradeResponse("Troca cancelada (CANCELED)"),
+          ...tradeActionErrors("quem chamou é o dono do anúncio"),
         },
       },
     },
@@ -1364,7 +1527,7 @@ export const swaggerSpec = {
           listing: { $ref: "#/components/schemas/Listing" },
           items: {
             type: "array",
-            description: "Cartas oferecidas em troca. Vazio quando a oferta foi recusada ou cancelada.",
+            description: "Cartas oferecidas em troca. Vazio quando a oferta foi recusada, cancelada ou já virou troca (os itens passam para a troca).",
             items: {
               type: "object",
               properties: {
@@ -1413,6 +1576,56 @@ export const swaggerSpec = {
             enum: ["ACCEPTED", "REJECTED", "CANCELED"],
             description: "Dono do anúncio: ACCEPTED ou REJECTED. Proponente: CANCELED.",
           },
+        },
+      },
+      Trade: {
+        type: "object",
+        description: "Troca. Nunca traz userId, e-mail, reservedQuantity nem isPublic. A carta de cada item vem da cópia guardada na troca.",
+        properties: {
+          id: { type: "string", format: "uuid" },
+          status: { type: "string", enum: tradeStatuses, example: "PROPOSED" },
+          createdAt: { type: "string", format: "date-time" },
+          completedAt: { type: "string", format: "date-time", nullable: true, description: "Preenchido só quando ACCEPTED" },
+          offerId: { type: "string", format: "uuid", nullable: true },
+          proposer: {
+            type: "object",
+            description: "Quem fez a oferta",
+            properties: {
+              username: { type: "string", example: "misty" },
+              name: { type: "string", example: "Misty Waterflower" },
+            },
+          },
+          recipient: {
+            type: "object",
+            description: "Dono do anúncio",
+            properties: {
+              username: { type: "string", example: "ash" },
+              name: { type: "string", example: "Ash Ketchum" },
+            },
+          },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                from: { type: "string", description: "username de quem entrega", example: "ash" },
+                to: { type: "string", description: "username de quem recebe", example: "misty" },
+                quantity: { type: "integer", minimum: 1, example: 1 },
+                condition: { type: "string", enum: cardConditions, example: "NEAR_MINT" },
+                finish: { type: "string", enum: cardFinishes, example: "HOLO" },
+                firstEdition: { type: "boolean", example: true },
+                card: { $ref: "#/components/schemas/StoredCard" },
+              },
+            },
+          },
+        },
+      },
+      CreateTradeRequest: {
+        type: "object",
+        required: ["offerId"],
+        additionalProperties: false,
+        properties: {
+          offerId: { type: "string", format: "uuid", description: "Oferta ACCEPTED feita por quem chama" },
         },
       },
       CreateListingRequest: {

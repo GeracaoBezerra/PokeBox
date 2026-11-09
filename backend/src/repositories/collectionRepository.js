@@ -24,8 +24,8 @@ export function findById(id) {
   });
 }
 
-export function addOrIncrement({ userId, cardId, condition, finish, firstEdition, quantity, isPublic }) {
-  return prisma.collectionItem.upsert({
+export function addOrIncrement({ userId, cardId, condition, finish, firstEdition, quantity, isPublic }, db = prisma) {
+  return db.collectionItem.upsert({
     where: {
       userId_cardId_condition_finish_firstEdition: {
         userId,
@@ -41,9 +41,20 @@ export function addOrIncrement({ userId, cardId, condition, finish, firstEdition
   });
 }
 
+export async function findIdsByKeys(keys) {
+  if (keys.length === 0) return [];
+
+  const items = await prisma.collectionItem.findMany({
+    where: { OR: keys },
+    select: { id: true },
+  });
+
+  return items.map((item) => item.id);
+}
+
 export async function lockById(id, tx) {
   const rows = await tx.$queryRaw`
-    SELECT "id", "userId", "quantity", "reservedQuantity"
+    SELECT "id", "userId", "quantity", "reservedQuantity", "condition"
     FROM "CollectionItem"
     WHERE "id" = ${id}
     FOR UPDATE
@@ -57,6 +68,30 @@ export function update(id, data, db = prisma) {
     where: { id },
     data,
     include: { card: true },
+  });
+}
+
+export function reserve(id, quantity, tx) {
+  return tx.collectionItem.update({
+    where: { id },
+    data: { reservedQuantity: { increment: quantity } },
+    select: { id: true },
+  });
+}
+
+export function release(id, quantity, tx) {
+  return tx.collectionItem.update({
+    where: { id },
+    data: { reservedQuantity: { decrement: quantity } },
+    select: { id: true },
+  });
+}
+
+export function transferOut(id, quantity, tx) {
+  return tx.collectionItem.update({
+    where: { id },
+    data: { quantity: { decrement: quantity }, reservedQuantity: { decrement: quantity } },
+    select: { id: true },
   });
 }
 
