@@ -1,4 +1,5 @@
 import {
+  acceptedOffersToCancel,
   assertCanCreate,
   assertCanView,
   assertOfferTradable,
@@ -148,6 +149,29 @@ describe('nextListingState', () => {
 
   it('fecha o anúncio quando não sobra nada, sem mexer na quantidade', () => {
     expect(nextListingState({ listing: { quantity: 2 }, taken: 2 })).toEqual({ status: 'CLOSED' });
+  });
+});
+
+describe('acceptedOffersToCancel', () => {
+  const offers = [
+    { id: 'pede-1', quantity: 1 },
+    { id: 'pede-2', quantity: 2 },
+  ];
+
+  it('anúncio fechado cancela todas as ofertas aceitas sem troca', () => {
+    expect(acceptedOffersToCancel({ offers, change: { status: 'CLOSED' } })).toEqual(['pede-1', 'pede-2']);
+  });
+
+  it('anúncio que diminuiu cancela só as que pedem mais do que sobrou', () => {
+    expect(acceptedOffersToCancel({ offers, change: { quantity: 1 } })).toEqual(['pede-2']);
+  });
+
+  it('não cancela nada quando todas ainda cabem', () => {
+    expect(acceptedOffersToCancel({ offers, change: { quantity: 2 } })).toEqual([]);
+  });
+
+  it('sem ofertas aceitas, nada a cancelar', () => {
+    expect(acceptedOffersToCancel({ offers: [], change: { status: 'CLOSED' } })).toEqual([]);
   });
 });
 

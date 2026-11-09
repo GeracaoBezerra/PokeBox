@@ -7,6 +7,7 @@ import { AppError } from '../utils/AppError.js';
 import { assertStillFulfillable } from '../utils/offerRules.js';
 import {
   TRADE_ACTIONS,
+  acceptedOffersToCancel,
   assertCanCreate,
   assertCanView,
   assertOfferTradable,
@@ -22,6 +23,9 @@ async function applyListingChange(change, tx) {
   const { id, ...data } = change;
   await listingRepository.update(id, data, tx);
   if (data.status === 'CLOSED') await offerRepository.cancelOpenByListing(id, tx);
+
+  const accepted = await offerRepository.lockAcceptedWithoutTrade(id, tx);
+  await offerRepository.cancelByIds(acceptedOffersToCancel({ offers: accepted, change: data }), tx);
 }
 
 async function trimProposerListings(item, tx) {

@@ -109,6 +109,12 @@ export function nextListingState({ listing, taken }) {
   return remaining > 0 ? { quantity: remaining } : { status: 'CLOSED' };
 }
 
+export function acceptedOffersToCancel({ offers, change }) {
+  return offers
+    .filter((offer) => change.status === 'CLOSED' || offer.quantity > change.quantity)
+    .map((offer) => offer.id);
+}
+
 export function trimListings({ listings, available }) {
   let listed = listings.reduce((sum, listing) => sum + listing.quantity, 0);
   const changes = [];

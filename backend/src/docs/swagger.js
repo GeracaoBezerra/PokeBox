@@ -1042,7 +1042,7 @@ export const swaggerSpec = {
         tags: ["Trades"],
         summary: "Cria a troca a partir de uma oferta aceita",
         description:
-          "Só quem fez a oferta cria a troca, depois que o dono do anúncio aceitou (PATCH /offers/{id}/status). Na mesma transação: as cartas dos dois lados ficam reservadas (reservedQuantity), os itens da oferta passam para a troca (a oferta fica ACCEPTED e com items vazio), o anúncio baixa a quantidade da oferta (se chegar a 0, fecha e cancela as ofertas abertas dele) e anúncios abertos de quem ofertou que ficarem acima do disponível são reduzidos ou fechados. O anúncio pode estar ACTIVE ou PAUSED.",
+          "Só quem fez a oferta cria a troca, depois que o dono do anúncio aceitou (PATCH /offers/{id}/status). Na mesma transação: as cartas dos dois lados ficam reservadas (reservedQuantity), os itens da oferta passam para a troca (a oferta fica ACCEPTED e com items vazio), o anúncio baixa a quantidade da oferta (se chegar a 0, fecha e cancela as ofertas abertas dele) e anúncios abertos de quem ofertou que ficarem acima do disponível são reduzidos ou fechados. Em cada anúncio que fecha ou diminui, as ofertas ACCEPTED que ainda não viraram troca e não cabem mais (anúncio fechado, ou oferta pedindo mais do que sobrou) viram CANCELED e soltam as cartas oferecidas. O anúncio pode estar ACTIVE ou PAUSED.",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
