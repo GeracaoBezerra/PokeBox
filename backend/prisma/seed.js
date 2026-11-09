@@ -116,8 +116,21 @@ async function seedMarketplace(byUsername, items) {
   const proposerId = byUsername.misty.id;
   const message = 'Troco meu Mew holo pelo seu Charizard?';
   const existingOffer = await prisma.offer.findFirst({ where: { listingId: charizardListing.id, proposerId } });
+
+  if (existingOffer && (await prisma.trade.findUnique({ where: { offerId: existingOffer.id } }))) {
+    console.log(
+      'A oferta do seed já virou troca. Para voltar ao estado inicial: npx prisma migrate reset (apaga o banco local)',
+    );
+    return;
+  }
+
+  await prisma.listing.update({ where: { id: charizardListing.id }, data: { status: 'ACTIVE', quantity: 1 } });
+
   const offer = existingOffer
-    ? await prisma.offer.update({ where: { id: existingOffer.id }, data: { message } })
+    ? await prisma.offer.update({
+        where: { id: existingOffer.id },
+        data: { status: 'PROPOSED', respondedAt: null, message },
+      })
     : await prisma.offer.create({ data: { listingId: charizardListing.id, proposerId, quantity: 1, message } });
 
   const collectionItemId = items['misty-mew'].id;

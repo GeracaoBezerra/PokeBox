@@ -171,7 +171,7 @@ Senha de todos: **`pokebox123`**
 | `ash` | `ash@pokebox.dev` | USER | Charizard holo 1ª edição (anunciado), Pikachus, Ultra Ball (4), Furret (privado) |
 | `misty` | `misty@pokebox.dev` | USER | Blastoise holo (anunciado), Mew holo, Fire Energy (10), Pikachu |
 
-Também há 4 itens de wishlist e uma oferta em aberto: a misty oferece o Mew holo dela pelo Charizard do ash. Detalhes em [`backend/docs/db.md`](backend/docs/db.md#seed).
+Também há 4 itens de wishlist e uma oferta em aberto: a misty oferece o Mew holo dela pelo Charizard do ash. Rodar o seed de novo volta essa oferta para `PROPOSED`, a não ser que ela já tenha virado troca (aí o seed avisa; para recomeçar, `npx prisma migrate reset`, que apaga o banco local). Detalhes em [`backend/docs/db.md`](backend/docs/db.md#seed).
 
 O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, porque as cartas ficam em `backend/prisma/seed-data/cards.json`.
 
@@ -180,7 +180,7 @@ O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, p
 1. Abra http://localhost:3000/docs.
 2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "pokebox123" }`. Esse já é o exemplo do Swagger: basta clicar em **Try it out** e **Execute**. Os exemplos das outras rotas também seguem o seed (o Charizard do ash, a oferta da misty); o do cadastro usa `brock`, que não está no seed, para não dar 409.
 3. Copie o `token` da resposta, clique em **Authorize** e cole.
-4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me`, `GET /offers/me` etc.
+4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me`, `GET /offers/me`, `GET /trades/me` etc.
 
 ## Testes
 
@@ -189,7 +189,16 @@ cd backend
 npm test
 ```
 
-São testes de unidade (jest) das regras puras e dos schemas. Não precisam de banco.
+São testes de unidade (jest) das regras puras, dos schemas e do aceite da troca com os repositórios simulados. Não precisam de banco.
+
+Há também um teste **com banco** que prova a RN-07 de verdade: força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais. Ele fica desligado por padrão (a CI não tem PostgreSQL). Para rodar, com o banco no ar e as migrations aplicadas:
+
+```bash
+cd backend
+RUN_DB_TESTS=1 npm test
+```
+
+Ele cria dois usuários `rb_*` temporários e apaga tudo no fim.
 
 A CI (GitHub Actions) roda em toda PR para `develop` e `main`:
 
@@ -235,7 +244,7 @@ Todas as respostas seguem o mesmo formato:
 |---|---|---|
 | `GET /collection` | 🔒 | minha coleção, com `available` (quantidade menos reservada) |
 | `POST /collection` | 🔒 | adiciona carta: `cardId`, `quantity`, `finish`, `firstEdition`, `condition?`, `isPublic?` |
-| `PATCH /collection/:id` | 🔒 | muda `quantity`, `condition` ou `isPublic` |
+| `PATCH /collection/:id` | 🔒 | muda `quantity`, `condition` ou `isPublic`. A condição não muda enquanto o item está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**) |
 | `DELETE /collection/:id` | 🔒 | remove o item (não remove se tiver reserva ou se já foi anunciado; nesse caso, zere a quantidade) |
 | `GET /users/:username/collection` | | coleção pública de um colecionador |
 
@@ -266,6 +275,19 @@ Todas as respostas seguem o mesmo formato:
 | `GET /offers/:id` | 🔒 | detalhe; só quem fez a oferta e o dono do anúncio veem (outros → 404) |
 | `PATCH /offers/:id/status` | 🔒 | `{ status }`: o dono do anúncio aceita (`ACCEPTED`) ou recusa (`REJECTED`); quem fez a oferta cancela (`CANCELED`) |
 
+### Trocas
+
+A troca é um aperto de mão em dois passos: o dono do anúncio aceita a oferta → **quem fez a oferta** cria a troca (as cartas dos dois lados ficam reservadas) → o **dono do anúncio** conclui e as cartas mudam de dono.
+
+| Rota | | O que faz |
+|---|---|---|
+| `POST /trades` | 🔒 | `{ offerId }`: quem fez a oferta cria a troca a partir da oferta aceita. Reserva as cartas e ajusta os anúncios |
+| `GET /trades/me?status=` | 🔒 | minhas trocas: `sent` (fiz a oferta) e `received` (meus anúncios), mais novas primeiro |
+| `GET /trades/:id` | 🔒 | detalhe; só as duas partes veem (outros, inclusive ADMIN → 403) |
+| `POST /trades/:id/accept` | 🔒 | o dono do anúncio conclui: as cartas trocam de dono, tudo ou nada |
+| `POST /trades/:id/reject` | 🔒 | o dono do anúncio recusa; a reserva é liberada |
+| `POST /trades/:id/cancel` | 🔒 | quem fez a oferta cancela; a reserva é liberada |
+
 A documentação completa, com exemplos de corpo e resposta, está no **Swagger (`/docs`)**.
 
 ### Códigos de status
@@ -276,8 +298,8 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | 401 | sem token, token inválido ou expirado, senha errada |
 | 403 | logado, mas sem permissão (item de outra pessoa, rota de admin, conta suspensa) |
 | 404 | não encontrado (inclui perfil de conta desativada) |
-| 409 | conflito (e-mail/username já usados, carta repetida na wishlist, apagar item com reserva, que já foi anunciado ou que está numa oferta, segunda oferta aberta no mesmo anúncio) |
-| 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem, oferta no próprio anúncio, mudar oferta já finalizada) |
+| 409 | conflito (e-mail/username já usados, carta repetida na wishlist, apagar item com reserva, que já foi anunciado ou que está numa oferta, segunda oferta aberta no mesmo anúncio, oferta que já virou troca, troca já finalizada) |
+| 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem, oferta no próprio anúncio, mudar oferta já finalizada, troca de oferta não aceita, cartas da troca indisponíveis) |
 | 500 | erro inesperado |
 
 ## Regras de negócio
@@ -292,6 +314,8 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | **RN-04** Wishlist | Cada carta entra uma vez na wishlist (repetida → **409**). Cada item mostra `opportunities`: quantos **outros** colecionadores têm essa carta pública e disponível (contas desativadas não contam). A wishlist não tem variante: quem deseja aceita qualquer versão. |
 | **RN-05** Anúncios (adaptada: só trocas) | Só anuncia item da **própria** coleção (**403**). A soma das quantidades dos anúncios abertos (ativos e pausados) de um item não passa do disponível (quantidade menos reservada); senão **422**. Vale ao criar, ao aumentar a quantidade e ao desbloquear. A coleção também não deixa baixar a quantidade abaixo do que está anunciado (**422**). Anunciar **não reserva**: a reserva fica para a troca (RN-07/08). Pedidos ao mesmo tempo no mesmo item são tratados um de cada vez (trava no banco). |
 | **RN-06** Ofertas | Só faz oferta em anúncio **ativo** de outra pessoa (próprio anúncio → **422**; pausado, fechado ou bloqueado → **404**). Pede no máximo a quantidade do anúncio e oferece só cartas da **própria** coleção (**403**) que caibam no disponível (**422**). Uma oferta aberta por pessoa em cada anúncio (**409**). Só o **dono do anúncio** aceita ou recusa; só **quem fez** cancela (**403**, inclusive para ADMIN). Oferta finalizada (aceita, recusada ou cancelada) **não muda mais** nem volta para `PROPOSED` (**422**). Recusar ou cancelar solta as cartas oferecidas. Fechar ou bloquear o anúncio cancela as ofertas abertas dele; pausar não. A oferta **não reserva** cartas, mas o aceite confere de novo: se o dono baixou o anúncio abaixo do que a oferta pede, ou se quem ofertou não tem mais as cartas, o aceite é recusado (**422**). Carta que está numa oferta aberta ou aceita não pode ser apagada da coleção (**409**). |
+| **RN-07** Troca atômica | O aceite da troca roda numa **transação só**: trava as cartas, confere de novo que cada uma ainda é de quem entrega e está reservada, tira de quem entrega e soma em quem recebe (no item igual em carta, condição e variante; se não houver, cria um item público). Se qualquer passo falhar, **nada muda**. Quem entrega fica com o item, mesmo que chegue a 0. Só o dono do anúncio aceita ou recusa; só quem fez a oferta cria e cancela a troca (**403**). Troca finalizada não muda mais (**409**). Uma troca por oferta (**409**). |
+| **RN-08** Reserva | Quando a troca nasce, as cartas dos dois lados ficam **reservadas**: nenhuma outra negociação consegue usá-las (anunciar, ofertar, aceitar outra oferta → **422**), nem dá para baixar a quantidade abaixo do reservado (**422**) ou apagar o item (**409**). No mesmo momento, o anúncio diminui pela quantidade da oferta (em 0, fecha e cancela as ofertas abertas dele) e os anúncios de quem ofertou que passariam do disponível são reduzidos. Recusar ou cancelar a troca libera a reserva (os anúncios não voltam). Pedidos ao mesmo tempo na mesma troca: um passa, o outro recebe **409**. A **condição** de um item não muda enquanto ele está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**): assim o que foi anunciado e oferecido é o que chega. |
 | **RN-10** Privacidade | Item com `isPublic: false` não aparece no perfil público. O perfil público nunca mostra e-mail, reserva nem dados internos. Conta desativada ou suspensa → **404**. |
 
 Outras regras que já valem:
@@ -312,14 +336,10 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 - a oferta diz **quais cartas da coleção** o proponente dá em troca;
 - a RN-05 vira "só anuncia o que tem disponível para troca".
 
-### Em andamento
+### Limitações conhecidas
 
-| Regra | Situação |
-|---|---|
-| **RN-07** Troca atômica: as cartas trocam de dono numa transação só | próxima: a troca nasce da oferta aceita |
-| **RN-08** Reserva: revalidar disponibilidade ao aceitar | junto com a RN-07 |
-
-As tabelas de troca **já existem** no banco; faltam as rotas. Por enquanto, aceitar uma oferta só muda o status dela.
+- Uma oferta aceita que nunca vira troca fica `ACCEPTED` para sempre, com as cartas oferecidas presas (não podem ser apagadas, só zeradas). Não há prazo de validade para oferta aceita nem para troca aberta.
+- Uma troca recusada ou cancelada não volta os anúncios que foram reduzidos quando ela nasceu, e a oferta não gera outra troca: é preciso fazer uma oferta nova.
 
 ## Status do projeto
 
@@ -329,7 +349,7 @@ As tabelas de troca **já existem** no banco; faltam as rotas. Por enquanto, ace
 | Coleção, perfil público, wishlist | ✅ backend · frontend a fazer |
 | Anúncios | ✅ backend · frontend a fazer |
 | Ofertas | ✅ backend · frontend a fazer |
-| Trocas | 🟡 backend em andamento |
+| Trocas | ✅ backend · frontend a fazer |
 | Frontend | 🟡 home, login e cadastro prontos; demais telas a fazer |
 
 Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).

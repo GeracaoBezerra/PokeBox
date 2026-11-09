@@ -41,6 +41,14 @@ export function findById(id, db = prisma) {
   return db.listing.findUnique({ where: { id }, include: listingInclude });
 }
 
+export function findOpenByItem(collectionItemId, tx) {
+  return tx.listing.findMany({
+    where: { collectionItemId, status: { in: OPEN_STATUSES } },
+    select: { id: true, quantity: true },
+    orderBy: newestFirst,
+  });
+}
+
 export async function sumOpenByItem(collectionItemId, db = prisma, exceptId = undefined) {
   const result = await db.listing.aggregate({
     where: {
@@ -54,8 +62,8 @@ export async function sumOpenByItem(collectionItemId, db = prisma, exceptId = un
   return result._sum.quantity ?? 0;
 }
 
-export async function countByItem(collectionItemId) {
-  const groups = await prisma.listing.groupBy({
+export async function countByItem(collectionItemId, db = prisma) {
+  const groups = await db.listing.groupBy({
     by: ['status'],
     where: { collectionItemId },
     _count: { _all: true },

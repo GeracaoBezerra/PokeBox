@@ -54,11 +54,9 @@ export function findReceived(userId, status) {
   });
 }
 
-export async function countByItem(collectionItemId) {
-  const [open, accepted] = await Promise.all([
-    prisma.offerItem.count({ where: { collectionItemId, offer: { status: 'PROPOSED' } } }),
-    prisma.offerItem.count({ where: { collectionItemId, offer: { status: 'ACCEPTED' } } }),
-  ]);
+export async function countByItem(collectionItemId, db = prisma) {
+  const open = await db.offerItem.count({ where: { collectionItemId, offer: { status: 'PROPOSED' } } });
+  const accepted = await db.offerItem.count({ where: { collectionItemId, offer: { status: 'ACCEPTED' } } });
 
   return { open, accepted };
 }

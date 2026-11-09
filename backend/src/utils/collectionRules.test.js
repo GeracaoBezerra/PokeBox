@@ -1,4 +1,5 @@
 import {
+  assertConditionChangeable,
   assertCoversListings,
   assertNoListings,
   assertNoOffers,
@@ -81,6 +82,38 @@ describe('assertNoListings', () => {
     expect(statusOf(() => assertNoListings({ open: 0, total: 2 }))).toBe(409);
     expect(() => assertNoListings({ open: 0, total: 2 })).toThrow(/histórico/);
     expect(() => assertNoListings({ open: 1, total: 2 })).toThrow(/Feche o anúncio/);
+  });
+});
+
+describe('assertConditionChangeable', () => {
+  const free = { reservedQuantity: 0, offers: { open: 0, accepted: 0 }, listings: { open: 0 } };
+
+  it('libera item fora de qualquer negociação', () => {
+    expect(() => assertConditionChangeable(free)).not.toThrow();
+  });
+
+  it('bloqueia item reservado numa troca com 409', () => {
+    expect(statusOf(() => assertConditionChangeable({ ...free, reservedQuantity: 1 }))).toBe(409);
+    expect(() => assertConditionChangeable({ ...free, reservedQuantity: 1 })).toThrow(/troca/);
+  });
+
+  it.each([
+    { open: 1, accepted: 0 },
+    { open: 0, accepted: 1 },
+  ])('bloqueia item em oferta %o com 409', (offers) => {
+    expect(statusOf(() => assertConditionChangeable({ ...free, offers }))).toBe(409);
+    expect(() => assertConditionChangeable({ ...free, offers })).toThrow(/oferta/);
+  });
+
+  it('bloqueia item com anúncio aberto com 409', () => {
+    expect(statusOf(() => assertConditionChangeable({ ...free, listings: { open: 1 } }))).toBe(409);
+    expect(() => assertConditionChangeable({ ...free, listings: { open: 1 } })).toThrow(/anúncio/);
+  });
+
+  it('confere na ordem troca → oferta → anúncio', () => {
+    const all = { reservedQuantity: 1, offers: { open: 1, accepted: 0 }, listings: { open: 1 } };
+    expect(() => assertConditionChangeable(all)).toThrow(/troca/);
+    expect(() => assertConditionChangeable({ ...all, reservedQuantity: 0 })).toThrow(/oferta/);
   });
 });
 
