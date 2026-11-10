@@ -916,7 +916,7 @@ export const swaggerSpec = {
         tags: ["Listings"],
         summary: "Altera um anúncio",
         description:
-          "Dono: quantity, description e status (ACTIVE, PAUSED, CLOSED). ADMIN: só status, para BLOCKED ou de BLOCKED para PAUSED. CLOSED é final. Aumentar quantity ou sair de BLOCKED revalida a RN-05. Fechar (CLOSED) ou bloquear (BLOCKED) cancela as ofertas PROPOSED do anúncio e solta as cartas oferecidas; pausar não mexe nelas. Desbloquear não reabre ofertas canceladas.",
+          "Dono: quantity, description e status (ACTIVE, PAUSED, CLOSED). ADMIN: só status, para BLOCKED ou de BLOCKED para PAUSED. CLOSED é final. Aumentar quantity ou sair de BLOCKED revalida a RN-05. Fechar (CLOSED) ou bloquear (BLOCKED) cancela as ofertas PROPOSED do anúncio e as ACCEPTED que ainda não viraram troca, soltando as cartas oferecidas. Diminuir quantity cancela as ACCEPTED sem troca que pedem mais do que a nova quantidade (cada uma comparada sozinha). Pausar não mexe nelas. Oferta que já virou troca não muda. Desbloquear não reabre ofertas canceladas.",
         security: [{ bearerAuth: [] }],
         parameters: [listingIdParam],
         requestBody: {
