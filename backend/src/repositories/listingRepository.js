@@ -85,3 +85,10 @@ export function create(data, db = prisma) {
 export function update(id, data, db = prisma) {
   return db.listing.update({ where: { id }, data, include: listingInclude });
 }
+
+export function existsActiveByUserAndCard(userId, cardId) {
+  return prisma.listing.findFirst({
+    where: { status: 'ACTIVE', collectionItem: { userId, cardId } },
+    select: { id: true },
+  });
+}

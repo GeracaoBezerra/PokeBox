@@ -114,3 +114,11 @@ export function findOwnersOfCards(cardIds, userId) {
     },
   });
 }
+
+export async function sumQuantityByUserAndCard(userId, cardId) {
+  const result = await prisma.collectionItem.aggregate({
+    where: { userId, cardId },
+    _sum: { quantity: true },
+  });
+  return result._sum.quantity;
+}

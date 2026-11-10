@@ -107,7 +107,3 @@ export function upsertCard(record) {
     update: record,
   });
 }
-
-export async function findUserCardInfo(userId, cardId) {
-  return { inCollection: 0, inWishlist: false, onTradeList: false };
-}

@@ -25,3 +25,10 @@ export function remove(id) {
     select: { id: true },
   });
 }
+
+export function existsByUserAndCard(userId, cardId) {
+  return prisma.wishlistItem.findUnique({
+    where: { userId_cardId: { userId, cardId } },
+    select: { id: true },
+  });
+}
