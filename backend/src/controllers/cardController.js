@@ -9,11 +9,11 @@ export async function getCardDetails(req, res, next) {
   try {
     const { id } = req.params;
     const lang = res.locals.lang;
-    const userId = req.user?.id; 
-    const [card, user, listings] = await Promise.all([
-      findCardById(id, lang),
-      userId ? getUserCardInfo(userId, id) : Promise.resolve(null),
-      listByCard(id),
+    const userId = req.user?.id;
+    const card = await findCardById(id, lang);
+    const [user, listings] = await Promise.all([
+      userId ? getUserCardInfo(userId, card.id) : Promise.resolve(null),
+      listByCard(card.id),
     ]);
 
     res.set('Cache-Control', 'private, max-age=60');
