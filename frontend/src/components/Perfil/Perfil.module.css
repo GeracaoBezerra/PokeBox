@@ -33,3 +33,30 @@
     gap: var(--esp-24);
   }
 }
+
+.acoesConta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-8);
+  margin-top: var(--esp-16);
+}
+
+.botaoConta,
+.botaoPerigo {
+  min-height: var(--altura-controle);
+  padding: 0 var(--esp-16);
+  border-radius: var(--raio-botao);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+  background: none;
+}
+
+.botaoConta {
+  border: 1px solid var(--borda);
+  color: var(--texto);
+}
+
+.botaoPerigo {
+  border: 1px solid var(--erro);
+  color: var(--erro);
+}

@@ -20,10 +20,10 @@ export default function SecaoEditavel({ titulo, blocos, valores, onSalvar }) {
     setEditando(false);
   }
 
-  function salvar(evento) {
+  async function salvar(evento) {
     evento.preventDefault();
-    onSalvar(rascunho);
-    setEditando(false);
+    const ok = await onSalvar(rascunho);
+    if (ok !== false) setEditando(false);
   }
 
   function alterar(chave, valor) {

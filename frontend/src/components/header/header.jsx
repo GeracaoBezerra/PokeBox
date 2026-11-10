@@ -7,14 +7,24 @@ import {
   Layers,
   ArrowLeftRight,
   Home,
+  Store,
+  Library,
+  Megaphone,
+  Inbox,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import MenuUsuario from "../MenuUsuario/MenuUsuario";
 import styles from "./header.module.css";
 
 export default function Header() {
   const [menuAberto, setMenuAberto] = useState(false);
   const [busca, setBusca] = useState("");
+  const navigate = useNavigate();
+
+  function buscar(event) {
+    event.preventDefault();
+    navigate(`/catalogo?name=${encodeURIComponent(busca.trim())}`);
+  }
 
   function fecharMenu() {
     setMenuAberto(false);
@@ -34,7 +44,7 @@ export default function Header() {
           <form
             className={`${styles.buscaContainer} ${styles.buscaDesktop}`}
             role="search"
-            onSubmit={(event) => event.preventDefault()}
+            onSubmit={buscar}
           >
             <Search className={styles.iconeBusca} size={18} />
 
@@ -68,7 +78,7 @@ export default function Header() {
         <form
           className={`${styles.buscaContainer} ${styles.buscaMobile}`}
           role="search"
-          onSubmit={(event) => event.preventDefault()}
+          onSubmit={buscar}
         >
           <Search className={styles.iconeBusca} size={18} />
 
@@ -100,14 +110,34 @@ export default function Header() {
             <span>Cards</span>
           </Link>
 
+          <Link to="/marketplace" className={styles.linkNav} onClick={fecharMenu}>
+            <Store size={16} />
+            <span>Marketplace</span>
+          </Link>
+
+          <Link to="/colecao" className={styles.linkNav} onClick={fecharMenu}>
+            <Library size={16} />
+            <span>Coleção</span>
+          </Link>
+
           <Link to="/procuro" className={styles.linkNav} onClick={fecharMenu}>
             <Heart size={16} />
             <span>Wishlist</span>
           </Link>
 
+          <Link to="/anuncios" className={styles.linkNav} onClick={fecharMenu}>
+            <Megaphone size={16} />
+            <span>Anúncios</span>
+          </Link>
+
           <Link to="/propostas" className={styles.linkNav} onClick={fecharMenu}>
+            <Inbox size={16} />
+            <span>Propostas</span>
+          </Link>
+
+          <Link to="/trocas" className={styles.linkNav} onClick={fecharMenu}>
             <ArrowLeftRight size={16} />
-            <span>Minhas Trocas</span>
+            <span>Trocas</span>
           </Link>
         </nav>
       </div>

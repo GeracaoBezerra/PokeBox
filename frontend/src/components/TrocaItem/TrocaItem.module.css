@@ -138,3 +138,8 @@
     text-align: right;
   }
 }
+.lado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-8);
+}

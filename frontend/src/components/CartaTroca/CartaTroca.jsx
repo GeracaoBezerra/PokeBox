@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+import ImagemCarta from "../ImagemCarta/ImagemCarta";
 import styles from "./CartaTroca.module.css";
 
 // Miniatura de uma das cartas da troca, com legenda embaixo.
@@ -9,21 +10,19 @@ export default function CartaTroca({ carta, rotulo }) {
     <figure className={styles.carta}>
       {/* TODO: criar a rota /cards/:id */}
       <Link to={`/cards/${carta.id}`} className={styles.link}>
-        <img
+        <ImagemCarta
           className={styles.imagem}
           src={carta.src}
           alt={`${carta.nome}, ${carta.set}, ${carta.numero}`}
-          width="245"
-          height="342"
-          loading="lazy"
-          decoding="async"
-          draggable={false}
         />
       </Link>
 
       <figcaption className={styles.legenda}>
         <span className={styles.rotulo}>{rotulo}</span>
-        <span className={styles.nome}>{carta.nome}</span>
+        <span className={styles.nome}>
+          {carta.quantidade > 1 ? `${carta.quantidade}× ` : ""}
+          {carta.nome}
+        </span>
       </figcaption>
     </figure>
   );

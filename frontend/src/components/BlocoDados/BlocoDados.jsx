@@ -47,7 +47,7 @@ export default function BlocoDados({
                 {campo.tipo === "textarea" ? (
                   <textarea rows={3} {...propsEntrada} />
                 ) : (
-                  <input type={campo.tipo ?? "text"} required {...propsEntrada} />
+                  <input type={campo.tipo ?? "text"} required={campo.obrigatorio} {...propsEntrada} />
                 )}
               </div>
             );

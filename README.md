@@ -350,6 +350,18 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
 - Uma troca recusada ou cancelada não volta os anúncios que foram reduzidos quando ela nasceu, e a oferta não gera outra troca: é preciso fazer uma oferta nova.
 
+## MVP do front (PR rascunho, não mergear)
+
+A branch `feat/mvp-front` liga as telas do front a **todas** as rotas da API, sem firula, para demonstrar o app ponta a ponta e servir de referência para as telas do board (#22 a #27). Ela inclui a tela de perfil da #50 ligada à API.
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Abra `http://localhost:5173`, entre com um usuário do seed e use o menu: Cards (catálogo), Marketplace, Coleção, Wishlist, Anúncios, Propostas, Trocas e Meu perfil. Para mostrar uma troca, use duas janelas (uma normal e uma anônima), uma com o `ash` e outra com a `misty`. Os erros aparecem com a mensagem da API e o código HTTP, por exemplo "Você já tem uma oferta aberta neste anúncio (409)".
+
+As chamadas ficam em `frontend/src/api/` (axios com interceptores em `http.js`, uma função por rota).
+
 ## Status do projeto
 
 | Parte | Situação |

@@ -1,2 +1,13 @@
 export { default as LoginPage } from "./login/login.jsx";
 export { default as RegisterPage } from "./register/register.jsx";
+export { default as CatalogPage } from "./catalog.jsx";
+export { default as CardPage } from "./card.jsx";
+export { default as MarketplacePage } from "./marketplace.jsx";
+export { default as ListingPage } from "./listing.jsx";
+export { default as PublicPerfilPage } from "./publicPerfil.jsx";
+export { default as MyCollectionPage } from "./myCollection.jsx";
+export { default as WishlistPage } from "./wishlist.jsx";
+export { default as MyListingsPage } from "./myListings.jsx";
+export { default as MyOffersPage } from "./myOffers.jsx";
+export { default as SwitchNegociationPage } from "./switchNegociation.jsx";
+export { default as UserPerfilPage } from "./userPerfil.jsx";
