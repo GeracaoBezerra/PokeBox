@@ -23,7 +23,7 @@ app.get('/health', (req, res) => {
   return res.status(200).json({ success: true, data: { status: 'ok' } });
 });
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { swaggerOptions: { persistAuthorization: true } }));
 
 app.use('/auth', authRoutes);
 app.use('/cards', cardRoutes);
