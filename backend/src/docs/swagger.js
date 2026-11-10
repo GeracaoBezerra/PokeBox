@@ -526,7 +526,7 @@ export const swaggerSpec = {
         tags: ["Cards"],
         summary: "Detalhes de uma carta",
         description:
-          "Busca na memória (1h), depois no banco (24h) e por último na API TCGdex. Login opcional: com token, o bloco user traz quantas unidades você tem, se a carta está na sua wishlist e se você tem anúncio ACTIVE dela; sem token, user é null.",
+          "Busca na memória (1h), depois no banco (24h) e por último na API TCGdex. Login opcional: com token, o bloco user traz quantas unidades você tem, se a carta está na sua wishlist e se você tem anúncio ACTIVE dela; sem token, user é null. Cache: com token, private, no-cache (o navegador confere a cada vez); sem token, private, max-age=60.",
         security: [{}, { bearerAuth: [] }],
         parameters: [
           {

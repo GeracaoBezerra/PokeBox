@@ -16,7 +16,7 @@ export async function getCardDetails(req, res, next) {
       listByCard(card.id),
     ]);
 
-    res.set('Cache-Control', 'private, max-age=60');
+    res.set('Cache-Control', userId ? 'private, no-cache' : 'private, max-age=60');
     res.set('Vary', 'Authorization');
     return res.json({ success: true, data: { card, user, listings } });
   } catch (err) {
