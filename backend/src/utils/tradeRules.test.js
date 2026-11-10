@@ -173,6 +173,23 @@ describe('acceptedOffersToCancel', () => {
   it('sem ofertas aceitas, nada a cancelar', () => {
     expect(acceptedOffersToCancel({ offers: [], change: { status: 'CLOSED' } })).toEqual([]);
   });
+
+  it('anúncio bloqueado cancela todas as ofertas aceitas sem troca', () => {
+    expect(acceptedOffersToCancel({ offers, change: { status: 'BLOCKED' } })).toEqual(['pede-1', 'pede-2']);
+  });
+
+  it('compara cada oferta com a nova quantidade, sem somar as aceitas', () => {
+    const tres = [...offers, { id: 'pede-3', quantity: 3 }];
+    expect(acceptedOffersToCancel({ offers: tres, change: { status: 'ACTIVE', quantity: 2 } })).toEqual(['pede-3']);
+  });
+
+  it('pausar sem diminuir não cancela nada', () => {
+    expect(acceptedOffersToCancel({ offers, change: { status: 'PAUSED', quantity: 2 } })).toEqual([]);
+  });
+
+  it('sem status e sem quantidade, nada a cancelar', () => {
+    expect(acceptedOffersToCancel({ offers, change: {} })).toEqual([]);
+  });
 });
 
 describe('trimListings', () => {

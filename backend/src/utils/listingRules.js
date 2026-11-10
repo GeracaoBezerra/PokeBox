@@ -3,6 +3,7 @@ import { isPublicProfileVisible } from './accountStatus.js';
 import { toCardResponse } from './cardRecord.js';
 
 export const OPEN_STATUSES = ['ACTIVE', 'PAUSED'];
+export const CANCELS_OFFERS = ['CLOSED', 'BLOCKED'];
 
 export function assertListingQuantity({ requested, otherListed, available }) {
   if (requested + otherListed > available) {
@@ -42,6 +43,10 @@ export function needsStockCheck(current, next) {
   if (!OPEN_STATUSES.includes(next.status)) return false;
   if (!OPEN_STATUSES.includes(current.status)) return true;
   return next.quantity > current.quantity;
+}
+
+export function mayCancelAccepted(current, next) {
+  return CANCELS_OFFERS.includes(next.status) || next.quantity < current.quantity;
 }
 
 export function isListingVisible(listing, viewer) {

@@ -2,6 +2,7 @@ import {
   assertListingQuantity,
   assertListingUpdate,
   isListingVisible,
+  mayCancelAccepted,
   needsStockCheck,
   toListingResponse,
 } from './listingRules.js';
@@ -110,6 +111,24 @@ describe('needsStockCheck', () => {
   it('não confere quando fecha ou bloqueia', () => {
     expect(needsStockCheck({ status: 'ACTIVE', quantity: 1 }, { status: 'CLOSED', quantity: 9 })).toBe(false);
     expect(needsStockCheck({ status: 'ACTIVE', quantity: 1 }, { status: 'BLOCKED', quantity: 1 })).toBe(false);
+  });
+});
+
+describe('mayCancelAccepted', () => {
+  it('fechar ou bloquear pode cancelar ofertas aceitas', () => {
+    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 2 }, { status: 'CLOSED', quantity: 2 })).toBe(true);
+    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 2 }, { status: 'BLOCKED', quantity: 2 })).toBe(true);
+  });
+
+  it('diminuir a quantidade pode cancelar ofertas aceitas', () => {
+    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 3 }, { status: 'ACTIVE', quantity: 1 })).toBe(true);
+  });
+
+  it('pausar, desbloquear, aumentar ou mudar só a descrição não cancela', () => {
+    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 2 }, { status: 'PAUSED', quantity: 2 })).toBe(false);
+    expect(mayCancelAccepted({ status: 'BLOCKED', quantity: 2 }, { status: 'PAUSED', quantity: 2 })).toBe(false);
+    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 1 }, { status: 'ACTIVE', quantity: 2 })).toBe(false);
+    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 2 }, { status: 'ACTIVE', quantity: 2 })).toBe(false);
   });
 });
 

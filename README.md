@@ -179,8 +179,11 @@ O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, p
 
 1. Abra http://localhost:3000/docs.
 2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "pokebox123" }`. Esse já é o exemplo do Swagger: basta clicar em **Try it out** e **Execute**. Os exemplos das outras rotas também seguem o seed (o Charizard do ash, a oferta da misty); o do cadastro usa `brock`, que não está no seed, para não dar 409.
-3. Copie o `token` da resposta, clique em **Authorize** e cole.
-4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me`, `GET /offers/me`, `GET /trades/me` etc.
+3. Copie o `token` da resposta, clique em **Authorize** e cole. O token fica salvo até fechar a aba (um F5 não desloga).
+4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me`, `GET /offers/me`, `GET /trades/me` etc. Os ids que as outras rotas pedem saem dessas listas (a descrição de cada campo diz onde pegar).
+5. Para conferir o papel ADMIN, `GET /auth/admin-check`: com `admin@pokebox.dev` dá 200; com o ash, 403.
+
+O `/docs` chama a API no mesmo endereço em que foi aberto, então funciona em qualquer porta. Rotas sem cadeado não precisam de login. No detalhe da carta com `lang=pt`, use uma carta recente (ex.: `sv03.5-025`): a TCGdex não tem o Base Set em português e responde 404.
 
 ## Testes
 
@@ -264,7 +267,7 @@ Todas as respostas seguem o mesmo formato:
 | `GET /listings/me` | 🔒 | meus anúncios, em qualquer status |
 | `GET /listings/:id` | 🔓 | detalhe; anúncio pausado, fechado ou bloqueado só aparece para o dono e para o ADMIN |
 | `POST /listings` | 🔒 | anuncia um item da minha coleção: `collectionItemId`, `quantity`, `description?` |
-| `PATCH /listings/:id` | 🔒 | muda `quantity`, `description` ou `status` (`ACTIVE`, `PAUSED`, `CLOSED`); ADMIN só bloqueia (`BLOCKED`) ou desbloqueia. Fechar ou bloquear cancela as ofertas abertas do anúncio |
+| `PATCH /listings/:id` | 🔒 | muda `quantity`, `description` ou `status` (`ACTIVE`, `PAUSED`, `CLOSED`); ADMIN só bloqueia (`BLOCKED`) ou desbloqueia. Fechar ou bloquear cancela as ofertas abertas e as aceitas que ainda não viraram troca; diminuir cancela as aceitas que pedem mais do que a nova quantidade |
 
 ### Ofertas de troca
 
@@ -294,13 +297,16 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 
 | Código | Quando |
 |---|---|
-| 400 | dados inválidos (campo faltando, formato errado, campo a mais) |
+| 400 | dados inválidos (campo faltando, formato errado, campo a mais) ou JSON inválido no corpo (`"JSON inválido"`) |
 | 401 | sem token, token inválido ou expirado, senha errada |
 | 403 | logado, mas sem permissão (item de outra pessoa, rota de admin, conta suspensa) |
 | 404 | não encontrado (inclui perfil de conta desativada) |
 | 409 | conflito (e-mail/username já usados, carta repetida na wishlist, apagar item com reserva, que já foi anunciado ou que está numa oferta, segunda oferta aberta no mesmo anúncio, oferta que já virou troca, troca já finalizada) |
 | 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem, oferta no próprio anúncio, mudar oferta já finalizada, troca de oferta não aceita, cartas da troca indisponíveis) |
+| 413 | corpo da requisição acima do limite (100 KB) |
 | 500 | erro inesperado |
+| 502 | serviço de cartas (TCGdex) fora do ar, sem conexão ou respondendo errado, e sem cópia da carta guardada: "tente novamente em instantes" |
+| 504 | serviço de cartas (TCGdex) demorou mais de 8 s para responder, e sem cópia da carta guardada |
 
 ## Regras de negócio
 
@@ -313,7 +319,7 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | **RN-03** Quantidade | Quantidade nunca negativa (validação + CHECK no banco). Mesma carta com mesma condição e variante **soma** na quantidade em vez de criar outro item. Não pode baixar a quantidade abaixo do que está reservado em negociação (**422**) nem apagar item com reserva (**409**). |
 | **RN-04** Wishlist | Cada carta entra uma vez na wishlist (repetida → **409**). Cada item mostra `opportunities`: quantos **outros** colecionadores têm essa carta pública e disponível (contas desativadas não contam). A wishlist não tem variante: quem deseja aceita qualquer versão. |
 | **RN-05** Anúncios (adaptada: só trocas) | Só anuncia item da **própria** coleção (**403**). A soma das quantidades dos anúncios abertos (ativos e pausados) de um item não passa do disponível (quantidade menos reservada); senão **422**. Vale ao criar, ao aumentar a quantidade e ao desbloquear. A coleção também não deixa baixar a quantidade abaixo do que está anunciado (**422**). Anunciar **não reserva**: a reserva fica para a troca (RN-07/08). Pedidos ao mesmo tempo no mesmo item são tratados um de cada vez (trava no banco). |
-| **RN-06** Ofertas | Só faz oferta em anúncio **ativo** de outra pessoa (próprio anúncio → **422**; pausado, fechado ou bloqueado → **404**). Pede no máximo a quantidade do anúncio e oferece só cartas da **própria** coleção (**403**) que caibam no disponível (**422**). Uma oferta aberta por pessoa em cada anúncio (**409**). Só o **dono do anúncio** aceita ou recusa; só **quem fez** cancela (**403**, inclusive para ADMIN). Oferta finalizada (aceita, recusada ou cancelada) **não muda mais** nem volta para `PROPOSED` (**422**), com uma exceção: oferta **aceita que ainda não virou troca** pode ser recusada pelo dono ou cancelada por quem fez, para não ficar presa; se já virou troca, **409** e quem age é a troca. Recusar ou cancelar solta as cartas oferecidas. Fechar ou bloquear o anúncio cancela as ofertas abertas dele; pausar não. A oferta **não reserva** cartas, mas o aceite confere de novo: se o dono baixou o anúncio abaixo do que a oferta pede, ou se quem ofertou não tem mais as cartas, o aceite é recusado (**422**). Carta que está numa oferta aberta ou aceita não pode ser apagada da coleção (**409**). |
+| **RN-06** Ofertas | Só faz oferta em anúncio **ativo** de outra pessoa (próprio anúncio → **422**; pausado, fechado ou bloqueado → **404**). Pede no máximo a quantidade do anúncio e oferece só cartas da **própria** coleção (**403**) que caibam no disponível (**422**). Uma oferta aberta por pessoa em cada anúncio (**409**). Só o **dono do anúncio** aceita ou recusa; só **quem fez** cancela (**403**, inclusive para ADMIN). Oferta finalizada (aceita, recusada ou cancelada) **não muda mais** nem volta para `PROPOSED` (**422**), com uma exceção: oferta **aceita que ainda não virou troca** pode ser recusada pelo dono ou cancelada por quem fez, para não ficar presa; se já virou troca, **409** e quem age é a troca. Recusar ou cancelar solta as cartas oferecidas. Fechar ou bloquear o anúncio cancela as ofertas abertas dele e as **aceitas que ainda não viraram troca** (desbloquear não traz de volta); diminuir o anúncio cancela as aceitas que pedem mais do que a nova quantidade (cada uma comparada sozinha); pausar não mexe em nenhuma. Oferta aceita que já virou troca não muda: quem manda é a troca. A oferta **não reserva** cartas, mas o aceite confere de novo: se o dono baixou o anúncio abaixo do que a oferta pede, ou se quem ofertou não tem mais as cartas, o aceite é recusado (**422**). Carta que está numa oferta aberta ou aceita não pode ser apagada da coleção (**409**). |
 | **RN-07** Troca atômica | O aceite da troca roda numa **transação só**: trava as cartas, confere de novo que cada uma ainda é de quem entrega e está reservada, tira de quem entrega e soma em quem recebe (no item igual em carta, condição e variante; se não houver, cria um item público). Se qualquer passo falhar, **nada muda**. Quem entrega fica com o item, mesmo que chegue a 0. Só o dono do anúncio aceita ou recusa; só quem fez a oferta cria e cancela a troca (**403**). Troca finalizada não muda mais (**409**). Uma troca por oferta (**409**). |
 | **RN-08** Reserva | Quando a troca nasce, as cartas dos dois lados ficam **reservadas**: nenhuma outra negociação consegue usá-las (anunciar, ofertar, aceitar outra oferta → **422**), nem dá para baixar a quantidade abaixo do reservado (**422**) ou apagar o item (**409**). No mesmo momento, o anúncio diminui pela quantidade da oferta (em 0, fecha e cancela as ofertas abertas dele) e os anúncios de quem ofertou que passariam do disponível são reduzidos. Outras ofertas já aceitas desse anúncio que não cabem mais são canceladas e soltam as cartas. Recusar ou cancelar a troca libera a reserva (os anúncios não voltam). Pedidos ao mesmo tempo na mesma troca: um passa, o outro recebe **409**. A **condição** de um item não muda enquanto ele está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**): assim o que foi anunciado e oferecido é o que chega. |
 | **RN-10** Privacidade | Item com `isPublic: false` não aparece no perfil público. O perfil público nunca mostra e-mail, reserva nem dados internos. Conta desativada ou suspensa → **404**. |
@@ -323,7 +329,7 @@ Outras regras que já valem:
 - **Variante da carta:** cada item tem `finish` (`NORMAL`, `HOLO`, `REVERSE`) e `firstEdition`. Só aceita combinações que a carta realmente tem na TCGdex (senão **422**).
 - **Condição:** `MINT`, `NEAR_MINT`, `EXCELLENT`, `GOOD`, `LIGHT_PLAYED`, `PLAYED` ou `POOR`.
 - **Conta:** login de conta suspensa ou inativa → **403**. Excluir a conta só desativa (soft delete); o histórico fica.
-- **Cache das cartas:** o detalhe de uma carta é buscado na TCGdex só na primeira vez e guardado por 24h no banco (`CardCache`) e por 1h em memória. Se a TCGdex cair, a API usa a última cópia guardada. O cache é gravado com o id oficial da carta, mesmo que a URL use outra caixa (`/cards/BASE1-4` grava e atualiza o preço de `base1-4`).
+- **Cache das cartas:** o detalhe de uma carta é buscado na TCGdex só na primeira vez e guardado por 24h no banco (`CardCache`) e por 1h em memória. Se a TCGdex cair, a API usa a última cópia guardada; sem cópia guardada (ou na busca `GET /cards`, que só guarda em memória por 10 min), responde **502** (fora do ar) ou **504** (demorou mais de 8 s). O cache é gravado com o id oficial da carta, mesmo que a URL use outra caixa (`/cards/BASE1-4` grava e atualiza o preço de `base1-4`).
 - **Preço de referência:** cada carta guarda o preço de mercado da TCGdex (TCGplayer em USD ou Cardmarket em EUR), atualizado quando a carta é consultada de novo. É **só informativo**.
 - **Status do anúncio:** o dono alterna entre ativo e pausado e pode fechar; anúncio fechado não volta. Só o ADMIN bloqueia, e só ele desbloqueia (volta como pausado). Um item que já foi anunciado não pode mais ser apagado da coleção, porque o anúncio fica no histórico; para tirá-lo do perfil, zere a quantidade.
 - **Integridade no banco:** chaves estrangeiras, uniques e CHECKs em todas as tabelas. Lista completa em [`backend/docs/db.md`](backend/docs/db.md).
@@ -340,7 +346,6 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
 - Uma troca recusada ou cancelada não volta os anúncios que foram reduzidos quando ela nasceu, e a oferta não gera outra troca: é preciso fazer uma oferta nova.
-- Se o dono **fecha** ou **diminui** o anúncio pelo `PATCH /listings/:id` (ou o ADMIN o bloqueia) depois de aceitar uma oferta, essa oferta aceita não vira mais troca (**422**) e precisa ser encerrada à mão (recusar ou cancelar). Só a criação de uma troca cancela sozinha as ofertas aceitas que deixaram de caber; fazer isso também ao fechar, bloquear ou diminuir o anúncio está na issue #64.
 
 ## Status do projeto
 

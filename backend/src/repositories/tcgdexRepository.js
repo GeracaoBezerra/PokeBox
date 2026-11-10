@@ -1,4 +1,5 @@
 import { MemoryCache } from '../utils/memoryCache.js';
+import { TcgdexUnavailableError } from '../utils/tcgdexError.js';
 import { tcgdexCardSchema, tcgdexCardBriefListSchema, tcgdexSetSchema } from './tcgdexSchema.js';
 
 
@@ -8,22 +9,36 @@ const setMemory = new MemoryCache(ONE_DAY);
 
 export class CardNotFoundError extends Error {}
 
-export async function fetchCardFromTcgdex(id, lang = 'en') {
+async function requestTcgdex(path, schema) {
   const baseUrl = process.env.TCGDEX_BASE_URL ?? 'https://api.tcgdex.net/v2';
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const res = await fetch(`${baseUrl}/${lang}/cards/${encodeURIComponent(id)}`, { signal: controller.signal });
-    if (res.status === 404) throw new CardNotFoundError(`Carta ${id} não encontrada`);
-    if (!res.ok) throw new Error(`TCGdex respondeu ${res.status}`);
-    const parsed = tcgdexCardSchema.safeParse(await res.json());
-    if (!parsed.success) throw new Error(`Resposta inesperada da TCGdex: ${parsed.error.message}`);
-    const setInfo = await findSetInfo(parsed.data.set.id, lang);
-    return toCardDetails(parsed.data, setInfo);
+    const res = await fetch(`${baseUrl}${path}`, { signal: controller.signal });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new TcgdexUnavailableError(`TCGdex respondeu ${res.status}`);
+    const parsed = schema.safeParse(await res.json());
+    if (!parsed.success) {
+      throw new TcgdexUnavailableError(`Resposta inesperada da TCGdex: ${parsed.error.message}`);
+    }
+    return parsed.data;
+  } catch (err) {
+    if (err instanceof TcgdexUnavailableError) throw err;
+    if (err?.name === 'AbortError' || controller.signal.aborted) {
+      throw new TcgdexUnavailableError(`TCGdex não respondeu em ${TIMEOUT_MS} ms`, { timeout: true, cause: err });
+    }
+    throw new TcgdexUnavailableError(`Falha ao chamar a TCGdex: ${err?.cause?.code ?? err?.cause?.message ?? err?.message}`, { cause: err });
   } finally {
     clearTimeout(timer);
   }
+}
+
+export async function fetchCardFromTcgdex(id, lang = 'en') {
+  const card = await requestTcgdex(`/${lang}/cards/${encodeURIComponent(id)}`, tcgdexCardSchema);
+  if (!card) throw new CardNotFoundError(`Carta ${id} não encontrada`);
+  const setInfo = await findSetInfo(card.set.id, lang);
+  return toCardDetails(card, setInfo);
 }
 
 async function findSetInfo(setId, lang) {
@@ -42,45 +57,24 @@ async function findSetInfo(setId, lang) {
 }
 
 async function fetchSetFromTcgdex(setId, lang) {
-  const baseUrl = process.env.TCGDEX_BASE_URL ?? 'https://api.tcgdex.net/v2';
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  try {
-    const res = await fetch(`${baseUrl}/${lang}/sets/${encodeURIComponent(setId)}`, { signal: controller.signal });
-    if (!res.ok) throw new Error(`TCGdex respondeu ${res.status}`);
-    const parsed = tcgdexSetSchema.safeParse(await res.json());
-    if (!parsed.success) throw new Error(`Resposta inesperada da TCGdex: ${parsed.error.message}`);
-    return {
-      series: parsed.data.serie?.name ?? null,
-      releaseDate: parsed.data.releaseDate ?? null,
-    };
-  } finally {
-    clearTimeout(timer);
-  }
+  const set = await requestTcgdex(`/${lang}/sets/${encodeURIComponent(setId)}`, tcgdexSetSchema);
+  if (!set) throw new Error('TCGdex respondeu 404');
+  return {
+    series: set.serie?.name ?? null,
+    releaseDate: set.releaseDate ?? null,
+  };
 }
 
 export async function searchCardsInTcgdex({ lang = 'en', name, page = 1, limit = 20 }) {
-  const baseUrl = process.env.TCGDEX_BASE_URL ?? 'https://api.tcgdex.net/v2';
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
   const params = new URLSearchParams({
     'pagination:page': String(page),
     'pagination:itemsPerPage': String(limit),
   });
   if (name) params.set('name', name);
 
-  try {
-    const res = await fetch(`${baseUrl}/${lang}/cards?${params}`, { signal: controller.signal });
-    if (res.status === 404) return [];
-    if (!res.ok) throw new Error(`TCGdex respondeu ${res.status}`);
-    const parsed = tcgdexCardBriefListSchema.safeParse(await res.json());
-    if (!parsed.success) throw new Error(`Resposta inesperada da TCGdex: ${parsed.error.message}`);
-    return parsed.data.map(toCardSummary);
-  } finally {
-    clearTimeout(timer);
-  }
+  const cards = await requestTcgdex(`/${lang}/cards?${params}`, tcgdexCardBriefListSchema);
+  if (!cards) return [];
+  return cards.map(toCardSummary);
 }
 
 function toCardSummary(card) {

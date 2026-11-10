@@ -1,7 +1,9 @@
 import { ZodError } from 'zod';
 
 import { AppError } from '../utils/AppError.js';
+import { translateBodyParserError } from '../utils/bodyParserError.js';
 import { translatePrismaError } from '../utils/prismaError.js';
+import { translateTcgdexError } from '../utils/tcgdexError.js';
 
 export function notFoundHandler(req, res) {
   return res.status(404).json({
@@ -11,6 +13,11 @@ export function notFoundHandler(req, res) {
 }
 
 export function errorHandler(err, req, res, next) {
+  const bodyError = translateBodyParserError(err);
+  if (bodyError) {
+    return res.status(bodyError.statusCode).json({ success: false, error: bodyError.message });
+  }
+
   if (err instanceof ZodError) {
     const details = err.issues.map((issue) => ({
       field: issue.path.join('.'),
@@ -31,6 +38,12 @@ export function errorHandler(err, req, res, next) {
   const prismaError = translatePrismaError(err);
   if (prismaError) {
     return res.status(prismaError.statusCode).json({ success: false, error: prismaError.message });
+  }
+
+  const tcgdexError = translateTcgdexError(err);
+  if (tcgdexError) {
+    console.error('[TCGdex indisponível]', err.message);
+    return res.status(tcgdexError.statusCode).json({ success: false, error: tcgdexError.message });
   }
 
   console.error('[erro inesperado]', err);
