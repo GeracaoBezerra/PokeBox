@@ -526,7 +526,8 @@ export const swaggerSpec = {
         tags: ["Cards"],
         summary: "Detalhes de uma carta",
         description:
-          "Busca na memória (1h), depois no banco (24h) e por último na API TCGdex.",
+          "Busca na memória (1h), depois no banco (24h) e por último na API TCGdex. Login opcional: com token, o bloco user traz quantas unidades você tem, se a carta está na sua wishlist e se você tem anúncio ACTIVE dela; sem token, user é null. Cache: com token, private, no-cache (o navegador confere a cada vez); sem token, private, max-age=60.",
+        security: [{}, { bearerAuth: [] }],
         parameters: [
           {
             name: "id",
@@ -555,6 +556,14 @@ export const swaggerSpec = {
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ApiValidationError" },
+              },
+            },
+          },
+          401: {
+            description: "Token enviado, mas inválido ou expirado",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
               },
             },
           },
@@ -1470,11 +1479,16 @@ export const swaggerSpec = {
       CardUserInfo: {
         type: "object",
         nullable: true,
-        description: "null quando o usuário não está logado",
+        description: "Dados do usuário logado sobre a carta. null quando não há login.",
         properties: {
-          inCollection: { type: "integer" },
-          inWishlist: { type: "boolean" },
-          onTradeList: { type: "boolean" },
+          inCollection: {
+            type: "integer",
+            minimum: 0,
+            example: 3,
+            description: "Soma de quantity de todos os seus itens de coleção com essa carta (todas as condições e variantes, públicos e privados, inclusive unidades reservadas).",
+          },
+          inWishlist: { type: "boolean", example: false, description: "A carta está na sua wishlist." },
+          onTradeList: { type: "boolean", example: true, description: "Você tem anúncio ACTIVE dessa carta (PAUSED não conta)." },
         },
       },
       Listing: {

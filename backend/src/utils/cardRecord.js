@@ -46,3 +46,11 @@ export function toCardRecord(card, now = new Date()) {
     ...toMarketPriceFields(card.marketPrice, now),
   };
 }
+
+export function toUserCardInfo({ quantity, wishlistItem, activeListing }) {
+  return {
+    inCollection: quantity ?? 0,
+    inWishlist: Boolean(wishlistItem),
+    onTradeList: Boolean(activeListing),
+  };
+}

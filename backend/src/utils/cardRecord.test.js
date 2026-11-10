@@ -1,4 +1,4 @@
-import { toCardRecord, toCardResponse, toMarketPriceFields } from './cardRecord.js';
+import { toCardRecord, toCardResponse, toMarketPriceFields, toUserCardInfo } from './cardRecord.js';
 
 const charizard = {
   id: 'base1-4',
@@ -110,5 +110,27 @@ describe('toCardResponse', () => {
 
   it('mantém null quando não há preço', () => {
     expect(toCardResponse({ id: 'sv01-196', marketPrice: null }).marketPrice).toBeNull();
+  });
+});
+
+describe('toUserCardInfo', () => {
+  it('devolve 0 quando o usuário não tem a carta', () => {
+    expect(toUserCardInfo({ quantity: null, wishlistItem: null, activeListing: null })).toEqual({
+      inCollection: 0,
+      inWishlist: false,
+      onTradeList: false,
+    });
+  });
+
+  it('usa a soma das quantidades da coleção', () => {
+    expect(toUserCardInfo({ quantity: 3, wishlistItem: null, activeListing: null }).inCollection).toBe(3);
+  });
+
+  it('marca inWishlist quando existe item na wishlist', () => {
+    expect(toUserCardInfo({ quantity: null, wishlistItem: { id: 'w1' }, activeListing: null }).inWishlist).toBe(true);
+  });
+
+  it('marca onTradeList quando existe anúncio ativo', () => {
+    expect(toUserCardInfo({ quantity: 1, wishlistItem: null, activeListing: { id: 'l1' } }).onTradeList).toBe(true);
   });
 });

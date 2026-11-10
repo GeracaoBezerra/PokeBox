@@ -236,7 +236,7 @@ Todas as respostas seguem o mesmo formato:
 | Rota | | O que faz |
 |---|---|---|
 | `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação |
-| `GET /cards/:id` | | detalhe da carta (ataques, variantes, preço de referência) e os anúncios ativos dela |
+| `GET /cards/:id` | 🔓 | detalhe da carta (ataques, variantes, preço de referência) e os anúncios ativos dela; com login, traz `user` (quantas você tem, se está na sua wishlist, se você tem anúncio ativo dela) |
 
 ### Coleção
 
