@@ -63,9 +63,10 @@ export async function findCardById(id, lang) {
 
     try {
       const card = await fetchCardFromTcgdex(id, lang);
-      await writeDbCache(id, lang, card);
-      await refreshStoredPrice(id, card.marketPrice);
-      memory.set(key, card);
+      await writeDbCache(card.id, lang, card);
+      await refreshStoredPrice(card.id, card.marketPrice);
+      memory.set(`${lang}:${card.id}`, card);
+      if (card.id !== id) memory.set(key, card);
       return card;
     } catch (err) {
       if (cached) return cached.data;
