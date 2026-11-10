@@ -29,6 +29,11 @@ const authErrors = {
   500: errorResponse("Erro interno"),
 };
 
+const tcgdexErrors = {
+  502: errorResponse("Serviço de cartas (TCGdex) fora do ar, sem conexão ou com resposta inválida, e sem cópia da carta guardada"),
+  504: errorResponse("Serviço de cartas (TCGdex) demorou mais de 8 s para responder, e sem cópia da carta guardada"),
+};
+
 const collectionItemResponse = (description) => ({
   description,
   content: {
@@ -578,6 +583,7 @@ export const swaggerSpec = {
               },
             },
           },
+          ...tcgdexErrors,
         },
       },
     },
@@ -647,6 +653,7 @@ export const swaggerSpec = {
               },
             },
           },
+          ...tcgdexErrors,
         },
       },
     },
@@ -703,6 +710,7 @@ export const swaggerSpec = {
           404: errorResponse("Carta não encontrada na TCGdex"),
           422: errorResponse("A carta não existe nesse finish ou em 1ª edição"),
           ...authErrors,
+          ...tcgdexErrors,
         },
       },
     },
@@ -866,6 +874,7 @@ export const swaggerSpec = {
           404: errorResponse("Carta não encontrada na TCGdex"),
           409: errorResponse("Esta carta já está na sua wishlist"),
           ...authErrors,
+          ...tcgdexErrors,
         },
       },
     },
