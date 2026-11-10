@@ -58,7 +58,7 @@ const collectionItemIdParam = {
   name: "id",
   in: "path",
   required: true,
-  description: "ID do item da coleção",
+  description: "ID do item da coleção (pegue em GET /collection)",
   schema: { type: "string", format: "uuid" },
 };
 
@@ -74,7 +74,7 @@ const listingIdParam = {
   name: "id",
   in: "path",
   required: true,
-  description: "ID do anúncio",
+  description: "ID do anúncio (pegue em GET /listings ou GET /listings/me)",
   schema: { type: "string", format: "uuid" },
 };
 
@@ -141,7 +141,7 @@ const offerIdParam = {
   name: "id",
   in: "path",
   required: true,
-  description: "ID da oferta",
+  description: "ID da oferta (pegue em GET /offers/me)",
   schema: { type: "string", format: "uuid" },
 };
 
@@ -169,7 +169,7 @@ const tradeIdParam = {
   name: "id",
   in: "path",
   required: true,
-  description: "ID da troca",
+  description: "ID da troca (pegue em GET /trades/me)",
   schema: { type: "string", format: "uuid" },
 };
 
@@ -208,12 +208,9 @@ export const swaggerSpec = {
     version: "1.0.0",
     description: "API do PokeBox",
   },
-  servers: [
-    {
-      url: `http://localhost:${process.env.BACKEND_PORT ?? process.env.PORT ?? 3000}`,
-    },
-  ],
+  servers: [{ url: "/" }],
   tags: [
+    { name: "Health", description: "Situação da API" },
     { name: "Auth", description: "Cadastro, login e sessão" },
     { name: "User", description: "Perfil do usuário autenticado" },
     { name: "Cards", description: "Cartas (TCGdex + cache)" },
@@ -225,12 +222,41 @@ export const swaggerSpec = {
     { name: "Trades", description: "Trocas: oferta aceita vira troca (RN-07: tudo ou nada no aceite; RN-08: cartas reservadas)" },
   ],
   paths: {
+    "/health": {
+      get: {
+        tags: ["Health"],
+        summary: "Confere se a API está no ar",
+        security: [],
+        responses: {
+          200: {
+            description: "API no ar",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: {
+                        status: { type: "string", example: "ok" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/auth/register": {
       post: {
         tags: ["Auth"],
         summary: "Cadastra um novo usuário",
         description:
-          "Cria a conta e já devolve um token válido. A senha é gravada com hash bcrypt e nunca retorna na resposta.",
+          "Cria a conta e já devolve um token válido. A senha é gravada com hash bcrypt e nunca retorna na resposta. O user da resposta não traz telefone nem endereço: o perfil completo vem do GET /auth/me.",
+        security: [],
         requestBody: {
           required: true,
           content: {
@@ -280,7 +306,8 @@ export const swaggerSpec = {
         tags: ["Auth"],
         summary: "Autentica e devolve o token",
         description:
-          "Em caso de credencial inválida a resposta é a mesma para e-mail inexistente e senha errada, de propósito: mensagens diferentes permitiriam descobrir quais e-mails estão cadastrados.",
+          "Em caso de credencial inválida a resposta é a mesma para e-mail inexistente e senha errada, de propósito: mensagens diferentes permitiriam descobrir quais e-mails estão cadastrados. O user da resposta não traz telefone nem endereço: o perfil completo vem do GET /auth/me. No /docs, copie o token, clique em Authorize e cole; ele fica salvo até fechar a aba.",
+        security: [],
         requestBody: {
           required: true,
           content: {
@@ -380,6 +407,38 @@ export const swaggerSpec = {
         },
       },
     },
+    "/auth/admin-check": {
+      get: {
+        tags: ["Auth"],
+        summary: "Confere se o usuário logado é ADMIN",
+        description:
+          "Serve para testar o papel ADMIN: com admin@pokebox.dev responde 200; com um USER (ex.: ash@pokebox.dev), 403.",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Usuário é ADMIN",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: {
+                        message: { type: "string", example: "acesso de admin ok" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          403: errorResponse("Usuário logado não é ADMIN"),
+          ...authErrors,
+        },
+      },
+    },
     "/user/me": {
       patch: {
         tags: ["User"],
@@ -476,6 +535,7 @@ export const swaggerSpec = {
         summary: "Lista/busca cartas",
         description:
           "Lista paginada de cartas da TCGdex, com busca opcional por nome. Cache em memória de 10 min.",
+        security: [],
         parameters: [
           {
             name: "name",
@@ -546,7 +606,11 @@ export const swaggerSpec = {
               example: "base1-4",
             },
           },
-          langParam,
+          {
+            ...langParam,
+            description:
+              "Idioma da carta (pt-br é aceito e convertido para pt). Nem toda carta existe em todo idioma: a TCGdex não tem o Base Set (base1-4) em português e responde 404. Para testar pt, use uma carta recente, ex.: sv03.5-025.",
+          },
         ],
         responses: {
           200: {
@@ -699,6 +763,7 @@ export const swaggerSpec = {
         summary: "Coleção pública de um colecionador",
         description:
           "Rota pública, sem login. Mostra só os itens com isPublic = true e quantidade maior que 0, ordenados pelo nome da carta. Itens privados não aparecem nem para o próprio dono (ele vê tudo em GET /collection). Conta inativa, suspensa ou apagada responde 404.",
+        security: [],
         parameters: [
           {
             name: "username",
@@ -835,20 +900,21 @@ export const swaggerSpec = {
         summary: "Vitrine de anúncios",
         description:
           "Anúncios ACTIVE, mais recentes primeiro. Não precisa de login. Donos com conta apagada, suspensa ou inativa não aparecem.",
+        security: [],
         parameters: [
           {
             name: "cardId",
             in: "query",
             required: false,
-            description: "Só anúncios desta carta",
-            schema: { type: "string", example: "base1-4" },
+            description: "Só anúncios desta carta (letras, números, ponto e hífen)",
+            schema: { type: "string", pattern: "^[a-zA-Z0-9.\\-]+$", example: "base1-4" },
           },
           {
             name: "username",
             in: "query",
             required: false,
-            description: "Só anúncios deste colecionador",
-            schema: { type: "string", example: "ash" },
+            description: "Só anúncios deste colecionador (3 a 20 caracteres, apenas a-z, 0-9 e _)",
+            schema: { type: "string", pattern: "^[a-z0-9_]{3,20}$", example: "ash" },
           },
           {
             name: "page",
@@ -1582,7 +1648,7 @@ export const swaggerSpec = {
               required: ["collectionItemId", "quantity"],
               additionalProperties: false,
               properties: {
-                collectionItemId: { type: "string", format: "uuid" },
+                collectionItemId: { type: "string", format: "uuid", description: "Item da sua coleção (pegue em GET /collection)" },
                 quantity: { type: "integer", minimum: 1, example: 1 },
               },
             },
@@ -1648,7 +1714,7 @@ export const swaggerSpec = {
         required: ["offerId"],
         additionalProperties: false,
         properties: {
-          offerId: { type: "string", format: "uuid", description: "Oferta ACCEPTED feita por quem chama" },
+          offerId: { type: "string", format: "uuid", description: "Oferta ACCEPTED feita por quem chama (pegue em GET /offers/me?status=ACCEPTED, em sent)" },
         },
       },
       CreateListingRequest: {
@@ -1656,7 +1722,7 @@ export const swaggerSpec = {
         required: ["collectionItemId", "quantity"],
         additionalProperties: false,
         properties: {
-          collectionItemId: { type: "string", format: "uuid" },
+          collectionItemId: { type: "string", format: "uuid", description: "Item da sua coleção (pegue em GET /collection)" },
           quantity: { type: "integer", minimum: 1, example: 1 },
           description: { type: "string", maxLength: 500, example: "Charizard Base Set 1ª edição, sem marcas na frente." },
         },
