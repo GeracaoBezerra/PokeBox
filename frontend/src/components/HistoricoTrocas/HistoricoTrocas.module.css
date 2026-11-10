@@ -1,0 +1,12 @@
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-16);
+  padding: var(--esp-24) 0;
+}
+
+.vazio {
+  padding: var(--esp-24) 0;
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+}

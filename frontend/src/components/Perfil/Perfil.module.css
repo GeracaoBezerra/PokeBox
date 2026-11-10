@@ -1,0 +1,35 @@
+.secao {
+  width: 100%;
+  padding: var(--esp-48) var(--esp-24);
+  font-family: var(--fonte-corpo);
+}
+
+/* Menu à esquerda, painel à direita */
+.container {
+  --menu-largura: 280px;
+
+  display: grid;
+  grid-template-columns: var(--menu-largura) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--esp-48);
+
+  width: 100%;
+  max-width: var(--largura-max);
+  margin: 0 auto;
+}
+
+.conteudo {
+  min-width: 0;
+}
+
+/* Celular e tablet em pé: o menu vira uma faixa em cima do painel */
+@media (max-width: 767px) {
+  .secao {
+    padding: var(--esp-32) var(--esp-16);
+  }
+
+  .container {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--esp-24);
+  }
+}
