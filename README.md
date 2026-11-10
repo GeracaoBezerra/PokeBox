@@ -39,6 +39,7 @@ Projeto em equipe do curso **Geração Tech**.
 ├── backend/
 │   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json)
 │   ├── docs/db.md         modelo de dados, constraints, migrations e seed
+│   ├── docs/guia-backend  guia do backend e das regras de negócio (.md e .pdf)
 │   ├── scripts/           snapshot-cards.js (regera as cartas do seed)
 │   └── src/
 │       ├── routes/        URLs e middlewares de cada rota
@@ -213,6 +214,8 @@ A CI (GitHub Actions) roda em toda PR para `develop` e `main`:
 Os dois precisam passar para mergear.
 
 ## API
+
+Para entender o fluxo do app (coleção, wishlist, anúncio, oferta e troca) antes dos detalhes, leia o [guia do backend](backend/docs/guia-backend.md) (também em [PDF](backend/docs/guia-backend.pdf)).
 
 Todas as respostas seguem o mesmo formato:
 
