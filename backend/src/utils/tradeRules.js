@@ -1,6 +1,6 @@
 import { AppError } from './AppError.js';
 import { toCardResponse } from './cardRecord.js';
-import { OPEN_STATUSES } from './listingRules.js';
+import { CANCELS_OFFERS, OPEN_STATUSES } from './listingRules.js';
 
 export const TRADE_ACTIONS = {
   accept: { status: 'ACCEPTED', role: 'recipient' },
@@ -111,7 +111,7 @@ export function nextListingState({ listing, taken }) {
 
 export function acceptedOffersToCancel({ offers, change }) {
   return offers
-    .filter((offer) => change.status === 'CLOSED' || offer.quantity > change.quantity)
+    .filter((offer) => CANCELS_OFFERS.includes(change.status) || offer.quantity > change.quantity)
     .map((offer) => offer.id);
 }
 

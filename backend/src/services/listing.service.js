@@ -5,15 +5,17 @@ import { withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../utils/AppError.js';
 import { assertOwner } from '../utils/collectionRules.js';
 import {
+  CANCELS_OFFERS,
   assertListingQuantity,
   assertListingUpdate,
   isListingVisible,
+  mayCancelAccepted,
   needsStockCheck,
   toListingResponse,
 } from '../utils/listingRules.js';
+import { acceptedOffersToCancel } from '../utils/tradeRules.js';
 
 const LISTINGS_PER_CARD = 50;
-const CANCELS_OFFERS = ['CLOSED', 'BLOCKED'];
 
 async function assertStock(tx, item, requested, exceptId) {
   const otherListed = await listingRepository.sumOpenByItem(item.id, tx, exceptId);
@@ -91,6 +93,11 @@ export async function update(user, id, input) {
 
     if (CANCELS_OFFERS.includes(next.status)) {
       await offerRepository.cancelOpenByListing(id, tx);
+    }
+
+    if (mayCancelAccepted(current, next)) {
+      const accepted = await offerRepository.lockAcceptedWithoutTrade(id, tx);
+      await offerRepository.cancelByIds(acceptedOffersToCancel({ offers: accepted, change: next }), tx);
     }
 
     return listingRepository.update(id, input, tx);
