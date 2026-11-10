@@ -1,6 +1,7 @@
 import { ZodError } from 'zod';
 
 import { AppError } from '../utils/AppError.js';
+import { translateBodyParserError } from '../utils/bodyParserError.js';
 import { translatePrismaError } from '../utils/prismaError.js';
 import { translateTcgdexError } from '../utils/tcgdexError.js';
 
@@ -12,8 +13,9 @@ export function notFoundHandler(req, res) {
 }
 
 export function errorHandler(err, req, res, next) {
-  if (err?.type === 'entity.parse.failed') {
-    return res.status(400).json({ success: false, error: 'JSON inválido' });
+  const bodyError = translateBodyParserError(err);
+  if (bodyError) {
+    return res.status(bodyError.statusCode).json({ success: false, error: bodyError.message });
   }
 
   if (err instanceof ZodError) {
