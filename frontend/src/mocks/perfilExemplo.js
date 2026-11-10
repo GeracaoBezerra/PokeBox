@@ -3,15 +3,9 @@
 //   vira um PATCH /user/me;
 // - trocas vêm do banco (histórico de ofertas/trocas do usuário).
 // Este arquivo some quando a página passar a buscar da API.
-export const perfilExemplo = {
-  usuario: "maria_tcg",
-  nomeExibicao: "Maria",
-  bio: "Colecionando desde o Base Set. Aceito trocas por cartas holo.",
-};
 
 export const informacoesExemplo = {
   nome: "Maria Souza Lima",
-  cpf: "123.456.789-00",
   email: "maria@exemplo.com",
   celular: "(85) 91234-5678",
   endereco: "Rua das Flores, 123",
