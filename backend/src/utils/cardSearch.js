@@ -36,6 +36,7 @@ export function matchSets(tokens, sets) {
   return {
     sets: best.map((candidate) => candidate.set),
     used: [...new Set(best.flatMap((candidate) => candidate.matched))],
+    complete: [...new Set(best.filter((candidate) => candidate.ratio === 1).flatMap((candidate) => candidate.matched))],
   };
 }
 

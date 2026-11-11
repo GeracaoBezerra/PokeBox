@@ -29,11 +29,13 @@ const sets = [
   { id: "base4", name: "Base Set 2" },
   { id: "sv03.5", name: "151" },
   { id: "sv03", name: "Obsidian Flames" },
+  { id: "det1", name: "Detective Pikachu" },
 ];
 
 const setCards = {
   base1: [brief("base1-1", "Alakazam"), brief("base1-4", "Charizard"), brief("base1-58", "Pikachu")],
   base4: [brief("base4-4", "Charizard"), brief("base4-87", "Pikachu")],
+  det1: [brief("det1-10", "Detective Pikachu"), brief("det1-5", "Charizard GX")],
 };
 
 const allCards = [
@@ -42,6 +44,8 @@ const allCards = [
   brief("base4-4", "Charizard"),
   brief("base1-4", "Charizard"),
   brief("base1-58", "Pikachu"),
+  brief("det1-10", "Detective Pikachu"),
+  brief("swsh1-65", "Pikachu"),
 ];
 
 let langSeq = 0;
@@ -145,6 +149,20 @@ describe("findCards", () => {
     expect(result.cards.slice(0, 3).map((card) => card.id)).toEqual(["base1-1", "base1-4", "base1-58"]);
     expect(result.search).toEqual({ name: null, sets: ["Base Set", "Base Set 2"], ignored: [] });
     expect(tcgdexRepository.searchCardsInTcgdex).not.toHaveBeenCalled();
+  });
+
+  test("pikachu não vira só o set Detective Pikachu", async () => {
+    const result = await findCards({ lang: freshLang(), name: "pikachu", page: 1, limit: 20 });
+
+    expect(result.cards.map((card) => card.id)).toEqual(["det1-10", "base1-58", "swsh1-65"]);
+    expect(result.search).toEqual({ name: "pikachu", sets: ["Detective Pikachu"], ignored: [] });
+  });
+
+  test("pikachu 25 ainda traz os Pikachu e ignora o 25", async () => {
+    const result = await findCards({ lang: freshLang(), name: "pikachu 25", page: 1, limit: 20 });
+
+    expect(result.cards.map((card) => card.id)).toEqual(["det1-10", "base1-58", "swsh1-65"]);
+    expect(result.search).toEqual({ name: "pikachu", sets: ["Detective Pikachu"], ignored: ["25"] });
   });
 
   test("xyzxyz devolve lista vazia", async () => {

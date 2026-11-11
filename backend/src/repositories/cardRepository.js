@@ -140,19 +140,21 @@ async function searchByName(lang, words) {
 }
 
 async function searchNameTokens(lang, nameTokens) {
-  if (nameTokens.length === 0) return { cards: [], ignored: [] };
+  if (nameTokens.length === 0) return { cards: [], found: [] };
 
   const cards = await searchByName(lang, nameTokens.join(' '));
-  if (cards.length > 0 || nameTokens.length === 1) {
-    return { cards, ignored: cards.length > 0 ? [] : nameTokens };
-  }
+  if (cards.length > 0) return { cards, found: nameTokens };
+  if (nameTokens.length === 1) return { cards, found: [] };
 
-  const words = [...nameTokens].sort((a, b) => b.length - a.length).slice(0, MAX_WORD_SEARCHES);
+  return searchEachWord(lang, nameTokens);
+}
+
+async function searchEachWord(lang, tokens) {
+  const words = [...tokens].sort((a, b) => b.length - a.length).slice(0, MAX_WORD_SEARCHES);
   const results = await Promise.all(words.map((word) => searchByName(lang, word)));
-  const useful = words.filter((_, index) => results[index].length > 0);
   return {
     cards: results.flat(),
-    ignored: nameTokens.filter((token) => !useful.includes(token)),
+    found: words.filter((_, index) => results[index].length > 0),
   };
 }
 
@@ -160,30 +162,35 @@ async function searchCards(lang, tokens) {
   const sets = await listSets(lang);
   const matched = matchSets(tokens, sets);
   const nameTokens = tokens.filter((token) => !matched.used.includes(token));
+  const partialSetTokens = matched.used.filter((token) => !matched.complete.includes(token));
   const setIds = matched.sets.map((set) => set.id);
 
-  const [byName, ...bySet] = await Promise.all([
+  const [firstTry, ...bySet] = await Promise.all([
     searchNameTokens(lang, nameTokens),
     ...setIds.map((setId) => listSetCards(setId, lang)),
   ]);
 
+  const byName = firstTry.cards.length === 0 && partialSetTokens.length > 0
+    ? await searchEachWord(lang, partialSetTokens)
+    : firstTry;
+
+  const searchWords = byName.found;
   const setCards = bySet
     .flat()
-    .filter((card) => nameTokens.length === 0 || nameMatchesAny(card.name, nameTokens));
+    .filter((card) => searchWords.length === 0 || nameMatchesAny(card.name, searchWords));
 
   const ranked = rankCards([...setCards, ...byName.cards], {
-    nameTokens,
+    nameTokens: searchWords,
     setIds,
     phrase: tokens.join(' '),
   });
 
-  const usedNameTokens = nameTokens.filter((token) => !byName.ignored.includes(token));
   return {
     cards: ranked.map((card) => toCardListItem(card, sets)),
     search: {
-      name: usedNameTokens.length > 0 ? usedNameTokens.join(' ') : null,
+      name: searchWords.length > 0 ? searchWords.join(' ') : null,
       sets: matched.sets.map((set) => set.name),
-      ignored: byName.ignored,
+      ignored: nameTokens.filter((token) => !searchWords.includes(token)),
     },
   };
 }

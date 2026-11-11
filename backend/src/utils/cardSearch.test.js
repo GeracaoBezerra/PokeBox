@@ -58,10 +58,16 @@ describe('matchSets', () => {
 
     expect(result.sets.map((set) => set.id)).toEqual(['base1', 'base4', 'ecard1']);
     expect(result.used).toEqual(['base']);
+    expect(result.complete).toEqual([]);
+  });
+
+  it('marca como completas as palavras de um set coberto inteiro', () => {
+    expect(matchSets(['jungle'], sets).complete).toEqual(['jungle']);
+    expect(matchSets(['base', 'set'], sets).complete).toEqual(['base', 'set']);
   });
 
   it('palavra que não é set não reconhece nada', () => {
-    expect(matchSets(['pikachu'], sets)).toEqual({ sets: [], used: [] });
+    expect(matchSets(['pikachu'], sets)).toEqual({ sets: [], used: [], complete: [] });
   });
 
   it('reconhece pelo id do set', () => {
@@ -69,6 +75,7 @@ describe('matchSets', () => {
 
     expect(result.sets.map((set) => set.id)).toEqual(['sv03.5']);
     expect(result.used).toEqual(['sv03.5']);
+    expect(result.complete).toEqual(['sv03.5']);
   });
 
   it('o set com mais palavras cobertas vem primeiro', () => {
