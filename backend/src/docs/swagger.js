@@ -559,15 +559,15 @@ export const swaggerSpec = {
         tags: ["Cards"],
         summary: "Lista/busca cartas",
         description:
-          "Lista paginada de cartas da TCGdex, com busca opcional por nome. Cache em memória de 10 min.",
+          "Lista paginada de cartas da TCGdex, com busca opcional. A busca quebra o texto em palavras (sem acento, ignorando palavras de 1 letra) e reconhece nomes de set: em \"charizard base\", \"base\" vira os sets Base Set, Base Set 2 e Expedition Base Set (no máximo 3) e \"charizard\" é procurado no nome. Se a frase inteira não achar nada, cada palavra é tentada sozinha (até 4), e as que não trazem nada voltam em search.ignored. O resultado é ordenado por relevância (carta do set reconhecido, nome igual ao buscado, palavras contidas no nome) e paginado sobre a lista inteira, que fica 10 min em memória: trocar de página não chama a TCGdex de novo. A lista de sets fica 1 dia em memória. Cada item traz o set e o número da carta. Sem name, devolve a lista da TCGdex como antes, sem o campo search.",
         security: [],
         parameters: [
           {
             name: "name",
             in: "query",
             required: false,
-            description: "Busca por nome (aceita parte do nome)",
-            schema: { type: "string", maxLength: 50, example: "charizard" },
+            description: "Busca por nome e/ou set (aceita parte do nome, nome ou id de set e palavras soltas)",
+            schema: { type: "string", maxLength: 50, example: "charizard base" },
           },
           {
             name: "page",
@@ -1455,7 +1455,17 @@ export const swaggerSpec = {
         properties: {
           id: { type: "string", example: "base1-4" },
           localId: { type: "string", example: "4" },
+          number: { type: "string", example: "4", description: "Número da carta no set (igual ao localId)" },
           name: { type: "string", example: "Charizard" },
+          set: {
+            type: "object",
+            nullable: true,
+            description: "Set da carta, descoberto pelo id. null se o set não estiver na lista da TCGdex",
+            properties: {
+              id: { type: "string", example: "base1" },
+              name: { type: "string", example: "Base Set" },
+            },
+          },
           image: {
             type: "object",
             properties: { small: nullableString, large: nullableString },
@@ -1476,6 +1486,15 @@ export const swaggerSpec = {
               page: { type: "integer", example: 1 },
               limit: { type: "integer", example: 20 },
               hasNextPage: { type: "boolean" },
+            },
+          },
+          search: {
+            type: "object",
+            description: "Como a busca foi entendida. Só aparece quando há name",
+            properties: {
+              name: { ...nullableString, example: "charizard", description: "Palavras usadas para procurar no nome; null se a busca foi só por set ou nada foi achado" },
+              sets: { type: "array", items: { type: "string" }, example: ["Base Set", "Base Set 2", "Expedition Base Set"] },
+              ignored: { type: "array", items: { type: "string" }, example: ["pipi", "popo"], description: "Palavras que não trouxeram nenhuma carta" },
             },
           },
         },
