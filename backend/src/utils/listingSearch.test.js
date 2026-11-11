@@ -1,19 +1,4 @@
-import { cardWhere, listingOrderBy, tokenize } from './listingSearch.js';
-
-describe('tokenize', () => {
-  it.each([
-    ['Charizard', ['charizard']],
-    ['  charizard   base ', ['charizard', 'base']],
-    ['Ho-Oh', ['ho', 'oh']],
-    ['Pokémon Ação', ['pokemon', 'acao']],
-    ['Mr. Mime #122', ['mr', 'mime', '122']],
-    ['', []],
-    ['!!! ---', []],
-    [undefined, []],
-  ])('%p → %p', (text, words) => {
-    expect(tokenize(text)).toEqual(words);
-  });
-});
+import { cardWhere, listingOrderBy } from './listingSearch.js';
 
 describe('cardWhere', () => {
   it('sem filtros deixa tudo undefined', () => {
@@ -38,7 +23,7 @@ describe('cardWhere', () => {
   });
 
   it('q sem palavras não filtra', () => {
-    expect(cardWhere({ q: '!!!' })).not.toHaveProperty('AND');
+    expect(cardWhere({ q: 'x' })).not.toHaveProperty('AND');
   });
 
   it('monta setId, rarity e type', () => {

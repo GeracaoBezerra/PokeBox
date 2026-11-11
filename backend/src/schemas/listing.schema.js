@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 import { CardCondition, CardFinish, ListingStatus } from '../generated/prisma/index.js';
-import { LISTING_SORTS, tokenize } from '../utils/listingSearch.js';
+import { tokenize } from '../utils/cardSearch.js';
+import { LISTING_SORTS } from '../utils/listingSearch.js';
 import { usernameRule } from './user.schema.js';
 
 const description = z
@@ -42,7 +43,10 @@ export const listListingsQuerySchema = z.object({
     .trim()
     .min(1, 'q não pode ser vazio')
     .max(50, 'q deve ter no máximo 50 caracteres')
-    .refine((value) => tokenize(value).length > 0, 'q precisa ter ao menos uma letra ou número')
+    .refine(
+      (value) => tokenize(value).some((word) => /[\p{L}\p{N}]/u.test(word)),
+      'q precisa ter ao menos uma palavra com 2 letras ou números',
+    )
     .optional(),
   condition: upperEnum(Object.values(CardCondition), `condition deve ser um de: ${Object.values(CardCondition).join(', ')}`).optional(),
   finish: upperEnum(Object.values(CardFinish), `finish deve ser um de: ${Object.values(CardFinish).join(', ')}`).optional(),

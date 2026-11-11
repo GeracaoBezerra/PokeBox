@@ -1,11 +1,4 @@
-export function tokenize(text) {
-  return String(text ?? '')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean);
-}
+import { tokenize } from './cardSearch.js';
 
 export const LISTING_SORTS = ['recent', 'oldest', 'name'];
 
