@@ -1,0 +1,107 @@
+.bloco {
+  padding: var(--esp-24) 0;
+}
+
+.bloco + .bloco {
+  border-top: 1px solid var(--borda-suave);
+}
+
+.titulo {
+  margin-bottom: var(--esp-8);
+
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-md);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-md);
+}
+
+/* Leitura: rótulo e valor alinhados em duas colunas */
+
+.lista {
+  margin: 0;
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--esp-16);
+  padding: var(--esp-8) 0;
+}
+
+.linha dt {
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.linha dd {
+  margin: 0;
+  color: var(--texto);
+  font-size: var(--fs-md);
+  line-height: var(--lh-md);
+  overflow-wrap: anywhere;
+  white-space: pre-line; /* mantém as quebras de linha da bio */
+}
+
+.vazio {
+  color: var(--texto-suave);
+}
+
+/* Edição: rótulo em cima, input embaixo, duas colunas */
+
+.formulario {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--esp-16) var(--esp-24);
+}
+
+.campo {
+  min-width: 0;
+}
+
+.campoLargo {
+  grid-column: 1 / -1;
+}
+
+.rotulo {
+  display: block;
+  margin-bottom: var(--esp-4);
+
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.entrada {
+  display: block;
+  width: 100%;
+  min-height: var(--altura-controle);
+  padding: 0 var(--esp-12);
+
+  background-color: var(--superficie-funda);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-botao);
+
+  color: var(--texto);
+  font-size: var(--fs-md);
+}
+
+textarea.entrada {
+  padding: var(--esp-12);
+  line-height: var(--lh-md);
+}
+
+/* Campo que aparece na edição mas não pode ser alterado (ex.: CPF) */
+.entrada:read-only {
+  border-color: var(--borda-suave);
+  color: var(--texto-suave);
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .formulario {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

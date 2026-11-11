@@ -1,0 +1,14 @@
+.semImagem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 245 / 342;
+  padding: 4px;
+  border: 1px dashed var(--borda);
+  border-radius: 6px;
+  background: var(--superficie-funda);
+  color: var(--texto-suave);
+  font-size: 0.7rem;
+  text-align: center;
+  overflow: hidden;
+}

@@ -1,0 +1,58 @@
+.carta {
+  flex: none;
+  width: var(--carta-troca, 120px);
+  margin: 0;
+}
+
+.link {
+  display: block;
+  border-radius: var(--raio-carta);
+}
+
+.imagem {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--carta-proporcao);
+  object-fit: cover;
+  user-select: none;
+
+  background-color: var(--superficie-funda); /* enquanto a imagem carrega */
+  border-radius: var(--raio-carta);
+  box-shadow: var(--sombra-sm);
+
+  transition: transform var(--tempo-medio) var(--curva-entrar);
+}
+
+.legenda {
+  margin-top: var(--esp-8);
+  text-align: center;
+}
+
+.rotulo {
+  display: block;
+  color: var(--texto-suave);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.nome {
+  display: block;
+  color: var(--texto);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-sm);
+}
+
+/* Só com mouse: a carta sobe um pouquinho */
+@media (hover: hover) {
+  .link:hover .imagem {
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imagem {
+    transition: none;
+  }
+}
