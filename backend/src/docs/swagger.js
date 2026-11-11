@@ -54,6 +54,31 @@ const collectionItemResponse = (description) => ({
   },
 });
 
+const addCollectionItemResponse = {
+  description: "Item criado ou quantidade somada. Se a carta estava na wishlist, ela sai de lá (RN-11)",
+  content: {
+    "application/json": {
+      schema: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
+            type: "object",
+            properties: {
+              item: { $ref: "#/components/schemas/CollectionItem" },
+              removedFromWishlist: {
+                type: "boolean",
+                example: true,
+                description: "true quando a carta estava na wishlist do usuário e foi removida dela",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
 const collectionItemIdParam = {
   name: "id",
   in: "path",
@@ -694,7 +719,7 @@ export const swaggerSpec = {
         tags: ["Collection"],
         summary: "Adiciona uma carta à coleção",
         description:
-          "Busca a carta na TCGdex (com cache), grava em Card e cria o item. Se o usuário já tem a mesma carta com a mesma condição, finish e 1ª edição, soma a quantidade no item existente. finish e firstEdition são conferidos contra as variantes da carta; se a TCGdex não informar nenhuma variante, a conferência é ignorada.",
+          "Busca a carta na TCGdex (com cache), grava em Card e cria o item. Se o usuário já tem a mesma carta com a mesma condição, finish e 1ª edição, soma a quantidade no item existente. finish e firstEdition são conferidos contra as variantes da carta; se a TCGdex não informar nenhuma variante, a conferência é ignorada. RN-11: na mesma transação, a carta sai da wishlist do usuário (qualquer condição, acabamento ou 1ª edição); removedFromWishlist diz se ela estava lá.",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -705,7 +730,7 @@ export const swaggerSpec = {
           },
         },
         responses: {
-          201: collectionItemResponse("Item criado ou quantidade somada"),
+          201: addCollectionItemResponse,
           400: errorResponse("Corpo inválido", "ApiValidationError"),
           404: errorResponse("Carta não encontrada na TCGdex"),
           422: errorResponse("A carta não existe nesse finish ou em 1ª edição"),
@@ -1210,7 +1235,7 @@ export const swaggerSpec = {
         tags: ["Trades"],
         summary: "Conclui a troca (RN-07)",
         description:
-          "Só o dono do anúncio. Numa transação só: trava os itens, confere de novo que cada carta ainda é de quem entrega e tem quantidade e reserva suficientes, tira as cartas de quem entrega (quantity e reservedQuantity juntas) e soma em quem recebe (no item igual: carta, condição, acabamento e 1ª edição; se não houver, cria um item público). Qualquer erro no meio desfaz tudo. Quem entrega fica com o item, mesmo que chegue a 0.",
+          "Só o dono do anúncio. Numa transação só: trava os itens, confere de novo que cada carta ainda é de quem entrega e tem quantidade e reserva suficientes, tira as cartas de quem entrega (quantity e reservedQuantity juntas) e soma em quem recebe (no item igual: carta, condição, acabamento e 1ª edição; se não houver, cria um item público). Cada carta recebida sai da wishlist de quem recebe (RN-11). Qualquer erro no meio desfaz tudo. Quem entrega fica com o item, mesmo que chegue a 0.",
         security: [{ bearerAuth: [] }],
         parameters: [tradeIdParam],
         responses: {
