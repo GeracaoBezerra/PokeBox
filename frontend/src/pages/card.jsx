@@ -203,7 +203,7 @@ export default function CardPage() {
                 {user.onTradeList ? "você tem anúncio ativo dela" : "sem anúncio ativo seu"}
               </p>
               <div className={s.acoes}>
-                {!user.inWishlist && (
+                {!user.inWishlist && user.inCollection === 0 && (
                   <button className={s.botaoSecundario} onClick={adicionarWishlist} disabled={wishlist.ocupado}>
                     Adicionar à wishlist
                   </button>
