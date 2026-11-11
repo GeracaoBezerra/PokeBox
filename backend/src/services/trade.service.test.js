@@ -14,6 +14,7 @@ const collectionRepository = {
   addOrIncrement: jest.fn(),
   findIdsByKeys: jest.fn(),
 };
+const wishlistRepository = { removeByUserAndCard: jest.fn() };
 const tradeRepository = {
   findById: jest.fn(),
   lockById: jest.fn(),
@@ -24,6 +25,7 @@ jest.unstable_mockModule('../repositories/collectionRepository.js', () => collec
 jest.unstable_mockModule('../repositories/listingRepository.js', () => ({}));
 jest.unstable_mockModule('../repositories/offerRepository.js', () => ({}));
 jest.unstable_mockModule('../repositories/tradeRepository.js', () => tradeRepository);
+jest.unstable_mockModule('../repositories/wishlistRepository.js', () => wishlistRepository);
 const lockInOrder = jest.fn(async (ids) => new Map(ids.map((id) => [id, items[id]])));
 
 jest.unstable_mockModule('../repositories/transaction.js', () => ({
@@ -86,6 +88,7 @@ describe('accept (RN-07)', () => {
 
     expect(collectionRepository.transferOut).not.toHaveBeenCalled();
     expect(collectionRepository.addOrIncrement).not.toHaveBeenCalled();
+    expect(wishlistRepository.removeByUserAndCard).not.toHaveBeenCalled();
     expect(tradeRepository.updateStatus).not.toHaveBeenCalled();
   });
 
@@ -128,6 +131,21 @@ describe('accept (RN-07)', () => {
       expect.objectContaining({ userId: OWNER_ID, cardId: 'base1-4', condition: 'NEAR_MINT' }),
     ]);
     expect(lockInOrder).toHaveBeenCalledWith(['item-owner', 'item-proposer', 'item-dest'], tx);
+  });
+
+  it('RN-11: cada carta recebida sai da wishlist de quem recebe, na mesma transação', async () => {
+    tradeRepository.updateStatus.mockResolvedValue({
+      ...trade,
+      proposer: { username: 'misty', name: 'Misty' },
+      recipient: { username: 'ash', name: 'Ash' },
+      items: [],
+    });
+
+    await accept(OWNER_ID, TRADE_ID);
+
+    expect(wishlistRepository.removeByUserAndCard).toHaveBeenCalledTimes(2);
+    expect(wishlistRepository.removeByUserAndCard).toHaveBeenCalledWith(PROPOSER_ID, 'base1-4', tx);
+    expect(wishlistRepository.removeByUserAndCard).toHaveBeenCalledWith(OWNER_ID, 'base1-4', tx);
   });
 
   it('quem fez a oferta não pode aceitar: 403 antes de escrever', async () => {

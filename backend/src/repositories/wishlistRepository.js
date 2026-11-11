@@ -32,3 +32,8 @@ export function existsByUserAndCard(userId, cardId) {
     select: { id: true },
   });
 }
+
+export async function removeByUserAndCard(userId, cardId, db = prisma) {
+  const { count } = await db.wishlistItem.deleteMany({ where: { userId, cardId } });
+  return count > 0;
+}
