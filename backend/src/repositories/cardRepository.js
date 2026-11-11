@@ -101,7 +101,7 @@ export async function findCards({ lang, name, page, limit }) {
   const tokens = tokenize(name);
   if (tokens.length === 0) return listAllCards({ lang, page, limit });
 
-  const key = `${lang}:${tokens.join(' ')}`;
+  const key = `search:${lang}:${tokens.join(' ')}`;
   let result = listMemory.get(key);
   if (!result) {
     result = await searchCards(lang, tokens);
@@ -118,7 +118,7 @@ export async function findCards({ lang, name, page, limit }) {
 }
 
 async function listAllCards({ lang, page, limit }) {
-  const key = `${lang}::${page}:${limit}`;
+  const key = `list:${lang}:${page}:${limit}`;
   const fromMemory = listMemory.get(key);
   if (fromMemory) return fromMemory;
 
