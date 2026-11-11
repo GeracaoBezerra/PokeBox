@@ -206,5 +206,16 @@ describe("findCards", () => {
     expect(result.search).toBeNull();
     expect(result.cards[0]).toMatchObject({ number: "4", set: { id: "base1", name: "Base Set" } });
   });
+
+  test("busca que imita a chave da lista não apaga a lista sem nome", async () => {
+    const lang = freshLang();
+    await findCards({ lang, name: ":1:20", page: 1, limit: 20 });
+    tcgdexRepository.searchCardsInTcgdex.mockResolvedValue([brief("base1-4", "Charizard")]);
+
+    const result = await findCards({ lang, name: undefined, page: 1, limit: 20 });
+
+    expect(result.cards.map((card) => card.id)).toEqual(["base1-4"]);
+    expect(result.hasNextPage).toBe(false);
+  });
 });
 
