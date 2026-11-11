@@ -71,8 +71,8 @@ describe('updateListingSchema', () => {
 });
 
 describe('listListingsQuerySchema', () => {
-  it('usa page 1 e limit 20 por padrão', () => {
-    expect(listListingsQuerySchema.parse({})).toEqual({ page: 1, limit: 20 });
+  it('usa page 1, limit 20 e sort recent por padrão', () => {
+    expect(listListingsQuerySchema.parse({})).toEqual({ page: 1, limit: 20, sort: 'recent' });
   });
 
   it('converte page e limit da query string', () => {
@@ -81,7 +81,74 @@ describe('listListingsQuerySchema', () => {
       limit: 5,
       cardId: 'base1-4',
       username: 'ash',
+      sort: 'recent',
     });
+  });
+
+  it('aceita todos os filtros novos e converte os valores', () => {
+    expect(
+      listListingsQuerySchema.parse({
+        q: '  charizard base  ',
+        condition: 'near_mint',
+        finish: 'holo',
+        firstEdition: 'false',
+        setId: 'base1',
+        type: 'Fire',
+        rarity: 'Rare',
+        sort: 'name',
+      }),
+    ).toEqual({
+      q: 'charizard base',
+      condition: 'NEAR_MINT',
+      finish: 'HOLO',
+      firstEdition: false,
+      setId: 'base1',
+      type: 'Fire',
+      rarity: 'Rare',
+      sort: 'name',
+      page: 1,
+      limit: 20,
+    });
+  });
+
+  it.each([
+    ['true', true],
+    ['false', false],
+  ])('firstEdition %s vira %s', (value, expected) => {
+    expect(listListingsQuerySchema.parse({ firstEdition: value }).firstEdition).toBe(expected);
+  });
+
+  it.each(['fire', 'FIRE', ' Fire '])('acerta a caixa do type %p', (type) => {
+    expect(listListingsQuerySchema.parse({ type }).type).toBe('Fire');
+  });
+
+  it.each(['recent', 'oldest', 'name'])('aceita sort %s', (sort) => {
+    expect(listListingsQuerySchema.parse({ sort }).sort).toBe(sort);
+  });
+
+  it.each([
+    { q: '' },
+    { q: '   ' },
+    { q: '!!!' },
+    { q: 'a'.repeat(51) },
+    { condition: 'NOVA' },
+    { finish: 'GOLD' },
+    { firstEdition: 'sim' },
+    { firstEdition: '1' },
+    { setId: 'base 1' },
+    { type: '' },
+    { type: 'a'.repeat(31) },
+    { type: 'Fogo' },
+    { rarity: 'a'.repeat(51) },
+    { sort: 'price' },
+  ])('recusa filtro %o', (query) => {
+    expect(listListingsQuerySchema.safeParse(query).success).toBe(false);
+  });
+
+  it('explica os valores aceitos em condition', () => {
+    const { error } = listListingsQuerySchema.safeParse({ condition: 'NOVA' });
+    expect(error.issues[0].path).toEqual(['condition']);
+    expect(error.issues[0].message).toMatch(/NEAR_MINT/);
   });
 
   it.each([{ page: '0' }, { limit: '101' }, { limit: 'abc' }, { username: 'AB' }, { cardId: 'base1 4' }])(

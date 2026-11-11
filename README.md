@@ -241,7 +241,7 @@ Todas as respostas seguem o mesmo formato:
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação |
+| `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação. Entende nome de set e ignora palavras que não acham nada: `charizard base` traz os Charizard com o do Base Set primeiro, e `charizard base x pipi popo` ainda traz os Charizard. O resultado vem ordenado por relevância, cada carta traz `set: { id, name }` e `number`, e a resposta traz `search: { name, sets, ignored }` dizendo como a busca foi entendida. Erro de digitação (`charzard`) ainda não é tolerado |
 | `GET /cards/:id` | 🔓 | detalhe da carta (ataques, variantes, preço de referência) e os anúncios ativos dela; com login, traz `user` (quantas você tem, se está na sua wishlist, se você tem anúncio ativo dela) |
 
 ### Coleção
@@ -249,7 +249,7 @@ Todas as respostas seguem o mesmo formato:
 | Rota | | O que faz |
 |---|---|---|
 | `GET /collection` | 🔒 | minha coleção, com `available` (quantidade menos reservada) |
-| `POST /collection` | 🔒 | adiciona carta: `cardId`, `quantity`, `finish`, `firstEdition`, `condition?`, `isPublic?` |
+| `POST /collection` | 🔒 | adiciona carta: `cardId`, `quantity`, `finish`, `firstEdition`, `condition?`, `isPublic?`. Se a carta estava na sua wishlist, ela sai (RN-11) e a resposta traz `removedFromWishlist: true` |
 | `PATCH /collection/:id` | 🔒 | muda `quantity`, `condition` ou `isPublic`. A condição não muda enquanto o item está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**) |
 | `DELETE /collection/:id` | 🔒 | remove o item (não remove se tiver reserva ou se já foi anunciado; nesse caso, zere a quantidade) |
 | `GET /users/:username/collection` | | coleção pública de um colecionador |
@@ -266,7 +266,7 @@ Todas as respostas seguem o mesmo formato:
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /listings?cardId=&username=&page=&limit=` | | anúncios ativos, mais novos primeiro, com `hasNextPage` |
+| `GET /listings?q=&cardId=&username=&condition=&finish=&firstEdition=&setId=&type=&rarity=&sort=&page=&limit=` | | anúncios ativos, com `hasNextPage`. `q` busca por palavras no nome da carta ou do set (`charizard base` acha o Charizard do Base Set). Os filtros se somam e não diferenciam maiúscula (`type=fire`, `rarity=rare`, `condition=near_mint`); `sort` é `recent` (padrão), `oldest` ou `name`. Valor inválido → **400** com `details` |
 | `GET /listings/me` | 🔒 | meus anúncios, em qualquer status |
 | `GET /listings/:id` | 🔓 | detalhe; anúncio pausado, fechado ou bloqueado só aparece para o dono e para o ADMIN |
 | `POST /listings` | 🔒 | anuncia um item da minha coleção: `collectionItemId`, `quantity`, `description?` |
@@ -326,13 +326,14 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | **RN-07** Troca atômica | O aceite da troca roda numa **transação só**: trava as cartas, confere de novo que cada uma ainda é de quem entrega e está reservada, tira de quem entrega e soma em quem recebe (no item igual em carta, condição e variante; se não houver, cria um item público). Se qualquer passo falhar, **nada muda**. Quem entrega fica com o item, mesmo que chegue a 0. Só o dono do anúncio aceita ou recusa; só quem fez a oferta cria e cancela a troca (**403**). Troca finalizada não muda mais (**409**). Uma troca por oferta (**409**). |
 | **RN-08** Reserva | Quando a troca nasce, as cartas dos dois lados ficam **reservadas**: nenhuma outra negociação consegue usá-las (anunciar, ofertar, aceitar outra oferta → **422**), nem dá para baixar a quantidade abaixo do reservado (**422**) ou apagar o item (**409**). No mesmo momento, o anúncio diminui pela quantidade da oferta (em 0, fecha e cancela as ofertas abertas dele) e os anúncios de quem ofertou que passariam do disponível são reduzidos. Outras ofertas já aceitas desse anúncio que não cabem mais são canceladas e soltam as cartas. Recusar ou cancelar a troca libera a reserva (os anúncios não voltam). Pedidos ao mesmo tempo na mesma troca: um passa, o outro recebe **409**. A **condição** de um item não muda enquanto ele está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**): assim o que foi anunciado e oferecido é o que chega. |
 | **RN-10** Privacidade | Item com `isPublic: false` não aparece no perfil público. O perfil público nunca mostra e-mail, reserva nem dados internos. Conta desativada ou suspensa → **404**. |
+| **RN-11** Coleção limpa a wishlist | Carta que entra na coleção sai da wishlist da pessoa, na mesma transação: vale ao adicionar (`POST /collection`) e ao receber numa troca concluída (`POST /trades/:id/accept`). Como a wishlist não tem variante, qualquer condição ou acabamento conta. |
 
 Outras regras que já valem:
 
 - **Variante da carta:** cada item tem `finish` (`NORMAL`, `HOLO`, `REVERSE`) e `firstEdition`. Só aceita combinações que a carta realmente tem na TCGdex (senão **422**).
 - **Condição:** `MINT`, `NEAR_MINT`, `EXCELLENT`, `GOOD`, `LIGHT_PLAYED`, `PLAYED` ou `POOR`.
 - **Conta:** login de conta suspensa ou inativa → **403**. Excluir a conta só desativa (soft delete); o histórico fica.
-- **Cache das cartas:** o detalhe de uma carta é buscado na TCGdex só na primeira vez e guardado por 24h no banco (`CardCache`) e por 1h em memória. Se a TCGdex cair, a API usa a última cópia guardada; sem cópia guardada (ou na busca `GET /cards`, que só guarda em memória por 10 min), responde **502** (fora do ar) ou **504** (demorou mais de 8 s). O cache é gravado com o id oficial da carta, mesmo que a URL use outra caixa (`/cards/BASE1-4` grava e atualiza o preço de `base1-4`).
+- **Cache das cartas:** o detalhe de uma carta é buscado na TCGdex só na primeira vez e guardado por 24h no banco (`CardCache`) e por 1h em memória. Se a TCGdex cair, a API usa a última cópia guardada; sem cópia guardada (ou na busca `GET /cards`, que guarda o resultado em memória por 10 min e a lista de sets por 1 dia; trocar de página não chama a TCGdex de novo), responde **502** (fora do ar) ou **504** (demorou mais de 8 s). O cache é gravado com o id oficial da carta, mesmo que a URL use outra caixa (`/cards/BASE1-4` grava e atualiza o preço de `base1-4`).
 - **Preço de referência:** cada carta guarda o preço de mercado da TCGdex (TCGplayer em USD ou Cardmarket em EUR), atualizado quando a carta é consultada de novo. É **só informativo**.
 - **Status do anúncio:** o dono alterna entre ativo e pausado e pode fechar; anúncio fechado não volta. Só o ADMIN bloqueia, e só ele desbloqueia (volta como pausado). Um item que já foi anunciado não pode mais ser apagado da coleção, porque o anúncio fica no histórico; para tirá-lo do perfil, zere a quantidade.
 - **Integridade no banco:** chaves estrangeiras, uniques e CHECKs em todas as tabelas. Lista completa em [`backend/docs/db.md`](backend/docs/db.md).

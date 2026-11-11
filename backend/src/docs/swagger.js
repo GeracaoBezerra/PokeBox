@@ -924,7 +924,7 @@ export const swaggerSpec = {
         tags: ["Listings"],
         summary: "Vitrine de anúncios",
         description:
-          "Anúncios ACTIVE, mais recentes primeiro. Não precisa de login. Donos com conta apagada, suspensa ou inativa não aparecem.",
+          "Anúncios ACTIVE. Não precisa de login. Donos com conta apagada, suspensa ou inativa não aparecem. Os filtros se somam (E). Exemplos: `?q=charizard`, `?q=charizard base`, `?type=Fire&condition=NEAR_MINT&sort=name`.",
         security: [],
         parameters: [
           {
@@ -940,6 +940,71 @@ export const swaggerSpec = {
             required: false,
             description: "Só anúncios deste colecionador (3 a 20 caracteres, apenas a-z, 0-9 e _)",
             schema: { type: "string", pattern: "^[a-z0-9_]{3,20}$", example: "ash" },
+          },
+          {
+            name: "q",
+            in: "query",
+            required: false,
+            description:
+              "Busca no nome da carta ou do set, sem diferenciar maiúscula. O texto é quebrado em palavras e cada palavra tem que aparecer no nome da carta ou no nome do set (\"charizard base\" acha o Charizard do Base Set).",
+            schema: { type: "string", minLength: 1, maxLength: 50, example: "charizard base" },
+          },
+          {
+            name: "condition",
+            in: "query",
+            required: false,
+            description: "Estado do item anunciado (aceita minúsculas)",
+            schema: {
+              type: "string",
+              enum: ["MINT", "NEAR_MINT", "EXCELLENT", "GOOD", "LIGHT_PLAYED", "PLAYED", "POOR"],
+              example: "NEAR_MINT",
+            },
+          },
+          {
+            name: "finish",
+            in: "query",
+            required: false,
+            description: "Acabamento do item anunciado (aceita minúsculas)",
+            schema: { type: "string", enum: ["NORMAL", "HOLO", "REVERSE"], example: "HOLO" },
+          },
+          {
+            name: "firstEdition",
+            in: "query",
+            required: false,
+            description: "Só primeira edição (true) ou só as demais (false)",
+            schema: { type: "string", enum: ["true", "false"] },
+          },
+          {
+            name: "setId",
+            in: "query",
+            required: false,
+            description: "Só cartas deste set (id exato)",
+            schema: { type: "string", pattern: "^[a-zA-Z0-9.\\-]+$", maxLength: 30, example: "base1" },
+          },
+          {
+            name: "type",
+            in: "query",
+            required: false,
+            description: "Só cartas que têm este tipo. Aceita qualquer caixa (fire, FIRE)",
+            schema: {
+              type: "string",
+              enum: ["Colorless", "Darkness", "Dragon", "Fairy", "Fighting", "Fire", "Grass", "Lightning", "Metal", "Psychic", "Water"],
+              example: "Fire",
+            },
+          },
+          {
+            name: "rarity",
+            in: "query",
+            required: false,
+            description: "Só cartas desta raridade, sem diferenciar maiúscula (rare acha Rare)",
+            schema: { type: "string", maxLength: 50, example: "Rare" },
+          },
+          {
+            name: "sort",
+            in: "query",
+            required: false,
+            description: "recent: mais recentes primeiro; oldest: mais antigos primeiro; name: nome da carta (A-Z)",
+            schema: { type: "string", enum: ["recent", "oldest", "name"], default: "recent" },
           },
           {
             name: "page",
