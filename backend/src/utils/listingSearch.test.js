@@ -29,9 +29,13 @@ describe('cardWhere', () => {
   it('monta setId, rarity e type', () => {
     expect(cardWhere({ setId: 'base1', rarity: 'Rare', type: 'Fire' })).toEqual({
       setId: 'base1',
-      rarity: 'Rare',
+      rarity: { equals: 'Rare', mode: 'insensitive' },
       types: { has: 'Fire' },
     });
+  });
+
+  it('ignora palavra sem letra nem número', () => {
+    expect(cardWhere({ q: 'charizard ..' }).AND).toHaveLength(1);
   });
 });
 

@@ -985,14 +985,18 @@ export const swaggerSpec = {
             name: "type",
             in: "query",
             required: false,
-            description: "Só cartas que têm este tipo (exato, como vem da TCGdex)",
-            schema: { type: "string", maxLength: 30, example: "Fire" },
+            description: "Só cartas que têm este tipo. Aceita qualquer caixa (fire, FIRE)",
+            schema: {
+              type: "string",
+              enum: ["Colorless", "Darkness", "Dragon", "Fairy", "Fighting", "Fire", "Grass", "Lightning", "Metal", "Psychic", "Water"],
+              example: "Fire",
+            },
           },
           {
             name: "rarity",
             in: "query",
             required: false,
-            description: "Só cartas desta raridade (exata, como vem da TCGdex)",
+            description: "Só cartas desta raridade, sem diferenciar maiúscula (rare acha Rare)",
             schema: { type: "string", maxLength: 50, example: "Rare" },
           },
           {

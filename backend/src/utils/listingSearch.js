@@ -1,5 +1,19 @@
 import { tokenize } from './cardSearch.js';
 
+export const CARD_TYPES = [
+  'Colorless',
+  'Darkness',
+  'Dragon',
+  'Fairy',
+  'Fighting',
+  'Fire',
+  'Grass',
+  'Lightning',
+  'Metal',
+  'Psychic',
+  'Water',
+];
+
 export const LISTING_SORTS = ['recent', 'oldest', 'name'];
 
 export const LISTING_ORDER_BY = {
@@ -18,11 +32,11 @@ function matchesWord(word) {
 }
 
 export function cardWhere({ q, setId, type, rarity } = {}) {
-  const words = q ? tokenize(q) : [];
+  const words = q ? tokenize(q).filter((word) => /[\p{L}\p{N}]/u.test(word)) : [];
 
   return {
     setId,
-    rarity,
+    ...(rarity && { rarity: { equals: rarity, mode: 'insensitive' } }),
     ...(type && { types: { has: type } }),
     ...(words.length > 0 && { AND: words.map(matchesWord) }),
   };

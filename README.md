@@ -266,7 +266,7 @@ Todas as respostas seguem o mesmo formato:
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /listings?q=&cardId=&username=&condition=&finish=&firstEdition=&setId=&type=&rarity=&sort=&page=&limit=` | | anúncios ativos, com `hasNextPage`. `q` busca por palavras no nome da carta ou do set (`charizard base` acha o Charizard do Base Set). Os filtros se somam; `sort` é `recent` (padrão), `oldest` ou `name`. Valor inválido → **400** com `details` |
+| `GET /listings?q=&cardId=&username=&condition=&finish=&firstEdition=&setId=&type=&rarity=&sort=&page=&limit=` | | anúncios ativos, com `hasNextPage`. `q` busca por palavras no nome da carta ou do set (`charizard base` acha o Charizard do Base Set). Os filtros se somam e não diferenciam maiúscula (`type=fire`, `rarity=rare`, `condition=near_mint`); `sort` é `recent` (padrão), `oldest` ou `name`. Valor inválido → **400** com `details` |
 | `GET /listings/me` | 🔒 | meus anúncios, em qualquer status |
 | `GET /listings/:id` | 🔓 | detalhe; anúncio pausado, fechado ou bloqueado só aparece para o dono e para o ADMIN |
 | `POST /listings` | 🔒 | anuncia um item da minha coleção: `collectionItemId`, `quantity`, `description?` |

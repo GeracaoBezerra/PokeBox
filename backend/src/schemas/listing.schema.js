@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { CardCondition, CardFinish, ListingStatus } from '../generated/prisma/index.js';
 import { tokenize } from '../utils/cardSearch.js';
-import { LISTING_SORTS } from '../utils/listingSearch.js';
+import { CARD_TYPES, LISTING_SORTS } from '../utils/listingSearch.js';
 import { usernameRule } from './user.schema.js';
 
 const description = z
@@ -56,7 +56,15 @@ export const listListingsQuerySchema = z.object({
     .regex(/^[a-zA-Z0-9.\-]+$/, 'ID de set inválido')
     .max(30, 'setId deve ter no máximo 30 caracteres')
     .optional(),
-  type: z.string().trim().min(1, 'type não pode ser vazio').max(30, 'type deve ter no máximo 30 caracteres').optional(),
+  type: z
+    .preprocess(
+      (value) =>
+        typeof value === 'string'
+          ? CARD_TYPES.find((type) => type.toLowerCase() === value.trim().toLowerCase()) ?? value
+          : value,
+      z.enum(CARD_TYPES, { message: `type deve ser um de: ${CARD_TYPES.join(', ')}` }),
+    )
+    .optional(),
   rarity: z.string().trim().min(1, 'rarity não pode ser vazio').max(50, 'rarity deve ter no máximo 50 caracteres').optional(),
   sort: z.enum(LISTING_SORTS, { message: `sort deve ser um de: ${LISTING_SORTS.join(', ')}` }).default('recent'),
   page: z.coerce.number({ message: 'page deve ser um número' }).int().min(1, 'page mínima é 1').default(1),

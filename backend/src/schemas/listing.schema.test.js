@@ -118,6 +118,10 @@ describe('listListingsQuerySchema', () => {
     expect(listListingsQuerySchema.parse({ firstEdition: value }).firstEdition).toBe(expected);
   });
 
+  it.each(['fire', 'FIRE', ' Fire '])('acerta a caixa do type %p', (type) => {
+    expect(listListingsQuerySchema.parse({ type }).type).toBe('Fire');
+  });
+
   it.each(['recent', 'oldest', 'name'])('aceita sort %s', (sort) => {
     expect(listListingsQuerySchema.parse({ sort }).sort).toBe(sort);
   });
@@ -134,6 +138,7 @@ describe('listListingsQuerySchema', () => {
     { setId: 'base 1' },
     { type: '' },
     { type: 'a'.repeat(31) },
+    { type: 'Fogo' },
     { rarity: 'a'.repeat(51) },
     { sort: 'price' },
   ])('recusa filtro %o', (query) => {
