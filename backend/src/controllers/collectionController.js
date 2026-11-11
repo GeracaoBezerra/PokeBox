@@ -13,9 +13,9 @@ export async function list(req, res) {
 
 export async function add(req, res) {
   const data = createCollectionItemSchema.parse(req.body);
-  const item = await collectionService.add(req.user.id, data);
+  const { item, removedFromWishlist } = await collectionService.add(req.user.id, data);
 
-  return res.status(201).json({ success: true, data: { item } });
+  return res.status(201).json({ success: true, data: { item, removedFromWishlist } });
 }
 
 export async function update(req, res) {

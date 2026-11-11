@@ -2,6 +2,7 @@ import * as collectionRepository from '../repositories/collectionRepository.js';
 import { upsertCard } from '../repositories/cardRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
+import * as wishlistRepository from '../repositories/wishlistRepository.js';
 import { withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../utils/AppError.js';
 import { toCardRecord } from '../utils/cardRecord.js';
@@ -36,9 +37,14 @@ export async function add(userId, input) {
   assertVariant(card.variants, input.finish, input.firstEdition);
 
   await upsertCard(toCardRecord(card));
-  const item = await collectionRepository.addOrIncrement({ ...input, cardId: card.id, userId });
 
-  return toCollectionItemResponse(item);
+  const { item, removedFromWishlist } = await withTransaction(async (tx) => {
+    const item = await collectionRepository.addOrIncrement({ ...input, cardId: card.id, userId }, tx);
+    const removedFromWishlist = await wishlistRepository.removeByUserAndCard(userId, card.id, tx);
+    return { item, removedFromWishlist };
+  });
+
+  return { item: toCollectionItemResponse(item), removedFromWishlist };
 }
 
 export async function update(userId, id, input) {
