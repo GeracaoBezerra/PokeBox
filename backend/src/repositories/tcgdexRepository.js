@@ -1,11 +1,19 @@
 import { MemoryCache } from '../utils/memoryCache.js';
 import { TcgdexUnavailableError } from '../utils/tcgdexError.js';
-import { tcgdexCardSchema, tcgdexCardBriefListSchema, tcgdexSetSchema } from './tcgdexSchema.js';
+import {
+  tcgdexCardSchema,
+  tcgdexCardBriefListSchema,
+  tcgdexSetListSchema,
+  tcgdexSetSchema,
+  tcgdexSetWithCardsSchema,
+} from './tcgdexSchema.js';
 
 
 const TIMEOUT_MS = 8000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const setMemory = new MemoryCache(ONE_DAY);
+const setListMemory = new MemoryCache(ONE_DAY);
+const setCardsMemory = new MemoryCache(ONE_DAY);
 
 export class CardNotFoundError extends Error {}
 
@@ -75,6 +83,40 @@ export async function searchCardsInTcgdex({ lang = 'en', name, page = 1, limit =
   const cards = await requestTcgdex(`/${lang}/cards?${params}`, tcgdexCardBriefListSchema);
   if (!cards) return [];
   return cards.map(toCardSummary);
+}
+
+export async function listSets(lang = 'en') {
+  const fromMemory = setListMemory.get(lang);
+  if (fromMemory) return fromMemory;
+
+  try {
+    const sets = await requestTcgdex(`/${lang}/sets`, tcgdexSetListSchema);
+    if (!sets) return [];
+    const list = sets.map(({ id, name, logo, symbol, cardCount }) => ({
+      id,
+      name,
+      logo: logo ?? null,
+      symbol: symbol ?? null,
+      cardCount: cardCount ?? null,
+    }));
+    setListMemory.set(lang, list);
+    return list;
+  } catch (err) {
+    console.error('Falha ao buscar a lista de sets na TCGdex:', err.message);
+    return [];
+  }
+}
+
+export async function listSetCards(setId, lang = 'en') {
+  const key = `${lang}:${setId}`;
+  const fromMemory = setCardsMemory.get(key);
+  if (fromMemory) return fromMemory;
+
+  const set = await requestTcgdex(`/${lang}/sets/${encodeURIComponent(setId)}`, tcgdexSetWithCardsSchema);
+  if (!set) return [];
+  const cards = set.cards.map(toCardSummary);
+  setCardsMemory.set(key, cards);
+  return cards;
 }
 
 function toCardSummary(card) {
