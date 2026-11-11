@@ -53,8 +53,10 @@ Há dois papéis. `USER` é o padrão; o `ADMIN` só tem poder extra sobre anún
 
 | Rota | O que faz |
 |---|---|
-| `GET /cards?name=&page=&limit=&lang=` | busca na TCGdex, paginada |
+| `GET /cards?name=&page=&limit=&lang=` | busca na TCGdex, paginada. Entende nome de set e ignora palavras que não acham nada (`charizard base x pipi popo` traz os Charizard, com o do Base Set primeiro). Cada item traz `set` e `number`, e a resposta traz `search` explicando como a busca foi entendida |
 | `GET /cards/:id` | detalhe da carta e os anúncios ativos dela. Com login, traz também o bloco `user`: quantas você tem, se está na sua wishlist e se você tem anúncio ativo dela |
+
+A busca fica em `utils/cardSearch.js` (funções puras: `tokenize`, `matchSets`, `rankCards`...). A lista de sets da TCGdex fica 1 dia em memória e o resultado ranqueado de cada busca, 10 min; trocar de página não chama a TCGdex de novo.
 
 Cache: o detalhe de uma carta vai à TCGdex só na primeira vez. Depois fica guardado 24 h no banco (`CardCache`) e 1 h na memória. Se a TCGdex cair, a API usa a última cópia guardada. Sem cópia, responde 502 (fora do ar) ou 504 (demorou mais de 8 s).
 

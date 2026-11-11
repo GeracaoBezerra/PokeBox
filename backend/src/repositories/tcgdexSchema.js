@@ -63,3 +63,16 @@ export const tcgdexCardBriefListSchema = z.array(
   })
 );
 
+export const tcgdexSetListSchema = z.array(
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    logo: z.string().optional(),
+    symbol: z.string().optional(),
+    cardCount: z.object({ total: z.number(), official: z.number() }).partial().optional(),
+  })
+);
+
+export const tcgdexSetWithCardsSchema = tcgdexSetSchema.extend({
+  cards: tcgdexCardBriefListSchema,
+});

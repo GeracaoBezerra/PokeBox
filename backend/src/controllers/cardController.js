@@ -30,13 +30,14 @@ export async function getCardDetails(req, res, next) {
 export async function listCards(req, res, next) {
   try {
     const { lang, name, page, limit } = res.locals.query;
-    const cards = await findCards({ lang, name, page, limit });
+    const { cards, hasNextPage, search } = await findCards({ lang, name, page, limit });
 
     res.set('Cache-Control', 'public, max-age=300');
     return res.json({
       success: true,
       data: cards,
-      pagination: { page, limit, hasNextPage: cards.length === limit },
+      pagination: { page, limit, hasNextPage },
+      ...(search && { search }),
     });
   } catch (err) {
     return next(err);
