@@ -54,7 +54,7 @@ export async function findIdsByKeys(keys) {
 
 export async function lockById(id, tx) {
   const rows = await tx.$queryRaw`
-    SELECT "id", "userId", "quantity", "reservedQuantity", "condition"
+    SELECT "id", "userId", "cardId", "quantity", "reservedQuantity", "condition"
     FROM "CollectionItem"
     WHERE "id" = ${id}
     FOR UPDATE
