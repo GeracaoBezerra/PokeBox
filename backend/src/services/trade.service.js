@@ -2,6 +2,7 @@ import * as collectionRepository from '../repositories/collectionRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
 import * as tradeRepository from '../repositories/tradeRepository.js';
+import * as wishlistRepository from '../repositories/wishlistRepository.js';
 import { lockInOrder, withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../utils/AppError.js';
 import { assertStillFulfillable } from '../utils/offerRules.js';
@@ -156,6 +157,7 @@ export async function accept(userId, id) {
         },
         tx,
       );
+      await wishlistRepository.removeByUserAndCard(tradeItem.toUserId, tradeItem.cardId, tx);
     }
 
     return tradeRepository.updateStatus(id, TRADE_ACTIONS.accept.status, tx);
