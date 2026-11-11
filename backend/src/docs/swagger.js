@@ -865,7 +865,7 @@ export const swaggerSpec = {
         tags: ["Wishlist"],
         summary: "Adiciona uma carta à wishlist",
         description:
-          "Busca a carta na TCGdex (com cache), grava em Card e cria o item. Sem variante: quem quer a carta aceita qualquer versão. Ter a carta na coleção não impede pôr na wishlist, e a coleção não muda.",
+          "Busca a carta na TCGdex (com cache), grava em Card e cria o item. Sem variante: quem quer a carta aceita qualquer versão. Carta que você já tem na coleção (quantidade maior que 0, em qualquer variante) não entra (RN-12). A coleção não muda.",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -897,7 +897,7 @@ export const swaggerSpec = {
           },
           400: errorResponse("Corpo inválido", "ApiValidationError"),
           404: errorResponse("Carta não encontrada na TCGdex"),
-          409: errorResponse("Esta carta já está na sua wishlist"),
+          409: errorResponse("Esta carta já está na sua wishlist, ou você já tem esta carta na sua coleção (RN-12)"),
           ...authErrors,
           ...tcgdexErrors,
         },

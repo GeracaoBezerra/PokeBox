@@ -259,7 +259,7 @@ Todas as respostas seguem o mesmo formato:
 | Rota | | O que faz |
 |---|---|---|
 | `GET /wishlist` | 🔒 | minha wishlist, com `opportunities` em cada carta |
-| `POST /wishlist` | 🔒 | adiciona carta (`cardId`) |
+| `POST /wishlist` | 🔒 | adiciona carta (`cardId`). Carta que você já tem na coleção → **409** (RN-12) |
 | `DELETE /wishlist/:id` | 🔒 | remove |
 
 ### Anúncios de troca
@@ -327,6 +327,7 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | **RN-08** Reserva | Quando a troca nasce, as cartas dos dois lados ficam **reservadas**: nenhuma outra negociação consegue usá-las (anunciar, ofertar, aceitar outra oferta → **422**), nem dá para baixar a quantidade abaixo do reservado (**422**) ou apagar o item (**409**). No mesmo momento, o anúncio diminui pela quantidade da oferta (em 0, fecha e cancela as ofertas abertas dele) e os anúncios de quem ofertou que passariam do disponível são reduzidos. Outras ofertas já aceitas desse anúncio que não cabem mais são canceladas e soltam as cartas. Recusar ou cancelar a troca libera a reserva (os anúncios não voltam). Pedidos ao mesmo tempo na mesma troca: um passa, o outro recebe **409**. A **condição** de um item não muda enquanto ele está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**): assim o que foi anunciado e oferecido é o que chega. |
 | **RN-10** Privacidade | Item com `isPublic: false` não aparece no perfil público. O perfil público nunca mostra e-mail, reserva nem dados internos. Conta desativada ou suspensa → **404**. |
 | **RN-11** Coleção limpa a wishlist | Carta que entra na coleção sai da wishlist da pessoa, na mesma transação: vale ao adicionar (`POST /collection`) e ao receber numa troca concluída (`POST /trades/:id/accept`). Como a wishlist não tem variante, qualquer condição ou acabamento conta. |
+| **RN-12** Wishlist só do que falta | Carta que você já tem na coleção (quantidade maior que 0, em qualquer variante, pública ou privada) não entra na wishlist (**409**). Item zerado não conta. Junto com a RN-11, a wishlist guarda só o que a pessoa ainda não tem. |
 
 Outras regras que já valem:
 

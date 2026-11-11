@@ -213,11 +213,12 @@ test-wishlist: ## smoke test da wishlist (#13) com os usuarios do seed
 	$(PSQL) -c "UPDATE \"User\" SET \"accountStatus\" = 'ACTIVE', \"deletedAt\" = NULL WHERE username = 'ash';" > /dev/null; \
 	printf '%-34s' "dono reativado -> 1";         curl -s $$W -H "$$M" | $(JSON) '[i["opportunities"] for i in d["data"]["items"] if i["cardId"] == "base1-4"][0]'; \
 	BEFORE=$$(curl -s $(API)/collection -H "$$M" | $(JSON) '[{k: v for k, v in i.items() if k != "card"} for i in d["data"]["items"]]'); \
-	ITEM=$$(curl -s -X POST $$W -H "$$M" -H "$$J" -d '{"cardId":"sv03.5-151"}' | $(JSON) 'd["data"]["item"]["id"]'); \
-	printf '%-34s' "quero o que ja tenho -> 201"; echo "item $$ITEM"; \
+	printf '%-34s' "quero o que ja tenho -> 409"; curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST $$W -H "$$M" -H "$$J" -d '{"cardId":"sv03.5-151"}'; \
 	AFTER=$$(curl -s $(API)/collection -H "$$M" | $(JSON) '[{k: v for k, v in i.items() if k != "card"} for i in d["data"]["items"]]'); \
 	printf '%-34s' "colecao nao muda -> igual";   [ "$$BEFORE" = "$$AFTER" ] && echo igual || echo DIFERENTE; \
-	printf '%-34s' "repetir -> 409";              curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST $$W -H "$$M" -H "$$J" -d '{"cardId":"sv03.5-151"}'; \
+	ITEM=$$(curl -s -X POST $$W -H "$$M" -H "$$J" -d '{"cardId":"sv03.5-006"}' | $(JSON) 'd["data"]["item"]["id"]'); \
+	printf '%-34s' "quero o que nao tenho -> 201"; echo "item $$ITEM"; \
+	printf '%-34s' "repetir -> 409";              curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST $$W -H "$$M" -H "$$J" -d '{"cardId":"sv03.5-006"}'; \
 	printf '%-34s' "sem cardId -> 400";           curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST $$W -H "$$M" -H "$$J" -d '{}'; \
 	printf '%-34s' "campo extra -> 400";          curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST $$W -H "$$M" -H "$$J" -d '{"cardId":"base1-4","finish":"HOLO"}'; \
 	printf '%-34s' "carta inexistente -> 404";    curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST $$W -H "$$M" -H "$$J" -d '{"cardId":"nao-existe-999"}'; \
