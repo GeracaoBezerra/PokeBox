@@ -22,10 +22,9 @@ async function assertStock(tx, item, requested, exceptId) {
   assertListingQuantity({ requested, otherListed, available: item.quantity - item.reservedQuantity });
 }
 
-export async function list({ cardId, username, page, limit }) {
+export async function list({ page, limit, ...filters }) {
   const listings = await listingRepository.findActive({
-    cardId,
-    username,
+    ...filters,
     skip: (page - 1) * limit,
     take: limit + 1,
   });

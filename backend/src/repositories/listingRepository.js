@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { USABLE_STATUSES } from '../utils/accountStatus.js';
 import { OPEN_STATUSES } from '../utils/listingRules.js';
+import { cardWhere, listingOrderBy } from '../utils/listingSearch.js';
 
 export const listingInclude = {
   collectionItem: {
@@ -13,17 +14,34 @@ export const listingInclude = {
 
 const newestFirst = [{ createdAt: 'desc' }, { id: 'asc' }];
 
-export function findActive({ cardId, username, skip = 0, take }) {
+export function findActive({
+  cardId,
+  username,
+  q,
+  condition,
+  finish,
+  firstEdition,
+  setId,
+  type,
+  rarity,
+  sort,
+  skip = 0,
+  take,
+}) {
   return prisma.listing.findMany({
     where: {
       status: 'ACTIVE',
       collectionItem: {
         cardId,
+        condition,
+        finish,
+        firstEdition,
+        card: cardWhere({ q, setId, type, rarity }),
         user: { username, deletedAt: null, accountStatus: { in: USABLE_STATUSES } },
       },
     },
     include: listingInclude,
-    orderBy: newestFirst,
+    orderBy: listingOrderBy(sort),
     skip,
     take,
   });
