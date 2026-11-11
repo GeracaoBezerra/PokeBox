@@ -744,7 +744,7 @@ export const swaggerSpec = {
         tags: ["Collection"],
         summary: "Altera um item da própria coleção",
         description:
-          "Só o dono pode alterar; ADMIN também recebe 403 em item de outra pessoa. A quantidade pode ser 0, mas não pode ficar abaixo da reservada em negociações somada às unidades em anúncios ACTIVE/PAUSED (RN-05). finish e firstEdition não mudam: para isso, apague e crie de novo. A condition não muda enquanto o item está numa negociação em andamento (troca aberta, oferta aberta ou aceita, anúncio ACTIVE/PAUSED); mandar a mesma condition que o item já tem passa.",
+          "Só o dono pode alterar; ADMIN também recebe 403 em item de outra pessoa. A quantidade pode ser 0, mas não pode ficar abaixo da reservada em negociações somada às unidades em anúncios ACTIVE/PAUSED (RN-05). finish e firstEdition não mudam: para isso, apague e crie de novo. A condition não muda enquanto o item está numa negociação em andamento (troca aberta, oferta aberta ou aceita, anúncio ACTIVE/PAUSED); mandar a mesma condition que o item já tem passa. Se a quantidade sai de 0 para mais, a carta sai da sua wishlist (RN-11).",
         security: [{ bearerAuth: [] }],
         parameters: [collectionItemIdParam],
         requestBody: {
