@@ -15,7 +15,7 @@ jest.unstable_mockModule("../lib/prisma.js", () => ({ prisma }));
 jest.unstable_mockModule("./tcgdexRepository.js", () => tcgdexRepository);
 
 const { findCardById, findCards } = await import("./cardRepository.js");
-const { TcgdexUnavailableError } = await import("../utils/tcgdexError.js");
+const { TcgdexUnavailableError } = await import("../errors/TcgdexUnavailableError.js");
 
 const brief = (id, name) => ({
   id,

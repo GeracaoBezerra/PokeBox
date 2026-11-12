@@ -1,41 +1,31 @@
-import express from 'express';
 import cors from 'cors';
+import express, { type Express } from 'express';
 import swaggerUi from 'swagger-ui-express';
 
-import authRoutes from './routes/auth.routes.js';
-import cardRoutes from './routes/card.routes.js';
-import collectionRoutes from './routes/collection.routes.js';
-import listingRoutes from './routes/listing.routes.js';
-import offerRoutes from './routes/offer.routes.js';
-import tradeRoutes from './routes/trade.routes.js';
-import userRoutes from './routes/user.routes.js';
-import usersRoutes from './routes/users.routes.js';
-import wishlistRoutes from './routes/wishlist.routes.js';
+import type { Container } from './container.js';
 import { swaggerSpec } from './docs/swagger.js';
-import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
+import { notFoundHandler } from './middlewares/errorHandler.js';
 
-const app = express();
+export function createApp(container: Container): Express {
+  const app = express();
 
-app.use(cors());
-app.use(express.json());
+  app.use(cors());
+  app.use(express.json());
 
-app.get('/health', (req, res) => {
-  return res.status(200).json({ success: true, data: { status: 'ok' } });
-});
+  app.get('/health', (req, res) => {
+    return res.status(200).json({ success: true, data: { status: 'ok' } });
+  });
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { swaggerOptions: { persistAuthorization: true } }));
+  app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { swaggerOptions: { persistAuthorization: true } }));
 
-app.use('/auth', authRoutes);
-app.use('/cards', cardRoutes);
-app.use('/collection', collectionRoutes);
-app.use('/listings', listingRoutes);
-app.use('/offers', offerRoutes);
-app.use('/trades', tradeRoutes);
-app.use('/user', userRoutes);
-app.use('/users', usersRoutes);
-app.use('/wishlist', wishlistRoutes);
+  for (const module of container.modules) {
+    for (const { path, router } of module.routes) {
+      app.use(path, router);
+    }
+  }
 
-app.use(notFoundHandler);
-app.use(errorHandler);
+  app.use(notFoundHandler);
+  app.use(container.errorHandler);
 
-export default app;
+  return app;
+}

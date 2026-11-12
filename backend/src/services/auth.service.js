@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 import * as userRepository from '../repositories/userRepository.js';
 import { isAccountUsable } from '../utils/accountStatus.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../errors/AppError.js';
 
 const SALT_ROUNDS = 12;
 const INVALID_CREDENTIALS = 'E-mail ou senha inválidos';

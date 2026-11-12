@@ -7,7 +7,7 @@ import {
   listSets,
   searchCardsInTcgdex,
 } from './tcgdexRepository.js';
-import { TcgdexUnavailableError } from '../utils/tcgdexError.js';
+import { TcgdexUnavailableError } from '../errors/TcgdexUnavailableError.js';
 
 const jsonResponse = (status, body) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });

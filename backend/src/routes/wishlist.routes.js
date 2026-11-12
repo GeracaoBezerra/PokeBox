@@ -1,14 +1,15 @@
 import { Router } from 'express';
 
 import * as wishlistController from '../controllers/wishlistController.js';
-import { requireAuth } from '../middlewares/authMiddlewares.js';
 
-const router = Router();
+export function createWishlistRoutes(auth) {
+  const router = Router();
 
-router.use(requireAuth);
+  router.use(auth.requireAuth);
 
-router.get('/', wishlistController.list);
-router.post('/', wishlistController.add);
-router.delete('/:id', wishlistController.remove);
+  router.get('/', wishlistController.list);
+  router.post('/', wishlistController.add);
+  router.delete('/:id', wishlistController.remove);
 
-export default router;
+  return router;
+}

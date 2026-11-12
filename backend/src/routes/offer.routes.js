@@ -1,12 +1,13 @@
 import { Router } from 'express';
 
 import * as offerController from '../controllers/offerController.js';
-import { requireAuth } from '../middlewares/authMiddlewares.js';
 
-const router = Router();
+export function createOfferRoutes(auth) {
+  const router = Router();
 
-router.get('/me', requireAuth, offerController.listMine);
-router.get('/:id', requireAuth, offerController.getById);
-router.patch('/:id/status', requireAuth, offerController.changeStatus);
+  router.get('/me', auth.requireAuth, offerController.listMine);
+  router.get('/:id', auth.requireAuth, offerController.getById);
+  router.patch('/:id/status', auth.requireAuth, offerController.changeStatus);
 
-export default router;
+  return router;
+}

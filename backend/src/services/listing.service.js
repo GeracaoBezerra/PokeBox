@@ -2,7 +2,7 @@ import * as collectionRepository from '../repositories/collectionRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
 import { withTransaction } from '../repositories/transaction.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../errors/AppError.js';
 import { assertOwner } from '../utils/collectionRules.js';
 import {
   CANCELS_OFFERS,

@@ -1,7 +1,7 @@
 import * as collectionRepository from '../repositories/collectionRepository.js';
 import { upsertCard } from '../repositories/cardRepository.js';
 import * as wishlistRepository from '../repositories/wishlistRepository.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../errors/AppError.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import { assertOwner } from '../utils/collectionRules.js';
 import { countOwnersByCard, toWishlistItemResponse } from '../utils/wishlistRules.js';

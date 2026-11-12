@@ -1,4 +1,4 @@
-import { AppError } from './AppError.js';
+import { AppError } from '../errors/AppError.js';
 import { toCardResponse } from './cardRecord.js';
 import { CANCELS_OFFERS, OPEN_STATUSES } from './listingRules.js';
 

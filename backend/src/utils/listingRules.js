@@ -1,4 +1,4 @@
-import { AppError } from './AppError.js';
+import { AppError } from '../errors/AppError.js';
 import { isPublicProfileVisible } from './accountStatus.js';
 import { toCardResponse } from './cardRecord.js';
 

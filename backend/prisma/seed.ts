@@ -1,20 +1,50 @@
-import '../src/config/env.js';
 import { readFile } from 'node:fs/promises';
 
 import bcrypt from 'bcrypt';
 
-import { prisma } from '../src/lib/prisma.js';
+import { loadEnv } from '../src/config/env.js';
+import type { CardCondition, CardFinish, CollectionItem, Prisma, User, UserRole } from '../src/generated/prisma/index.js';
+import { createPrismaClient } from '../src/lib/prisma.js';
+
+const prisma = createPrismaClient(loadEnv().DATABASE_URL);
 
 const SEED_PASSWORD = 'pokebox123';
 const SALT_ROUNDS = 12;
 
-const users = [
+interface SeedUser {
+  username: string;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+interface SeedCollectionItem {
+  key: string;
+  username: string;
+  cardId: string;
+  condition: CardCondition;
+  finish: CardFinish;
+  firstEdition?: boolean;
+  quantity: number;
+  isPublic?: boolean;
+}
+
+type SeedCard = Omit<Prisma.CardCreateInput, 'releaseDate' | 'marketPriceUpdatedAt'> & {
+  variants?: unknown;
+  releaseDate?: string | null;
+  marketPriceUpdatedAt?: string | null;
+};
+
+type UsersByUsername = Record<string, User>;
+type ItemsByKey = Record<string, CollectionItem>;
+
+const users: SeedUser[] = [
   { username: 'admin', name: 'Admin PokeBox', email: 'admin@pokebox.dev', role: 'ADMIN' },
   { username: 'ash', name: 'Ash Ketchum', email: 'ash@pokebox.dev', role: 'USER' },
   { username: 'misty', name: 'Misty Waterflower', email: 'misty@pokebox.dev', role: 'USER' },
 ];
 
-const collection = [
+const collection: SeedCollectionItem[] = [
   { key: 'ash-charizard', username: 'ash', cardId: 'base1-4', condition: 'NEAR_MINT', finish: 'HOLO', firstEdition: true, quantity: 1 },
   { key: 'ash-pikachu-base', username: 'ash', cardId: 'base1-58', condition: 'GOOD', finish: 'NORMAL', quantity: 3 },
   { key: 'ash-pikachu-151', username: 'ash', cardId: 'sv03.5-025', condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 2 },
@@ -34,14 +64,14 @@ const wishlist = [
   { username: 'misty', cardId: 'sv01-001' },
 ];
 
-async function loadCards() {
+async function loadCards(): Promise<SeedCard[]> {
   const file = await readFile(new URL('./seed-data/cards.json', import.meta.url), 'utf8');
   return JSON.parse(file);
 }
 
 async function seedUsers() {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, SALT_ROUNDS);
-  const byUsername = {};
+  const byUsername: UsersByUsername = {};
 
   for (const user of users) {
     byUsername[user.username] = await prisma.user.upsert({
@@ -69,8 +99,8 @@ async function seedCards() {
   return cards;
 }
 
-async function seedCollection(byUsername) {
-  const items = {};
+async function seedCollection(byUsername: UsersByUsername) {
+  const items: ItemsByKey = {};
 
   for (const { key, username, cardId, condition, finish, firstEdition = false, quantity, isPublic = true } of collection) {
     const userId = byUsername[username].id;
@@ -84,7 +114,7 @@ async function seedCollection(byUsername) {
   return items;
 }
 
-async function seedWishlist(byUsername) {
+async function seedWishlist(byUsername: UsersByUsername) {
   for (const { username, cardId } of wishlist) {
     const userId = byUsername[username].id;
     await prisma.wishlistItem.upsert({
@@ -95,12 +125,12 @@ async function seedWishlist(byUsername) {
   }
 }
 
-async function findOrCreateListing(data) {
+async function findOrCreateListing(data: Prisma.ListingUncheckedCreateInput) {
   const existing = await prisma.listing.findFirst({ where: { collectionItemId: data.collectionItemId } });
   return existing ?? prisma.listing.create({ data });
 }
 
-async function seedMarketplace(byUsername, items) {
+async function seedMarketplace(byUsername: UsersByUsername, items: ItemsByKey) {
   const charizardListing = await findOrCreateListing({
     collectionItemId: items['ash-charizard'].id,
     quantity: 1,

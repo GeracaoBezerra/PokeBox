@@ -2,7 +2,7 @@ import { findCardById, findCards } from '../repositories/cardRepository.js';
 import { CardNotFoundError } from '../repositories/tcgdexRepository.js';
 import { getUserCardInfo } from '../services/card.service.js';
 import { listByCard } from '../services/listing.service.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../errors/AppError.js';
 
 
 export async function getCardDetails(req, res, next) {

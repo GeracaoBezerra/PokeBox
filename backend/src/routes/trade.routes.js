@@ -1,15 +1,16 @@
 import { Router } from 'express';
 
 import * as tradeController from '../controllers/tradeController.js';
-import { requireAuth } from '../middlewares/authMiddlewares.js';
 
-const router = Router();
+export function createTradeRoutes(auth) {
+  const router = Router();
 
-router.post('/', requireAuth, tradeController.create);
-router.get('/me', requireAuth, tradeController.listMine);
-router.get('/:id', requireAuth, tradeController.getById);
-router.post('/:id/accept', requireAuth, tradeController.accept);
-router.post('/:id/reject', requireAuth, tradeController.reject);
-router.post('/:id/cancel', requireAuth, tradeController.cancel);
+  router.post('/', auth.requireAuth, tradeController.create);
+  router.get('/me', auth.requireAuth, tradeController.listMine);
+  router.get('/:id', auth.requireAuth, tradeController.getById);
+  router.post('/:id/accept', auth.requireAuth, tradeController.accept);
+  router.post('/:id/reject', auth.requireAuth, tradeController.reject);
+  router.post('/:id/cancel', auth.requireAuth, tradeController.cancel);
 
-export default router;
+  return router;
+}

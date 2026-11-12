@@ -1,6 +1,6 @@
 import * as collectionRepository from '../repositories/collectionRepository.js';
 import * as userRepository from '../repositories/userRepository.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../errors/AppError.js';
 import { isPublicProfileVisible } from '../utils/accountStatus.js';
 import { toPublicCollectionItem } from '../utils/collectionRules.js';
 

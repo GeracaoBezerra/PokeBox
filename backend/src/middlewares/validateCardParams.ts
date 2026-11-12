@@ -1,8 +1,11 @@
+import type { RequestHandler } from 'express';
 import { z, ZodError } from 'zod';
 
-export const LANGS = ['en', 'pt', 'es', 'fr', 'de', 'it', 'ja'];
+export const LANGS = ['en', 'pt', 'es', 'fr', 'de', 'it', 'ja'] as const;
 
-const LANG_ALIASES = { 'pt-br': 'pt' };
+export type Lang = (typeof LANGS)[number];
+
+const LANG_ALIASES: Record<string, Lang> = { 'pt-br': 'pt' };
 
 const cardParamsSchema = z.object({
   id: z.string().regex(/^[a-zA-Z0-9.\-]+$/, 'ID de carta inválido'),
@@ -21,12 +24,12 @@ const cardListQuerySchema = z.object({
   limit: z.coerce.number({ message: 'limit deve ser um número' }).int().min(1).max(100, 'limit máximo é 100').default(20),
 });
 
-function normalizeLang(value) {
+function normalizeLang(value: unknown): string {
   const lang = String(value ?? 'en').toLowerCase();
   return LANG_ALIASES[lang] ?? lang;
 }
 
-export function validateCardParams(req, res, next) {
+export const validateCardParams: RequestHandler = (req, res, next) => {
   const params = cardParamsSchema.safeParse(req.params);
   const query = cardQuerySchema.safeParse({ lang: normalizeLang(req.query.lang) });
 
@@ -36,9 +39,9 @@ export function validateCardParams(req, res, next) {
 
   res.locals.lang = query.data.lang;
   next();
-}
+};
 
-export function validateCardListQuery(req, res, next) {
+export const validateCardListQuery: RequestHandler = (req, res, next) => {
   const query = cardListQuerySchema.safeParse({
     lang: normalizeLang(req.query.lang),
     name: req.query.name || undefined,
@@ -52,4 +55,4 @@ export function validateCardListQuery(req, res, next) {
 
   res.locals.query = query.data;
   next();
-}
+};

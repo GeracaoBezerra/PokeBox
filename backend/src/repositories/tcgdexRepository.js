@@ -1,5 +1,5 @@
 import { MemoryCache } from '../utils/memoryCache.js';
-import { TcgdexUnavailableError } from '../utils/tcgdexError.js';
+import { TcgdexUnavailableError } from '../errors/TcgdexUnavailableError.js';
 import {
   tcgdexCardSchema,
   tcgdexCardBriefListSchema,

@@ -3,7 +3,7 @@ import { sumQuantityByUserAndCard } from '../repositories/collectionRepository.j
 import { existsActiveByUserAndCard } from '../repositories/listingRepository.js';
 import { CardNotFoundError } from '../repositories/tcgdexRepository.js';
 import { existsByUserAndCard } from '../repositories/wishlistRepository.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../errors/AppError.js';
 import { toUserCardInfo } from '../utils/cardRecord.js';
 
 export async function fetchCard(cardId) {

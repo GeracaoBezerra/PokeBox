@@ -4,7 +4,7 @@ import * as listingRepository from '../repositories/listingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
 import * as wishlistRepository from '../repositories/wishlistRepository.js';
 import { withTransaction } from '../repositories/transaction.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../errors/AppError.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import {
   assertConditionChangeable,
