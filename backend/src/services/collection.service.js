@@ -68,7 +68,13 @@ export async function update(userId, id, input) {
       });
     }
 
-    return collectionRepository.update(id, input, tx);
+    const saved = await collectionRepository.update(id, input, tx);
+
+    if (item.quantity === 0 && input.quantity > 0) {
+      await wishlistRepository.removeByUserAndCard(userId, item.cardId, tx);
+    }
+
+    return saved;
   });
 
   return toCollectionItemResponse(updated);

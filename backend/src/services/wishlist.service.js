@@ -23,6 +23,10 @@ export async function list(userId) {
 
 export async function add(userId, input) {
   const card = await fetchCard(input.cardId);
+
+  const owned = await collectionRepository.sumQuantityByUserAndCard(userId, card.id);
+  if (owned > 0) throw new AppError(409, 'Você já tem esta carta na sua coleção');
+
   await upsertCard(toCardRecord(card));
 
   const item = await wishlistRepository.create({ userId, cardId: card.id }).catch((err) => {
