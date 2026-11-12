@@ -1,0 +1,29 @@
+
+.botao,
+.botaoSecundario,
+.botaoPerigo {
+  border-radius: 6px;
+  padding: 8px 14px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.botao {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+.botaoSecundario {
+  background: transparent;
+  color: var(--texto);
+  border-color: var(--borda);
+}
+
+.botaoPerigo {
+  background: transparent;
+  color: var(--erro);
+  border-color: var(--erro);
+}

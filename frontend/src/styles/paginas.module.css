@@ -71,21 +71,8 @@
   font-size: 0.9rem;
 }
 
-.botao,
-.botaoSecundario,
-.botaoPerigo {
-  border-radius: 6px;
-  padding: 8px 14px;
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-
 .botao {
-  background: var(--acento);
-  color: var(--acento-texto);
+  composes: botao from "./botoes.module.css";
 }
 
 .botao:hover {
@@ -93,19 +80,16 @@
 }
 
 .botaoSecundario {
-  background: transparent;
-  color: var(--texto);
-  border-color: var(--borda);
+  composes: botaoSecundario from "./botoes.module.css";
 }
+
 
 .botaoSecundario:hover {
   background: var(--superficie-hover);
 }
 
 .botaoPerigo {
-  background: transparent;
-  color: var(--erro);
-  border-color: var(--erro);
+  composes: botaoPerigo from "./botoes.module.css";
 }
 
 .botao:disabled,
@@ -125,6 +109,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 16px;
+}
+
+.gradeLarga {
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
 }
 
 .cartaMini {

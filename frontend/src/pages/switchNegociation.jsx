@@ -133,7 +133,7 @@ export default function SwitchNegociationPage() {
       {carregando && !dados && <p className={s.suave}>Carregando...</p>}
       {dados && lista.length === 0 && <p className={s.suave}>Nenhuma troca aqui.</p>}
 
-      <div className={s.grade} style={{ gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))" }}>
+<div className={`${s.grade} ${s.gradeLarga}`}>
         {lista.map((troca) => (
           <CartaoTroca key={troca.id} troca={troca} souDonoDoAnuncio={aba === "received"} onMudou={recarregar} />
         ))}

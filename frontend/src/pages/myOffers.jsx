@@ -159,7 +159,7 @@ export default function MyOffersPage() {
       {carregando && !dados && <p className={s.suave}>Carregando...</p>}
       {dados && lista.length === 0 && <p className={s.suave}>Nenhuma oferta aqui.</p>}
 
-      <div className={s.grade} style={{ gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))" }}>
+<div className={`${s.grade} ${s.gradeLarga}`}>
         {lista.map((oferta) => (
           <CartaoOferta
             key={oferta.id}
