@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 
-import { fetchCardFromTcgdex } from '../src/repositories/tcgdexRepository.js';
+import { TcgdexClient } from '../src/cards/catalog/TcgdexClient.js';
 import { toCardRecord } from '../src/utils/cardRecord.js';
 
 const CARD_IDS = [
@@ -16,13 +16,19 @@ const CARD_IDS = [
   'sve-002',
 ];
 
+const tcgdex = new TcgdexClient({
+  baseUrl: process.env.TCGDEX_BASE_URL || 'https://api.tcgdex.net/v2',
+  timeoutMs: 8000,
+  fetch: (url, init) => fetch(url, init),
+});
+
 const OUTPUT = new URL('../prisma/seed-data/cards.json', import.meta.url);
 
 async function main() {
   const cards = [];
 
   for (const id of CARD_IDS) {
-    const details = await fetchCardFromTcgdex(id, 'en');
+    const details = await tcgdex.getById(id, 'en');
     cards.push({ ...toCardRecord(details), variants: details.variants });
     console.log(`ok ${id} · ${details.name}`);
   }

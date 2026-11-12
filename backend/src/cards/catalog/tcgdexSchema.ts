@@ -44,7 +44,7 @@ export const tcgdexCardSchema = z.object({
   legal: z.object({ standard: z.boolean(), expanded: z.boolean() }).partial().optional(),
   trainerType: z.string().optional(),
   energyType: z.string().optional(),
-  pricing: z.any().optional(),
+  pricing: z.unknown().optional(),
 });
 
 export const tcgdexSetSchema = z.object({
@@ -76,3 +76,33 @@ export const tcgdexSetListSchema = z.array(
 export const tcgdexSetWithCardsSchema = tcgdexSetSchema.extend({
   cards: tcgdexCardBriefListSchema,
 });
+
+const priceVariant = z.object({ marketPrice: z.number().nullish().catch(undefined) }).nullish().catch(undefined);
+
+export const tcgdexPricingSchema = z.object({
+  tcgplayer: z
+    .object({
+      unit: z.string().nullish().catch(undefined),
+      updated: z.string().nullish().catch(undefined),
+      holofoil: priceVariant,
+      'unlimited-holofoil': priceVariant,
+      normal: priceVariant,
+      reverse: priceVariant,
+      'reverse-holofoil': priceVariant,
+    })
+    .nullish()
+    .catch(undefined),
+  cardmarket: z
+    .object({
+      trend: z.number().nullish().catch(undefined),
+      unit: z.string().nullish().catch(undefined),
+      updated: z.string().nullish().catch(undefined),
+    })
+    .nullish()
+    .catch(undefined),
+});
+
+export type TcgdexCard = z.infer<typeof tcgdexCardSchema>;
+export type TcgdexCardBrief = z.infer<typeof tcgdexCardBriefListSchema>[number];
+export type TcgdexSetListItem = z.infer<typeof tcgdexSetListSchema>[number];
+export type TcgdexPricing = z.infer<typeof tcgdexPricingSchema>;

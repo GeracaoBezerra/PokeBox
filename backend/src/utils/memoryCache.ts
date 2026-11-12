@@ -1,11 +1,17 @@
-export class MemoryCache {
-  constructor(ttlMs, maxItems = 500) {
-    this.ttlMs = ttlMs;
-    this.maxItems = maxItems;
-    this.store = new Map();
-  }
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
 
-  get(key) {
+export class MemoryCache<T> {
+  private readonly store = new Map<string, CacheEntry<T>>();
+
+  constructor(
+    private readonly ttlMs: number,
+    private readonly maxItems = 500,
+  ) {}
+
+  get(key: string): T | null {
     const entry = this.store.get(key);
     if (!entry) return null;
     if (Date.now() > entry.expiresAt) {
@@ -15,7 +21,7 @@ export class MemoryCache {
     return entry.value;
   }
 
-  set(key, value) {
+  set(key: string, value: T): void {
     if (this.store.size >= this.maxItems) {
       const oldestKey = this.store.keys().next().value;
       if (oldestKey) this.store.delete(oldestKey);

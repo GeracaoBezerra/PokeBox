@@ -24,6 +24,16 @@ const cardListQuerySchema = z.object({
   limit: z.coerce.number({ message: 'limit deve ser um número' }).int().min(1).max(100, 'limit máximo é 100').default(20),
 });
 
+export type CardListQueryParams = z.infer<typeof cardListQuerySchema>;
+
+export interface CardDetailLocals {
+  lang: Lang;
+}
+
+export interface CardListLocals {
+  query: CardListQueryParams;
+}
+
 function normalizeLang(value: unknown): string {
   const lang = String(value ?? 'en').toLowerCase();
   return LANG_ALIASES[lang] ?? lang;

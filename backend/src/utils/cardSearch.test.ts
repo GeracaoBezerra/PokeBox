@@ -19,7 +19,7 @@ const sets = [
   { id: 'tk-ex-latio', name: 'EX trainer Kit (Latios)' },
 ];
 
-const card = (id, name) => ({ id, localId: id.split('-').pop(), name, image: { small: null, large: null } });
+const card = (id: string, name: string) => ({ id, localId: id.split('-').pop() ?? id, name, image: { small: null, large: null } });
 
 describe('normalizeText', () => {
   it('tira acento, deixa em minúsculas e corta espaços das pontas', () => {
