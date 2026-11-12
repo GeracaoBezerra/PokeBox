@@ -16,11 +16,11 @@ describe('isAccountUsable', () => {
 });
 
 describe('isPublicProfileVisible', () => {
-  it.each(['ACTIVE', 'PENDING_VERIFICATION'])('mostra o perfil da conta %s', (accountStatus) => {
+  it.each(['ACTIVE', 'PENDING_VERIFICATION'] as const)('mostra o perfil da conta %s', (accountStatus) => {
     expect(isPublicProfileVisible({ accountStatus, deletedAt: null })).toBe(true);
   });
 
-  it.each(['INACTIVE', 'SUSPENDED'])('esconde o perfil da conta %s', (accountStatus) => {
+  it.each(['INACTIVE', 'SUSPENDED'] as const)('esconde o perfil da conta %s', (accountStatus) => {
     expect(isPublicProfileVisible({ accountStatus, deletedAt: null })).toBe(false);
   });
 

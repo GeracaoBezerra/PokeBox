@@ -57,7 +57,7 @@ describe('registerSchema', () => {
       password: '123',
     });
 
-    const camposComErro = resultado.error.issues.map((issue) => issue.path[0]);
+    const camposComErro = (resultado.error?.issues ?? []).map((issue) => issue.path[0]);
 
     expect(resultado.success).toBe(false);
     expect(camposComErro).toEqual(

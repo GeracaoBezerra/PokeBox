@@ -4,7 +4,7 @@ export const usernameRule = z
   .string()
   .regex(/^[a-z0-9_]{3,20}$/, 'username: 3 a 20 caracteres, apenas a-z, 0-9 e _');
 
-const optionalText = (max) => z.string().trim().max(max).nullable();
+const optionalText = (max: number) => z.string().trim().max(max).nullable();
 
 export const updateUserSchema = z
   .object({
@@ -36,3 +36,5 @@ export const updateUserSchema = z
   .refine((data) => Object.keys(data).length > 0, 'Envie ao menos um campo');
 
 export const usernameParamSchema = z.object({ username: usernameRule });
+
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;

@@ -16,7 +16,7 @@ const CANDIDATOS = [
   'a'.repeat(21),
 ];
 
-function zodAceita(username) {
+function zodAceita(username: string) {
   return registerSchema.safeParse({
     username,
     name: 'Nome Valido',
