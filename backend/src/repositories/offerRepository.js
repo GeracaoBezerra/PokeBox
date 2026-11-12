@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma.js';
-import { listingInclude } from './listingRepository.js';
+import { listingInclude } from './ListingRepository.js';
 
 const offerInclude = {
   proposer: { select: { username: true, name: true } },

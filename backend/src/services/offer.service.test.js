@@ -20,7 +20,7 @@ jest.unstable_mockModule(
   () => offerRepository,
 );
 jest.unstable_mockModule(
-  "../repositories/listingRepository.js",
+  "../repositories/legacyListingRepository.js",
   () => listingRepository,
 );
 jest.unstable_mockModule(

@@ -1,4 +1,4 @@
-import * as listingRepository from '../repositories/listingRepository.js';
+import * as listingRepository from '../repositories/legacyListingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
 import * as tradeRepository from '../repositories/tradeRepository.js';
 import { lockInOrder, withTransaction } from '../repositories/transaction.js';

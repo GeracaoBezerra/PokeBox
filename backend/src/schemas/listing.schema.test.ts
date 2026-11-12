@@ -23,7 +23,8 @@ describe('createListingSchema', () => {
   });
 
   it.each(['collectionItemId', 'quantity'])('recusa sem %s', (field) => {
-    const { [field]: _, ...body } = validCreate;
+    const body: Record<string, unknown> = { ...validCreate };
+    delete body[field];
     expect(createListingSchema.safeParse(body).success).toBe(false);
   });
 
@@ -147,8 +148,8 @@ describe('listListingsQuerySchema', () => {
 
   it('explica os valores aceitos em condition', () => {
     const { error } = listListingsQuerySchema.safeParse({ condition: 'NOVA' });
-    expect(error.issues[0].path).toEqual(['condition']);
-    expect(error.issues[0].message).toMatch(/NEAR_MINT/);
+    expect(error?.issues[0].path).toEqual(['condition']);
+    expect(error?.issues[0].message).toMatch(/NEAR_MINT/);
   });
 
   it.each([{ page: '0' }, { limit: '101' }, { limit: 'abc' }, { username: 'AB' }, { cardId: 'base1 4' }])(
@@ -160,7 +161,7 @@ describe('listListingsQuerySchema', () => {
 });
 
 describe('mensagens da paginação', () => {
-  const messageOf = (query) => listListingsQuerySchema.safeParse(query).error.issues[0].message;
+  const messageOf = (query: Record<string, string>) => listListingsQuerySchema.safeParse(query).error?.issues[0].message;
 
   it.each([
     [{ limit: '0' }, 'limit mínimo é 1'],

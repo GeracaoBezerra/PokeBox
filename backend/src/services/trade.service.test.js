@@ -22,7 +22,7 @@ const tradeRepository = {
 };
 
 jest.unstable_mockModule('../repositories/legacyCollectionRepository.js', () => collectionRepository);
-jest.unstable_mockModule('../repositories/listingRepository.js', () => ({}));
+jest.unstable_mockModule('../repositories/legacyListingRepository.js', () => ({}));
 jest.unstable_mockModule('../repositories/offerRepository.js', () => ({}));
 jest.unstable_mockModule('../repositories/tradeRepository.js', () => tradeRepository);
 jest.unstable_mockModule('../repositories/legacyWishlistRepository.js', () => wishlistRepository);

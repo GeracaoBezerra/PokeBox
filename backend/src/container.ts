@@ -51,15 +51,15 @@ export function buildContainer(env: Env): Container {
 
   const auth = buildAuthModule(infra);
 
-  const cards = buildCardsModule(infra);
+  const trading = buildTradingModule(infra);
+
+  const listings = buildListingsModule(infra, { offers: trading.offers });
+
+  const cards = buildCardsModule(infra, { listings: listings.listingService });
 
   const collection = buildCollectionModule(infra, { cards });
 
   const wishlist = buildWishlistModule(infra, { cards });
-
-  const listings = buildListingsModule(infra);
-
-  const trading = buildTradingModule(infra);
 
   return {
     infra,

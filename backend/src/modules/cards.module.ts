@@ -7,14 +7,13 @@ import { PrismaCardCacheStore } from '../cards/catalog/PrismaCardCacheStore.js';
 import { TcgdexClient } from '../cards/catalog/TcgdexClient.js';
 import type { CardFinder } from '../cards/search/CardFinder.js';
 import { SmartCardFinder } from '../cards/search/SmartCardFinder.js';
-import { CardController } from '../controllers/CardController.js';
-import * as listingRepository from '../repositories/listingRepository.js';
+import { CardController, type CardListingsReader } from '../controllers/CardController.js';
 import { PrismaCardRepository, type CardRepository } from '../repositories/PrismaCardRepository.js';
 import { PrismaCollectionRepository } from '../repositories/PrismaCollectionRepository.js';
+import { PrismaListingRepository } from '../repositories/PrismaListingRepository.js';
 import { PrismaWishlistRepository } from '../repositories/PrismaWishlistRepository.js';
 import { createCardRoutes } from '../routes/card.routes.js';
 import { CardService } from '../services/CardService.js';
-import * as listingService from '../services/listing.service.js';
 import type { AppModule, Infra } from './types.js';
 
 const ONE_HOUR = 60 * 60 * 1000;
@@ -52,15 +51,19 @@ function buildCatalog(infra: Infra, cardRepository: CardRepository): { catalog: 
   return { catalog, finder: new SmartCardFinder(catalog, { ttlMs: TEN_MINUTES }) };
 }
 
-export function buildCardsModule(infra: Infra): CardsModule {
+export interface CardsModuleDeps {
+  listings: CardListingsReader;
+}
+
+export function buildCardsModule(infra: Infra, { listings }: CardsModuleDeps): CardsModule {
   const cardRepository = new PrismaCardRepository(infra.prisma);
   const { catalog, finder } = buildCatalog(infra, cardRepository);
   const cardService = new CardService(catalog, finder, {
     collection: new PrismaCollectionRepository(infra.prisma),
     wishlist: new PrismaWishlistRepository(infra.prisma),
-    listings: listingRepository,
+    listings: new PrismaListingRepository(infra.prisma),
   });
-  const controller = new CardController(cardService, listingService);
+  const controller = new CardController(cardService, listings);
 
   return {
     cardService,

@@ -1,5 +1,5 @@
 import * as collectionRepository from '../repositories/legacyCollectionRepository.js';
-import * as listingRepository from '../repositories/listingRepository.js';
+import * as listingRepository from '../repositories/legacyListingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
 import * as tradeRepository from '../repositories/tradeRepository.js';
 import * as wishlistRepository from '../repositories/legacyWishlistRepository.js';

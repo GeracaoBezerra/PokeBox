@@ -23,13 +23,13 @@ export const updateListingSchema = z
   .object({
     quantity: z.number().int().min(1),
     description: description.nullable(),
-    status: z.enum(Object.values(ListingStatus)),
+    status: z.enum(ListingStatus),
   })
   .partial()
   .strict()
   .refine((data) => Object.keys(data).length > 0, 'Envie ao menos um campo');
 
-const upperEnum = (values, message) =>
+const upperEnum = <T extends Record<string, string>>(values: T, message: string) =>
   z.preprocess((value) => (typeof value === 'string' ? value.trim().toUpperCase() : value), z.enum(values, { message }));
 
 export const listListingsQuerySchema = z.object({
@@ -48,8 +48,8 @@ export const listListingsQuerySchema = z.object({
       'q precisa ter ao menos uma palavra com 2 letras ou números',
     )
     .optional(),
-  condition: upperEnum(Object.values(CardCondition), `condition deve ser um de: ${Object.values(CardCondition).join(', ')}`).optional(),
-  finish: upperEnum(Object.values(CardFinish), `finish deve ser um de: ${Object.values(CardFinish).join(', ')}`).optional(),
+  condition: upperEnum(CardCondition, `condition deve ser um de: ${Object.values(CardCondition).join(', ')}`).optional(),
+  finish: upperEnum(CardFinish, `finish deve ser um de: ${Object.values(CardFinish).join(', ')}`).optional(),
   firstEdition: z.enum(['true', 'false'], { message: 'firstEdition deve ser true ou false' }).transform((value) => value === 'true').optional(),
   setId: z
     .string()
@@ -60,7 +60,7 @@ export const listListingsQuerySchema = z.object({
     .preprocess(
       (value) =>
         typeof value === 'string'
-          ? CARD_TYPES.find((type) => type.toLowerCase() === value.trim().toLowerCase()) ?? value
+          ? (CARD_TYPES.find((type) => type.toLowerCase() === value.trim().toLowerCase()) ?? value)
           : value,
       z.enum(CARD_TYPES, { message: `type deve ser um de: ${CARD_TYPES.join(', ')}` }),
     )
@@ -72,3 +72,9 @@ export const listListingsQuerySchema = z.object({
 });
 
 export const listingIdSchema = z.object({ id: z.uuid() });
+
+export type CreateListingInput = z.infer<typeof createListingSchema>;
+
+export type UpdateListingInput = z.infer<typeof updateListingSchema>;
+
+export type ListListingsQuery = z.infer<typeof listListingsQuerySchema>;

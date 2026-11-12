@@ -5,13 +5,15 @@ import {
   mayCancelAccepted,
   needsStockCheck,
   toListingResponse,
+  type ListingUpdateInput,
 } from './listingRules.js';
+import type { AccountStatus, ListingStatus } from '../generated/prisma/index.js';
 
-const statusOf = (fn) => {
+const statusOf = (fn: () => void): number | null => {
   try {
     fn();
   } catch (err) {
-    return err.statusCode;
+    return (err as { statusCode: number }).statusCode;
   }
   return null;
 };
@@ -42,7 +44,7 @@ describe('assertListingUpdate', () => {
   const admin = { isOwner: false, isAdmin: true };
   const stranger = { isOwner: false, isAdmin: false };
 
-  it.each([
+  it.each<[ListingStatus, ListingUpdateInput]>([
     ['ACTIVE', { status: 'PAUSED' }],
     ['PAUSED', { status: 'ACTIVE' }],
     ['ACTIVE', { status: 'CLOSED' }],
@@ -68,7 +70,7 @@ describe('assertListingUpdate', () => {
     expect(statusOf(() => assertListingUpdate({ from: 'ACTIVE', input: { status: 'BLOCKED' }, ...owner }))).toBe(403);
   });
 
-  it.each(['ACTIVE', 'PAUSED'])('admin bloqueia anúncio %s', (from) => {
+  it.each<ListingStatus>(['ACTIVE', 'PAUSED'])('admin bloqueia anúncio %s', (from) => {
     expect(() => assertListingUpdate({ from, input: { status: 'BLOCKED' }, ...admin })).not.toThrow();
   });
 
@@ -76,7 +78,7 @@ describe('assertListingUpdate', () => {
     expect(() => assertListingUpdate({ from: 'BLOCKED', input: { status: 'PAUSED' }, ...admin })).not.toThrow();
   });
 
-  it.each([
+  it.each<[ListingStatus, ListingStatus]>([
     ['BLOCKED', 'ACTIVE'],
     ['BLOCKED', 'CLOSED'],
     ['ACTIVE', 'PAUSED'],
@@ -85,7 +87,7 @@ describe('assertListingUpdate', () => {
     expect(statusOf(() => assertListingUpdate({ from, input: { status }, ...admin }))).toBe(422);
   });
 
-  it.each([{ quantity: 1 }, { description: 'x' }, { status: 'BLOCKED', quantity: 1 }])(
+  it.each<ListingUpdateInput>([{ quantity: 1 }, { description: 'x' }, { status: 'BLOCKED', quantity: 1 }])(
     'admin não muda quantidade nem descrição de outro: 403 (%o)',
     (input) => {
       expect(statusOf(() => assertListingUpdate({ from: 'ACTIVE', input, ...admin }))).toBe(403);
@@ -137,7 +139,7 @@ const listing = {
   collectionItemId: 'item-1',
   quantity: 1,
   description: 'troco por Blastoise',
-  status: 'ACTIVE',
+  status: 'ACTIVE' as ListingStatus,
   createdAt: new Date('2026-11-01'),
   updatedAt: new Date('2026-11-01'),
   collectionItem: {
@@ -146,20 +148,20 @@ const listing = {
     cardId: 'base1-4',
     quantity: 3,
     reservedQuantity: 1,
-    condition: 'NEAR_MINT',
-    finish: 'HOLO',
+    condition: 'NEAR_MINT' as const,
+    finish: 'HOLO' as const,
     firstEdition: true,
     isPublic: false,
     card: { id: 'base1-4', name: 'Charizard', marketPrice: '312.5' },
-    user: { username: 'ash', name: 'Ash Ketchum', accountStatus: 'ACTIVE', deletedAt: null, email: 'ash@pokebox.dev' },
+    user: { username: 'ash', name: 'Ash Ketchum', accountStatus: 'ACTIVE' as AccountStatus, deletedAt: null as Date | null, email: 'ash@pokebox.dev' },
   },
 };
 
 describe('isListingVisible', () => {
-  const paused = { ...listing, status: 'PAUSED' };
+  const paused = { ...listing, status: 'PAUSED' as const };
   const suspendedOwner = {
     ...listing,
-    collectionItem: { ...listing.collectionItem, user: { ...listing.collectionItem.user, accountStatus: 'SUSPENDED' } },
+    collectionItem: { ...listing.collectionItem, user: { ...listing.collectionItem.user, accountStatus: 'SUSPENDED' as const } },
   };
 
   it('anúncio ACTIVE de conta usável é público', () => {
