@@ -1,5 +1,5 @@
 .login-page {
-  /* Cores base */
+  /* Cores globais */
   --text: var(--texto);
   --muted: var(--texto-suave);
   --line: var(--borda-suave);
@@ -11,31 +11,31 @@
   --ok: var(--sucesso);
 
   /* Fundo da página */
-  --page-from: #0b1030;
-  --page-to: #2a0a24;
+  --page-from: var(--auth-fundo-inicio);
+  --page-to: var(--auth-fundo-fim);
   --shade: rgb(5 8 30 / 0.38);
 
   /* Superfícies derivadas */
   --input-bg: rgb(255 255 255 / 0.06);
   --focus-ring: color-mix(in srgb, var(--acento) 30%, transparent);
   --brand-glow: color-mix(in srgb, var(--acento) 35%, transparent);
- 
+
   /* Raios */
-  --radius-sm: 12px;
-  --radius-lg: 22px;
- 
+  --radius-sm:12px;
+  --radius-lg:22px;
+
   /* Sombras */
   --shadow-card: 0 20px 60px rgb(0 0 0 / 0.35);
   --shadow-button: 0 8px 20px var(--brand-glow);
- 
+
   /* Tipografia */
-  --font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
- 
+  --font-family: var(--fonte-corpo);
+
   /* Transições */
   --transition-fast: 0.15s;
   --transition-base: 0.2s;
   --transition-slow: 0.8s;
- 
+
   /* Camadas */
   --z-bg: 0;
   --z-content: 1;

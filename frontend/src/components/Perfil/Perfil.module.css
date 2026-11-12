@@ -1,3 +1,4 @@
+
 .secao {
   width: 100%;
   padding: var(--esp-48) var(--esp-24);
@@ -57,6 +58,11 @@
 }
 
 .botaoPerigo {
-  border: 1px solid var(--erro);
-  color: var(--erro);
+  composes: botaoPerigo from "../../styles/botoes.module.css";
+  min-height: var(--altura-controle);
+  padding: 0 var(--esp-16);
+  border-radius: var(--raio-botao);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+  background: none;
 }

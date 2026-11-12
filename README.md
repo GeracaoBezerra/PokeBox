@@ -396,3 +396,14 @@ Mudou o banco? Altere o `schema.prisma`, rode `npx prisma migrate dev --name <de
 Padrão de commits: `tipo(escopo): descrição`, por exemplo `feat(wishlist): ...`, `fix(db): ...`, `docs: ...`.
 
 Respostas e erros da API seguem o contrato `{ success, data }` / `{ success: false, error }`. Erros de regra são lançados com `AppError(status, mensagem)` no service.
+
+
+## Frontend CSS Conventions
+
+- Global design tokens (colors, spacing, typography, borders, and shadows) are defined in `frontend/src/styles/global.css`.
+- Use CSS Modules (`*.module.css`) for component-specific styles.
+- Shared page styles are maintained in `frontend/src/styles/paginas.module.css`.
+- Shared button styles are maintained in `frontend/src/styles/botoes.module.css`.
+- Use Portuguese names for CSS classes and design tokens, following the existing project conventions.
+- Avoid hardcoded colors; use global CSS variables instead.
+- Avoid inline styles unless they are required for dynamic values or animations.
