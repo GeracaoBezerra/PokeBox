@@ -1,4 +1,6 @@
-export const cardMock = {
+import type { CardDetail } from '../cards/types.js';
+
+export const cardMock: CardDetail = {
   id: 'base1-4',
   name: 'Charizard',
   number: '4/102',

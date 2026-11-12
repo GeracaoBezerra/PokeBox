@@ -1,6 +1,43 @@
+import type { CardImage, CardListItem } from '../cards/types.js';
+
 const MAX_SETS = 3;
 
-export function normalizeText(text) {
+export interface NamedSet {
+  id: string;
+  name: string;
+}
+
+export interface SearchableCard {
+  id: string;
+  name: string;
+}
+
+export interface ListableCard extends SearchableCard {
+  localId: string;
+  image: CardImage;
+}
+
+export interface SetMatch<S extends NamedSet> {
+  sets: S[];
+  used: string[];
+  complete: string[];
+}
+
+export interface RankCriteria {
+  nameTokens?: string[];
+  setIds?: string[];
+  phrase?: string;
+}
+
+interface SetCandidate<S extends NamedSet> {
+  set: S;
+  matched: string[];
+  covered: number;
+  ratio: number;
+  index: number;
+}
+
+export function normalizeText(text: unknown): string {
   return String(text ?? '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -8,14 +45,14 @@ export function normalizeText(text) {
     .trim();
 }
 
-export function tokenize(text) {
+export function tokenize(text: unknown): string[] {
   return normalizeText(text)
     .split(/\s+/)
     .filter((word) => word.length >= 2);
 }
 
-export function matchSets(tokens, sets) {
-  const candidates = [];
+export function matchSets<S extends NamedSet>(tokens: string[], sets: S[]): SetMatch<S> {
+  const candidates: SetCandidate<S>[] = [];
 
   sets.forEach((set, index) => {
     const words = normalizeText(set.name).split(/\s+/).filter(Boolean);
@@ -40,13 +77,16 @@ export function matchSets(tokens, sets) {
   };
 }
 
-export function setIdFromCardId(cardId, setIds) {
+export function setIdFromCardId(cardId: string, setIds: string[]): string | null {
   return setIds
     .filter((setId) => cardId.startsWith(`${setId}-`))
-    .reduce((longest, setId) => (longest && longest.length >= setId.length ? longest : setId), null);
+    .reduce<string | null>((longest, setId) => (longest && longest.length >= setId.length ? longest : setId), null);
 }
 
-export function scoreCard(card, { nameTokens = [], setIds = [], phrase = nameTokens.join(' ') }) {
+export function scoreCard(
+  card: SearchableCard,
+  { nameTokens = [], setIds = [], phrase = nameTokens.join(' ') }: RankCriteria,
+): number {
   const name = normalizeText(card.name).split(/\s+/).join(' ');
   let score = 0;
   if (setIdFromCardId(card.id, setIds)) score += 3;
@@ -55,8 +95,8 @@ export function scoreCard(card, { nameTokens = [], setIds = [], phrase = nameTok
   return score;
 }
 
-export function rankCards(cards, criteria) {
-  const seen = new Set();
+export function rankCards<C extends SearchableCard>(cards: C[], criteria: RankCriteria): C[] {
+  const seen = new Set<string>();
   return cards
     .filter((card) => {
       if (seen.has(card.id)) return false;
@@ -68,12 +108,12 @@ export function rankCards(cards, criteria) {
     .map(({ card }) => card);
 }
 
-export function nameMatchesAny(cardName, tokens) {
+export function nameMatchesAny(cardName: string, tokens: string[]): boolean {
   const name = normalizeText(cardName);
   return tokens.some((token) => name.includes(token));
 }
 
-export function toCardListItem(card, sets) {
+export function toCardListItem(card: ListableCard, sets: NamedSet[]): CardListItem {
   const setId = setIdFromCardId(card.id, sets.map((set) => set.id));
   const set = setId ? sets.find((item) => item.id === setId) : null;
   return {

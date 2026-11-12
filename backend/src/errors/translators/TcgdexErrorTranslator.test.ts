@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-import { CardNotFoundError } from '../../repositories/tcgdexRepository.js';
+import { CardNotFoundError } from '../CardNotFoundError.js';
 import { TcgdexUnavailableError } from '../TcgdexUnavailableError.js';
 import { TcgdexErrorTranslator } from './TcgdexErrorTranslator.js';
 
