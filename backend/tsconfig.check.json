@@ -10,7 +10,8 @@
   },
   "include": [
     "src",
-    "prisma/seed.ts"
+    "prisma/seed.ts",
+    "scripts/snapshot-cards.ts"
   ],
   "exclude": [
     "node_modules",

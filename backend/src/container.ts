@@ -7,7 +7,7 @@ import { PrismaErrorTranslator } from './errors/translators/PrismaErrorTranslato
 import { TcgdexErrorTranslator } from './errors/translators/TcgdexErrorTranslator.js';
 import { ZodErrorTranslator } from './errors/translators/ZodErrorTranslator.js';
 import type { Logger } from './lib/logger.js';
-import { createPrismaClient, prisma as legacyPrisma } from './lib/prisma.js';
+import { createPrismaClient } from './lib/prisma.js';
 import { AuthMiddleware } from './middlewares/AuthMiddleware.js';
 import { createErrorHandler } from './middlewares/errorHandler.js';
 import { buildAuthModule } from './modules/auth.module.js';
@@ -66,7 +66,7 @@ export function buildContainer(env: Env): Container {
     errorHandler: buildErrorHandler(infra.logger),
     modules: [auth, cards, collection, wishlist, listings, trading],
     async shutdown() {
-      await Promise.all([infra.prisma.$disconnect(), legacyPrisma.$disconnect()]);
+      await infra.prisma.$disconnect();
     },
   };
 }

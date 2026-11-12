@@ -4,8 +4,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
-    "allowJs": true,
-    "checkJs": false,
     "outDir": "dist",
     "rootDir": "src",
     "esModuleInterop": true,
@@ -23,7 +21,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    "src/**/*.test.ts",
-    "src/**/*.test.js"
+    "src/**/*.test.ts"
   ]
 }

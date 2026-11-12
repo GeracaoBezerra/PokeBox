@@ -15,7 +15,7 @@ const langParam = {
   schema: { type: "string", enum: LANGS, default: "en" },
 };
 
-const errorResponse = (description, schema = "ApiError") => ({
+const errorResponse = (description: string, schema = "ApiError") => ({
   description,
   content: {
     "application/json": {
@@ -34,7 +34,7 @@ const tcgdexErrors = {
   504: errorResponse("Serviço de cartas (TCGdex) demorou mais de 8 s para responder, e sem cópia da carta guardada"),
 };
 
-const collectionItemResponse = (description) => ({
+const collectionItemResponse = (description: string) => ({
   description,
   content: {
     "application/json": {
@@ -103,7 +103,7 @@ const listingIdParam = {
   schema: { type: "string", format: "uuid" },
 };
 
-const listingResponse = (description) => ({
+const listingResponse = (description: string) => ({
   description,
   content: {
     "application/json": {
@@ -123,7 +123,7 @@ const listingResponse = (description) => ({
   },
 });
 
-const listingListResponse = (description, withPagination) => ({
+const listingListResponse = (description: string, withPagination: boolean) => ({
   description,
   content: {
     "application/json": {
@@ -170,7 +170,7 @@ const offerIdParam = {
   schema: { type: "string", format: "uuid" },
 };
 
-const offerResponse = (description) => ({
+const offerResponse = (description: string) => ({
   description,
   content: {
     "application/json": {
@@ -198,7 +198,7 @@ const tradeIdParam = {
   schema: { type: "string", format: "uuid" },
 };
 
-const tradeResponse = (description) => ({
+const tradeResponse = (description: string) => ({
   description,
   content: {
     "application/json": {
@@ -218,7 +218,7 @@ const tradeResponse = (description) => ({
   },
 });
 
-const tradeActionErrors = (wrongRole) => ({
+const tradeActionErrors = (wrongRole: string) => ({
   400: errorResponse("Id inválido", "ApiValidationError"),
   403: errorResponse(`Não faz parte da troca (inclui ADMIN) ou ${wrongRole}`),
   404: errorResponse("Troca não encontrada"),

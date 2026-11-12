@@ -7,5 +7,3 @@ export type Db = PrismaClient | Prisma.TransactionClient;
 export function createPrismaClient(databaseUrl: string): PrismaClient {
   return new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
 }
-
-export const prisma = createPrismaClient(process.env.DATABASE_URL ?? '');
