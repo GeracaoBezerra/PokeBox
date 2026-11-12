@@ -11,7 +11,7 @@ import { CardController } from '../controllers/CardController.js';
 import * as collectionRepository from '../repositories/collectionRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
 import { PrismaCardRepository, type CardRepository } from '../repositories/PrismaCardRepository.js';
-import * as wishlistRepository from '../repositories/wishlistRepository.js';
+import { PrismaWishlistRepository } from '../repositories/PrismaWishlistRepository.js';
 import { createCardRoutes } from '../routes/card.routes.js';
 import { registerLegacyCardFetcher } from '../services/card.service.js';
 import { CardService } from '../services/CardService.js';
@@ -58,7 +58,7 @@ export function buildCardsModule(infra: Infra): CardsModule {
   const { catalog, finder } = buildCatalog(infra, cardRepository);
   const cardService = new CardService(catalog, finder, {
     collection: collectionRepository,
-    wishlist: wishlistRepository,
+    wishlist: new PrismaWishlistRepository(infra.prisma),
     listings: listingRepository,
   });
   const controller = new CardController(cardService, listingService);

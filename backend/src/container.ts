@@ -55,7 +55,7 @@ export function buildContainer(env: Env): Container {
 
   const collection = buildCollectionModule(infra);
 
-  const wishlist = buildWishlistModule(infra);
+  const wishlist = buildWishlistModule(infra, { cards });
 
   const listings = buildListingsModule(infra);
 

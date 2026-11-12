@@ -13,7 +13,7 @@ const cardService = { fetchCard: jest.fn() };
 const withTransaction = jest.fn((fn) => fn(tx));
 
 jest.unstable_mockModule('../repositories/collectionRepository.js', () => collectionRepository);
-jest.unstable_mockModule('../repositories/wishlistRepository.js', () => wishlistRepository);
+jest.unstable_mockModule('../repositories/legacyWishlistRepository.js', () => wishlistRepository);
 jest.unstable_mockModule('../repositories/cardRepository.js', () => cardRepository);
 jest.unstable_mockModule('../repositories/listingRepository.js', () => listingRepository);
 jest.unstable_mockModule('../repositories/offerRepository.js', () => offerRepository);

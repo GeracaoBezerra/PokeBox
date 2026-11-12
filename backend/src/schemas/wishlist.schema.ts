@@ -7,3 +7,5 @@ export const addWishlistItemSchema = z
   .strict();
 
 export const wishlistItemIdSchema = z.object({ id: z.uuid() });
+
+export type AddWishlistItemInput = z.infer<typeof addWishlistItemSchema>;

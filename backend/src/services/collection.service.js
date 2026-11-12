@@ -2,7 +2,7 @@ import * as collectionRepository from '../repositories/collectionRepository.js';
 import { upsertCard } from '../repositories/cardRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
-import * as wishlistRepository from '../repositories/wishlistRepository.js';
+import * as wishlistRepository from '../repositories/legacyWishlistRepository.js';
 import { withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../errors/AppError.js';
 import { toCardRecord } from '../utils/cardRecord.js';

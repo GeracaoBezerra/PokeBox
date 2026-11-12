@@ -25,7 +25,7 @@ jest.unstable_mockModule('../repositories/collectionRepository.js', () => collec
 jest.unstable_mockModule('../repositories/listingRepository.js', () => ({}));
 jest.unstable_mockModule('../repositories/offerRepository.js', () => ({}));
 jest.unstable_mockModule('../repositories/tradeRepository.js', () => tradeRepository);
-jest.unstable_mockModule('../repositories/wishlistRepository.js', () => wishlistRepository);
+jest.unstable_mockModule('../repositories/legacyWishlistRepository.js', () => wishlistRepository);
 const lockInOrder = jest.fn(async (ids) => new Map(ids.map((id) => [id, items[id]])));
 
 jest.unstable_mockModule('../repositories/transaction.js', () => ({

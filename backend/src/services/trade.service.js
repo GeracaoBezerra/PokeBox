@@ -2,7 +2,7 @@ import * as collectionRepository from '../repositories/collectionRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
 import * as tradeRepository from '../repositories/tradeRepository.js';
-import * as wishlistRepository from '../repositories/wishlistRepository.js';
+import * as wishlistRepository from '../repositories/legacyWishlistRepository.js';
 import { lockInOrder, withTransaction } from '../repositories/transaction.js';
 import { AppError } from '../errors/AppError.js';
 import { assertStillFulfillable } from '../utils/offerRules.js';
