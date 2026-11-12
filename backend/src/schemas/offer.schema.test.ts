@@ -5,7 +5,7 @@ import {
   updateOfferStatusSchema,
 } from './offer.schema.js';
 
-const uuid = (n) => `f323730d-c965-42b2-b3f4-${String(n).padStart(12, '0')}`;
+const uuid = (n: number) => `f323730d-c965-42b2-b3f4-${String(n).padStart(12, '0')}`;
 const validCreate = { quantity: 1, items: [{ collectionItemId: uuid(1), quantity: 1 }] };
 
 describe('createOfferSchema', () => {
@@ -26,7 +26,8 @@ describe('createOfferSchema', () => {
   });
 
   it.each(['quantity', 'items'])('recusa sem %s', (field) => {
-    const { [field]: _, ...body } = validCreate;
+    const body: Record<string, unknown> = { ...validCreate };
+    delete body[field];
     expect(createOfferSchema.safeParse(body).success).toBe(false);
   });
 
@@ -39,7 +40,7 @@ describe('createOfferSchema', () => {
   });
 
   it('aceita 20 itens e recusa 21', () => {
-    const items = (n) => Array.from({ length: n }, (_, i) => ({ collectionItemId: uuid(i + 1), quantity: 1 }));
+    const items = (n: number) => Array.from({ length: n }, (_, i) => ({ collectionItemId: uuid(i + 1), quantity: 1 }));
     expect(createOfferSchema.safeParse({ ...validCreate, items: items(20) }).success).toBe(true);
     expect(createOfferSchema.safeParse({ ...validCreate, items: items(21) }).success).toBe(false);
   });

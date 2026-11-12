@@ -67,7 +67,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
     return items.map((item) => item.id);
   }
 
-  async lockById(id: string, db: Db): Promise<LockedCollectionItem | null> {
+  async lockById(id: string, db: Db = this.db): Promise<LockedCollectionItem | null> {
     const rows = await db.$queryRaw<LockedCollectionItem[]>`
       SELECT "id", "userId", "cardId", "quantity", "reservedQuantity", "condition"
       FROM "CollectionItem"
@@ -78,7 +78,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
     return rows[0] ?? null;
   }
 
-  async lockInOrder(ids: string[], db: Db): Promise<Map<string, LockedCollectionItem | null>> {
+  async lockInOrder(ids: string[], db: Db = this.db): Promise<Map<string, LockedCollectionItem | null>> {
     const locked = new Map<string, LockedCollectionItem | null>();
     for (const id of [...new Set(ids)].sort()) {
       locked.set(id, await this.lockById(id, db));
@@ -90,7 +90,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
     return db.collectionItem.update({ where: { id }, data, include: collectionItemWithCard });
   }
 
-  async reserve(id: string, quantity: number, db: Db): Promise<void> {
+  async reserve(id: string, quantity: number, db: Db = this.db): Promise<void> {
     await db.collectionItem.update({
       where: { id },
       data: { reservedQuantity: { increment: quantity } },
@@ -98,7 +98,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
     });
   }
 
-  async release(id: string, quantity: number, db: Db): Promise<void> {
+  async release(id: string, quantity: number, db: Db = this.db): Promise<void> {
     await db.collectionItem.update({
       where: { id },
       data: { reservedQuantity: { decrement: quantity } },
@@ -106,7 +106,7 @@ export class PrismaCollectionRepository implements CollectionRepository {
     });
   }
 
-  async transferOut(id: string, quantity: number, db: Db): Promise<void> {
+  async transferOut(id: string, quantity: number, db: Db = this.db): Promise<void> {
     await db.collectionItem.update({
       where: { id },
       data: { quantity: { decrement: quantity }, reservedQuantity: { decrement: quantity } },

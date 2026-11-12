@@ -1,18 +1,8 @@
 import type { Db } from '../lib/prisma.js';
 import type { ListingChanges, ListingUpdater, ListingWithItem } from '../repositories/ListingRepository.js';
+import type { ListingOfferCanceller } from '../repositories/OfferRepository.js';
 import { cancelsOffers, mayCancelAccepted, type ListingState } from '../utils/listingRules.js';
 import { acceptedOffersToCancel } from '../utils/tradeRules.js';
-
-export interface AcceptedOffer {
-  id: string;
-  quantity: number;
-}
-
-export interface ListingOfferCanceller {
-  cancelOpenByListing(listingId: string, db?: Db): Promise<number>;
-  lockAcceptedWithoutTrade(listingId: string, db?: Db): Promise<AcceptedOffer[]>;
-  cancelByIds(ids: string[], db?: Db): Promise<number>;
-}
 
 export interface CurrentListing extends ListingState {
   id: string;

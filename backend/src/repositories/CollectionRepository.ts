@@ -49,12 +49,12 @@ export interface CollectionRepository {
   findById(id: string): Promise<CollectionItemWithCard | null>;
   addOrIncrement(data: NewCollectionItem, db?: Db): Promise<CollectionItemWithCard>;
   findIdsByKeys(keys: CollectionItemKey[]): Promise<string[]>;
-  lockById(id: string, db: Db): Promise<LockedCollectionItem | null>;
-  lockInOrder(ids: string[], db: Db): Promise<Map<string, LockedCollectionItem | null>>;
+  lockById(id: string, db?: Db): Promise<LockedCollectionItem | null>;
+  lockInOrder(ids: string[], db?: Db): Promise<Map<string, LockedCollectionItem | null>>;
   update(id: string, data: CollectionItemChanges, db?: Db): Promise<CollectionItemWithCard>;
-  reserve(id: string, quantity: number, db: Db): Promise<void>;
-  release(id: string, quantity: number, db: Db): Promise<void>;
-  transferOut(id: string, quantity: number, db: Db): Promise<void>;
+  reserve(id: string, quantity: number, db?: Db): Promise<void>;
+  release(id: string, quantity: number, db?: Db): Promise<void>;
+  transferOut(id: string, quantity: number, db?: Db): Promise<void>;
   remove(id: string): Promise<void>;
   findOwnersOfCards(cardIds: string[], userId: string): Promise<CardOwner[]>;
   sumQuantityByUserAndCard(userId: string, cardId: string): Promise<number | null>;

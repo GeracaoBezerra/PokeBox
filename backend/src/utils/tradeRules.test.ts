@@ -10,12 +10,14 @@ import {
   toTradeResponse,
   trimListings,
 } from './tradeRules.js';
+import type { ListingStatus, OfferStatus, TradeStatus } from '../generated/prisma/index.js';
+import type { TradeAction } from './tradeRules.js';
 
-const statusOf = (fn) => {
+const statusOf = (fn: () => void): number | null => {
   try {
     fn();
   } catch (err) {
-    return err.statusCode;
+    return (err as { statusCode: number }).statusCode;
   }
   return null;
 };
@@ -57,14 +59,14 @@ describe('assertCanCreate', () => {
 });
 
 describe('assertOfferTradable', () => {
-  const offer = { status: 'ACCEPTED' };
-  const listing = { status: 'ACTIVE' };
+  const offer = { status: 'ACCEPTED' as OfferStatus };
+  const listing = { status: 'ACTIVE' as ListingStatus };
 
-  it.each(['ACTIVE', 'PAUSED'])('aceita oferta aceita sem troca em anúncio %s', (status) => {
+  it.each<ListingStatus>(['ACTIVE', 'PAUSED'])('aceita oferta aceita sem troca em anúncio %s', (status) => {
     expect(() => assertOfferTradable({ offer, hasTrade: false, listing: { status } })).not.toThrow();
   });
 
-  it.each(['PROPOSED', 'REJECTED', 'CANCELED'])('oferta %s dá 422', (status) => {
+  it.each<OfferStatus>(['PROPOSED', 'REJECTED', 'CANCELED'])('oferta %s dá 422', (status) => {
     expect(statusOf(() => assertOfferTradable({ offer: { status }, hasTrade: false, listing }))).toBe(422);
   });
 
@@ -72,15 +74,15 @@ describe('assertOfferTradable', () => {
     expect(statusOf(() => assertOfferTradable({ offer, hasTrade: true, listing }))).toBe(409);
   });
 
-  it.each(['CLOSED', 'BLOCKED'])('anúncio %s dá 422', (status) => {
+  it.each<ListingStatus>(['CLOSED', 'BLOCKED'])('anúncio %s dá 422', (status) => {
     expect(statusOf(() => assertOfferTradable({ offer, hasTrade: false, listing: { status } }))).toBe(422);
   });
 });
 
 describe('assertTradeAction', () => {
-  const trade = { proposerId: PROPOSER_ID, recipientId: OWNER_ID, status: 'PROPOSED' };
+  const trade = { proposerId: PROPOSER_ID, recipientId: OWNER_ID, status: 'PROPOSED' as TradeStatus };
 
-  it.each([
+  it.each<[TradeAction, string]>([
     ['accept', OWNER_ID],
     ['reject', OWNER_ID],
     ['cancel', PROPOSER_ID],
@@ -88,11 +90,11 @@ describe('assertTradeAction', () => {
     expect(() => assertTradeAction({ trade, userId, action })).not.toThrow();
   });
 
-  it.each(['accept', 'reject', 'cancel'])('%s por quem não faz parte dá 403', (action) => {
+  it.each<TradeAction>(['accept', 'reject', 'cancel'])('%s por quem não faz parte dá 403', (action) => {
     expect(statusOf(() => assertTradeAction({ trade, userId: OTHER_ID, action }))).toBe(403);
   });
 
-  it.each([
+  it.each<[TradeAction, string]>([
     ['accept', PROPOSER_ID],
     ['reject', PROPOSER_ID],
     ['cancel', OWNER_ID],
@@ -100,7 +102,7 @@ describe('assertTradeAction', () => {
     expect(statusOf(() => assertTradeAction({ trade, userId, action }))).toBe(403);
   });
 
-  it.each(['ACCEPTED', 'REJECTED', 'CANCELED'])('troca %s dá 409', (status) => {
+  it.each<TradeStatus>(['ACCEPTED', 'REJECTED', 'CANCELED'])('troca %s dá 409', (status) => {
     expect(statusOf(() => assertTradeAction({ trade: { ...trade, status }, userId: OWNER_ID, action: 'accept' }))).toBe(
       409,
     );
@@ -126,7 +128,7 @@ describe('assertStillTradable', () => {
 });
 
 describe('buildTradeItems', () => {
-  const card = (id) => ({ cardId: id, condition: 'NEAR_MINT', finish: 'HOLO', firstEdition: false });
+  const card = (id: string) => ({ cardId: id, condition: 'NEAR_MINT' as const, finish: 'HOLO' as const, firstEdition: false });
   const listing = { collectionItem: { id: 'item-owner', ...card('base1-4'), userId: OWNER_ID } };
   const offer = {
     proposerId: PROPOSER_ID,
@@ -224,7 +226,7 @@ describe('trimListings', () => {
 describe('toTradeResponse', () => {
   const trade = {
     id: 'trade-id',
-    status: 'PROPOSED',
+    status: 'PROPOSED' as TradeStatus,
     createdAt: new Date('2026-11-08T12:00:00Z'),
     completedAt: null,
     offerId: 'offer-id',
@@ -241,8 +243,8 @@ describe('toTradeResponse', () => {
         fromUser: { username: 'ash' },
         toUser: { username: 'misty' },
         quantity: 1,
-        condition: 'NEAR_MINT',
-        finish: 'HOLO',
+        condition: 'NEAR_MINT' as const,
+        finish: 'HOLO' as const,
         firstEdition: true,
         card: { id: 'base1-4', name: 'Charizard', marketPrice: '199.90' },
       },

@@ -39,7 +39,11 @@ export const updateOfferStatusSchema = z
   .strict();
 
 export const listOffersQuerySchema = z.object({
-  status: z.enum(Object.values(OfferStatus)).optional(),
+  status: z.enum(OfferStatus).optional(),
 });
 
 export const offerIdSchema = z.object({ id: z.uuid() });
+
+export type CreateOfferInput = z.infer<typeof createOfferSchema>;
+
+export type OfferStatusChange = z.infer<typeof updateOfferStatusSchema>['status'];

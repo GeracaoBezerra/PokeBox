@@ -5,7 +5,8 @@ import type { Db } from '../lib/prisma.js';
 import type { LockedCollectionItem } from '../repositories/CollectionRepository.js';
 import type { ListingWithItem } from '../repositories/ListingRepository.js';
 import type { TransactionRunner } from '../repositories/TransactionRunner.js';
-import { ListingChangeApplier, type ListingOfferCanceller } from './ListingChangeApplier.js';
+import type { ListingOfferCanceller } from '../repositories/OfferRepository.js';
+import { ListingChangeApplier } from './ListingChangeApplier.js';
 import { ListingService, type ListingServiceDeps, type ListingStore } from './ListingService.js';
 
 const OWNER_ID = 'owner-id';

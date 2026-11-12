@@ -9,7 +9,7 @@ export const createTradeSchema = z
   .strict();
 
 export const listTradesQuerySchema = z.object({
-  status: z.enum(Object.values(TradeStatus)).optional(),
+  status: z.enum(TradeStatus).optional(),
 });
 
 export const tradeIdSchema = z.object({ id: z.uuid() });

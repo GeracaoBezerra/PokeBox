@@ -1,8 +1,8 @@
 import { CollectionController } from '../controllers/CollectionController.js';
 import { ProfileController } from '../controllers/ProfileController.js';
-import * as offerRepository from '../repositories/offerRepository.js';
 import { PrismaCollectionRepository } from '../repositories/PrismaCollectionRepository.js';
 import { PrismaListingRepository } from '../repositories/PrismaListingRepository.js';
+import { PrismaOfferRepository } from '../repositories/PrismaOfferRepository.js';
 import { PrismaTransactionRunner } from '../repositories/PrismaTransactionRunner.js';
 import { PrismaUserRepository } from '../repositories/PrismaUserRepository.js';
 import { PrismaWishlistRepository } from '../repositories/PrismaWishlistRepository.js';
@@ -24,7 +24,7 @@ export function buildCollectionModule(infra: Infra, { cards }: CollectionModuleD
     collection,
     wishlist: new PrismaWishlistRepository(infra.prisma),
     listings: new PrismaListingRepository(infra.prisma),
-    offers: offerRepository,
+    offers: new PrismaOfferRepository(infra.prisma),
     cards: cards.cardService,
     cardStore: cards.cardRepository,
     transactions: new PrismaTransactionRunner(infra.prisma),

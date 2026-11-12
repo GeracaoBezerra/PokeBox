@@ -2,7 +2,8 @@ import { jest } from '@jest/globals';
 
 import type { Db } from '../lib/prisma.js';
 import type { ListingUpdater, ListingWithItem } from '../repositories/ListingRepository.js';
-import { ListingChangeApplier, type ListingOfferCanceller } from './ListingChangeApplier.js';
+import type { ListingOfferCanceller } from '../repositories/OfferRepository.js';
+import { ListingChangeApplier } from './ListingChangeApplier.js';
 
 const LISTING_ID = 'listing-id';
 const tx = { name: 'tx' } as unknown as Db;

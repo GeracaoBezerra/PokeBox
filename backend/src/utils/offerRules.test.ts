@@ -6,12 +6,13 @@ import {
   assertStillFulfillable,
   toOfferResponse,
 } from './offerRules.js';
+import type { ListingStatus, OfferStatus } from '../generated/prisma/index.js';
 
-const statusOf = (fn) => {
+const statusOf = (fn: () => void): number | null => {
   try {
     fn();
   } catch (err) {
-    return err.statusCode;
+    return (err as { statusCode: number }).statusCode;
   }
   return null;
 };
@@ -61,9 +62,9 @@ describe('assertStatusChange', () => {
   const owner = { isProposer: false, isListingOwner: true };
   const proposer = { isProposer: true, isListingOwner: false };
   const stranger = { isProposer: false, isListingOwner: false };
-  const proposed = { status: 'PROPOSED' };
+  const proposed = { status: 'PROPOSED' as OfferStatus };
 
-  it.each([
+  it.each<[string, typeof owner, OfferStatus]>([
     ['dono', owner, 'ACCEPTED'],
     ['dono', owner, 'REJECTED'],
     ['proponente', proposer, 'CANCELED'],
@@ -71,11 +72,11 @@ describe('assertStatusChange', () => {
     expect(() => assertStatusChange({ offer: proposed, nextStatus, ...who })).not.toThrow();
   });
 
-  it.each(['ACCEPTED', 'REJECTED', 'CANCELED'])('quem não participa recebe 403 em %s', (nextStatus) => {
+  it.each<OfferStatus>(['ACCEPTED', 'REJECTED', 'CANCELED'])('quem não participa recebe 403 em %s', (nextStatus) => {
     expect(statusOf(() => assertStatusChange({ offer: proposed, nextStatus, ...stranger }))).toBe(403);
   });
 
-  it.each(['ACCEPTED', 'REJECTED'])('proponente não pode %s: 403', (nextStatus) => {
+  it.each<OfferStatus>(['ACCEPTED', 'REJECTED'])('proponente não pode %s: 403', (nextStatus) => {
     expect(statusOf(() => assertStatusChange({ offer: proposed, nextStatus, ...proposer }))).toBe(403);
   });
 
@@ -84,9 +85,9 @@ describe('assertStatusChange', () => {
   });
 
   describe('RN-06: oferta finalizada não muda mais', () => {
-    const cases = [
+    const cases: [OfferStatus, OfferStatus, typeof owner][] = [
       ['ACCEPTED', 'ACCEPTED', owner],
-      ...['REJECTED', 'CANCELED'].flatMap((from) => [
+      ...(['REJECTED', 'CANCELED'] as const).flatMap((from): [OfferStatus, OfferStatus, typeof owner][] => [
         [from, 'ACCEPTED', owner],
         [from, 'REJECTED', owner],
         [from, 'CANCELED', proposer],
@@ -99,16 +100,16 @@ describe('assertStatusChange', () => {
   });
 
   describe('oferta aceita que ainda não virou troca pode ser encerrada', () => {
-    const accepted = { status: 'ACCEPTED' };
+    const accepted = { status: 'ACCEPTED' as OfferStatus };
 
-    it.each([
+    it.each<[string, typeof owner, OfferStatus]>([
       ['dono recusa', owner, 'REJECTED'],
       ['proponente cancela', proposer, 'CANCELED'],
     ])('%s', (_, who, nextStatus) => {
       expect(() => assertStatusChange({ offer: accepted, nextStatus, ...who, hasTrade: false })).not.toThrow();
     });
 
-    it.each([
+    it.each<[typeof owner, OfferStatus]>([
       [owner, 'REJECTED'],
       [proposer, 'CANCELED'],
     ])('oferta que já virou troca dá 409 em %#', (who, nextStatus) => {
@@ -122,8 +123,8 @@ describe('assertStatusChange', () => {
   });
 
   it('papel errado vem antes do status finalizado: 403', () => {
-    expect(statusOf(() => assertStatusChange({ offer: { status: 'CANCELED' }, nextStatus: 'ACCEPTED', ...proposer }))).toBe(403);
-    expect(statusOf(() => assertStatusChange({ offer: { status: 'ACCEPTED' }, nextStatus: 'REJECTED', ...stranger }))).toBe(403);
+    expect(statusOf(() => assertStatusChange({ offer: { status: 'CANCELED' as const }, nextStatus: 'ACCEPTED', ...proposer }))).toBe(403);
+    expect(statusOf(() => assertStatusChange({ offer: { status: 'ACCEPTED' as const }, nextStatus: 'REJECTED', ...stranger }))).toBe(403);
   });
 });
 
@@ -132,14 +133,14 @@ describe('assertListingActive', () => {
     expect(() => assertListingActive({ status: 'ACTIVE' })).not.toThrow();
   });
 
-  it.each(['PAUSED', 'CLOSED', 'BLOCKED'])('recusa anúncio %s com 422', (status) => {
+  it.each<ListingStatus>(['PAUSED', 'CLOSED', 'BLOCKED'])('recusa anúncio %s com 422', (status) => {
     expect(statusOf(() => assertListingActive({ status }))).toBe(422);
   });
 });
 
 describe('assertStillFulfillable', () => {
   const listing = { quantity: 2 };
-  const item = (quantity, reservedQuantity = 0) => ({ quantity, reservedQuantity });
+  const item = (quantity: number, reservedQuantity = 0) => ({ quantity, reservedQuantity });
 
   it('aceita quando o anúncio e as cartas oferecidas ainda cobrem a oferta', () => {
     const offeredItems = [{ item: item(1), requested: 1 }, { item: item(3, 1), requested: 2 }];
@@ -177,7 +178,7 @@ describe('toOfferResponse', () => {
     proposerId: PROPOSER_ID,
     quantity: 1,
     message: 'Troco?',
-    status: 'PROPOSED',
+    status: 'PROPOSED' as OfferStatus,
     respondedAt: null,
     createdAt: new Date('2026-11-08T00:00:00Z'),
     updatedAt: new Date('2026-11-08T00:00:00Z'),
@@ -186,7 +187,7 @@ describe('toOfferResponse', () => {
       id: 'listing-1',
       quantity: 1,
       description: null,
-      status: 'ACTIVE',
+      status: 'ACTIVE' as ListingStatus,
       createdAt: new Date(),
       updatedAt: new Date(),
       collectionItemId: 'item-ash',
@@ -196,11 +197,11 @@ describe('toOfferResponse', () => {
         quantity: 1,
         reservedQuantity: 0,
         isPublic: true,
-        condition: 'NEAR_MINT',
-        finish: 'HOLO',
+        condition: 'NEAR_MINT' as const,
+        finish: 'HOLO' as const,
         firstEdition: true,
         card,
-        user: { username: 'ash', name: 'Ash', accountStatus: 'ACTIVE', deletedAt: null },
+        user: { username: 'ash', name: 'Ash', accountStatus: 'ACTIVE' as const, deletedAt: null },
       },
     },
     items: [
@@ -215,8 +216,8 @@ describe('toOfferResponse', () => {
           quantity: 2,
           reservedQuantity: 1,
           isPublic: false,
-          condition: 'LIGHTLY_PLAYED',
-          finish: 'HOLO',
+          condition: 'LIGHT_PLAYED' as const,
+          finish: 'HOLO' as const,
           firstEdition: false,
           card: { id: 'base1-10', name: 'Mew', marketPrice: '20.00' },
         },
@@ -239,8 +240,8 @@ describe('toOfferResponse', () => {
         {
           collectionItemId: 'item-misty',
           quantity: 1,
-          condition: 'LIGHTLY_PLAYED',
-          finish: 'HOLO',
+          condition: 'LIGHT_PLAYED' as const,
+          finish: 'HOLO' as const,
           firstEdition: false,
           card: { id: 'base1-10', name: 'Mew' },
         },
@@ -261,6 +262,6 @@ describe('toOfferResponse', () => {
   });
 
   it('oferta sem itens (recusada ou cancelada) vem com items vazio', () => {
-    expect(toOfferResponse({ ...offer, status: 'REJECTED', items: [] }).items).toEqual([]);
+    expect(toOfferResponse({ ...offer, status: 'REJECTED' as const, items: [] }).items).toEqual([]);
   });
 });
