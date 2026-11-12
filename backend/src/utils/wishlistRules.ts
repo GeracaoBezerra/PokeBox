@@ -1,9 +1,5 @@
+import type { CardOwner } from '../repositories/CollectionRepository.js';
 import { toCardResponse } from './cardRecord.js';
-
-export interface CardOwner {
-  cardId: string;
-  userId: string;
-}
 
 export interface WishlistItemSource<C extends { marketPrice: unknown }> {
   id: string;

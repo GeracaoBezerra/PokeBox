@@ -3,15 +3,9 @@ import type { CardFinder } from '../cards/search/CardFinder.js';
 import type { CardDetail, CardListQuery, CardListResult } from '../cards/types.js';
 import { AppError } from '../errors/AppError.js';
 import { CardNotFoundError } from '../errors/CardNotFoundError.js';
+import type { CollectionQuantityReader } from '../repositories/CollectionRepository.js';
+import type { WishlistLookup } from '../repositories/WishlistRepository.js';
 import { toUserCardInfo, type UserCardInfo } from '../utils/cardRecord.js';
-
-export interface CollectionQuantityReader {
-  sumQuantityByUserAndCard(userId: string, cardId: string): Promise<number | null>;
-}
-
-export interface WishlistPresenceReader {
-  existsByUserAndCard(userId: string, cardId: string): Promise<{ id: string } | null>;
-}
 
 export interface ActiveListingReader {
   existsActiveByUserAndCard(userId: string, cardId: string): Promise<{ id: string } | null>;
@@ -19,7 +13,7 @@ export interface ActiveListingReader {
 
 export interface UserCardReaders {
   collection: CollectionQuantityReader;
-  wishlist: WishlistPresenceReader;
+  wishlist: WishlistLookup;
   listings: ActiveListingReader;
 }
 

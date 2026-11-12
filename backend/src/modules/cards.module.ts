@@ -8,12 +8,11 @@ import { TcgdexClient } from '../cards/catalog/TcgdexClient.js';
 import type { CardFinder } from '../cards/search/CardFinder.js';
 import { SmartCardFinder } from '../cards/search/SmartCardFinder.js';
 import { CardController } from '../controllers/CardController.js';
-import * as collectionRepository from '../repositories/collectionRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
 import { PrismaCardRepository, type CardRepository } from '../repositories/PrismaCardRepository.js';
+import { PrismaCollectionRepository } from '../repositories/PrismaCollectionRepository.js';
 import { PrismaWishlistRepository } from '../repositories/PrismaWishlistRepository.js';
 import { createCardRoutes } from '../routes/card.routes.js';
-import { registerLegacyCardFetcher } from '../services/card.service.js';
 import { CardService } from '../services/CardService.js';
 import * as listingService from '../services/listing.service.js';
 import type { AppModule, Infra } from './types.js';
@@ -57,13 +56,11 @@ export function buildCardsModule(infra: Infra): CardsModule {
   const cardRepository = new PrismaCardRepository(infra.prisma);
   const { catalog, finder } = buildCatalog(infra, cardRepository);
   const cardService = new CardService(catalog, finder, {
-    collection: collectionRepository,
+    collection: new PrismaCollectionRepository(infra.prisma),
     wishlist: new PrismaWishlistRepository(infra.prisma),
     listings: listingRepository,
   });
   const controller = new CardController(cardService, listingService);
-
-  registerLegacyCardFetcher(cardService);
 
   return {
     cardService,

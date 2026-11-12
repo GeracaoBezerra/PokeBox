@@ -21,7 +21,7 @@ const tradeRepository = {
   updateStatus: jest.fn(),
 };
 
-jest.unstable_mockModule('../repositories/collectionRepository.js', () => collectionRepository);
+jest.unstable_mockModule('../repositories/legacyCollectionRepository.js', () => collectionRepository);
 jest.unstable_mockModule('../repositories/listingRepository.js', () => ({}));
 jest.unstable_mockModule('../repositories/offerRepository.js', () => ({}));
 jest.unstable_mockModule('../repositories/tradeRepository.js', () => tradeRepository);

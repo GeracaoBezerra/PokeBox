@@ -1,3 +1,4 @@
+import type { CardFinish } from '../generated/prisma/index.js';
 import {
   assertConditionChangeable,
   assertCoversListings,
@@ -11,11 +12,11 @@ import {
   toPublicCollectionItem,
 } from './collectionRules.js';
 
-const statusOf = (fn) => {
+const statusOf = (fn: () => void): number | null => {
   try {
     fn();
   } catch (err) {
-    return err.statusCode;
+    return (err as { statusCode: number }).statusCode;
   }
   return null;
 };
@@ -146,7 +147,7 @@ describe('assertNotReserved', () => {
 describe('assertVariant', () => {
   const allVariants = { normal: true, holo: true, reverse: true, firstEdition: true };
 
-  it.each([
+  it.each<[CardFinish, string]>([
     ['NORMAL', 'normal'],
     ['HOLO', 'holo'],
     ['REVERSE', 'reverse'],
@@ -154,7 +155,7 @@ describe('assertVariant', () => {
     expect(() => assertVariant({ [variant]: true }, finish, false)).not.toThrow();
   });
 
-  it.each(['NORMAL', 'HOLO', 'REVERSE'])('recusa %s quando a carta não tem a variante', (finish) => {
+  it.each<CardFinish>(['NORMAL', 'HOLO', 'REVERSE'])('recusa %s quando a carta não tem a variante', (finish) => {
     const variants = { ...allVariants, [finish.toLowerCase()]: false };
     expect(statusOf(() => assertVariant(variants, finish, false))).toBe(422);
   });
@@ -197,8 +198,8 @@ describe('toPublicCollectionItem', () => {
     cardId: 'base1-4',
     quantity: 3,
     reservedQuantity: 1,
-    condition: 'NEAR_MINT',
-    finish: 'HOLO',
+    condition: 'NEAR_MINT' as const,
+    finish: 'HOLO' as const,
     firstEdition: false,
     isPublic: true,
     createdAt: new Date(),

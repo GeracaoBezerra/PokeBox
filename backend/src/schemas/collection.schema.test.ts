@@ -16,7 +16,7 @@ describe('createCollectionItemSchema', () => {
     expect(createCollectionItemSchema.safeParse(body).success).toBe(true);
   });
 
-  it.each(['finish', 'firstEdition', 'cardId', 'quantity'])('recusa sem %s', (field) => {
+  it.each(['finish', 'firstEdition', 'cardId', 'quantity'] as const)('recusa sem %s', (field) => {
     const { [field]: _, ...body } = validCreate;
     expect(createCollectionItemSchema.safeParse(body).success).toBe(false);
   });

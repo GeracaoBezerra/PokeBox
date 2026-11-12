@@ -17,7 +17,7 @@ const offerRepository = {
   cancelByIds: jest.fn(),
 };
 
-jest.unstable_mockModule('../repositories/collectionRepository.js', () => collectionRepository);
+jest.unstable_mockModule('../repositories/legacyCollectionRepository.js', () => collectionRepository);
 jest.unstable_mockModule('../repositories/listingRepository.js', () => listingRepository);
 jest.unstable_mockModule('../repositories/offerRepository.js', () => offerRepository);
 jest.unstable_mockModule('../repositories/transaction.js', () => ({

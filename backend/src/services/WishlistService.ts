@@ -1,3 +1,4 @@
+import type { CollectionOwnersReader, CollectionQuantityReader } from '../repositories/CollectionRepository.js';
 import type { CardRepository } from '../repositories/PrismaCardRepository.js';
 import type { WishlistItemWithCard, WishlistRepository } from '../repositories/WishlistRepository.js';
 import { AppError } from '../errors/AppError.js';
@@ -5,18 +6,10 @@ import { ConflictError } from '../errors/domainErrors.js';
 import type { AddWishlistItemInput } from '../schemas/wishlist.schema.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import { assertOwner } from '../utils/collectionRules.js';
-import {
-  countOwnersByCard,
-  toWishlistItemResponse,
-  type CardOwner,
-  type WishlistItemResponse,
-} from '../utils/wishlistRules.js';
+import { countOwnersByCard, toWishlistItemResponse, type WishlistItemResponse } from '../utils/wishlistRules.js';
 import type { CardFetcher } from './CardService.js';
 
-export interface WishlistCollectionReader {
-  findOwnersOfCards(cardIds: string[], userId: string): Promise<CardOwner[]>;
-  sumQuantityByUserAndCard(userId: string, cardId: string): Promise<number | null>;
-}
+export type WishlistCollectionReader = CollectionOwnersReader & CollectionQuantityReader;
 
 export type WishlistStore = Pick<WishlistRepository, 'findManyByUser' | 'findById' | 'create' | 'remove'>;
 

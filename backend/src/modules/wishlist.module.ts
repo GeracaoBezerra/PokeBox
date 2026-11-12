@@ -1,5 +1,5 @@
 import { WishlistController } from '../controllers/WishlistController.js';
-import * as collectionRepository from '../repositories/collectionRepository.js';
+import { PrismaCollectionRepository } from '../repositories/PrismaCollectionRepository.js';
 import { PrismaWishlistRepository } from '../repositories/PrismaWishlistRepository.js';
 import { createWishlistRoutes } from '../routes/wishlist.routes.js';
 import { WishlistService } from '../services/WishlistService.js';
@@ -12,7 +12,7 @@ export interface WishlistModuleDeps {
 
 export function buildWishlistModule(infra: Infra, { cards }: WishlistModuleDeps): AppModule {
   const wishlist = new PrismaWishlistRepository(infra.prisma);
-  const service = new WishlistService(wishlist, collectionRepository, cards.cardService, cards.cardRepository);
+  const service = new WishlistService(wishlist, new PrismaCollectionRepository(infra.prisma), cards.cardService, cards.cardRepository);
   const controller = new WishlistController(service);
 
   return {

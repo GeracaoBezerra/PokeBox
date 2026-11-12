@@ -53,7 +53,7 @@ export function buildContainer(env: Env): Container {
 
   const cards = buildCardsModule(infra);
 
-  const collection = buildCollectionModule(infra);
+  const collection = buildCollectionModule(infra, { cards });
 
   const wishlist = buildWishlistModule(infra, { cards });
 

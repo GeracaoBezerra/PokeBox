@@ -1,4 +1,4 @@
-import * as collectionRepository from '../repositories/collectionRepository.js';
+import * as collectionRepository from '../repositories/legacyCollectionRepository.js';
 import * as listingRepository from '../repositories/listingRepository.js';
 import * as offerRepository from '../repositories/offerRepository.js';
 import { withTransaction } from '../repositories/transaction.js';

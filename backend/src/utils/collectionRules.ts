@@ -1,19 +1,71 @@
 import { AppError } from '../errors/AppError.js';
+import type { CardCondition, CardFinish } from '../generated/prisma/index.js';
 import { toCardResponse } from './cardRecord.js';
 
 const FINISH_TO_VARIANT = {
   NORMAL: 'normal',
   HOLO: 'holo',
   REVERSE: 'reverse',
+} as const satisfies Record<CardFinish, string>;
+
+export type CardVariants = Partial<Record<'normal' | 'holo' | 'reverse' | 'firstEdition', boolean>>;
+
+export interface ListingCounts {
+  open: number;
+  total: number;
+}
+
+export interface OfferCounts {
+  open: number;
+  accepted: number;
+}
+
+export interface ConditionChangeContext {
+  reservedQuantity: number;
+  offers: OfferCounts;
+  listings: Pick<ListingCounts, 'open'>;
+}
+
+type PricedCard = { marketPrice: unknown };
+
+type ResponseCard<C extends PricedCard> = Omit<C, 'marketPrice'> & { marketPrice: number | null };
+
+export interface CollectionItemSource<C extends PricedCard> {
+  quantity: number;
+  reservedQuantity: number;
+  card: C;
+}
+
+export type CollectionItemResponse<T extends CollectionItemSource<PricedCard>> = Omit<T, 'card'> & {
+  card: ResponseCard<T['card']>;
+  available: number;
 };
 
-export function assertOwner(item, userId) {
+export interface PublicCollectionItemSource<C extends PricedCard> {
+  id: string;
+  card: C;
+  quantity: number;
+  condition: CardCondition;
+  finish: CardFinish;
+  firstEdition: boolean;
+}
+
+export interface PublicCollectionItem<C extends PricedCard> {
+  id: string;
+  card: ResponseCard<C>;
+  quantity: number;
+  condition: CardCondition;
+  finish: CardFinish;
+  firstEdition: boolean;
+}
+
+export function assertOwner(item: { userId: string }, userId: string): void {
   if (item.userId !== userId) {
     throw new AppError(403, 'Este item pertence a outro usuário');
   }
 }
 
-export function assertQuantity(quantity, reservedQuantity) {
+export function assertQuantity(quantity: number, reservedQuantity: number): void {
   if (quantity < reservedQuantity) {
     throw new AppError(
       422,
@@ -22,7 +74,7 @@ export function assertQuantity(quantity, reservedQuantity) {
   }
 }
 
-export function assertCoversListings(quantity, reservedQuantity, listedQuantity) {
+export function assertCoversListings(quantity: number, reservedQuantity: number, listedQuantity: number): void {
   if (quantity < reservedQuantity + listedQuantity) {
     throw new AppError(
       422,
@@ -31,7 +83,7 @@ export function assertCoversListings(quantity, reservedQuantity, listedQuantity)
   }
 }
 
-export function assertNotReserved(item) {
+export function assertNotReserved(item: { reservedQuantity: number }): void {
   if (item.reservedQuantity > 0) {
     throw new AppError(
       409,
@@ -40,7 +92,7 @@ export function assertNotReserved(item) {
   }
 }
 
-export function assertNoListings({ open, total }) {
+export function assertNoListings({ open, total }: ListingCounts): void {
   if (open > 0) {
     throw new AppError(409, 'Este item tem anúncio aberto. Feche o anúncio antes de remover o item');
   }
@@ -53,7 +105,7 @@ export function assertNoListings({ open, total }) {
   }
 }
 
-export function assertNoOffers({ open, accepted }) {
+export function assertNoOffers({ open, accepted }: OfferCounts): void {
   if (open > 0) {
     throw new AppError(409, 'Esta carta está numa oferta aberta. Cancele a oferta antes de remover o item');
   }
@@ -63,7 +115,7 @@ export function assertNoOffers({ open, accepted }) {
   }
 }
 
-export function assertConditionChangeable({ reservedQuantity, offers, listings }) {
+export function assertConditionChangeable({ reservedQuantity, offers, listings }: ConditionChangeContext): void {
   if (reservedQuantity > 0) {
     throw new AppError(409, 'Este item está numa troca em andamento. A condição só pode mudar depois que a troca terminar');
   }
@@ -80,7 +132,7 @@ export function assertConditionChangeable({ reservedQuantity, offers, listings }
   }
 }
 
-export function assertVariant(variants = {}, finish, firstEdition) {
+export function assertVariant(variants: CardVariants = {}, finish: CardFinish, firstEdition: boolean): void {
   const hasAnyVariant = Object.values(variants).some(Boolean);
   if (!hasAnyVariant) return;
 
@@ -93,7 +145,7 @@ export function assertVariant(variants = {}, finish, firstEdition) {
   }
 }
 
-export function toCollectionItemResponse(item) {
+export function toCollectionItemResponse<T extends CollectionItemSource<PricedCard>>(item: T): CollectionItemResponse<T> {
   return {
     ...item,
     card: toCardResponse(item.card),
@@ -101,7 +153,7 @@ export function toCollectionItemResponse(item) {
   };
 }
 
-export function toPublicCollectionItem(item) {
+export function toPublicCollectionItem<C extends PricedCard>(item: PublicCollectionItemSource<C>): PublicCollectionItem<C> {
   return {
     id: item.id,
     card: toCardResponse(item.card),

@@ -14,10 +14,10 @@ describeDb('accept com banco (RN-07): falha no meio desfaz tudo', () => {
 
   beforeAll(async () => {
     await import('../config/env.js');
-    const actual = await import('../repositories/collectionRepository.js');
+    const actual = await import('../repositories/legacyCollectionRepository.js');
 
     let calls = 0;
-    jest.unstable_mockModule('../repositories/collectionRepository.js', () => ({
+    jest.unstable_mockModule('../repositories/legacyCollectionRepository.js', () => ({
       ...actual,
       transferOut: async (...args) => {
         calls += 1;
