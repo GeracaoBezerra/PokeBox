@@ -24,11 +24,11 @@ Projeto em equipe do curso **Geração Tech**.
 
 | Parte | Tecnologia |
 |---|---|
-| Backend | Node.js (LTS), Express 5, Prisma 7 (`@prisma/adapter-pg`), zod 4, JWT, bcrypt |
+| Backend | Node.js (LTS), TypeScript 6, Express 5, Prisma 7 (`@prisma/adapter-pg`), zod 4, JWT, bcrypt |
 | Banco | PostgreSQL 17 |
 | Frontend | React 19, Vite, React Router, axios |
 | Dados das cartas | API pública [TCGdex](https://tcgdex.dev), com cache no banco |
-| Testes | Jest (backend), ESLint e build (frontend) |
+| Testes | Jest com ts-jest (backend), ESLint e build (frontend) |
 | Documentação da API | Swagger em `/docs` |
 | Infra | Docker Compose, GitHub Actions (CI) |
 
@@ -40,22 +40,48 @@ Projeto em equipe do curso **Geração Tech**.
 │   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json)
 │   ├── docs/db.md         modelo de dados, constraints, migrations e seed
 │   ├── docs/guia-backend  guia do backend e das regras de negócio (.md e .pdf)
-│   ├── scripts/           snapshot-cards.js (regera as cartas do seed)
+│   ├── scripts/           snapshot-cards.ts (regera as cartas do seed) e copy-generated.mjs (build)
 │   └── src/
-│       ├── routes/        URLs e middlewares de cada rota
-│       ├── controllers/   lê a requisição, valida com zod e responde
-│       ├── services/      regras de negócio
-│       ├── repositories/  acesso ao banco (Prisma) e à TCGdex
-│       ├── schemas/       validação de entrada (zod)
-│       ├── middlewares/   autenticação, papéis, validação e erros
-│       ├── utils/         regras puras (testadas com jest), AppError, tradutor de erros do Prisma
+│       ├── server.ts      sobe a API: valida o env, monta o container e o app
+│       ├── container.ts   raiz de composição: cria a infraestrutura e chama um build<Modulo>Module por módulo
+│       ├── app.ts         createApp(container): middlewares, rotas dos módulos e tratador de erros
+│       ├── modules/       um arquivo por módulo (auth, cards, collection, wishlist, listings, trading) que dá new nas classes
+│       ├── routes/        URLs e middlewares de cada rota (createXRoutes(auth, controller))
+│       ├── controllers/   classes: leem a requisição, validam com zod e respondem
+│       ├── services/      classes com as regras de negócio, dependências pelo construtor
+│       ├── repositories/  interfaces (<Nome>Repository.ts) e implementações Prisma (Prisma<Nome>Repository.ts), TransactionRunner e Unit of Work
+│       ├── cards/         catálogo de cartas em camadas (decorators de cache) e busca esperta
+│       ├── security/      PasswordHasher (bcrypt) e TokenSigner (JWT)
+│       ├── errors/        AppError, erros de domínio e tradutores de erro
+│       ├── config/env.ts  variáveis de ambiente validadas com zod
+│       ├── schemas/       validação de entrada (zod) e tipos de entrada
+│       ├── middlewares/   autenticação, papéis, validação e tratador de erros
+│       ├── utils/         regras puras (testadas com jest)
 │       └── docs/          especificação do Swagger
 ├── frontend/              app React (Vite)
 ├── docker-compose.yml     banco, backend e frontend
 └── .env.example           variáveis de ambiente
 ```
 
-O backend segue as camadas **routes → controllers → services → repositories**.
+O backend segue as camadas **routes → controllers → services → repositories** e é escrito em **TypeScript**, com classes e injeção de dependência.
+
+### TypeScript, classes e injeção de dependência
+
+- **Build:** `npm run build` compila com `tsc` para `backend/dist/` e copia o cliente gerado do Prisma. `npm start` sobe `dist/server.js`. Em desenvolvimento, `npm run dev` usa `tsx watch`. `npm run typecheck` checa o código, os testes, o seed e os scripts. O TypeScript fica na versão 6, porque o ts-jest ainda não aceita a 7.
+- **Ambiente validado:** `src/config/env.ts` valida as variáveis com zod quando a API sobe. Sem `DATABASE_URL`, ou com `JWT_SECRET` com menos de 16 caracteres, a API não sobe e diz qual variável está errada.
+- **Raiz de composição:** `src/container.ts` cria o Prisma, o middleware de autenticação e o tratador de erros, e chama um `build<Modulo>Module(infra)` por módulo (`src/modules/`). Cada módulo dá `new` nos seus repositórios, services e controllers. Não usamos framework de DI (tsyringe, inversify): eles exigem decorators e `reflect-metadata` e escondem de onde vem cada dependência, sem ganho num backend deste tamanho.
+- **Interfaces pequenas:** cada service depende só do que usa (ex.: o `WishlistService` recebe um `CollectionQuantityReader`, não o repositório inteiro). Nos testes, as dependências são objetos falsos passados no construtor, sem banco.
+- **Padrões que dá para apontar no código:**
+
+| Padrão | Onde | Para quê |
+|---|---|---|
+| Decorator | `src/cards/catalog/`: `MemoryCachedCatalog` → `InFlightDedupCatalog` → `DbCachedCatalog` → `TcgdexClient` | cada camada acrescenta um comportamento (memória por 1 h, junta pedidos iguais, cache no banco por 24 h, HTTP) sem mexer nas outras |
+| Unit of Work | `PrismaUnitOfWorkFactory` em `src/repositories/` | ofertas e trocas recebem coleção, anúncios, ofertas, trocas e wishlist já dentro da mesma transação (RN-07) |
+| Repository | `repositories/<Nome>Repository.ts` + `Prisma<Nome>Repository.ts` | o service conhece a interface, não o Prisma |
+| Chain of Responsibility | `src/errors/translators/` | o tratador de erros tenta cada tradutor em ordem; erro novo = tradutor novo, sem mexer no tratador |
+| Strategy | `PasswordHasher` (bcrypt) e `TokenSigner` (JWT) em `src/security/` | o `AuthService` não depende da biblioteca |
+
+Com `USE_MOCK=true`, o módulo de cartas troca a pilha da TCGdex pelo `MockCatalog`.
 
 ## Como rodar
 
@@ -86,7 +112,7 @@ PRISMA_DATABASE_URL="postgresql://pokebox:pokebox@localhost:5432/pokebox?schema=
 
 FRONTEND_PORT=5173
 
-JWT_SECRET=troque-por-um-segredo-longo
+JWT_SECRET=troque-por-um-segredo-com-16-ou-mais-caracteres
 JWT_EXPIRES_IN=1d
 ```
 
@@ -135,6 +161,8 @@ npm run dev
 O frontend chama a API em `http://localhost:3000`. Para outro endereço, defina `VITE_API_URL`.
 
 ### Depois de puxar a develop
+
+Se chegou dependência nova no `backend/package.json` (a migração para TypeScript trouxe várias), rode `cd backend && npm install` antes do `npm run dev`. Scripts locais que importam o código do backend, como um `playground.js`, rodam com `npx tsx playground.js`.
 
 Se chegou migration nova (pasta `backend/prisma/migrations`), atualize o banco e o cliente do Prisma:
 
@@ -193,7 +221,7 @@ cd backend
 npm test
 ```
 
-São testes de unidade (jest) das regras puras, dos schemas e do aceite da troca com os repositórios simulados. Não precisam de banco.
+São testes de unidade (jest com ts-jest) das regras puras, dos schemas, dos services e dos controllers, com as dependências falsas passadas no construtor. Não precisam de banco. `npm run typecheck` checa os tipos dos testes também.
 
 Há também um teste **com banco** que prova a RN-07 de verdade: força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais. Ele fica desligado por padrão (a CI não tem PostgreSQL). Para rodar, com o banco no ar e as migrations aplicadas:
 
@@ -208,7 +236,7 @@ A CI (GitHub Actions) roda em toda PR para `develop` e `main`:
 
 | Job | O que roda |
 |---|---|
-| `backend` | `npm ci`, `npx prisma generate`, `npm test` |
+| `backend` | `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build`, `npm test` |
 | `frontend` | `npm ci`, `npm run lint`, `npm run build` |
 
 Os dois precisam passar para mergear.
