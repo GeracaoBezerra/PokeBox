@@ -1,4 +1,4 @@
-import { EnvValidationError, parseEnv } from './env.js';
+import { EnvValidationError, parseDatabaseEnv, parseEnv } from './env.js';
 
 const valid = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/pokebox?schema=public',
@@ -54,5 +54,29 @@ describe('parseEnv', () => {
     expect(() => parseEnv({ ...valid, JWT_SECRET: 'curto' })).toThrow(
       'JWT_SECRET: precisa ter pelo menos 16 caracteres',
     );
+  });
+
+  it('JWT_EXPIRES_IN aceita prazos como 1d, 12h e 30 minutes', () => {
+    for (const value of ['1d', '12h', '30 minutes', '3600']) {
+      expect(parseEnv({ ...valid, JWT_EXPIRES_IN: value }).JWT_EXPIRES_IN).toBe(value);
+    }
+  });
+
+  it('JWT_EXPIRES_IN fora do formato é recusado', () => {
+    expect(() => parseEnv({ ...valid, JWT_EXPIRES_IN: '1 dia' })).toThrow(
+      'JWT_EXPIRES_IN: use um prazo como 1d, 12h ou 30m',
+    );
+  });
+});
+
+describe('parseDatabaseEnv', () => {
+  it('só exige DATABASE_URL', () => {
+    expect(parseDatabaseEnv({ DATABASE_URL: valid.DATABASE_URL, JWT_SECRET: 'curto' })).toEqual({
+      DATABASE_URL: valid.DATABASE_URL,
+    });
+  });
+
+  it('sem DATABASE_URL diz que falta', () => {
+    expect(() => parseDatabaseEnv({})).toThrow('DATABASE_URL: variável obrigatória ausente');
   });
 });

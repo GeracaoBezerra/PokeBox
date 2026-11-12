@@ -67,8 +67,16 @@ O backend segue as camadas **routes → controllers → services → repositorie
 
 ### TypeScript, classes e injeção de dependência
 
-- **Build:** `npm run build` compila com `tsc` para `backend/dist/` e copia o cliente gerado do Prisma. `npm start` sobe `dist/server.js`. Em desenvolvimento, `npm run dev` usa `tsx watch`. `npm run typecheck` checa o código, os testes, o seed e os scripts. O TypeScript fica na versão 6, porque o ts-jest ainda não aceita a 7.
-- **Ambiente validado:** `src/config/env.ts` valida as variáveis com zod quando a API sobe. Sem `DATABASE_URL`, ou com `JWT_SECRET` com menos de 16 caracteres, a API não sobe e diz qual variável está errada.
+- **Build:** `npm run build` limpa `backend/dist/`, compila com `tsc` e copia o cliente gerado do Prisma. Roda também no Windows, sem `rm -rf`. `npm start` sobe `dist/server.js`. Em desenvolvimento, `npm run dev` usa `tsx watch`. `npm run typecheck` checa o código, os testes, o seed e os scripts. O TypeScript fica na versão 6, porque o ts-jest ainda não aceita a 7.
+- **Ambiente validado:** `src/config/env.ts` valida as variáveis com zod quando a API sobe. A API não sobe, e diz qual variável está errada, quando:
+  - falta `DATABASE_URL` ou ela não é uma URL;
+  - `JWT_SECRET` tem menos de 16 caracteres (quem tinha um segredo curto no `.env` precisa trocar);
+  - `JWT_EXPIRES_IN` não é um prazo como `1d`, `12h` ou `30m`;
+  - `NODE_ENV` não é `development`, `test` ou `production`;
+  - `USE_MOCK` não é `true` ou `false`.
+
+  O seed (`npm run db:seed`) só exige `DATABASE_URL`.
+- **Docker:** o container roda as migrations e depois troca o shell pelo `node` (`exec`). Assim o `docker stop` chega à API, que fecha o servidor e a conexão com o banco antes de sair.
 - **Raiz de composição:** `src/container.ts` cria o Prisma, o middleware de autenticação e o tratador de erros, e chama um `build<Modulo>Module(infra)` por módulo (`src/modules/`). Cada módulo dá `new` nos seus repositórios, services e controllers. Não usamos framework de DI (tsyringe, inversify): eles exigem decorators e `reflect-metadata` e escondem de onde vem cada dependência, sem ganho num backend deste tamanho.
 - **Interfaces pequenas:** cada service depende só do que usa (ex.: o `WishlistService` recebe um `CollectionQuantityReader`, não o repositório inteiro). Nos testes, as dependências são objetos falsos passados no construtor, sem banco.
 - **Padrões que dá para apontar no código:**

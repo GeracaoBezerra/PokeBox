@@ -2,11 +2,11 @@ import { readFile } from 'node:fs/promises';
 
 import bcrypt from 'bcrypt';
 
-import { loadEnv } from '../src/config/env.js';
+import { loadDatabaseEnv } from '../src/config/env.js';
 import type { CardCondition, CardFinish, CollectionItem, Prisma, User, UserRole } from '../src/generated/prisma/index.js';
 import { createPrismaClient } from '../src/lib/prisma.js';
 
-const prisma = createPrismaClient(loadEnv().DATABASE_URL);
+const prisma = createPrismaClient(loadDatabaseEnv().DATABASE_URL);
 
 const SEED_PASSWORD = 'pokebox123';
 const SALT_ROUNDS = 12;

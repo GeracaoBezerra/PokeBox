@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "rm -rf dist && tsc && node scripts/copy-generated.mjs",
+    "build": "node scripts/clean-dist.mjs && tsc && node scripts/copy-generated.mjs",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.check.json",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
