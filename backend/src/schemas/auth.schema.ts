@@ -1,0 +1,22 @@
+import { z } from 'zod';
+
+import { usernameRule } from './user.schema.js';
+
+export const registerSchema = z.object({
+  username: usernameRule,
+  name: z.string().trim().min(2, 'name: mínimo 2 caracteres').max(120),
+  email: z.email('email inválido').toLowerCase(),
+  password: z
+    .string()
+    .min(8, 'password: mínimo 8 caracteres')
+    .max(72, 'password: máximo 72 caracteres'),
+});
+
+export const loginSchema = z.object({
+  email: z.email('email inválido').toLowerCase(),
+  password: z.string().min(1, 'password é obrigatório'),
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+
+export type LoginInput = z.infer<typeof loginSchema>;

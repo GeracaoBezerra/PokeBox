@@ -115,7 +115,7 @@ Senha de todos: `pokebox123`. Mais 10 cartas reais, 10 itens de coleção (1 pri
 
 ### Cartas do seed
 
-Os dados das cartas são reais e ficam versionados em `prisma/seed-data/cards.json`, para o seed funcionar sem internet. Para trocar a lista ou atualizar os dados, edite `CARD_IDS` em `scripts/snapshot-cards.js` e rode:
+Os dados das cartas são reais e ficam versionados em `prisma/seed-data/cards.json`, para o seed funcionar sem internet. Para trocar a lista ou atualizar os dados, edite `CARD_IDS` em `scripts/snapshot-cards.ts` e rode:
 
 ```bash
 npm run db:snapshot-cards
