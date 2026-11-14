@@ -1,0 +1,15 @@
+services:
+  tcg-backend:
+    build:
+      target: prod
+    environment:
+      NODE_ENV: production
+      CORS_ORIGIN: http://localhost:8080
+
+  tcg-frontend:
+    build:
+      target: prod
+      args:
+        VITE_API_URL: http://localhost:${BACKEND_PORT:-3000}
+    ports: !override
+      - "8080:80"

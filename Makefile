@@ -7,7 +7,8 @@ API := http://localhost:3000
 PSQL := docker compose exec -T tcg-db psql -U $(DB_USER) -d $(DB_NAME)
 
 .PHONY: help up stop down ps logs psql reset dev generate migrate status studio \
-        users constraints migrations schema clean-users unit test test-db test-collection test-profile test-wishlist test-listings test-offers
+        users constraints migrations schema clean-users unit test test-db test-collection test-profile test-wishlist test-listings test-offers \
+        prod-up prod-down prod-logs
 
 help:
 	@echo ""
@@ -49,6 +50,15 @@ reset: ## APAGA o banco, recria e aplica as migrations
 	@docker compose down -v
 	@$(MAKE) --no-print-directory up
 	@$(MAKE) --no-print-directory migrate
+
+prod-up: ## sobe banco, API e front em modo producao (front em http://localhost:8080)
+	@docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait
+
+prod-down: ## para o modo producao (PRESERVA os dados)
+	@docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+
+prod-logs: ## logs da API em modo producao (ctrl+c para sair)
+	@docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f tcg-backend
 
 dev: ## sobe a API em modo watch
 	@cd backend && npm run dev

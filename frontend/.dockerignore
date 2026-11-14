@@ -5,3 +5,5 @@ npm-debug.log
 !.env.example
 dist
 .git
+.vercel
+.DS_Store
