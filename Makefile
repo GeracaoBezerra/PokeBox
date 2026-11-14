@@ -348,7 +348,7 @@ test-offers: ## smoke test das ofertas (#16, #17) com os usuarios do seed
 	printf '%-42s' "misty oferece de novo -> PROPOSED";  curl -s $$O/$$OID4 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"]'; \
 	curl -s -o /dev/null -X PATCH $$L/$$UL -H "$$A" -H "$$J" -d '{"status":"CLOSED"}'; \
 	printf '%-42s' "fechar cancela -> CANCELED []";      curl -s $$O/$$OID4 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"] + " " + str(d["data"]["offer"]["items"])'; \
-	printf '%-42s' "fechar nao mexe na aceita -> ACCEPTED 1"; curl -s $$O/$$OID3 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"] + " " + str(len(d["data"]["offer"]["items"]))'; \
+	printf '%-42s' "fechar cancela a aceita -> CANCELED 0"; curl -s $$O/$$OID3 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"] + " " + str(len(d["data"]["offer"]["items"]))'; \
 	UL2=$$(curl -s -X POST $$L -H "$$A" -H "$$J" -d '{"collectionItemId":"'$$ULTRA'","quantity":1,"description":"make-test"}' | $(JSON) 'd["data"]["listing"]["id"]'); \
 	OID5=$$(curl -s -X POST $$L/$$UL2/offers -H "$$M" -H "$$J" -d '{"quantity":1,"message":"make-test","items":[{"collectionItemId":"'$$FIRE'","quantity":1}]}' | $(JSON) 'd["data"]["offer"]["id"]'); \
 	curl -s -o /dev/null -X PATCH $$L/$$UL2 -H "$$AD" -H "$$J" -d '{"status":"BLOCKED"}'; \
@@ -356,6 +356,9 @@ test-offers: ## smoke test das ofertas (#16, #17) com os usuarios do seed
 	curl -s -o /dev/null -X PATCH $$L/$$UL2 -H "$$AD" -H "$$J" -d '{"status":"PAUSED"}'; \
 	printf '%-42s' "desbloquear nao reabre -> CANCELED"; curl -s $$O/$$OID5 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"]'; \
 	curl -s -o /dev/null -X PATCH $$L/$$UL2 -H "$$A" -H "$$J" -d '{"status":"CLOSED"}'; \
+	UL4=$$(curl -s -X POST $$L -H "$$A" -H "$$J" -d '{"collectionItemId":"'$$ULTRA'","quantity":1,"description":"make-test"}' | $(JSON) 'd["data"]["listing"]["id"]'); \
+	OID7=$$(curl -s -X POST $$L/$$UL4/offers -H "$$M" -H "$$J" -d '{"quantity":1,"message":"make-test","items":[{"collectionItemId":"'$$FIRE'","quantity":1}]}' | $(JSON) 'd["data"]["offer"]["id"]'); \
+	printf '%-42s' "aceitar outra oferta -> ACCEPTED";     curl -s -X PATCH $$O/$$OID7/status -H "$$A" -H "$$J" -d '{"status":"ACCEPTED"}' | $(JSON) 'd["data"]["offer"]["status"]'; \
 	MEW=$$(curl -s $(API)/collection -H "$$M" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "sv03.5-151"][0]'); \
 	printf '%-42s' "apagar carta em oferta aberta -> 409";  curl -s -X DELETE $(API)/collection/$$MEW -H "$$M" | $(JSON) 'd["error"][:36]'; \
 	printf '%-42s' "apagar carta em oferta aceita -> 409";  curl -s -X DELETE $(API)/collection/$$FIRE -H "$$M" | $(JSON) 'd["error"][:36]'; \
@@ -369,8 +372,8 @@ test-offers: ## smoke test das ofertas (#16, #17) com os usuarios do seed
 	printf '%-42s' "oferta segue aberta -> PROPOSED";       curl -s $$O/$$OID6 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"]'; \
 	curl -s -o /dev/null -X PATCH $$L/$$UL3 -H "$$A" -H "$$J" -d '{"status":"CLOSED"}'; \
 	printf '%-42s' "filtro ACCEPTED -> so aceitas";      curl -s "$$O/me?status=ACCEPTED" -H "$$M" | $(JSON) 'sorted(set(o["status"] for o in d["data"]["sent"]))'; \
-	printf '%-42s' "misty cancela aceita presa -> CANCELED 0"; curl -s -X PATCH $$O/$$OID3/status -H "$$M" -H "$$J" -d '{"status":"CANCELED"}' | $(JSON) 'd["data"]["offer"]["status"] + " " + str(len(d["data"]["offer"]["items"]))'; \
-	printf '%-42s' "cancelar de novo -> 422 RN-06";      curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X PATCH $$O/$$OID3/status -H "$$M" -H "$$J" -d '{"status":"CANCELED"}'; \
+	printf '%-42s' "misty cancela aceita presa -> CANCELED 0"; curl -s -X PATCH $$O/$$OID7/status -H "$$M" -H "$$J" -d '{"status":"CANCELED"}' | $(JSON) 'd["data"]["offer"]["status"] + " " + str(len(d["data"]["offer"]["items"]))'; \
+	printf '%-42s' "cancelar de novo -> 422 RN-06";      curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X PATCH $$O/$$OID7/status -H "$$M" -H "$$J" -d '{"status":"CANCELED"}'; \
 	printf '%-42s' "do seed segue aberta -> PROPOSED";   curl -s $$O/$$SEED -H "$$M" | $(JSON) 'd["data"]["offer"]["status"]'
 	@$(PSQL) -c "DELETE FROM \"OfferItem\" WHERE \"offerId\" IN (SELECT o.id FROM \"Offer\" o JOIN \"Listing\" l ON l.id = o.\"listingId\" WHERE o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Offer\" o USING \"Listing\" l WHERE l.id = o.\"listingId\" AND (o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Listing\" WHERE description = 'make-test';" > /dev/null
 	@echo ""
