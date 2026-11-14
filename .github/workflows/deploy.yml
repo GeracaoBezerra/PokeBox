@@ -1,0 +1,57 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  backend:
+    name: backend (Render)
+    needs: ci
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.API_URL }}
+    steps:
+      - name: Disparar o deploy no Render
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" > /dev/null
+      - name: Esperar a versão nova responder no /health
+        run: |
+          for i in $(seq 1 45); do
+            version=$(curl -fsS -m 60 "${{ vars.API_URL }}/health" | jq -r '.data.version' || true)
+            echo "tentativa $i: no ar $version, esperado ${{ github.sha }}"
+            if [ "$version" = "${{ github.sha }}" ]; then exit 0; fi
+            sleep 20
+          done
+          echo "A versão nova não subiu em 15 minutos. Veja os logs no painel do Render."
+          exit 1
+
+  frontend:
+    name: frontend (Vercel)
+    needs: backend
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.APP_URL }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --global vercel@latest
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Conferir se o site responde
+        run: curl -fsS -o /dev/null "${{ vars.APP_URL }}"
