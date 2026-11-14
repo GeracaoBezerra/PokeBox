@@ -15,6 +15,7 @@ Projeto em equipe do curso **Geração Tech**.
 - [Como rodar](#como-rodar)
 - [Usuários de teste (seed)](#usuários-de-teste-seed)
 - [Testes](#testes)
+- [Deploy](#deploy)
 - [API](#api)
 - [Regras de negócio](#regras-de-negócio)
 - [Status do projeto](#status-do-projeto)
@@ -30,7 +31,7 @@ Projeto em equipe do curso **Geração Tech**.
 | Dados das cartas | API pública [TCGdex](https://tcgdex.dev), com cache no banco |
 | Testes | Jest com ts-jest (backend), ESLint e build (frontend) |
 | Documentação da API | Swagger em `/docs` |
-| Infra | Docker Compose, GitHub Actions (CI) |
+| Infra | Docker Compose (modo dev e modo produção), GitHub Actions (CI e deploy), Render (API), Neon (banco), Vercel (front) |
 
 ## Estrutura do repositório
 
@@ -40,7 +41,8 @@ Projeto em equipe do curso **Geração Tech**.
 │   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json)
 │   ├── docs/db.md         modelo de dados, constraints, migrations e seed
 │   ├── docs/guia-backend  guia do backend e das regras de negócio (.md e .pdf)
-│   ├── scripts/           snapshot-cards.ts (regera as cartas do seed) e copy-generated.mjs (build)
+│   ├── scripts/           snapshot-cards.ts (regera as cartas do seed), clean-dist.mjs e copy-generated.mjs (build)
+│   ├── Dockerfile         estágios dev e prod da API
 │   └── src/
 │       ├── server.ts      sobe a API: valida o env, monta o container e o app
 │       ├── container.ts   raiz de composição: cria a infraestrutura e chama um build<Modulo>Module por módulo
@@ -53,13 +55,16 @@ Projeto em equipe do curso **Geração Tech**.
 │       ├── cards/         catálogo de cartas em camadas (decorators de cache) e busca esperta
 │       ├── security/      PasswordHasher (bcrypt) e TokenSigner (JWT)
 │       ├── errors/        AppError, erros de domínio e tradutores de erro
-│       ├── config/env.ts  variáveis de ambiente validadas com zod
+│       ├── config/        env.ts (variáveis validadas com zod) e cors.ts (quem pode chamar a API pelo navegador)
 │       ├── schemas/       validação de entrada (zod) e tipos de entrada
 │       ├── middlewares/   autenticação, papéis, validação e tratador de erros
 │       ├── utils/         regras puras (testadas com jest)
 │       └── docs/          especificação do Swagger
-├── frontend/              app React (Vite)
-├── docker-compose.yml     banco, backend e frontend
+├── frontend/              app React (Vite), Dockerfile (dev, build, prod com nginx), nginx.conf e vercel.json
+├── .github/workflows/     ci.yml (testes) e deploy.yml (testes, depois Render e Vercel)
+├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento
+├── docker-compose.prod.yml o que muda no modo produção local
+├── DEPLOY.md              passo a passo do deploy
 └── .env.example           variáveis de ambiente
 ```
 
@@ -120,11 +125,15 @@ PRISMA_DATABASE_URL="postgresql://pokebox:pokebox@localhost:5432/pokebox?schema=
 
 FRONTEND_PORT=5173
 
+CORS_ORIGIN=http://localhost:5173,http://localhost:8080
+
 JWT_SECRET=troque-por-um-segredo-com-16-ou-mais-caracteres
 JWT_EXPIRES_IN=1d
 ```
 
 Use `localhost` nas URLs: dentro do Docker o `docker-compose.yml` troca o host para `tcg-db` sozinho.
+
+`PORT` é a porta em que a API escuta. `BACKEND_PORT` é só a porta do seu computador que o Docker liga ao container da API. `CORS_ORIGIN` lista os sites que podem chamar a API pelo navegador; sem ele, valem `http://localhost:5173` e `http://localhost:8080`.
 
 ### 2a. Tudo no Docker
 
@@ -142,6 +151,8 @@ O backend aplica as migrations sozinho ao subir (`prisma migrate deploy`). O see
 | Swagger | http://localhost:3000/docs |
 | Saúde da API | http://localhost:3000/health |
 | PostgreSQL | `localhost:5432` |
+
+O compose de desenvolvimento usa o estágio `dev` dos Dockerfiles: o front roda o servidor do Vite e o backend tem as ferramentas de desenvolvimento, por isso o seed funciona com `docker compose exec`. A API tem healthcheck no `/health`, e o front só sobe depois que ela responde.
 
 ### 2b. Banco no Docker, backend e frontend na máquina
 
@@ -167,6 +178,23 @@ npm run dev
 ```
 
 O frontend chama a API em `http://localhost:3000`. Para outro endereço, defina `VITE_API_URL`.
+
+### 2c. Modo produção no seu computador
+
+Sobe as mesmas imagens que vão para a nuvem: API sem dependências de desenvolvimento, rodando com o usuário `node`, e front compilado servido pelo nginx.
+
+```bash
+make prod-up
+```
+
+| Serviço | Endereço |
+|---|---|
+| Frontend (nginx) | http://localhost:8080 |
+| API | http://localhost:3000 |
+
+Por baixo, o `make prod-up` roda `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait`. O segundo arquivo só troca o que muda em produção: o estágio dos Dockerfiles (`prod`), a porta do front (8080) e o `VITE_API_URL`, que o Vite grava no JavaScript na hora do build. Os containers têm o mesmo nome dos de desenvolvimento, então um modo substitui o outro. O banco é o mesmo, e os dados continuam. Para voltar: `make prod-down` e `docker compose up -d --build`.
+
+O seed não roda dentro da imagem de produção, porque ela não tem o `tsx`. Se o banco estiver vazio, rode da sua máquina: `cd backend && npm run db:seed`.
 
 ### Depois de puxar a develop
 
@@ -240,14 +268,40 @@ RUN_DB_TESTS=1 npm test
 
 Ele cria dois usuários `rb_*` temporários e apaga tudo no fim.
 
-A CI (GitHub Actions) roda em toda PR para `develop` e `main`:
+A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 
 | Job | O que roda |
 |---|---|
 | `backend` | `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build`, `npm test` |
 | `frontend` | `npm ci`, `npm run lint`, `npm run build` |
 
-Os dois precisam passar para mergear.
+Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow de deploy, antes de publicar (veja [Deploy](#deploy)).
+
+## Deploy
+
+| Peça | Onde | Como chega lá |
+|---|---|---|
+| Banco PostgreSQL | Neon | as migrations rodam sozinhas quando a API sobe; o seed roda uma vez, à mão |
+| API | Render, com o Dockerfile de `backend/` (estágio `prod`) | o pipeline chama o deploy hook do Render |
+| Front | Vercel, pasta `frontend/` | o pipeline publica com a CLI da Vercel |
+
+O app ainda não está no ar. O passo a passo para criar as contas, configurar cada serviço e fazer o primeiro deploy está em [DEPLOY.md](DEPLOY.md).
+
+O caminho de uma mudança até a produção:
+
+```
+PR para a develop  ->  CI (testes)  ->  merge
+release develop -> main  ->  Deploy: CI de novo  ->  API no Render  ->  front na Vercel
+```
+
+O workflow `.github/workflows/deploy.yml` roda a cada push na `main` e também pode ser disparado à mão na aba Actions. Se algum teste falhar, nada é publicado. Ele só publica o front depois que o `/health` da API responde com o commit novo (`data.version`), para o front nunca chegar antes da API de que precisa.
+
+Configuração de produção no código:
+
+- `backend/Dockerfile` tem dois estágios. O `dev` instala tudo e compila; o `prod` copia só o resultado e as dependências de produção, roda como `node` e tem `HEALTHCHECK`. O Render usa o último, o `prod`.
+- `frontend/Dockerfile` tem o estágio `dev` (Vite), o `build` (gera `dist/`) e o `prod` (nginx com `frontend/nginx.conf`). A Vercel não usa Docker; o nginx serve para o modo produção local.
+- `frontend/vercel.json` manda qualquer caminho para o `index.html`, para o F5 em `/colecao` não dar 404, e desliga o deploy automático da Vercel na `main`, que passa a ser feito pelo pipeline.
+- A API aceita chamadas do navegador só dos sites em `CORS_ORIGIN` ou dos que batem com `CORS_ORIGIN_REGEX` (os previews da Vercel).
 
 ## API
 
@@ -384,6 +438,8 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 - a RN-05 vira "só anuncia o que tem disponível para troca".
 
 ### Limitações conhecidas
+
+- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte pode levar uns 50 segundos. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
 
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
 - Uma troca recusada ou cancelada não volta os anúncios que foram reduzidos quando ela nasceu, e a oferta não gera outra troca: é preciso fazer uma oferta nova.
