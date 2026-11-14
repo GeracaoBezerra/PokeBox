@@ -21,7 +21,7 @@ rota → middleware de login → controller → service → repository → banco
 | Controllers | `src/controllers` | validam a entrada com zod (`src/schemas`), chamam o service e montam a resposta |
 | Services | `src/services` | regras de negócio e transações |
 | Repositories | `src/repositories` | consultas ao banco (Prisma) e à TCGdex |
-| Regras puras | `src/utils/*Rules.js` | funções sem banco, fáceis de testar (ex.: "esta oferta cabe no anúncio?") |
+| Regras puras | `src/utils/*Rules.ts` | funções sem banco, fáceis de testar (ex.: "esta oferta cabe no anúncio?") |
 
 Quando uma regra é violada, o service lança `new AppError(status, mensagem)`. O `errorHandler` transforma qualquer erro na resposta padrão e traduz os erros do zod (400), do Prisma (duplicado → 409, não encontrado → 404, CHECK do banco → 422) e da TCGdex (502/504).
 
@@ -56,7 +56,7 @@ Há dois papéis. `USER` é o padrão; o `ADMIN` só tem poder extra sobre anún
 | `GET /cards?name=&page=&limit=&lang=` | busca na TCGdex, paginada. Entende nome de set e ignora palavras que não acham nada (`charizard base x pipi popo` traz os Charizard, com o do Base Set primeiro). Cada item traz `set` e `number`, e a resposta traz `search` explicando como a busca foi entendida |
 | `GET /cards/:id` | detalhe da carta e os anúncios ativos dela. Com login, traz também o bloco `user`: quantas você tem, se está na sua wishlist e se você tem anúncio ativo dela |
 
-A busca fica em `utils/cardSearch.js` (funções puras: `tokenize`, `matchSets`, `rankCards`...). A lista de sets da TCGdex fica 1 dia em memória e o resultado ranqueado de cada busca, 10 min; trocar de página não chama a TCGdex de novo.
+A busca fica em `utils/cardSearch.ts` (funções puras: `tokenize`, `matchSets`, `rankCards`...). A lista de sets da TCGdex fica 1 dia em memória e o resultado ranqueado de cada busca, 10 min; trocar de página não chama a TCGdex de novo.
 
 Cache: o detalhe de uma carta vai à TCGdex só na primeira vez. Depois fica guardado 24 h no banco (`CardCache`) e 1 h na memória. Se a TCGdex cair, a API usa a última cópia guardada. Sem cópia, responde 502 (fora do ar) ou 504 (demorou mais de 8 s).
 
