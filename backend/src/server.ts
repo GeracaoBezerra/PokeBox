@@ -6,7 +6,7 @@ const env = loadEnv();
 const container = buildContainer(env);
 const app = createApp(container);
 
-const PORT = env.BACKEND_PORT ?? env.PORT;
+const PORT = env.PORT;
 
 const server = app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

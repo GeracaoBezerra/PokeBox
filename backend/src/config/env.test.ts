@@ -11,18 +11,17 @@ describe('parseEnv', () => {
       ...valid,
       NODE_ENV: 'development',
       PORT: 3000,
-      BACKEND_PORT: undefined,
       JWT_EXPIRES_IN: '1d',
       TCGDEX_BASE_URL: 'https://api.tcgdex.net/v2',
       USE_MOCK: false,
+      CORS_ORIGIN: ['http://localhost:5173', 'http://localhost:8080'],
     });
   });
 
-  it('converte portas e USE_MOCK a partir de texto', () => {
-    const env = parseEnv({ ...valid, PORT: '8080', BACKEND_PORT: '3001', USE_MOCK: 'true' });
+  it('converte a porta e USE_MOCK a partir de texto', () => {
+    const env = parseEnv({ ...valid, PORT: '8080', USE_MOCK: 'true' });
 
     expect(env.PORT).toBe(8080);
-    expect(env.BACKEND_PORT).toBe(3001);
     expect(env.USE_MOCK).toBe(true);
   });
 
@@ -31,10 +30,11 @@ describe('parseEnv', () => {
   });
 
   it('variável vazia vale como ausente e usa o padrão', () => {
-    const env = parseEnv({ ...valid, BACKEND_PORT: '', PORT: '' });
+    const env = parseEnv({ ...valid, PORT: '', CORS_ORIGIN: '', CORS_ORIGIN_REGEX: '' });
 
-    expect(env.BACKEND_PORT).toBeUndefined();
     expect(env.PORT).toBe(3000);
+    expect(env.CORS_ORIGIN).toEqual(['http://localhost:5173', 'http://localhost:8080']);
+    expect(env.CORS_ORIGIN_REGEX).toBeUndefined();
   });
 
   it('sem JWT_SECRET e DATABASE_URL diz quais faltam', () => {
@@ -65,6 +65,21 @@ describe('parseEnv', () => {
   it('JWT_EXPIRES_IN fora do formato é recusado', () => {
     expect(() => parseEnv({ ...valid, JWT_EXPIRES_IN: '1 dia' })).toThrow(
       'JWT_EXPIRES_IN: use um prazo como 1d, 12h ou 30m',
+    );
+  });
+  it('CORS_ORIGIN vira lista, separada por vírgula', () => {
+    const env = parseEnv({ ...valid, CORS_ORIGIN: 'https://pokebox.vercel.app, http://localhost:5173' });
+
+    expect(env.CORS_ORIGIN).toEqual(['https://pokebox.vercel.app', 'http://localhost:5173']);
+  });
+
+  it('CORS_ORIGIN com algo que não é URL é recusado', () => {
+    expect(() => parseEnv({ ...valid, CORS_ORIGIN: 'pokebox.vercel.app' })).toThrow('cada origem precisa ser uma URL');
+  });
+
+  it('CORS_ORIGIN_REGEX inválida é recusada', () => {
+    expect(() => parseEnv({ ...valid, CORS_ORIGIN_REGEX: '^https://(pokebox' })).toThrow(
+      'CORS_ORIGIN_REGEX: precisa ser uma expressão regular válida',
     );
   });
 });
