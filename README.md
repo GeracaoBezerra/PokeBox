@@ -155,6 +155,8 @@ O backend aplica as migrations sozinho ao subir (`prisma migrate deploy`). O see
 
 O compose de desenvolvimento usa o estágio `dev` dos Dockerfiles: o front roda o servidor do Vite e o backend tem as ferramentas de desenvolvimento, por isso o seed funciona com `docker compose exec`. A API tem healthcheck no `/health`, e o front só sobe depois que ela responde.
 
+O projeto do Compose se chama sempre `pokebox` (`name: pokebox` no `docker-compose.yml`), de qualquer pasta em que o repositório esteja. Assim, `docker compose ps`, `logs` e `exec` enxergam os mesmos containers mesmo com mais de uma cópia do repositório (por exemplo, `git worktree`), e o banco fica sempre no volume `pokebox_postgres_data`. Se você já tinha subido os containers de uma pasta com outro nome, o `docker compose up` reclama que o nome do container já está em uso: remova os antigos com `docker compose -p <nome-antigo> down` (sem `-v`, os dados do volume antigo continuam guardados) e suba de novo. O nome antigo aparece em `docker inspect tcg-db-banco --format '{{index .Config.Labels "com.docker.compose.project"}}'`.
+
 ### 2b. Banco no Docker, backend e frontend na máquina
 
 Bom para desenvolver, porque o backend reinicia sozinho a cada alteração.
