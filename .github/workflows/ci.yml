@@ -51,8 +51,15 @@ jobs:
       - run: npx prisma generate
       - run: npm run typecheck
       - run: npm run build
-      - run: npm test
-      - run: npm run test:integration
+      - run: npm run test:coverage
+      - if: always() && hashFiles('backend/coverage/coverage-summary.json') != ''
+        run: node scripts/coverage-summary.mjs
+      - if: always() && hashFiles('backend/coverage/coverage-summary.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-backend
+          path: backend/coverage
+          retention-days: 14
 
   frontend:
     name: frontend
