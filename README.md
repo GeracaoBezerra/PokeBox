@@ -306,7 +306,7 @@ Configuração de produção no código:
 
 ## Logs e saúde da API
 
-A API registra uma linha por requisição com o [pino](https://getpino.io): método, rota, status, tempo de resposta (`responseTime`, em ms) e um id da requisição (`reqId`). Erros de servidor (5xx) saem com o stack. Senha, token e o header `Authorization` aparecem como `[oculto]`.
+A API registra uma linha por requisição com o [pino](https://getpino.io): método, rota, status, tempo de resposta (`responseTime`, em ms) e um id da requisição (`reqId`). Um erro de servidor (5xx) sai nessa mesma linha, com o stack. Senha, token e o header `Authorization` aparecem como `[oculto]`.
 
 | Onde | Formato | Como ver |
 |---|---|---|
@@ -315,7 +315,7 @@ A API registra uma linha por requisição com o [pino](https://getpino.io): mét
 
 `LOG_LEVEL` muda o quanto aparece (`debug` mostra mais, `warn` só avisos e erros). Nos testes o padrão é `silent`.
 
-Toda resposta traz o header `x-request-id`. Se quem chama já manda esse header, a API usa o mesmo id; senão, gera um.
+Toda resposta traz o header `x-request-id`, e o front consegue lê-lo (está liberado no CORS). Se quem chama já manda esse header, a API usa o mesmo id; senão, gera um.
 
 **Como investigar um erro em produção:**
 
@@ -330,7 +330,7 @@ Duas rotas dizem se a API está bem:
 | `GET /health` | o processo está de pé (não toca no banco); devolve o commit em `version` | Health Check do Render e o pipeline de deploy |
 | `GET /health/ready` | o banco responde (`SELECT 1`); 503 se não | para conferir à mão ou num monitor externo |
 
-As duas ficam fora do log automático, porque o Render e o pipeline chamam o tempo todo.
+As duas ficam fora do log automático, porque o Render e o pipeline chamam o tempo todo. O preflight do CORS (`OPTIONS`, que o navegador manda antes de cada `POST`) também fica fora.
 
 ## API
 

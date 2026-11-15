@@ -34,12 +34,12 @@ export function createLogger(env: Pick<Env, 'NODE_ENV' | 'LOG_LEVEL'>, destinati
   const level = env.LOG_LEVEL ?? (env.NODE_ENV === 'test' ? 'silent' : 'info');
   const pretty = env.NODE_ENV === 'development' && hasPrettyPrinter();
 
-  const options = { level, redact: { paths: REDACTED_PATHS, censor: '[oculto]' } };
+  const options = { level, base: undefined, redact: { paths: REDACTED_PATHS, censor: '[oculto]' } };
 
   if (pretty && !destination) {
     return pino({
       ...options,
-      transport: { target: 'pino-pretty', options: { translateTime: 'SYS:HH:MM:ss', ignore: 'pid,hostname' } },
+      transport: { target: 'pino-pretty', options: { translateTime: 'SYS:HH:MM:ss' } },
     });
   }
 

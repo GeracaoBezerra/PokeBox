@@ -2,6 +2,7 @@ import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 
 import { jest } from '@jest/globals';
+import { Router } from 'express';
 
 import { createApp } from './app.js';
 import { parseEnv } from './config/env.js';
@@ -20,9 +21,16 @@ const env = parseEnv({
 });
 
 const queryRaw = jest.fn<() => Promise<unknown>>();
+const lines: Record<string, unknown>[] = [];
 
 function buildFakeContainer(): Container {
-  const logger = createLogger(env);
+  const logger = createLogger(
+    { NODE_ENV: 'production', LOG_LEVEL: 'info' },
+    { write: (line: string) => lines.push(JSON.parse(line)) },
+  );
+  const boom = Router().get('/', () => {
+    throw new Error('boom de verdade');
+  });
   return {
     infra: {
       env,
@@ -32,7 +40,7 @@ function buildFakeContainer(): Container {
     },
     requestLogger: createRequestLogger(logger),
     errorHandler: createErrorHandler([], logger),
-    modules: [],
+    modules: [{ routes: [{ path: '/boom', router: boom }] }],
     shutdown: async () => {},
   };
 }
@@ -50,7 +58,12 @@ afterAll(async () => {
   await new Promise((resolve) => server.close(resolve));
 });
 
-beforeEach(() => queryRaw.mockReset());
+beforeEach(() => {
+  queryRaw.mockReset();
+  lines.length = 0;
+});
+
+const waitForLog = () => new Promise((resolve) => setTimeout(resolve, 20));
 
 describe('createApp', () => {
   it('/health responde 200 com o commit, sem tocar no banco', async () => {
@@ -85,5 +98,41 @@ describe('createApp', () => {
 
     expect(gerado.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/);
     expect(repassado.headers.get('x-request-id')).toBe('teste-123');
+  });
+
+  it('erro 500 gera uma linha de log só, com o erro de verdade', async () => {
+    const res = await fetch(`${baseUrl}/boom`, { headers: { 'x-request-id': 'req-500' } });
+    await waitForLog();
+
+    expect(res.status).toBe(500);
+    const errors = lines.filter((line) => line.level === 50);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({
+      req: { id: 'req-500', method: 'GET', url: '/boom' },
+      res: { statusCode: 500 },
+      err: { message: 'boom de verdade' },
+    });
+    expect(errors[0]).not.toHaveProperty('pid');
+    expect(errors[0]).not.toHaveProperty('hostname');
+  });
+
+  it('/health, /health/ready e o preflight do CORS ficam fora do log; /healthz não', async () => {
+    queryRaw.mockResolvedValue([]);
+    await fetch(`${baseUrl}/health`);
+    await fetch(`${baseUrl}/health/ready`);
+    await fetch(`${baseUrl}/boom`, {
+      method: 'OPTIONS',
+      headers: { origin: 'http://localhost:5173', 'access-control-request-method': 'POST' },
+    });
+    await fetch(`${baseUrl}/healthz`);
+    await waitForLog();
+
+    expect(lines.map((line) => line.msg)).toEqual(['GET /healthz 404']);
+  });
+
+  it('o navegador consegue ler o x-request-id', async () => {
+    const res = await fetch(`${baseUrl}/health`, { headers: { origin: 'http://localhost:5173' } });
+
+    expect(res.headers.get('access-control-expose-headers')).toBe('x-request-id');
   });
 });

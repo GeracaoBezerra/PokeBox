@@ -23,7 +23,11 @@ export function createErrorHandler(translators: ErrorTranslator[], logger: Logge
       return res.status(statusCode).json({ success: false, error: message, details });
     }
 
-    (req.log ?? logger).error({ err }, 'erro inesperado');
+    if (req.log) {
+      res.err = err instanceof Error ? err : new Error(String(err));
+    } else {
+      logger.error({ err }, 'erro inesperado');
+    }
 
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   };

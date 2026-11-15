@@ -9,6 +9,12 @@ export const REQUEST_ID_HEADER = 'x-request-id';
 
 const MAX_REQUEST_ID_LENGTH = 128;
 
+const HEALTH_ROUTE = /^\/health(\/ready)?(\?|$)/;
+
+export function isQuietRequest(method: string | undefined, url: string | undefined): boolean {
+  return method === 'OPTIONS' || HEALTH_ROUTE.test(url ?? '');
+}
+
 export function resolveRequestId(header: string | string[] | undefined): string {
   const value = Array.isArray(header) ? header[0] : header;
   if (value && value.length <= MAX_REQUEST_ID_LENGTH && /^[\w.:-]+$/.test(value)) return value;
@@ -35,7 +41,7 @@ export function createRequestLogger(logger: PinoLogger): RequestHandler {
       res.setHeader(REQUEST_ID_HEADER, id);
       return id;
     },
-    autoLogging: { ignore: (req) => req.url?.startsWith('/health') ?? false },
+    autoLogging: { ignore: (req) => isQuietRequest(req.method, req.url) },
     customLogLevel: (_req, res, err) => levelFor(res.statusCode, err),
     customSuccessMessage: (req, res) => `${req.method} ${pathOf(req)} ${res.statusCode}`,
     customErrorMessage: (req, res) => `${req.method} ${pathOf(req)} ${res.statusCode}`,
