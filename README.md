@@ -43,7 +43,7 @@ Projeto em equipe do curso **Geração Tech**.
 │   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json)
 │   ├── docs/db.md         modelo de dados, constraints, migrations e seed
 │   ├── docs/guia-backend  guia do backend e das regras de negócio (.md e .pdf)
-│   ├── scripts/           snapshot-cards.ts (regera as cartas do seed), clean-dist.mjs e copy-generated.mjs (build)
+│   ├── scripts/           seed-cards.ts (regera as cartas do seed), clean-dist.mjs e copy-generated.mjs (build)
 │   ├── Dockerfile         estágios dev e prod da API
 │   └── src/
 │       ├── server.ts      sobe a API: valida o env, monta o container e o app
@@ -229,22 +229,30 @@ docker compose exec tcg-backend npm run db:seed
 
 ## Usuários de teste (seed)
 
-As senhas não ficam no repositório: vêm do `.env`. `SEED_ADMIN_PASSWORD` é a do `admin`; `SEED_DEMO_PASSWORD` é a do `ash` e da `misty`. As duas são obrigatórias, têm de 8 a 72 caracteres e precisam ser diferentes; sem elas o seed para e diz o que falta. Peça os valores ao time ou escolha os seus no seu `.env`. Rodar o seed de novo aplica as senhas atuais do `.env` aos três usuários.
+As senhas não ficam no repositório: vêm do `.env`. `SEED_ADMIN_PASSWORD` é a do `admin`; `SEED_DEMO_PASSWORD` é a de todos os outros usuários. As duas são obrigatórias, têm de 8 a 72 caracteres e precisam ser diferentes; sem elas o seed para e diz o que falta. Peça os valores ao time ou escolha os seus no seu `.env`. Rodar o seed de novo aplica as senhas atuais do `.env` a todos os usuários do seed.
 
-| Usuário | E-mail | Papel | O que tem |
-|---|---|---|---|
-| `admin` | `admin@pokebox.dev` | ADMIN | nada na coleção |
-| `ash` | `ash@pokebox.dev` | USER | Charizard holo 1ª edição (anunciado), Pikachus, Ultra Ball (4), Furret (privado) |
-| `misty` | `misty@pokebox.dev` | USER | Blastoise holo (anunciado), Mew holo, Fire Energy (10), Pikachu |
+| Usuário | E-mail | Papel | Cidade | O que tem |
+|---|---|---|---|---|
+| `admin` | `admin@pokebox.dev` | ADMIN | | nada na coleção; serve para a moderação (há um anúncio do `gary` bloqueado) |
+| `ash` | `ash@pokebox.dev` | USER | São Paulo/SP | 13 itens: Charizard holo 1ª edição e Pikachu VMAX (anunciados), Pikachus, Ultra Ball (4), Furret e Lightning Energy (privados) |
+| `misty` | `misty@pokebox.dev` | USER | Rio de Janeiro/RJ | 12 itens: Blastoise holo e Gyarados (anunciados), Greninja ex (anúncio pausado), Mew ex holo, Fire Energy (10), cartas de água |
+| `brock` | `brock@pokebox.dev` | USER | Belo Horizonte/MG | 17 itens: Palkia, Garchomp ex, Snorlax VMAX, Iono (anunciados); uma troca concluída com a `erika` e uma troca **aberta** com a `cynthia` |
+| `gary` | `gary@pokebox.dev` | USER | Curitiba/PR | 18 itens: vários Charizard (anunciados, um **bloqueado** pelo admin); troca concluída com a `cynthia` |
+| `erika` | `erika@pokebox.dev` | USER | Porto Alegre/RS | 15 itens: Venusaur, Celebi V, Sylveon VMAX (anunciados), Nest Ball (pausado); recebeu uma oferta aceita do `brock` que ainda não virou troca |
+| `dawn` | `dawn@pokebox.dev` | USER | Recife/PE | 10 itens, todos **privados**: o perfil público dela aparece vazio |
+| `cynthia` | `cynthia@pokebox.dev` | USER | Florianópolis/SC | 22 itens raros: Umbreon VMAX alt art, Lugia 1ª edição, Mew ex dourado (anunciados); troca aberta com o `brock` esperando ela aceitar |
+| `lance` | `lance@pokebox.dev` | USER | Salvador/BA | conta **desativada**: não entra, o perfil dá 404, o anúncio dele some da vitrine e as cartas dele não contam nas oportunidades da wishlist |
 
-Também há 4 itens de wishlist e uma oferta em aberto: a misty oferece o Mew holo dela pelo Charizard do ash. Rodar o seed de novo volta essa oferta para `PROPOSED`, a não ser que ela já tenha virado troca (aí o seed avisa; para recomeçar, `npx prisma migrate reset`, que apaga o banco local). Detalhes em [`backend/docs/db.md`](backend/docs/db.md#seed).
+O seed cria 87 cartas reais (todas com imagem), 111 itens de coleção, que viram 117 depois das trocas concluídas (alguns privados, com quantidade maior que 1 e variantes holo, reverse e 1ª edição), 30 itens de wishlist (3 ou 4 por usuário, vários com cartas que outros têm), 30 anúncios (21 ativos na vitrine com datas espalhadas, 2 pausados, 1 bloqueado, os outros fechados), 13 ofertas (5 em aberto, 4 aceitas, 2 recusadas, 2 canceladas) e 3 trocas (2 concluídas e 1 aberta, com as cartas reservadas). Ofertas e trocas são criadas pelos mesmos services da API, então reservas e quantidades seguem as regras (RN-07 e RN-08).
+
+Rodar o seed de novo volta as ofertas em aberto do exemplo (como a da misty, que oferece o Mew holo pelo Charizard do ash) para `PROPOSED`, a não ser que já tenham virado troca (aí o seed avisa; para recomeçar, `npx prisma migrate reset`, que apaga o banco local). As trocas e as ofertas finalizadas do exemplo não são refeitas. Detalhes em [`backend/docs/db.md`](backend/docs/db.md#seed).
 
 O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, porque as cartas ficam em `backend/prisma/seed-data/cards.json`.
 
 ### Testar rápido no Swagger
 
 1. Abra http://localhost:3000/docs.
-2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "<SEED_DEMO_PASSWORD do seu .env>" }`. Clique em **Try it out**, troque a senha do exemplo pela do seu `.env` e clique em **Execute**. Os exemplos das outras rotas também seguem o seed (o Charizard do ash, a oferta da misty); o do cadastro usa `brock`, que não está no seed, para não dar 409.
+2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "<SEED_DEMO_PASSWORD do seu .env>" }`. Clique em **Try it out**, troque a senha do exemplo pela do seu `.env` e clique em **Execute**. Os exemplos das outras rotas também seguem o seed (o Charizard do ash, a oferta da misty); o do cadastro usa `tracey`, que não está no seed, para não dar 409.
 3. Copie o `token` da resposta, clique em **Authorize** e cole. O token fica salvo até fechar a aba (um F5 não desloga).
 4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me`, `GET /offers/me`, `GET /trades/me` etc. Os ids que as outras rotas pedem saem dessas listas (a descrição de cada campo diz onde pegar).
 5. Para conferir o papel ADMIN, `GET /auth/admin-check`: com `admin@pokebox.dev` dá 200; com o ash, 403.
