@@ -348,7 +348,7 @@ As duas ficam fora do log automático, porque o Render e o pipeline chamam o tem
 |---|---|
 | Compressão gzip (`compression`) | listas de cartas em JSON encolhem até 87% (tabela abaixo). Faz diferença no celular e na rede entre o Render e o navegador |
 | Cabeçalhos de segurança (`helmet`) | `X-Content-Type-Options`, `Strict-Transport-Security`, política de conteúdo e outros; tira o `X-Powered-By: Express`. O Swagger em `/docs` continua funcionando |
-| Limite de tentativas no login e no cadastro (`express-rate-limit`) | 20 tentativas **sem sucesso** para o mesmo e-mail a partir do mesmo IP, a cada 15 minutos. Depois disso, 429 com `Retry-After` |
+| Limite de tentativas no login e no cadastro (`express-rate-limit`) | 20 tentativas **sem sucesso** para o mesmo e-mail a partir do mesmo IP, a cada 15 minutos, contadas à parte em cada rota. Depois disso, 429 com `Retry-After` |
 | `trust proxy` em produção | no Render a API fica atrás de um proxy; sem isso, todo mundo pareceria ter o mesmo IP |
 | `express.json({ limit: '100kb' })` | o limite já existia (padrão do Express), agora está escrito; acima dele, 413 |
 | Índice `(status, createdAt DESC, id)` em `Listing` | o `GET /listings` lê os anúncios ativos já na ordem e para no fim da página |
@@ -356,7 +356,10 @@ As duas ficam fora do log automático, porque o Render e o pipeline chamam o tem
 Sobre o limite de tentativas:
 - Conta só o que falha, e por IP **e** e-mail. Na apresentação, a turma inteira entra do mesmo wi-fi, ou seja, do mesmo IP. Se o limite fosse só por IP, 20 senhas erradas de pessoas diferentes travariam o login de todo mundo. Assim, quem erra a própria senha bloqueia só a própria conta, e quem tenta adivinhar a senha de alguém para em 20 tentativas.
 - Depois do bloqueio, nem a senha certa entra naquele e-mail, a partir daquele IP, até a janela acabar: é o que impede a força bruta.
+- Login e cadastro têm contadores separados: errar o cadastro não bloqueia o login.
 - `AUTH_RATE_LIMIT` muda o número (padrão 20; `0` desliga).
+- Risco que fica: a mesma senha testada em muitos e-mails diferentes não é barrada, porque cada e-mail tem o próprio contador. É o preço de não travar a sala inteira. O próximo passo seria um segundo limite só por IP, bem mais alto (por exemplo, 200 falhas em 15 minutos).
+- O `trust proxy` confia em exatamente um proxy na frente da API, que é o caso do Render. Com outro proxy no meio (uma Cloudflare, por exemplo), a API passaria a enxergar o IP do proxy. Isso não abre brecha, porque a chave inclui o e-mail, mas precisa ser conferido com o app no ar (#60).
 
 ### Medição antes e depois
 
@@ -410,11 +413,18 @@ NODE_ENV=production LOG_LEVEL=warn npm start
 npx autocannon -c 20 -d 15 "http://localhost:3000/listings"
 ```
 
-Para o teste com volume, use um banco **de teste** (o script cria 5 mil usuários e 100 mil anúncios):
+Para o teste com volume, crie antes um banco **separado**. O script cria 5 mil usuários e 100 mil anúncios, e não há jeito fácil de desfazer num banco que você usa no dia a dia:
 
 ```bash
-docker compose exec -T tcg-db psql -U <user> -d <db_de_teste> < backend/scripts/bench-listings.sql
+docker compose exec tcg-db createdb -U <user> pokebox_bench
+cd backend
+export DATABASE_URL="postgresql://<user>:<senha>@localhost:5432/pokebox_bench" PRISMA_DATABASE_URL="$DATABASE_URL"
+npx prisma migrate deploy && npx prisma db seed
+docker compose exec -T tcg-db psql -U <user> -d pokebox_bench < scripts/bench-listings.sql
+NODE_ENV=production LOG_LEVEL=warn npm start
 ```
+
+Para apagar depois: `docker compose exec tcg-db dropdb -U <user> pokebox_bench`.
 
 ## API
 

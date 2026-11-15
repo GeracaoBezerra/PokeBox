@@ -23,7 +23,7 @@ export type ListingSort = (typeof LISTING_SORTS)[number];
 
 export const LISTING_ORDER_BY: Record<ListingSort, Prisma.ListingOrderByWithRelationInput[]> = {
   recent: [{ createdAt: 'desc' }, { id: 'asc' }],
-  oldest: [{ createdAt: 'asc' }, { id: 'asc' }],
+  oldest: [{ createdAt: 'asc' }, { id: 'desc' }],
   name: [{ collectionItem: { card: { name: 'asc' } } }, { createdAt: 'desc' }, { id: 'asc' }],
 };
 

@@ -3,11 +3,16 @@ import { Router, type RequestHandler } from 'express';
 import type { AuthController } from '../controllers/AuthController.js';
 import type { AuthMiddleware } from '../middlewares/AuthMiddleware.js';
 
-export function createAuthRoutes(auth: AuthMiddleware, controller: AuthController, limiter: RequestHandler): Router {
+export interface AuthLimiters {
+  login: RequestHandler;
+  register: RequestHandler;
+}
+
+export function createAuthRoutes(auth: AuthMiddleware, controller: AuthController, limiters: AuthLimiters): Router {
   const router = Router();
 
-  router.post('/register', limiter, controller.register);
-  router.post('/login', limiter, controller.login);
+  router.post('/register', limiters.register, controller.register);
+  router.post('/login', limiters.login, controller.login);
 
   router.get('/me', auth.requireAuth, controller.me);
 

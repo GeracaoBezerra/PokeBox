@@ -19,10 +19,14 @@ export function buildAuthModule(infra: Infra): AppModule {
 
   const authController = new AuthController(new AuthService(users, hasher, tokens));
   const userController = new UserController(new UserService(users));
+  const limiters = {
+    login: createAuthLimiter(infra.env.AUTH_RATE_LIMIT),
+    register: createAuthLimiter(infra.env.AUTH_RATE_LIMIT),
+  };
 
   return {
     routes: [
-      { path: '/auth', router: createAuthRoutes(infra.auth, authController, createAuthLimiter(infra.env.AUTH_RATE_LIMIT)) },
+      { path: '/auth', router: createAuthRoutes(infra.auth, authController, limiters) },
       { path: '/user', router: createUserRoutes(infra.auth, userController) },
     ],
   };
