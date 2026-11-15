@@ -78,6 +78,19 @@ Efeitos colaterais feitos pelo service, na mesma transação da mudança:
 - **Troca recusada ou cancelada**: devolve a reserva; `completedAt` fica nulo. Os anúncios reduzidos não voltam.
 - **Condição congelada durante a negociação**: `PATCH /collection/:id` recusa mudar `condition` (409) se o item tem reserva, `OfferItem` em oferta `PROPOSED`/`ACCEPTED` ou anúncio `ACTIVE`/`PAUSED`. Anúncio e oferta mostram a condição atual do item; sem isso, a cópia feita no `TradeItem` podia ser diferente do que foi anunciado ou oferecido. A conferência roda com o item travado, a mesma trava de criar anúncio e oferta.
 
+## Índices
+
+Além dos índices que o Postgres cria para PK e `UNIQUE`:
+
+| Índice | Serve para |
+|---|---|
+| `Card` por `name`, `setId` e `category` | busca e filtros do catálogo local |
+| `CollectionItem` e `WishlistItem` por `cardId` | achar quem tem ou quer uma carta (oportunidades da wishlist, detalhe da carta). A busca por dono usa a chave única, que começa por `userId` |
+| `Listing` por `collectionItemId` | anúncios abertos de um item (RN-05, `GET /listings/me`) |
+| `Listing` por `(status, createdAt DESC, id)` (#112) | `GET /listings`: o banco lê os anúncios ativos já na ordem de "mais recentes" e para no fim da página, em vez de ordenar todos. Também atende filtro só por `status` |
+
+O índice de `Listing` por `(status, createdAt DESC, id)` substituiu o que era só por `status`, que ficou redundante. Medido com o `EXPLAIN ANALYZE` num banco com 100 mil anúncios (20 mil ativos): a primeira página caiu de 6,3 ms para 0,3 ms. Detalhes e números no README, em "Performance".
+
 ## Migrations
 
 | Migration | O que faz |
@@ -91,6 +104,7 @@ Efeitos colaterais feitos pelo service, na mesma transação da mudança:
 | `20261029120000_add_card_details_and_variants` | colunas novas em `Card`, enum `CardFinish`, `finish`/`firstEdition` em `CollectionItem` (na chave única) e `TradeItem`; limpa o `CardCache` para ele se refazer com os campos novos |
 | `20261105220000_trade_only` | só trocas (D-08): remove `priceCents` de `Listing` e `Offer`, `Listing.type` e o enum `ListingType` e as CHECKs de preço; cria `OfferItem` com a CHECK `offer_item_quantity_check` |
 | `20261106025357_add_card_market_price` | preço de referência em `Card` (`marketPrice`, `marketPriceCurrency`, `marketPriceSource`, `marketPriceUpdatedAt`) e a CHECK `card_market_price_check` |
+| `20261115113657_indice_anuncios_recentes` | troca o índice de `Listing` por `status` pelo índice `(status, createdAt DESC, id)` (#112) |
 
 Nova tabela ou coluna: altere o `schema.prisma`, rode `npx prisma migrate dev --name <descricao>` e atualize este arquivo no mesmo PR.
 
