@@ -25,7 +25,7 @@
     "marketPrice": 987.13,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-05T22:54:33.246Z",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
     "variants": {
       "normal": false,
       "reverse": false,
@@ -56,10 +56,10 @@
     "regulationMark": null,
     "trainerType": null,
     "energyType": null,
-    "marketPrice": 229.29,
+    "marketPrice": 234.49,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-05T22:54:33.246Z",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
     "variants": {
       "normal": false,
       "reverse": false,
@@ -90,15 +90,2055 @@
     "regulationMark": null,
     "trainerType": null,
     "energyType": null,
-    "marketPrice": 11.94,
+    "marketPrice": 8.22,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-05T22:54:33.246Z",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
     "variants": {
       "normal": true,
       "reverse": false,
       "holo": false,
       "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-10",
+    "name": "Mewtwo",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "10/102",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/10/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 60,
+    "stage": "Basic",
+    "illustrator": "Ken Sugimori",
+    "dexId": [
+      150
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 85.05,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-15",
+    "name": "Venusaur",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "15/102",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/15/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Grass"
+    ],
+    "hp": 100,
+    "stage": "Stage2",
+    "illustrator": "Mitsuhiro Arita",
+    "dexId": [
+      3
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 137.4,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-16",
+    "name": "Zapdos",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "16/102",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/16/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Lightning"
+    ],
+    "hp": 90,
+    "stage": "Basic",
+    "illustrator": "Ken Sugimori",
+    "dexId": [
+      145
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 56.72,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-44",
+    "name": "Bulbasaur",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "44/102",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/44/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Grass"
+    ],
+    "hp": 40,
+    "stage": "Basic",
+    "illustrator": "Mitsuhiro Arita",
+    "dexId": [
+      1
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 4.64,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-46",
+    "name": "Charmander",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "46/102",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/46/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fire"
+    ],
+    "hp": 50,
+    "stage": "Basic",
+    "illustrator": "Mitsuhiro Arita",
+    "dexId": [
+      4
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 2.99,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-63",
+    "name": "Squirtle",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "63/102",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/63/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Water"
+    ],
+    "hp": 40,
+    "stage": "Basic",
+    "illustrator": "Mitsuhiro Arita",
+    "dexId": [
+      7
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 6.92,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-88",
+    "name": "Professor Oak",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "88/102",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/88/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "Ken Sugimori",
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 1.39,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-91",
+    "name": "Bill",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "91/102",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/91/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "Ken Sugimori",
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.41,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-96",
+    "name": "Double Colorless Energy",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "96/102",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/96/low.webp",
+    "category": "Energy",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "Keiji Kinebuchi",
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": "Special",
+    "marketPrice": 6.35,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-98",
+    "name": "Fire Energy",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "98/102",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/98/low.webp",
+    "category": "Energy",
+    "types": [],
+    "hp": null,
+    "stage": "Basic",
+    "illustrator": "Keiji Kinebuchi",
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": "Normal",
+    "marketPrice": 0.47,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base1-102",
+    "name": "Water Energy",
+    "setId": "base1",
+    "setName": "Base Set",
+    "setSeries": "Base",
+    "releaseDate": "1999-01-09T00:00:00.000Z",
+    "number": "102/102",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base1/102/low.webp",
+    "category": "Energy",
+    "types": [],
+    "hp": null,
+    "stage": "Basic",
+    "illustrator": "Keiji Kinebuchi",
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": "Normal",
+    "marketPrice": 0.45,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.475Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base2-51",
+    "name": "Eevee",
+    "setId": "base2",
+    "setName": "Jungle",
+    "setSeries": "Base",
+    "releaseDate": "1999-06-16T00:00:00.000Z",
+    "number": "51/64",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base2/51/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Colorless"
+    ],
+    "hp": 50,
+    "stage": "Basic",
+    "illustrator": "Kagemaru Himeno",
+    "dexId": [
+      133
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 2.32,
+    "marketPriceCurrency": "EUR",
+    "marketPriceSource": "cardmarket",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.049Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base2-60",
+    "name": "Pikachu",
+    "setId": "base2",
+    "setName": "Jungle",
+    "setSeries": "Base",
+    "releaseDate": "1999-06-16T00:00:00.000Z",
+    "number": "60/64",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base2/60/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Lightning"
+    ],
+    "hp": 50,
+    "stage": "Basic",
+    "illustrator": "Ken Sugimori",
+    "dexId": [
+      25
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.72,
+    "marketPriceCurrency": "EUR",
+    "marketPriceSource": "cardmarket",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.049Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base3-4",
+    "name": "Dragonite",
+    "setId": "base3",
+    "setName": "Fossil",
+    "setSeries": "Base",
+    "releaseDate": "1999-10-10T00:00:00.000Z",
+    "number": "4/62",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base3/4/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Colorless"
+    ],
+    "hp": 100,
+    "stage": "Stage2",
+    "illustrator": "Kagemaru Himeno",
+    "dexId": [
+      149
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 185.85,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.649Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "base3-5",
+    "name": "Gengar",
+    "setId": "base3",
+    "setName": "Fossil",
+    "setSeries": "Base",
+    "releaseDate": "1999-10-10T00:00:00.000Z",
+    "number": "5/62",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/base/base3/5/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 80,
+    "stage": "Stage2",
+    "illustrator": "Keiji Kinebuchi",
+    "dexId": [
+      94
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 219.04,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.649Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "neo1-9",
+    "name": "Lugia",
+    "setId": "neo1",
+    "setName": "Neo Genesis",
+    "setSeries": "Neo",
+    "releaseDate": "2000-12-16T00:00:00.000Z",
+    "number": "9/111",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/neo/neo1/9/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Colorless"
+    ],
+    "hp": 90,
+    "stage": "Basic",
+    "illustrator": "Hironobu Yoshida",
+    "dexId": [
+      249
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 526.98,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:20.160Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "neo1-17",
+    "name": "Typhlosion",
+    "setId": "neo1",
+    "setName": "Neo Genesis",
+    "setSeries": "Neo",
+    "releaseDate": "2000-12-16T00:00:00.000Z",
+    "number": "17/111",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/neo/neo1/17/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fire"
+    ],
+    "hp": 100,
+    "stage": "Stage2",
+    "illustrator": "Shin-ichi Yoshida",
+    "dexId": [
+      157
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 212.09,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:20.160Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "neo1-96",
+    "name": "Professor Elm",
+    "setId": "neo1",
+    "setName": "Neo Genesis",
+    "setSeries": "Neo",
+    "releaseDate": "2000-12-16T00:00:00.000Z",
+    "number": "96/111",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/neo/neo1/96/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "Ken Sugimori",
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.77,
+    "marketPriceCurrency": "EUR",
+    "marketPriceSource": "cardmarket",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:19.037Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": true
+    }
+  },
+  {
+    "id": "ex1-101",
+    "name": "Mewtwo ex",
+    "setId": "ex1",
+    "setName": "Ruby & Sapphire",
+    "setSeries": "EX",
+    "releaseDate": "2003-07-01T00:00:00.000Z",
+    "number": "101/109",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/ex/ex1/101/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 100,
+    "stage": "Basic",
+    "illustrator": "Katsura Tabata",
+    "dexId": [
+      150
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 746.79,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:21.061Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "dp1-1",
+    "name": "Dialga",
+    "setId": "dp1",
+    "setName": "Diamond & Pearl",
+    "setSeries": "Diamond & Pearl",
+    "releaseDate": "2007-05-01T00:00:00.000Z",
+    "number": "1/130",
+    "rarity": "Rare Holo",
+    "imageUrl": "https://assets.tcgdex.net/en/dp/dp1/1/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Metal"
+    ],
+    "hp": 90,
+    "stage": "Basic",
+    "illustrator": "Nakaoka",
+    "dexId": [
+      483
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 44.8,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:23.223Z",
+    "variants": {
+      "normal": false,
+      "reverse": true,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "dp1-6",
+    "name": "Lucario",
+    "setId": "dp1",
+    "setName": "Diamond & Pearl",
+    "setSeries": "Diamond & Pearl",
+    "releaseDate": "2007-05-01T00:00:00.000Z",
+    "number": "6/130",
+    "rarity": "Rare Holo",
+    "imageUrl": "https://assets.tcgdex.net/en/dp/dp1/6/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fighting"
+    ],
+    "hp": 90,
+    "stage": "Stage1",
+    "illustrator": "Ken Sugimori",
+    "dexId": [
+      448
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 64.66,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:23.223Z",
+    "variants": {
+      "normal": false,
+      "reverse": true,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "dp1-11",
+    "name": "Palkia",
+    "setId": "dp1",
+    "setName": "Diamond & Pearl",
+    "setSeries": "Diamond & Pearl",
+    "releaseDate": "2007-05-01T00:00:00.000Z",
+    "number": "11/130",
+    "rarity": "Rare Holo",
+    "imageUrl": "https://assets.tcgdex.net/en/dp/dp1/11/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Water"
+    ],
+    "hp": 90,
+    "stage": "Basic",
+    "illustrator": "Nakaoka",
+    "dexId": [
+      484
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 35.72,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:23.223Z",
+    "variants": {
+      "normal": false,
+      "reverse": true,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "xy1-41",
+    "name": "Greninja",
+    "setId": "xy1",
+    "setName": "XY",
+    "setSeries": "XY",
+    "releaseDate": "2014-02-05T00:00:00.000Z",
+    "number": "41/146",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/xy/xy1/41/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Water"
+    ],
+    "hp": 130,
+    "stage": "Stage2",
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      658
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 12.51,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:27.321Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "xy1-97",
+    "name": "Xerneas EX",
+    "setId": "xy1",
+    "setName": "XY",
+    "setSeries": "XY",
+    "releaseDate": "2014-02-05T00:00:00.000Z",
+    "number": "97/146",
+    "rarity": "Ultra Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/xy/xy1/97/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fairy"
+    ],
+    "hp": 170,
+    "stage": "Basic",
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      716
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 18.06,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:27.321Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "xy1-140",
+    "name": "Fairy Energy",
+    "setId": "xy1",
+    "setName": "XY",
+    "setSeries": "XY",
+    "releaseDate": "2014-02-05T00:00:00.000Z",
+    "number": "140/146",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/xy/xy1/140/low.webp",
+    "category": "Energy",
+    "types": [
+      "Fairy"
+    ],
+    "hp": null,
+    "stage": null,
+    "illustrator": null,
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": "Normal",
+    "marketPrice": 0.83,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:27.321Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sm1-9",
+    "name": "Rowlet",
+    "setId": "sm1",
+    "setName": "Sun & Moon",
+    "setSeries": "Sun & Moon",
+    "releaseDate": "2017-02-03T00:00:00.000Z",
+    "number": "9/149",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/sm/sm1/9/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Grass"
+    ],
+    "hp": 60,
+    "stage": "Basic",
+    "illustrator": "Megumi Mizutani",
+    "dexId": [
+      722
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.19,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:29.316Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sm1-61",
+    "name": "Espeon GX",
+    "setId": "sm1",
+    "setName": "Sun & Moon",
+    "setSeries": "Sun & Moon",
+    "releaseDate": "2017-02-03T00:00:00.000Z",
+    "number": "61/149",
+    "rarity": "Ultra Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sm/sm1/61/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 200,
+    "stage": null,
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      196
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 9.53,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:29.316Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sm1-80",
+    "name": "Umbreon GX",
+    "setId": "sm1",
+    "setName": "Sun & Moon",
+    "setSeries": "Sun & Moon",
+    "releaseDate": "2017-02-03T00:00:00.000Z",
+    "number": "80/149",
+    "rarity": "Ultra Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sm/sm1/80/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Darkness"
+    ],
+    "hp": 200,
+    "stage": null,
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      197
+    ],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 25.94,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:29.316Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sm1-129",
+    "name": "Rare Candy",
+    "setId": "sm1",
+    "setName": "Sun & Moon",
+    "setSeries": "Sun & Moon",
+    "releaseDate": "2017-02-03T00:00:00.000Z",
+    "number": "129/149",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/sm/sm1/129/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "Toyste Beach",
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": "Item",
+    "energyType": null,
+    "marketPrice": 0.28,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:29.316Z",
+    "variants": {
+      "normal": true,
+      "reverse": false,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh1-1",
+    "name": "Celebi V",
+    "setId": "swsh1",
+    "setName": "Sword & Shield",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2020-02-07T00:00:00.000Z",
+    "number": "1/202",
+    "rarity": "Holo Rare V",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh1/1/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Grass"
+    ],
+    "hp": 180,
+    "stage": "Basic",
+    "illustrator": "PLANETA Igarashi",
+    "dexId": [
+      251
+    ],
+    "regulationMark": "D",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 1.6,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:31.378Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh1-142",
+    "name": "Snorlax VMAX",
+    "setId": "swsh1",
+    "setName": "Sword & Shield",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2020-02-07T00:00:00.000Z",
+    "number": "142/202",
+    "rarity": "Holo Rare VMAX",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh1/142/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Colorless"
+    ],
+    "hp": 340,
+    "stage": "VMAX",
+    "illustrator": "aky CG Works",
+    "dexId": [
+      143
+    ],
+    "regulationMark": "D",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 50.32,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:31.378Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh1-178",
+    "name": "Professor's Research (Professor Magnolia)",
+    "setId": "swsh1",
+    "setName": "Sword & Shield",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2020-02-07T00:00:00.000Z",
+    "number": "178/202",
+    "rarity": "Holo Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh1/178/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "Yusuke Ohmura",
+    "dexId": [],
+    "regulationMark": "D",
+    "trainerType": "Supporter",
+    "energyType": null,
+    "marketPrice": null,
+    "marketPriceCurrency": null,
+    "marketPriceSource": null,
+    "marketPriceUpdatedAt": null,
+    "variants": {
+      "normal": false,
+      "reverse": true,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh3-136",
+    "name": "Furret",
+    "setId": "swsh3",
+    "setName": "Darkness Ablaze",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2020-08-14T00:00:00.000Z",
+    "number": "136/189",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh3/136/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Colorless"
+    ],
+    "hp": 110,
+    "stage": "Stage1",
+    "illustrator": "tetsuya koizumi",
+    "dexId": [
+      162
+    ],
+    "regulationMark": "D",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.26,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:31.588Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh4-25",
+    "name": "Charizard",
+    "setId": "swsh4",
+    "setName": "Vivid Voltage",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2020-11-13T00:00:00.000Z",
+    "number": "25/185",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh4/25/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fire"
+    ],
+    "hp": 170,
+    "stage": "Stage2",
+    "illustrator": "Ryuta Fuse",
+    "dexId": [
+      6
+    ],
+    "regulationMark": "D",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 3.72,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:31.769Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh4-44",
+    "name": "Pikachu VMAX",
+    "setId": "swsh4",
+    "setName": "Vivid Voltage",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2020-11-13T00:00:00.000Z",
+    "number": "44/185",
+    "rarity": "Holo Rare VMAX",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh4/44/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Lightning"
+    ],
+    "hp": 310,
+    "stage": "VMAX",
+    "illustrator": "aky CG Works",
+    "dexId": [
+      25
+    ],
+    "regulationMark": "D",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 10.27,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:31.769Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh7-75",
+    "name": "Sylveon VMAX",
+    "setId": "swsh7",
+    "setName": "Evolving Skies",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2021-08-27T00:00:00.000Z",
+    "number": "75/203",
+    "rarity": "Holo Rare VMAX",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh7/75/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 310,
+    "stage": "VMAX",
+    "illustrator": "Ryota Murayama",
+    "dexId": [
+      700
+    ],
+    "regulationMark": "E",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 19.56,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.126Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh7-111",
+    "name": "Rayquaza VMAX",
+    "setId": "swsh7",
+    "setName": "Evolving Skies",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2021-08-27T00:00:00.000Z",
+    "number": "111/203",
+    "rarity": "Holo Rare VMAX",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh7/111/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Dragon"
+    ],
+    "hp": 320,
+    "stage": "VMAX",
+    "illustrator": "PLANETA Mochizuki",
+    "dexId": [
+      384
+    ],
+    "regulationMark": "E",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 13.12,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.126Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh7-125",
+    "name": "Eevee",
+    "setId": "swsh7",
+    "setName": "Evolving Skies",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2021-08-27T00:00:00.000Z",
+    "number": "125/203",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh7/125/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Colorless"
+    ],
+    "hp": 70,
+    "stage": "Basic",
+    "illustrator": "Atsushi Furusawa",
+    "dexId": [
+      133
+    ],
+    "regulationMark": "E",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.41,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.126Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh7-215",
+    "name": "Umbreon VMAX",
+    "setId": "swsh7",
+    "setName": "Evolving Skies",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2021-08-27T00:00:00.000Z",
+    "number": "215/203",
+    "rarity": "Secret Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh7/215/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Darkness"
+    ],
+    "hp": 310,
+    "stage": "VMAX",
+    "illustrator": "KEIICHIRO ITO",
+    "dexId": [
+      197
+    ],
+    "regulationMark": "E",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 2324.94,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.126Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh9-018",
+    "name": "Charizard VSTAR",
+    "setId": "swsh9",
+    "setName": "Brilliant Stars",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2022-02-25T00:00:00.000Z",
+    "number": "018/172",
+    "rarity": "Holo Rare VSTAR",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh9/018/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fire"
+    ],
+    "hp": 280,
+    "stage": "VSTAR",
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      6
+    ],
+    "regulationMark": "F",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 10.98,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.403Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh9-123",
+    "name": "Arceus VSTAR",
+    "setId": "swsh9",
+    "setName": "Brilliant Stars",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2022-02-25T00:00:00.000Z",
+    "number": "123/172",
+    "rarity": "Holo Rare VSTAR",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh9/123/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Colorless"
+    ],
+    "hp": 280,
+    "stage": "VSTAR",
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      493
+    ],
+    "regulationMark": "F",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 5.12,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.403Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh9-132",
+    "name": "Boss's Orders",
+    "setId": "swsh9",
+    "setName": "Brilliant Stars",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2022-02-25T00:00:00.000Z",
+    "number": "132/172",
+    "rarity": "Holo Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh9/132/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "GIDORA",
+    "dexId": [],
+    "regulationMark": "D",
+    "trainerType": "Supporter",
+    "energyType": null,
+    "marketPrice": 0.33,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.403Z",
+    "variants": {
+      "normal": false,
+      "reverse": true,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh9-151",
+    "name": "Double Turbo Energy",
+    "setId": "swsh9",
+    "setName": "Brilliant Stars",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2022-02-25T00:00:00.000Z",
+    "number": "151/172",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh9/151/low.webp",
+    "category": "Energy",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": null,
+    "dexId": [],
+    "regulationMark": "F",
+    "trainerType": null,
+    "energyType": "Special",
+    "marketPrice": 0.24,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.403Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh12.5-020",
+    "name": "Radiant Charizard",
+    "setId": "swsh12.5",
+    "setName": "Crown Zenith",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2023-01-20T00:00:00.000Z",
+    "number": "020/159",
+    "rarity": "Radiant Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/020/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fire"
+    ],
+    "hp": 160,
+    "stage": "Basic",
+    "illustrator": "Kouki Saitou",
+    "dexId": [
+      6
+    ],
+    "regulationMark": "F",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 11.21,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.862Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh12.5-060",
+    "name": "Mew V",
+    "setId": "swsh12.5",
+    "setName": "Crown Zenith",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2023-01-20T00:00:00.000Z",
+    "number": "060/159",
+    "rarity": "Holo Rare V",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/060/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 180,
+    "stage": "Basic",
+    "illustrator": "PLANETA Igarashi",
+    "dexId": [
+      151
+    ],
+    "regulationMark": "E",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 5.82,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.862Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "swsh12.5-160",
+    "name": "Pikachu",
+    "setId": "swsh12.5",
+    "setName": "Crown Zenith",
+    "setSeries": "Sword & Shield",
+    "releaseDate": "2023-01-20T00:00:00.000Z",
+    "number": "160/159",
+    "rarity": "Secret Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh12.5/160/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Lightning"
+    ],
+    "hp": 70,
+    "stage": "Basic",
+    "illustrator": "You Iribi",
+    "dexId": [
+      25
+    ],
+    "regulationMark": "F",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 34.34,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.862Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv01-001",
+    "name": "Pineco",
+    "setId": "sv01",
+    "setName": "Scarlet & Violet",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-03-31T00:00:00.000Z",
+    "number": "001/198",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/001/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Grass"
+    ],
+    "hp": 60,
+    "stage": "Basic",
+    "illustrator": "Shigenori Negishi",
+    "dexId": [
+      204
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.11,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.972Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv01-081",
+    "name": "Miraidon ex",
+    "setId": "sv01",
+    "setName": "Scarlet & Violet",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-03-31T00:00:00.000Z",
+    "number": "081/198",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/081/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Lightning"
+    ],
+    "hp": 220,
+    "stage": "Basic",
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      1008
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 1.18,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.972Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv01-125",
+    "name": "Koraidon ex",
+    "setId": "sv01",
+    "setName": "Scarlet & Violet",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-03-31T00:00:00.000Z",
+    "number": "125/198",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/125/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fighting"
+    ],
+    "hp": 230,
+    "stage": "Basic",
+    "illustrator": "aky CG Works",
+    "dexId": [
+      1007
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.59,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.972Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv01-166",
+    "name": "Arven",
+    "setId": "sv01",
+    "setName": "Scarlet & Violet",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-03-31T00:00:00.000Z",
+    "number": "166/198",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/166/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "GIDORA",
+    "dexId": [],
+    "regulationMark": "G",
+    "trainerType": "Supporter",
+    "energyType": null,
+    "marketPrice": 0.3,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.972Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv01-181",
+    "name": "Nest Ball",
+    "setId": "sv01",
+    "setName": "Scarlet & Violet",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-03-31T00:00:00.000Z",
+    "number": "181/198",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/181/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "Toyste Beach",
+    "dexId": [],
+    "regulationMark": "G",
+    "trainerType": "Item",
+    "energyType": null,
+    "marketPrice": 0.3,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.972Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv01-196",
+    "name": "Ultra Ball",
+    "setId": "sv01",
+    "setName": "Scarlet & Violet",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-03-31T00:00:00.000Z",
+    "number": "196/198",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/196/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "Ayaka Yoshida",
+    "dexId": [],
+    "regulationMark": "G",
+    "trainerType": "Item",
+    "energyType": null,
+    "marketPrice": 0.31,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.972Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv01-257",
+    "name": "Basic Lightning Energy",
+    "setId": "sv01",
+    "setName": "Scarlet & Violet",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-03-31T00:00:00.000Z",
+    "number": "257/198",
+    "rarity": "Hyper rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/257/low.webp",
+    "category": "Energy",
+    "types": [
+      "Lightning"
+    ],
+    "hp": null,
+    "stage": null,
+    "illustrator": null,
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": "Normal",
+    "marketPrice": 4.65,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:32.972Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv02-063",
+    "name": "Pikachu ex",
+    "setId": "sv02",
+    "setName": "Paldea Evolved",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-06-09T00:00:00.000Z",
+    "number": "063/193",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv02/063/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Lightning"
+    ],
+    "hp": 190,
+    "stage": "Basic",
+    "illustrator": "N-DESIGN Inc.",
+    "dexId": [
+      25
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 3.89,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.164Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv02-172",
+    "name": "Boss's Orders",
+    "setId": "sv02",
+    "setName": "Paldea Evolved",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-06-09T00:00:00.000Z",
+    "number": "172/193",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv02/172/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "NC Empire",
+    "dexId": [],
+    "regulationMark": "G",
+    "trainerType": "Supporter",
+    "energyType": null,
+    "marketPrice": 0.32,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.164Z",
+    "variants": {
+      "normal": false,
+      "reverse": true,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv02-185",
+    "name": "Iono",
+    "setId": "sv02",
+    "setName": "Paldea Evolved",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-06-09T00:00:00.000Z",
+    "number": "185/193",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv02/185/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "Sanosuke Sakuma",
+    "dexId": [],
+    "regulationMark": "G",
+    "trainerType": "Supporter",
+    "energyType": null,
+    "marketPrice": 0.29,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.164Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv02-279",
+    "name": "Basic Water Energy",
+    "setId": "sv02",
+    "setName": "Paldea Evolved",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-06-09T00:00:00.000Z",
+    "number": "279/193",
+    "rarity": "Hyper rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv02/279/low.webp",
+    "category": "Energy",
+    "types": [
+      "Water"
+    ],
+    "hp": null,
+    "stage": null,
+    "illustrator": null,
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": "Normal",
+    "marketPrice": 8.02,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.164Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03-125",
+    "name": "Charizard ex",
+    "setId": "sv03",
+    "setName": "Obsidian Flames",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-08-11T00:00:00.000Z",
+    "number": "125/197",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03/125/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Darkness"
+    ],
+    "hp": 330,
+    "stage": "Stage2",
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      6
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 5.34,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.257Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03-130",
+    "name": "Umbreon",
+    "setId": "sv03",
+    "setName": "Obsidian Flames",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-08-11T00:00:00.000Z",
+    "number": "130/197",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03/130/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Darkness"
+    ],
+    "hp": 110,
+    "stage": "Stage1",
+    "illustrator": "rika",
+    "dexId": [
+      197
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.37,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.257Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03-230",
+    "name": "Basic Fire Energy",
+    "setId": "sv03",
+    "setName": "Obsidian Flames",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-08-11T00:00:00.000Z",
+    "number": "230/197",
+    "rarity": "Hyper rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03/230/low.webp",
+    "category": "Energy",
+    "types": [
+      "Fire"
+    ],
+    "hp": null,
+    "stage": null,
+    "illustrator": null,
+    "dexId": [],
+    "regulationMark": null,
+    "trainerType": null,
+    "energyType": "Normal",
+    "marketPrice": 4.49,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.257Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-001",
+    "name": "Bulbasaur",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "001/165",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/001/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Grass"
+    ],
+    "hp": 70,
+    "stage": "Basic",
+    "illustrator": "Yuu Nishida",
+    "dexId": [
+      1
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.28,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-004",
+    "name": "Charmander",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "004/165",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/004/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fire"
+    ],
+    "hp": 70,
+    "stage": "Basic",
+    "illustrator": "GIDORA",
+    "dexId": [
+      4
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.21,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": true,
+      "firstEdition": false
     }
   },
   {
@@ -124,14 +2164,48 @@
     "regulationMark": "G",
     "trainerType": null,
     "energyType": null,
-    "marketPrice": 9.16,
+    "marketPrice": 8.72,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-05T22:54:46.974Z",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
     "variants": {
       "normal": false,
       "reverse": false,
       "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-007",
+    "name": "Squirtle",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "007/165",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/007/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Water"
+    ],
+    "hp": 60,
+    "stage": "Basic",
+    "illustrator": "kantaro",
+    "dexId": [
+      7
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.25,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
       "firstEdition": false
     }
   },
@@ -161,11 +2235,249 @@
     "marketPrice": 0.29,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-05T22:54:46.974Z",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
     "variants": {
       "normal": true,
       "reverse": true,
       "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-054",
+    "name": "Psyduck",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "054/165",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/054/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Water"
+    ],
+    "hp": 70,
+    "stage": "Basic",
+    "illustrator": "Taira Akitsu",
+    "dexId": [
+      54
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.24,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-094",
+    "name": "Gengar",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "094/165",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/094/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 130,
+    "stage": "Stage2",
+    "illustrator": "Tomokazu Komiya",
+    "dexId": [
+      94
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 2.3,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": false,
+      "reverse": true,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-129",
+    "name": "Magikarp",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "129/165",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/129/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Water"
+    ],
+    "hp": 30,
+    "stage": "Basic",
+    "illustrator": "Kouki Saitou",
+    "dexId": [
+      129
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.18,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-130",
+    "name": "Gyarados",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "130/165",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/130/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Water"
+    ],
+    "hp": 190,
+    "stage": "Stage1",
+    "illustrator": "Kouki Saitou",
+    "dexId": [
+      130
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.4,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": false,
+      "reverse": true,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-133",
+    "name": "Eevee",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "133/165",
+    "rarity": "Common",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/133/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Colorless"
+    ],
+    "hp": 70,
+    "stage": "Basic",
+    "illustrator": "Narumi Sato",
+    "dexId": [
+      133
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.23,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-143",
+    "name": "Snorlax",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "143/165",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/143/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Colorless"
+    ],
+    "hp": 150,
+    "stage": "Basic",
+    "illustrator": "HYOGONOSUKE",
+    "dexId": [
+      143
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.26,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": true,
+      "reverse": true,
+      "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-150",
+    "name": "Mewtwo",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "150/165",
+    "rarity": "Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/150/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 130,
+    "stage": "Basic",
+    "illustrator": "AKIRA EGAWA",
+    "dexId": [
+      150
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 1.75,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": false,
+      "reverse": true,
+      "holo": true,
       "firstEdition": false
     }
   },
@@ -192,10 +2504,10 @@
     "regulationMark": "G",
     "trainerType": null,
     "energyType": null,
-    "marketPrice": 6.67,
+    "marketPrice": 6.56,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-05T22:54:46.974Z",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
     "variants": {
       "normal": false,
       "reverse": false,
@@ -204,115 +2516,121 @@
     }
   },
   {
-    "id": "swsh3-136",
-    "name": "Furret",
-    "setId": "swsh3",
-    "setName": "Darkness Ablaze",
-    "setSeries": "Sword & Shield",
-    "releaseDate": "2020-08-14T00:00:00.000Z",
-    "number": "136/189",
-    "rarity": "Uncommon",
-    "imageUrl": "https://assets.tcgdex.net/en/swsh/swsh3/136/low.webp",
-    "category": "Pokemon",
-    "types": [
-      "Colorless"
-    ],
-    "hp": 110,
-    "stage": "Stage1",
-    "illustrator": "tetsuya koizumi",
-    "dexId": [
-      162
-    ],
-    "regulationMark": "D",
-    "trainerType": null,
-    "energyType": null,
-    "marketPrice": 0.29,
-    "marketPriceCurrency": "USD",
-    "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-05T22:54:45.308Z",
-    "variants": {
-      "normal": true,
-      "reverse": true,
-      "holo": false,
-      "firstEdition": false
-    }
-  },
-  {
-    "id": "sv01-001",
-    "name": "Pineco",
-    "setId": "sv01",
-    "setName": "Scarlet & Violet",
+    "id": "sv03.5-173",
+    "name": "Pikachu",
+    "setId": "sv03.5",
+    "setName": "151",
     "setSeries": "Scarlet & Violet",
-    "releaseDate": "2023-03-31T00:00:00.000Z",
-    "number": "001/198",
-    "rarity": "Common",
-    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/001/low.webp",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "173/165",
+    "rarity": "Illustration rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/173/low.webp",
     "category": "Pokemon",
     "types": [
-      "Grass"
+      "Lightning"
     ],
     "hp": 60,
     "stage": "Basic",
-    "illustrator": "Shigenori Negishi",
+    "illustrator": "Hiroyuki Yamamoto",
     "dexId": [
-      204
+      25
     ],
     "regulationMark": "G",
     "trainerType": null,
     "energyType": null,
-    "marketPrice": 0.12,
+    "marketPrice": 50.95,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-05T22:54:46.691Z",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
     "variants": {
-      "normal": true,
-      "reverse": true,
-      "holo": false,
+      "normal": false,
+      "reverse": false,
+      "holo": true,
       "firstEdition": false
     }
   },
   {
-    "id": "sv01-196",
-    "name": "Ultra Ball",
-    "setId": "sv01",
-    "setName": "Scarlet & Violet",
+    "id": "sv03.5-199",
+    "name": "Charizard ex",
+    "setId": "sv03.5",
+    "setName": "151",
     "setSeries": "Scarlet & Violet",
-    "releaseDate": "2023-03-31T00:00:00.000Z",
-    "number": "196/198",
-    "rarity": "Uncommon",
-    "imageUrl": "https://assets.tcgdex.net/en/sv/sv01/196/low.webp",
-    "category": "Trainer",
-    "types": [],
-    "hp": null,
-    "stage": null,
-    "illustrator": "Ayaka Yoshida",
-    "dexId": [],
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "199/165",
+    "rarity": "Special illustration rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/199/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fire"
+    ],
+    "hp": 330,
+    "stage": "Stage2",
+    "illustrator": "miki kudo",
+    "dexId": [
+      6
+    ],
     "regulationMark": "G",
-    "trainerType": "Item",
+    "trainerType": null,
     "energyType": null,
-    "marketPrice": 0.26,
+    "marketPrice": 292.22,
     "marketPriceCurrency": "USD",
     "marketPriceSource": "tcgplayer",
-    "marketPriceUpdatedAt": "2026-11-05T22:54:46.691Z",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
     "variants": {
-      "normal": true,
-      "reverse": true,
-      "holo": false,
+      "normal": false,
+      "reverse": false,
+      "holo": true,
       "firstEdition": false
     }
   },
   {
-    "id": "sve-002",
-    "name": "Fire Energy",
-    "setId": "sve",
-    "setName": "Scarlet & Violet Energy",
+    "id": "sv03.5-205",
+    "name": "Mew ex",
+    "setId": "sv03.5",
+    "setName": "151",
     "setSeries": "Scarlet & Violet",
-    "releaseDate": "2023-03-31T00:00:00.000Z",
-    "number": "002/24",
-    "rarity": "Common",
-    "imageUrl": null,
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "205/165",
+    "rarity": "Hyper rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/205/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 180,
+    "stage": "Basic",
+    "illustrator": "aky CG Works",
+    "dexId": [
+      151
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 23.1,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv03.5-207",
+    "name": "Basic Psychic Energy",
+    "setId": "sv03.5",
+    "setName": "151",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-09-22T00:00:00.000Z",
+    "number": "207/165",
+    "rarity": "Hyper rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv03.5/207/low.webp",
     "category": "Energy",
-    "types": [],
+    "types": [
+      "Psychic"
+    ],
     "hp": null,
     "stage": null,
     "illustrator": null,
@@ -320,14 +2638,244 @@
     "regulationMark": null,
     "trainerType": null,
     "energyType": "Normal",
-    "marketPrice": 0.03,
-    "marketPriceCurrency": "EUR",
-    "marketPriceSource": "cardmarket",
-    "marketPriceUpdatedAt": "2026-11-05T22:54:32.855Z",
+    "marketPrice": 3.96,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.353Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv04-038",
+    "name": "Garchomp ex",
+    "setId": "sv04",
+    "setName": "Paradox Rift",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-11-03T00:00:00.000Z",
+    "number": "038/182",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv04/038/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Water"
+    ],
+    "hp": 320,
+    "stage": "Stage2",
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      445
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 0.71,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.446Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv04-171",
+    "name": "Professor Turo's Scenario",
+    "setId": "sv04",
+    "setName": "Paradox Rift",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2023-11-03T00:00:00.000Z",
+    "number": "171/182",
+    "rarity": "Uncommon",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv04/171/low.webp",
+    "category": "Trainer",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": "hncl",
+    "dexId": [],
+    "regulationMark": "G",
+    "trainerType": "Supporter",
+    "energyType": null,
+    "marketPrice": 0.25,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.446Z",
     "variants": {
       "normal": true,
       "reverse": true,
       "holo": false,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv04.5-054",
+    "name": "Charizard ex",
+    "setId": "sv04.5",
+    "setName": "Paldean Fates",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2024-01-26T00:00:00.000Z",
+    "number": "054/91",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv04.5/054/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Darkness"
+    ],
+    "hp": 330,
+    "stage": "Stage2",
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      6
+    ],
+    "regulationMark": "G",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 4.31,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.538Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv06-106",
+    "name": "Greninja ex",
+    "setId": "sv06",
+    "setName": "Twilight Masquerade",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2024-05-24T00:00:00.000Z",
+    "number": "106/167",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv06/106/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Fighting"
+    ],
+    "hp": 310,
+    "stage": "Stage2",
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      658
+    ],
+    "regulationMark": "H",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 2.09,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.725Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv06-167",
+    "name": "Legacy Energy",
+    "setId": "sv06",
+    "setName": "Twilight Masquerade",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2024-05-24T00:00:00.000Z",
+    "number": "167/167",
+    "rarity": "ACE SPEC Rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv06/167/low.webp",
+    "category": "Energy",
+    "types": [],
+    "hp": null,
+    "stage": null,
+    "illustrator": null,
+    "dexId": [],
+    "regulationMark": "H",
+    "trainerType": null,
+    "energyType": "Special",
+    "marketPrice": 3.45,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:33.725Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv08-057",
+    "name": "Pikachu ex",
+    "setId": "sv08",
+    "setName": "Surging Sparks",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2024-11-08T00:00:00.000Z",
+    "number": "057/191",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv08/057/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Lightning"
+    ],
+    "hp": 200,
+    "stage": "Basic",
+    "illustrator": "aky CG Works",
+    "dexId": [
+      25
+    ],
+    "regulationMark": "H",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 4.52,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:34.030Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
+      "firstEdition": false
+    }
+  },
+  {
+    "id": "sv08-086",
+    "name": "Sylveon ex",
+    "setId": "sv08",
+    "setName": "Surging Sparks",
+    "setSeries": "Scarlet & Violet",
+    "releaseDate": "2024-11-08T00:00:00.000Z",
+    "number": "086/191",
+    "rarity": "Double rare",
+    "imageUrl": "https://assets.tcgdex.net/en/sv/sv08/086/low.webp",
+    "category": "Pokemon",
+    "types": [
+      "Psychic"
+    ],
+    "hp": 270,
+    "stage": "Stage1",
+    "illustrator": "5ban Graphics",
+    "dexId": [
+      700
+    ],
+    "regulationMark": "H",
+    "trainerType": null,
+    "energyType": null,
+    "marketPrice": 2.12,
+    "marketPriceCurrency": "USD",
+    "marketPriceSource": "tcgplayer",
+    "marketPriceUpdatedAt": "2026-11-14T22:16:34.030Z",
+    "variants": {
+      "normal": false,
+      "reverse": false,
+      "holo": true,
       "firstEdition": false
     }
   }

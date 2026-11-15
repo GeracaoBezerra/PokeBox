@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { CardCondition, CardFinish, ListingStatus } from '../generated/prisma/index.js';
+import { CARD_ID_PATTERN } from '../utils/cardId.js';
 import { tokenize } from '../utils/cardSearch.js';
 import { CARD_TYPES, LISTING_SORTS } from '../utils/listingSearch.js';
 import { usernameRule } from './user.schema.js';
@@ -35,7 +36,7 @@ const upperEnum = <T extends Record<string, string>>(values: T, message: string)
 export const listListingsQuerySchema = z.object({
   cardId: z
     .string()
-    .regex(/^[a-zA-Z0-9.\-]+$/, 'ID de carta inválido')
+    .regex(CARD_ID_PATTERN, 'ID de carta inválido')
     .optional(),
   username: usernameRule.optional(),
   q: z
