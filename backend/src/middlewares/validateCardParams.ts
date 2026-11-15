@@ -1,6 +1,8 @@
 import type { RequestHandler } from 'express';
 import { z, ZodError } from 'zod';
 
+import { CARD_ID_PATTERN } from '../utils/cardId.js';
+
 export const LANGS = ['en', 'pt', 'es', 'fr', 'de', 'it', 'ja'] as const;
 
 export type Lang = (typeof LANGS)[number];
@@ -8,7 +10,7 @@ export type Lang = (typeof LANGS)[number];
 const LANG_ALIASES: Record<string, Lang> = { 'pt-br': 'pt' };
 
 const cardParamsSchema = z.object({
-  id: z.string().regex(/^[a-zA-Z0-9.\-]+$/, 'ID de carta inválido'),
+  id: z.string().regex(CARD_ID_PATTERN, 'ID de carta inválido'),
 });
 
 const langSchema = z.enum(LANGS, { message: 'Idioma inválido' });

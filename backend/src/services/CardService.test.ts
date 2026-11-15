@@ -43,6 +43,28 @@ describe('CardService', () => {
     expect(finder.find).toHaveBeenCalledWith(query);
   });
 
+  test('find tira da lista as cartas com id que o detalhe recusa', async () => {
+    const { service, finder } = setup();
+    const card = (id: string) => ({
+      id,
+      localId: id,
+      number: id,
+      name: 'Unown',
+      set: { id: 'exu', name: 'Unseen Forces' },
+      image: { small: null, large: null },
+    });
+    finder.find.mockResolvedValueOnce({
+      cards: [card('exu-!'), card('exu-A'), card('exu-%3F')],
+      hasNextPage: true,
+      search: null,
+    });
+
+    const result = await service.find({ lang: 'en', page: 1, limit: 3 });
+
+    expect(result.cards.map((item) => item.id)).toEqual(['exu-A']);
+    expect(result.hasNextPage).toBe(true);
+  });
+
   test('fetchCard busca sempre em inglês', async () => {
     const { service, catalog } = setup();
 
