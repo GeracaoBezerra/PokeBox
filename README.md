@@ -17,6 +17,7 @@ Projeto em equipe do curso **Geração Tech**.
 - [Testes](#testes)
 - [Deploy](#deploy)
 - [Logs e saúde da API](#logs-e-saúde-da-api)
+- [Performance e segurança](#performance-e-segurança)
 - [API](#api)
 - [Regras de negócio](#regras-de-negócio)
 - [Status do projeto](#status-do-projeto)
@@ -332,6 +333,89 @@ Duas rotas dizem se a API está bem:
 
 As duas ficam fora do log automático, porque o Render e o pipeline chamam o tempo todo. O preflight do CORS (`OPTIONS`, que o navegador manda antes de cada `POST`) também fica fora.
 
+## Performance e segurança
+
+### O que já existia
+
+- Cache das cartas da TCGdex em camadas (padrão Decorator, em `backend/src/cards/catalog/`): memória (1 h, até 500 cartas), depois junção de pedidos iguais em andamento, depois a tabela `CardCache` no banco (24 h, usada também quando a TCGdex cai), e só então a chamada HTTP.
+- Cache em memória da busca de cartas (10 min) e da lista de sets (1 dia), e timeout de 8 s nas chamadas à TCGdex.
+- `Cache-Control` nas cartas: a lista é `public, max-age=300`; o detalhe é `private`, porque traz os anúncios da carta e, com login, os dados da pessoa.
+- Paginação, busca e filtros no `GET /listings`.
+
+### O que a #112 acrescentou
+
+| O quê | Por quê |
+|---|---|
+| Compressão gzip (`compression`) | listas de cartas em JSON encolhem até 87% (tabela abaixo). Faz diferença no celular e na rede entre o Render e o navegador |
+| Cabeçalhos de segurança (`helmet`) | `X-Content-Type-Options`, `Strict-Transport-Security`, política de conteúdo e outros; tira o `X-Powered-By: Express`. O Swagger em `/docs` continua funcionando |
+| Limite de tentativas no login e no cadastro (`express-rate-limit`) | 20 tentativas **sem sucesso** para o mesmo e-mail a partir do mesmo IP, a cada 15 minutos. Depois disso, 429 com `Retry-After` |
+| `trust proxy` em produção | no Render a API fica atrás de um proxy; sem isso, todo mundo pareceria ter o mesmo IP |
+| `express.json({ limit: '100kb' })` | o limite já existia (padrão do Express), agora está escrito; acima dele, 413 |
+| Índice `(status, createdAt DESC, id)` em `Listing` | o `GET /listings` lê os anúncios ativos já na ordem e para no fim da página |
+
+Sobre o limite de tentativas:
+- Conta só o que falha, e por IP **e** e-mail. Na apresentação, a turma inteira entra do mesmo wi-fi, ou seja, do mesmo IP. Se o limite fosse só por IP, 20 senhas erradas de pessoas diferentes travariam o login de todo mundo. Assim, quem erra a própria senha bloqueia só a própria conta, e quem tenta adivinhar a senha de alguém para em 20 tentativas.
+- Depois do bloqueio, nem a senha certa entra naquele e-mail, a partir daquele IP, até a janela acabar: é o que impede a força bruta.
+- `AUTH_RATE_LIMIT` muda o número (padrão 20; `0` desliga).
+
+### Medição antes e depois
+
+Máquina: Apple M4 Pro (12 núcleos), Node 24, Postgres 17 no Docker. API em modo produção (`NODE_ENV=production`, `LOG_LEVEL=warn`), aquecida com uma chamada antes de cada rota. Cada linha: `npx autocannon -c 20 -d 15 <url>` (20 conexões ao mesmo tempo, por 15 segundos). Latência média, p99 (99% das requisições ficam abaixo dele) e requisições por segundo.
+
+**Com o banco do seed (10 cartas, poucos anúncios):**
+
+| Rota | Antes | Depois |
+|---|---|---|
+| `GET /cards?name=pikachu` | 0,06 ms · p99 1 ms · 32.397 req/s | 0,09 ms · p99 1 ms · 27.515 req/s |
+| `GET /cards/base1-4` | 3,15 ms · p99 5 ms · 5.621 req/s | 3,18 ms · p99 5 ms · 5.510 req/s |
+| `GET /listings` | 3,23 ms · p99 6 ms · 5.411 req/s | 3,29 ms · p99 5 ms · 5.252 req/s |
+| `GET /collection` (com login) | 4,28 ms · p99 7 ms · 4.235 req/s | 4,47 ms · p99 7 ms · 4.051 req/s |
+| `GET /cards?name=pikachu&limit=100` pedindo gzip | 1,06 ms · p99 2 ms · 15.794 req/s | 1,22 ms · p99 3 ms · 11.120 req/s |
+
+**Tamanho da resposta** (`curl -s -o /dev/null -w "%{size_download}" -H "Accept-Encoding: gzip" <url>`):
+
+| Rota | Antes | Depois |
+|---|---|---|
+| `GET /cards?name=pikachu&limit=100` | 22.617 bytes | 2.828 bytes (−87%) |
+| `GET /collection` do `ash` | 5.687 bytes | 1.254 bytes (−78%) |
+| `GET /listings` | 2.075 bytes | 844 bytes (−59%) |
+
+**Com 100 mil anúncios (20 mil ativos)**, gerados por `backend/scripts/bench-listings.sql` num banco de teste:
+
+| Medida | Sem o índice novo | Com o índice novo |
+|---|---|---|
+| `GET /listings` (autocannon) | 23,79 ms · p99 42 ms · 823 req/s | 9,04 ms · p99 15 ms · 2.096 req/s |
+| Consulta da primeira página (`EXPLAIN ANALYZE`) | 6,3 ms: lê os 20 mil ativos, ordena todos e pega 21 | 0,3 ms: lê 21 linhas do índice, já na ordem |
+
+O log de SQL do Postgres estava ligado nas duas rodadas dessa última tabela, o que aumenta um pouco os números absolutos; a comparação vale porque as duas tiveram a mesma condição.
+
+**Como ler esses números:**
+- O índice é o ganho de verdade: 2,5 vezes mais requisições por segundo no `GET /listings` com volume de app em uso. A tabela do seed foi medida sem ele: com tão poucas linhas, o Postgres nem usaria o índice.
+- A compressão encolhe muito as respostas, mas custa CPU. Na mesma máquina, sem rede no meio, isso aparece como menos requisições por segundo na lista grande (de 15.794 para 11.120). Pela internet o gargalo é a rede, e mandar 2,8 KB em vez de 22,6 KB compensa. Na escala do projeto, as duas folgas sobram.
+- O helmet e a compressão custam de 2% a 15% de vazão nas rotas rápidas, diferença de microssegundos por requisição. É o preço dos cabeçalhos de segurança, e vale.
+
+### Decisões que ficaram como estão
+
+- **O `requireAuth` consulta o banco a cada requisição.** Medido: o `GET /auth/admin-check` (JWT mais a busca do usuário pela chave) responde em 1,36 ms de média, contra 0,02 ms do `/health`. Confiar só no JWT economizaria essa consulta, mas uma conta desativada ou suspensa continuaria entrando até o token vencer (1 dia). Mantido: 1,3 ms é pouco para perder o bloqueio imediato.
+- **O cache em memória some quando o Render dorme ou reinicia.** O cache no banco (`CardCache`) segura, e a TCGdex não é chamada de novo à toa. Com mais de uma instância, cada uma teria a própria memória; o próximo passo seria um Redis.
+- **Loops com `await` dentro das transações de troca e oferta** (`TradeService`, `OfferService`, `lockInOrder` no `PrismaCollectionRepository`). São em sequência de propósito: as travas em ordem evitam deadlock (RN-08), e o tamanho é o número de cartas de uma troca. Não paralelizar.
+- **Páginas muito fundas no `GET /listings`** ainda custam: com `OFFSET 1000`, a consulta leva 5,5 ms, porque o banco percorre as 1.000 linhas antes. Paginação por cursor resolveria; não vale agora.
+- **Coleção, wishlist, ofertas e trocas sem paginação:** #77.
+
+### Como repetir
+
+```bash
+cd backend && npm run build
+NODE_ENV=production LOG_LEVEL=warn npm start
+npx autocannon -c 20 -d 15 "http://localhost:3000/listings"
+```
+
+Para o teste com volume, use um banco **de teste** (o script cria 5 mil usuários e 100 mil anúncios):
+
+```bash
+docker compose exec -T tcg-db psql -U <user> -d <db_de_teste> < backend/scripts/bench-listings.sql
+```
+
 ## API
 
 Para entender o fluxo do app (coleção, wishlist, anúncio, oferta e troca) antes dos detalhes, leia o [guia do backend](backend/docs/guia-backend.md) (também em [PDF](backend/docs/guia-backend.pdf)).
@@ -426,6 +510,7 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | 409 | conflito (e-mail/username já usados, carta repetida na wishlist, apagar item com reserva, que já foi anunciado ou que está numa oferta, segunda oferta aberta no mesmo anúncio, oferta que já virou troca, troca já finalizada) |
 | 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem, oferta no próprio anúncio, mudar oferta já finalizada, troca de oferta não aceita, cartas da troca indisponíveis) |
 | 413 | corpo da requisição acima do limite (100 KB) |
+| 429 | muitas tentativas de login ou cadastro sem sucesso para o mesmo e-mail (20 em 15 minutos); o header `Retry-After` diz quantos segundos esperar |
 | 500 | erro inesperado (o stack vai para o log com o `x-request-id`) |
 | 502 | serviço de cartas (TCGdex) fora do ar, sem conexão ou respondendo errado, e sem cópia da carta guardada: "tente novamente em instantes" |
 | 503 | `GET /health/ready` com o banco fora do ar |
@@ -470,7 +555,7 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 ### Limitações conhecidas
 
 - No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte pode levar 50 segundos ou mais. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
-- Em produção, `ash` e `misty` usam a senha pública do seed (`pokebox123`), para quem for avaliar conseguir testar. O `admin` recebe outra senha pelo `SEED_ADMIN_PASSWORD` (veja o [DEPLOY.md](DEPLOY.md)). O `/auth/login` ainda não limita tentativas (#112).
+- Em produção, `ash` e `misty` usam a senha pública do seed (`pokebox123`), para quem for avaliar conseguir testar. O `admin` recebe outra senha pelo `SEED_ADMIN_PASSWORD` (veja o [DEPLOY.md](DEPLOY.md)). O login e o cadastro param depois de 20 tentativas sem sucesso para o mesmo e-mail em 15 minutos.
 
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
 - Uma troca recusada ou cancelada não volta os anúncios que foram reduzidos quando ela nasceu, e a oferta não gera outra troca: é preciso fazer uma oferta nova.
