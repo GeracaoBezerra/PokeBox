@@ -322,12 +322,12 @@ Entram na conta os arquivos `.ts` de `backend/src`. Ficam de fora os testes, o c
 
 | Métrica | Só unidade | Unidade + integração | Mínimo exigido |
 |---|---|---|---|
-| Linhas | 86,1% | 97,9% | 95% |
-| Comandos | 85,0% | 96,4% | 94% |
+| Linhas | 86,1% | 97,8% | 95% |
+| Comandos | 85,0% | 96,3% | 94% |
 | Funções | 75,7% | 97,5% | 95% |
 | Ramos (if/else) | 79,1% | 88,1% | 86% |
 
-Números de 15/11/2026, com 682 testes de unidade e 95 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. O front ainda não tem testes nem cobertura: isso entra com a #107.
+Números de 15/11/2026, medidos na CI, com 682 testes de unidade e 95 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. O front ainda não tem testes nem cobertura: isso entra com a #107.
 
 A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 
