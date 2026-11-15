@@ -1,5 +1,6 @@
 import request from 'supertest';
 
+import { CARD_OUTSIDE_SEED } from './support/fakeTcgdex.js';
 import { addItem, bearer, CHARIZARD, createListing, PROFESSOR_OAK } from './support/flows.js';
 import { registerUser, startTestApp, type TestApp } from './support/testApp.js';
 
@@ -25,14 +26,23 @@ describe('POST e GET /collection', () => {
     expect(res.body.data.items[0]).toMatchObject({ id: item.id, quantity: 3, available: 3 });
   });
 
-  test('RN-01: a carta é gravada uma vez só na tabela Card, mesmo com dois donos', async () => {
+  test('RN-01: a carta que não estava no banco é gravada na tabela Card uma vez, e os dois donos apontam para ela', async () => {
+    const prisma = ctx.container.infra.prisma;
     const ash = await registerUser(ctx.app);
     const misty = await registerUser(ctx.app);
+    const card = { cardId: CARD_OUTSIDE_SEED.id, finish: 'NORMAL' as const };
+    await expect(prisma.card.findUnique({ where: { id: CARD_OUTSIDE_SEED.id } })).resolves.toBeNull();
 
-    await addItem(ctx.app, ash, { cardId: 'base1-15', finish: 'HOLO' });
-    await addItem(ctx.app, misty, { cardId: 'base1-15', finish: 'HOLO' });
+    await addItem(ctx.app, ash, card);
+    const saved = await prisma.card.findUnique({ where: { id: CARD_OUTSIDE_SEED.id } });
+    await addItem(ctx.app, misty, card);
 
-    await expect(ctx.container.infra.prisma.card.count({ where: { id: 'base1-15' } })).resolves.toBe(1);
+    expect(saved).toMatchObject({ name: 'Testemon', setName: 'Integração', number: '1/1', rarity: 'Rare' });
+    const snapshots = await Promise.all(
+      [ash, misty].map(async (user) => (await request(ctx.app).get('/collection').set(bearer(user))).body.data.items[0].card),
+    );
+    expect(snapshots[0]).toMatchObject({ id: CARD_OUTSIDE_SEED.id, name: 'Testemon' });
+    expect(snapshots[1]).toEqual(snapshots[0]);
   });
 
   test('RN-03: mesma carta, condição e variante soma na quantidade', async () => {

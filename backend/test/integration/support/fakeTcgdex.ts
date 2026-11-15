@@ -42,6 +42,32 @@ const LIST_ONLY_CARDS = [
   { id: 'exu-A', localId: 'A', name: 'Unown' },
 ];
 
+export const CARD_OUTSIDE_SEED: SeedCard = {
+  id: 'itest-1',
+  name: 'Testemon',
+  setId: 'itest',
+  setName: 'Integração',
+  setSeries: 'Testes',
+  releaseDate: '2026-11-15T00:00:00.000Z',
+  number: '1/1',
+  rarity: 'Rare',
+  imageUrl: 'https://assets.tcgdex.net/en/itest/itest/1/low.webp',
+  category: 'Pokemon',
+  types: ['Psychic'],
+  hp: 60,
+  stage: 'Basic',
+  illustrator: 'Equipe PokeBox',
+  dexId: [],
+  regulationMark: null,
+  trainerType: null,
+  energyType: null,
+  marketPrice: 2.5,
+  marketPriceCurrency: 'USD',
+  marketPriceSource: 'tcgplayer',
+  marketPriceUpdatedAt: '2026-11-15T00:00:00.000Z',
+  variants: { normal: true, reverse: false, holo: false, firstEdition: false },
+};
+
 const seedCardsFile = fileURLToPath(new URL('../../../prisma/seed-data/cards.json', import.meta.url));
 
 function loadSeedCards(): SeedCard[] {
@@ -112,7 +138,7 @@ function setsOf(cards: SeedCard[]) {
 }
 
 export async function startFakeTcgdex(): Promise<FakeTcgdex> {
-  const cards = loadSeedCards();
+  const cards = [...loadSeedCards(), CARD_OUTSIDE_SEED];
   const byId = new Map(cards.map((card) => [card.id, card]));
   const sets = setsOf(cards);
   let failure: number | null = null;

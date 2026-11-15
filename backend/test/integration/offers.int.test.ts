@@ -119,7 +119,7 @@ describe('PATCH /offers/:id/status (RN-06)', () => {
     const back = await request(ctx.app).patch(`/offers/${offer.id}/status`).set(bearer(owner)).send({ status: 'PROPOSED' });
     const again = await request(ctx.app).patch(`/offers/${offer.id}/status`).set(bearer(owner)).send({ status: 'ACCEPTED' });
 
-    expect([400, 422]).toContain(back.status);
+    expect(back.status).toBe(400);
     expect(again.status).toBe(422);
   });
 

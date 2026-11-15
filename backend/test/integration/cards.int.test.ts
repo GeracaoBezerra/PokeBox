@@ -40,7 +40,7 @@ describe('GET /cards', () => {
     const res = await request(ctx.app).get('/cards').query({ name: 'unown' });
 
     expect(res.status).toBe(200);
-    expect(ids(res)).not.toEqual(expect.arrayContaining(['exu-!']));
+    expect(ids(res)).not.toContain('exu-!');
     expect(ids(res)).toContain('exu-A');
   });
 
