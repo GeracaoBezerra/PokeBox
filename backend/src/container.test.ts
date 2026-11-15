@@ -2,6 +2,7 @@ import { buildContainer } from './container.js';
 import { parseEnv } from './config/env.js';
 
 const env = parseEnv({
+  NODE_ENV: 'test',
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/pokebox',
   JWT_SECRET: 'um-segredo-bem-comprido',
 });

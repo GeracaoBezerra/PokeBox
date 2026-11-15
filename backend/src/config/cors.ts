@@ -12,5 +12,6 @@ export function isAllowedOrigin(origin: string, env: CorsEnv): boolean {
 export function buildCorsOptions(env: CorsEnv): CorsOptions {
   return {
     origin: (origin, callback) => callback(null, origin === undefined || isAllowedOrigin(origin, env)),
+    exposedHeaders: ['x-request-id'],
   };
 }

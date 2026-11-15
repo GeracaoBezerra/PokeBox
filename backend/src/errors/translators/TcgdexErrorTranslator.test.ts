@@ -4,10 +4,10 @@ import { CardNotFoundError } from '../CardNotFoundError.js';
 import { TcgdexUnavailableError } from '../TcgdexUnavailableError.js';
 import { TcgdexErrorTranslator } from './TcgdexErrorTranslator.js';
 
-const logger = { error: jest.fn() };
+const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 const translator = new TcgdexErrorTranslator(logger);
 
-beforeEach(() => logger.error.mockClear());
+beforeEach(() => logger.warn.mockClear());
 
 describe('TcgdexErrorTranslator', () => {
   it('TCGdex indisponível vira 502', () => {
@@ -46,6 +46,6 @@ describe('TcgdexErrorTranslator', () => {
   it('registra no log quando a TCGdex está fora', () => {
     translator.translate(new TcgdexUnavailableError('TCGdex respondeu 503'));
 
-    expect(logger.error).toHaveBeenCalledWith('[TCGdex indisponível]', 'TCGdex respondeu 503');
+    expect(logger.warn).toHaveBeenCalledWith({ err: 'TCGdex respondeu 503', timeout: false }, 'TCGdex indisponível');
   });
 });

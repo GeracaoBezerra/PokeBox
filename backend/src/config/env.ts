@@ -47,6 +47,10 @@ export const envSchema = z.object({
   CORS_ORIGIN: z.preprocess(emptyAsUndefined, originList.default(['http://localhost:5173', 'http://localhost:8080'])),
   CORS_ORIGIN_REGEX: z.preprocess(emptyAsUndefined, regexText.optional()),
   RENDER_GIT_COMMIT: z.preprocess(emptyAsUndefined, z.string().optional()),
+  LOG_LEVEL: z.preprocess(
+    emptyAsUndefined,
+    z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

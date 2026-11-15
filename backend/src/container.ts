@@ -1,4 +1,5 @@
-import type { ErrorRequestHandler } from 'express';
+import type { ErrorRequestHandler, RequestHandler } from 'express';
+import type { Logger as PinoLogger } from 'pino';
 
 import type { Env } from './config/env.js';
 import { AppErrorTranslator } from './errors/translators/AppErrorTranslator.js';
@@ -6,10 +7,11 @@ import { BodyParserErrorTranslator } from './errors/translators/BodyParserErrorT
 import { PrismaErrorTranslator } from './errors/translators/PrismaErrorTranslator.js';
 import { TcgdexErrorTranslator } from './errors/translators/TcgdexErrorTranslator.js';
 import { ZodErrorTranslator } from './errors/translators/ZodErrorTranslator.js';
-import type { Logger } from './lib/logger.js';
+import { createLogger, type Logger } from './lib/logger.js';
 import { createPrismaClient } from './lib/prisma.js';
 import { AuthMiddleware } from './middlewares/AuthMiddleware.js';
 import { createErrorHandler } from './middlewares/errorHandler.js';
+import { createRequestLogger } from './middlewares/requestLogger.js';
 import { buildAuthModule } from './modules/auth.module.js';
 import { buildCardsModule } from './modules/cards.module.js';
 import { buildCollectionModule } from './modules/collection.module.js';
@@ -21,12 +23,13 @@ import { PrismaUserRepository } from './repositories/PrismaUserRepository.js';
 
 export interface Container {
   infra: Infra;
+  requestLogger: RequestHandler;
   errorHandler: ErrorRequestHandler;
   modules: AppModule[];
   shutdown(): Promise<void>;
 }
 
-export function buildInfra(env: Env, logger: Logger = console): Infra {
+export function buildInfra(env: Env, logger: Logger): Infra {
   const prisma = createPrismaClient(env.DATABASE_URL);
   const auth = new AuthMiddleware({ users: new PrismaUserRepository(prisma), jwtSecret: env.JWT_SECRET });
 
@@ -46,8 +49,8 @@ export function buildErrorHandler(logger: Logger): ErrorRequestHandler {
   );
 }
 
-export function buildContainer(env: Env): Container {
-  const infra = buildInfra(env);
+export function buildContainer(env: Env, logger: PinoLogger = createLogger(env)): Container {
+  const infra = buildInfra(env, logger);
 
   const auth = buildAuthModule(infra);
 
@@ -63,6 +66,7 @@ export function buildContainer(env: Env): Container {
 
   return {
     infra,
+    requestLogger: createRequestLogger(logger),
     errorHandler: buildErrorHandler(infra.logger),
     modules: [auth, cards, collection, wishlist, listings, trading],
     async shutdown() {

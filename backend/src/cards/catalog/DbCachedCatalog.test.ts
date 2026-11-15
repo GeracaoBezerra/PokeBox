@@ -38,7 +38,7 @@ function setup(cached: CachedCard | null = null) {
   const inner = fakeCatalog();
   const store = fakeStore(cached);
   const prices: jest.Mocked<CardPriceWriter> = { refreshPrice: jest.fn<CardPriceWriter['refreshPrice']>(async () => {}) };
-  const logger = { error: jest.fn() };
+  const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
   const catalog = new DbCachedCatalog(inner, { store, prices, ttlMs: ONE_DAY, logger, now: () => NOW });
   return { inner, store, prices, logger, catalog };
 }
@@ -117,9 +117,10 @@ describe('DbCachedCatalog', () => {
     const card = await catalog.getById('base1-4', 'en');
 
     expect(card.id).toBe('base1-4');
-    expect(logger.error).toHaveBeenCalledWith('Falha ao ler CardCache:', 'banco caiu');
-    expect(logger.error).toHaveBeenCalledWith('Falha ao salvar CardCache:', 'banco caiu');
-    expect(logger.error).toHaveBeenCalledWith('Falha ao atualizar preço da Card:', 'banco caiu');
+    const fields = { err: 'banco caiu', cardId: 'base1-4', lang: 'en' };
+    expect(logger.warn).toHaveBeenCalledWith(fields, 'falha ao ler o CardCache');
+    expect(logger.warn).toHaveBeenCalledWith(fields, 'falha ao salvar o CardCache');
+    expect(logger.warn).toHaveBeenCalledWith({ err: 'banco caiu', cardId: 'base1-4' }, 'falha ao atualizar o preço da carta');
   });
 
   test('busca, sets e cartas do set passam direto para o de dentro', async () => {

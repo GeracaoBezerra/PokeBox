@@ -48,7 +48,7 @@ describe('createErrorHandler', () => {
   });
 
   it('erro que ninguém reconhece vira 500 e vai para o log', () => {
-    const logger = { error: jest.fn() };
+    const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
     const handler = createErrorHandler([never], logger);
     const { res, response } = fakeResponse();
     const err = new Error('boom');
@@ -57,7 +57,7 @@ describe('createErrorHandler', () => {
 
     expect(res.statusCode).toBe(500);
     expect(res.body).toEqual({ success: false, error: 'Erro interno do servidor' });
-    expect(logger.error).toHaveBeenCalledWith('[erro inesperado]', err);
+    expect(logger.error).toHaveBeenCalledWith({ err }, 'erro inesperado');
   });
 });
 
@@ -69,5 +69,30 @@ describe('notFoundHandler', () => {
 
     expect(res.statusCode).toBe(404);
     expect(res.body).toEqual({ success: false, error: 'Rota não encontrada: GET /nada' });
+  });
+
+  it('com o log da requisição, o erro vai para a linha dela em vez de uma linha separada', () => {
+    const fallback = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+    const requestLog = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+    const handler = createErrorHandler([never], fallback);
+    const { res, response } = fakeResponse();
+    const err = new Error('boom');
+
+    handler(err, { ...req, log: requestLog } as unknown as Request, response, next);
+
+    expect(res.statusCode).toBe(500);
+    expect((response as Response & { err?: Error }).err).toBe(err);
+    expect(requestLog.error).not.toHaveBeenCalled();
+    expect(fallback.error).not.toHaveBeenCalled();
+  });
+
+  it('erro que não é Error vira Error na linha da requisição', () => {
+    const requestLog = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+    const handler = createErrorHandler([never]);
+    const { response } = fakeResponse();
+
+    handler('falhou', { ...req, log: requestLog } as unknown as Request, response, next);
+
+    expect((response as Response & { err?: Error }).err?.message).toBe('falhou');
   });
 });

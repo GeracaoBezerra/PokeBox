@@ -180,7 +180,7 @@ export class TcgdexClient implements CardCatalog {
       this.setListMemory.set(lang, list);
       return list;
     } catch (err) {
-      this.logger.error('Falha ao buscar a lista de sets na TCGdex:', errorMessage(err));
+      this.logger.warn({ err: errorMessage(err), lang }, 'falha ao buscar a lista de sets na TCGdex');
       return [];
     }
   }
@@ -209,7 +209,7 @@ export class TcgdexClient implements CardCatalog {
       this.setInfoMemory.set(key, setInfo);
       return setInfo;
     } catch (err) {
-      this.logger.error(`Falha ao buscar o set ${setId} na TCGdex:`, errorMessage(err));
+      this.logger.warn({ err: errorMessage(err), setId, lang }, 'falha ao buscar o set na TCGdex');
       return { series: null, releaseDate: null };
     }
   }
