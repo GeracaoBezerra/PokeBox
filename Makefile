@@ -9,7 +9,7 @@ API := http://localhost:3000
 PSQL := docker compose exec -T tcg-db psql -U $(DB_USER) -d $(DB_NAME)
 
 .PHONY: help up stop down ps logs psql reset dev generate migrate status studio \
-        users constraints migrations schema clean-users unit test test-db test-collection test-profile test-wishlist test-listings test-offers \
+        users constraints migrations schema clean-users unit test-int test-db-down test test-db test-collection test-profile test-wishlist test-listings test-offers \
         prod-up prod-down prod-logs
 
 help:
@@ -67,6 +67,14 @@ dev: ## sobe a API em modo watch
 
 unit: ## roda os testes unitarios (nao precisa de banco nem API)
 	@cd backend && npm test
+
+test-int: ## sobe o banco de teste (porta 5433, descartavel) e roda os testes de integracao
+	@test -f backend/.env.test || cp backend/.env.test.example backend/.env.test
+	@docker compose --profile test up -d --wait tcg-db-test
+	@cd backend && npm run test:integration
+
+test-db-down: ## remove o banco de teste (os dados dele sao descartaveis)
+	@docker compose --profile test rm -sf tcg-db-test
 
 generate: ## regenera o client do prisma
 	@cd backend && npm run db:generate

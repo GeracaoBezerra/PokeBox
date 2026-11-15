@@ -263,27 +263,38 @@ O `/docs` chama a API no mesmo endereço em que foi aberto, então funciona em q
 
 ## Testes
 
+São dois andares da pirâmide de testes, com comandos separados:
+
+| Tipo | Onde | O que testa | Precisa de banco |
+|---|---|---|---|
+| Unidade | `backend/src/**/*.test.ts` | regras puras, schemas, services e controllers, com as dependências falsas passadas no construtor | não |
+| Integração | `backend/test/integration/*.int.test.ts` | requisição HTTP de verdade (supertest) passando por rota, middleware, controller, service e repository até um PostgreSQL de verdade | sim, um banco só de teste |
+
 ```bash
 cd backend
 npm test
 ```
 
-São testes de unidade (jest com ts-jest) das regras puras, dos schemas, dos services e dos controllers, com as dependências falsas passadas no construtor. Não precisam de banco. `npm run typecheck` checa os tipos dos testes também.
-
-Há também um teste **com banco** que prova a RN-07 de verdade: força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais. Ele fica desligado por padrão (a CI não tem PostgreSQL). Para rodar, com o banco no ar e as migrations aplicadas:
+`npm test` roda só os de unidade: é rápido e não precisa de nada no ar. `npm run typecheck` checa os tipos dos dois tipos de teste.
 
 ```bash
-cd backend
-RUN_DB_TESTS=1 npm test
+make test-int
 ```
 
-Ele cria dois usuários `rb_*` temporários e apaga tudo no fim.
+`make test-int` cria o `backend/.env.test` a partir do `backend/.env.test.example` (se ainda não existir), sobe o banco de teste `tcg-db-test` (porta 5433, dados só em memória) e roda `npm run test:integration`. A cada execução, o banco de teste é apagado e recriado com as migrations e o seed. Por isso a suíte se recusa a rodar se o nome do banco não terminar em `_test`: o banco de desenvolvimento nunca é tocado. `make test-db-down` remove o banco de teste.
+
+Como funcionam os testes de integração:
+
+- Cada arquivo de teste monta o app de verdade (`buildContainer` + `createApp`) sem abrir porta, e cria os próprios usuários pelo `POST /auth/register`. Os usuários do seed entram com as senhas do `.env.test`.
+- A TCGdex é simulada por um servidor local que responde com as 87 cartas de `prisma/seed-data/cards.json` no formato da TCGdex. Nenhum teste usa a internet, e dá para simular a TCGdex fora do ar (502).
+- No `.env.test`, o limite de tentativas de login fica desligado (`AUTH_RATE_LIMIT=0`) e os logs ficam em silêncio (`LOG_LEVEL=silent`).
+- A RN-07 tem um teste próprio (`tradeRollback.int.test.ts`): ele força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais.
 
 A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 
 | Job | O que roda |
 |---|---|
-| `backend` | `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build`, `npm test` |
+| `backend` | sobe um PostgreSQL de teste; `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build`, `npm test`, `npm run test:integration` |
 | `frontend` | `npm ci`, `npm run lint`, `npm run build` |
 
 Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow de deploy, antes de publicar (veja [Deploy](#deploy)).

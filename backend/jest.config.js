@@ -5,4 +5,5 @@ export default {
   moduleNameMapper: { '^(\\.{1,2}/.*)\\.js$': '$1' },
   transform: { '^.+\\.ts$': ['ts-jest', { useESM: true }] },
   modulePathIgnorePatterns: ['<rootDir>/dist/'],
+  testPathIgnorePatterns: ['/node_modules/', '\\.int\\.test\\.ts$'],
 };

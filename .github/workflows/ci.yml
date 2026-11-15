@@ -18,9 +18,28 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: tcg_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d tcg_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      # prisma generate so precisa de uma URL valida no formato; nao conecta no banco
-      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/tcg_test?schema=public
+      PRISMA_DATABASE_URL: postgresql://ci:ci@localhost:5432/tcg_test?schema=public
+      JWT_SECRET: segredo-so-para-os-testes-da-ci
+      SEED_ADMIN_PASSWORD: admin-da-ci-123
+      SEED_DEMO_PASSWORD: demo-da-ci-123
+      AUTH_RATE_LIMIT: 0
+      LOG_LEVEL: silent
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,6 +52,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
+      - run: npm run test:integration
 
   frontend:
     name: frontend
