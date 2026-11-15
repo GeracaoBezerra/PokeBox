@@ -16,6 +16,7 @@ Projeto em equipe do curso **Geração Tech**.
 - [Usuários de teste (seed)](#usuários-de-teste-seed)
 - [Testes](#testes)
 - [Deploy](#deploy)
+- [Logs e saúde da API](#logs-e-saúde-da-api)
 - [API](#api)
 - [Regras de negócio](#regras-de-negócio)
 - [Status do projeto](#status-do-projeto)
@@ -303,6 +304,34 @@ Configuração de produção no código:
 - `frontend/vercel.json` manda qualquer caminho para o `index.html`, para o F5 em `/colecao` não dar 404, e desliga o deploy automático da Vercel na `main`, que passa a ser feito pelo pipeline.
 - A API aceita chamadas do navegador só dos sites em `CORS_ORIGIN` ou dos que batem com `CORS_ORIGIN_REGEX` (os previews da Vercel).
 
+## Logs e saúde da API
+
+A API registra uma linha por requisição com o [pino](https://getpino.io): método, rota, status, tempo de resposta (`responseTime`, em ms) e um id da requisição (`reqId`). Erros de servidor (5xx) saem com o stack. Senha, token e o header `Authorization` aparecem como `[oculto]`.
+
+| Onde | Formato | Como ver |
+|---|---|---|
+| `npm run dev` ou `docker compose up` | colorido, uma linha por evento | o próprio terminal, ou `docker compose logs -f tcg-backend` |
+| Produção (Render) e `make prod-up` | JSON, uma linha por evento | aba *Logs* do serviço no Render, ou `make prod-logs` |
+
+`LOG_LEVEL` muda o quanto aparece (`debug` mostra mais, `warn` só avisos e erros). Nos testes o padrão é `silent`.
+
+Toda resposta traz o header `x-request-id`. Se quem chama já manda esse header, a API usa o mesmo id; senão, gera um.
+
+**Como investigar um erro em produção:**
+
+1. A pessoa conta o que fez e, se der, o `x-request-id` da resposta (na aba Network do navegador).
+2. No Render, aba *Logs*, busque o id (`3f2a...`) e veja tudo o que aconteceu naquela requisição, inclusive o stack do erro.
+3. Sem o id, busque `"statusCode":500` para ver os erros de servidor, ou ordene pelo `responseTime` para achar as rotas lentas.
+
+Duas rotas dizem se a API está bem:
+
+| Rota | Confere | Quem usa |
+|---|---|---|
+| `GET /health` | o processo está de pé (não toca no banco); devolve o commit em `version` | Health Check do Render e o pipeline de deploy |
+| `GET /health/ready` | o banco responde (`SELECT 1`); 503 se não | para conferir à mão ou num monitor externo |
+
+As duas ficam fora do log automático, porque o Render e o pipeline chamam o tempo todo.
+
 ## API
 
 Para entender o fluxo do app (coleção, wishlist, anúncio, oferta e troca) antes dos detalhes, leia o [guia do backend](backend/docs/guia-backend.md) (também em [PDF](backend/docs/guia-backend.pdf)).
@@ -397,8 +426,9 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | 409 | conflito (e-mail/username já usados, carta repetida na wishlist, apagar item com reserva, que já foi anunciado ou que está numa oferta, segunda oferta aberta no mesmo anúncio, oferta que já virou troca, troca já finalizada) |
 | 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem, oferta no próprio anúncio, mudar oferta já finalizada, troca de oferta não aceita, cartas da troca indisponíveis) |
 | 413 | corpo da requisição acima do limite (100 KB) |
-| 500 | erro inesperado |
+| 500 | erro inesperado (o stack vai para o log com o `x-request-id`) |
 | 502 | serviço de cartas (TCGdex) fora do ar, sem conexão ou respondendo errado, e sem cópia da carta guardada: "tente novamente em instantes" |
+| 503 | `GET /health/ready` com o banco fora do ar |
 | 504 | serviço de cartas (TCGdex) demorou mais de 8 s para responder, e sem cópia da carta guardada |
 
 ## Regras de negócio

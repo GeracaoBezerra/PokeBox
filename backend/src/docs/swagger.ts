@@ -265,10 +265,52 @@ export const swaggerSpec = {
                       type: "object",
                       properties: {
                         status: { type: "string", example: "ok" },
+                        version: { type: "string", example: "4ed5f25c1a", description: "Commit no ar (RENDER_GIT_COMMIT); fora do Render, local" },
                       },
                     },
                   },
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/health/ready": {
+      get: {
+        tags: ["Health"],
+        summary: "Confere se a API consegue falar com o banco",
+        description:
+          "Faz um SELECT 1 no banco. O /health só diz que o processo está de pé; este diz se a API consegue atender de verdade.",
+        security: [],
+        responses: {
+          200: {
+            description: "API e banco no ar",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      properties: {
+                        status: { type: "string", example: "ok" },
+                        database: { type: "string", example: "ok" },
+                        version: { type: "string", example: "4ed5f25c1a" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          503: {
+            description: "Banco fora do ar",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+                example: { success: false, error: "Banco de dados indisponível" },
               },
             },
           },
