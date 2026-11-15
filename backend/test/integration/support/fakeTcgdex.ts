@@ -37,6 +37,11 @@ export interface FakeTcgdex {
   close(): Promise<void>;
 }
 
+const LIST_ONLY_CARDS = [
+  { id: 'exu-!', localId: '!', name: 'Unown' },
+  { id: 'exu-A', localId: 'A', name: 'Unown' },
+];
+
 const seedCardsFile = fileURLToPath(new URL('../../../prisma/seed-data/cards.json', import.meta.url));
 
 function loadSeedCards(): SeedCard[] {
@@ -123,8 +128,8 @@ export async function startFakeTcgdex(): Promise<FakeTcgdex> {
     const name = String(req.query.name ?? '').toLowerCase();
     const page = Number(req.query['pagination:page'] ?? 1);
     const perPage = Number(req.query['pagination:itemsPerPage'] ?? 100);
-    const matches = cards.filter((card) => card.name.toLowerCase().includes(name));
-    res.json(matches.slice((page - 1) * perPage, page * perPage).map(brief));
+    const matches = [...cards.map(brief), ...LIST_ONLY_CARDS].filter((card) => card.name.toLowerCase().includes(name));
+    res.json(matches.slice((page - 1) * perPage, page * perPage));
   });
 
   app.get('/:lang/cards/:id', (req: Request<{ id: string }>, res: Response) => {

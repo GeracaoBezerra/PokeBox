@@ -28,10 +28,11 @@ describe('TCGdex simulada', () => {
     expect(res.body.data.card).toMatchObject({ id: 'base1-4', name: 'Charizard', number: '4/102' });
   });
 
-  test('TCGdex fora do ar vira 502', async () => {
+  test('TCGdex fora do ar e sem cópia guardada vira 502', async () => {
+    await ctx.container.infra.prisma.cardCache.deleteMany({ where: { cardId: 'base1-58' } });
     ctx.tcgdex.failWith(500);
     try {
-      const res = await request(ctx.app).get('/cards/base1-2');
+      const res = await request(ctx.app).get('/cards/base1-58');
       expect(res.status).toBe(502);
       expect(res.body.success).toBe(false);
     } finally {

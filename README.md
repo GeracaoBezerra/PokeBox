@@ -290,6 +290,23 @@ Como funcionam os testes de integração:
 - No `.env.test`, o limite de tentativas de login fica desligado (`AUTH_RATE_LIMIT=0`) e os logs ficam em silêncio (`LOG_LEVEL=silent`).
 - A RN-07 tem um teste próprio (`tradeRollback.int.test.ts`): ele força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais.
 
+O que a integração cobre (93 testes, um arquivo por área):
+
+| Arquivo | Casos |
+|---|---|
+| `auth` | cadastro, e-mail e username repetidos (409), senha curta (400 com `details`), login certo e errado (401), sem token e token inválido (401), `admin-check` (403/200), limite de tentativas (429 com `Retry-After`, outro e-mail entra) |
+| `user` | editar o perfil, campo inválido ou a mais (400), excluir a conta: login depois → 403 e perfil público → 404 |
+| `collection` | adicionar e listar com `available`; RN-01 (a carta é gravada uma vez só); RN-02 (403 e 404); RN-03 (soma, quantidade negativa 400 e CHECK no banco); variante que a carta não tem (422); quantidade abaixo do anunciado (422) e apagar item anunciado (409); condição presa (409); RN-11 nos três caminhos |
+| `wishlist` | adicionar, listar, remover; repetida (409); `opportunities` conta só item público de outra pessoa; RN-12 (tem a carta, mesmo privada → 409; item zerado → 201) |
+| `profile` | RN-10: item privado, e-mail e reserva não aparecem; usuário inexistente (404) |
+| `listings` | RN-05 (403, 422, soma dos anúncios abertos); pausar, fechar sem volta, bloqueio só do ADMIN; marketplace: `q`, `type`, `rarity`, filtros somados, `sort=name`, valor inválido (400 com `details`), `GET /listings/me` |
+| `offers` | RN-06: próprio anúncio (422), anúncio pausado (404), carta de outra pessoa (403), mais do que tem (422), segunda oferta (409), quem aceita e quem cancela (403), oferta finalizada não muda (422), aceita sem troca pode ser cancelada, fechar o anúncio cancela as ofertas; quem vê a oferta; carta em oferta não é apagada (409) |
+| `trades` | quem cria a troca (403), oferta não aceita (422), segunda troca (409); RN-08 (reserva dos dois lados, anúncio fecha, quantidade abaixo do reservado 422, apagar 409); RN-07 (as cartas trocam de dono) com RN-11 (a carta recebida sai da wishlist); troca finalizada não muda (409); recusar libera a reserva; cancelar; quem vê a troca (inclusive ADMIN → 403) |
+| `cards` | busca, busca esperta (`charizard base`, palavras ignoradas), ids recusados fora da lista, `limit` acima de 100 (400), detalhe com e sem login, carta inexistente (404), id fora da regra (400) |
+| `health` e `errors` | `/health/ready`, TCGdex fora do ar (502), JSON malformado (400), corpo acima de 100 KB (413), rota inexistente (404), id que não é UUID (400), `x-request-id` |
+
+O 504 (TCGdex demorando mais de 8 s) fica só nos testes de unidade do `TcgdexClient`, para a suíte não esperar 8 s. Como a IA ajudou a escrever esses testes, e o que ela errou, está em [`docs/ia.md`](docs/ia.md).
+
 A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 
 | Job | O que roda |
