@@ -119,18 +119,42 @@ Idempotente: pode rodar várias vezes. Depois da migration `add_card_details_and
 
 Cria:
 
-| Usuário | E-mail | Papel |
-|---|---|---|
-| `admin` | `admin@pokebox.dev` | ADMIN |
-| `ash` | `ash@pokebox.dev` | USER |
-| `misty` | `misty@pokebox.dev` | USER |
+| Usuário | E-mail | Papel | Situação |
+|---|---|---|---|
+| `admin` | `admin@pokebox.dev` | ADMIN | ativo |
+| `ash` | `ash@pokebox.dev` | USER | ativo |
+| `misty` | `misty@pokebox.dev` | USER | ativo |
+| `brock` | `brock@pokebox.dev` | USER | ativo |
+| `gary` | `gary@pokebox.dev` | USER | ativo |
+| `erika` | `erika@pokebox.dev` | USER | ativo |
+| `dawn` | `dawn@pokebox.dev` | USER | ativo, coleção toda privada |
+| `cynthia` | `cynthia@pokebox.dev` | USER | ativo |
+| `lance` | `lance@pokebox.dev` | USER | `INACTIVE` com `deletedAt` (conta desativada) |
 
-Senhas pelo `.env`: `SEED_ADMIN_PASSWORD` para o `admin` e `SEED_DEMO_PASSWORD` para `ash` e `misty` (obrigatórias, 8 a 72 caracteres, diferentes entre si; rodar o seed de novo aplica os valores atuais). Mais 10 cartas reais, 10 itens de coleção (1 privado), 4 itens de wishlist, 2 anúncios e 1 oferta em aberto (a misty oferece o Mew holo dela pelo Charizard do ash). Rodar o seed de novo volta essa oferta para `PROPOSED` e o anúncio do Charizard para `ACTIVE` com 1 unidade. O seed não cria troca; se a oferta já virou troca, ele avisa e não mexe nela: para voltar ao estado inicial, `npx prisma migrate reset` (apaga o banco local). As cartas cobrem Pokémon, Treinador e Energia, holo de 1ª edição, reverse e o mesmo Pikachu em duas variantes.
+Senhas pelo `.env`: `SEED_ADMIN_PASSWORD` para o `admin` e `SEED_DEMO_PASSWORD` para os demais (obrigatórias, 8 a 72 caracteres, diferentes entre si; rodar o seed de novo aplica os valores atuais). Rodar de novo também volta nome, cidade, estado e situação da conta de cada usuário para os valores do seed.
+
+| Tabela | O que o seed cria |
+|---|---|
+| `Card` | 87 cartas reais de 22 coleções (Base Set a Surging Sparks): 65 Pokémon, 12 Treinador, 10 Energia, todas com imagem |
+| `CollectionItem` | 111 itens (20 privados), de 10 a 22 por usuário, com quantidade maior que 1 e variantes holo, reverse e 1ª edição; as trocas concluídas criam mais 6 (117 no total) |
+| `WishlistItem` | 30 itens, 3 ou 4 por usuário, nenhum de carta que a pessoa já tem (RN-12); vários cruzam com cartas e anúncios de outros usuários, e alguns só têm dono desativado (0 oportunidades) |
+| `Listing` | 30 anúncios com `createdAt` espalhado em 45 dias: 22 `ACTIVE` (21 na vitrine, o do `lance` some), 2 `PAUSED`, 1 `BLOCKED`, 5 `CLOSED` (2 fechados pelo dono e 3 pelas trocas) |
+| `Offer` | 13 ofertas: 5 `PROPOSED`, 4 `ACCEPTED` (1 sem troca e 3 que viraram troca), 2 `REJECTED`, 2 `CANCELED` |
+| `Trade` | 3 trocas: 2 `ACCEPTED` (erika ↔ brock, gary ↔ cynthia) e 1 `PROPOSED` (brock ↔ cynthia, com 2 cartas reservadas de cada lado) |
+
+Como fica idempotente:
+
+- usuários, cartas, itens de coleção e wishlist usam `upsert` pelas chaves únicas. Item de coleção que já existe não muda, para não desfazer o que as trocas já moveram;
+- anúncios são procurados pelo item da coleção (`findFirst`); se já existe, fica como está;
+- ofertas são procuradas pelo par anúncio + quem ofertou. As que o seed deixa em aberto voltam para `PROPOSED` (e o anúncio delas para `ACTIVE`) a cada execução, como a da misty pelo Charizard do ash, que o `make test` usa. Se uma delas já virou troca, o seed avisa e não mexe: para voltar ao estado inicial, `npx prisma migrate reset` (apaga o banco local). Ofertas recusadas, canceladas ou aceitas e as trocas já criadas não são refeitas;
+- anúncios, ofertas e trocas são criados pelos services da API (`ListingService`, `OfferService`, `TradeService`), com as mesmas regras e transações (RN-05 a RN-08). Só duas coisas vão direto no banco: a data de criação dos anúncios (a API não deixa escolher) e a volta das ofertas em aberto para `PROPOSED` (a API não deixa uma oferta finalizada voltar).
+
+Antes de gravar, o seed confere os próprios dados: toda carta existe no `cards.json`, toda variante existe na carta e nenhuma wishlist pede carta que a pessoa já tem.
 
 ### Cartas do seed
 
-Os dados das cartas são reais e ficam versionados em `prisma/seed-data/cards.json`, para o seed funcionar sem internet. Para trocar a lista ou atualizar os dados, edite `CARD_IDS` em `scripts/snapshot-cards.ts` e rode:
+Os dados das cartas são reais e ficam versionados em `prisma/seed-data/cards.json`, para o seed funcionar sem internet. O arquivo é gerado por `scripts/seed-cards.ts`, que busca na TCGdex a lista fixa `CARD_IDS` e recusa carta sem imagem ou com id fora do padrão `^[a-zA-Z0-9.\-]+$` (se recusar alguma, não grava nada e diz qual trocar). Para trocar a lista ou atualizar os dados (inclusive o preço de referência), edite `CARD_IDS` e rode:
 
 ```bash
-npm run db:snapshot-cards
+npm run db:seed-cards
 ```

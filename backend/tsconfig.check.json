@@ -11,7 +11,7 @@
   "include": [
     "src",
     "prisma/seed.ts",
-    "scripts/snapshot-cards.ts"
+    "scripts/seed-cards.ts"
   ],
   "exclude": [
     "node_modules",

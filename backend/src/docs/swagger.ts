@@ -1417,19 +1417,19 @@ export const swaggerSpec = {
             pattern: "^[a-z0-9_]{3,20}$",
             description:
               "Identificador público, usado na URL do perfil. Só minúsculas, números e underscore.",
-            example: "brock",
+            example: "tracey",
           },
           name: {
             type: "string",
             minLength: 2,
             maxLength: 120,
-            example: "Brock Harrison",
+            example: "Tracey Sketchit",
           },
           email: {
             type: "string",
             format: "email",
             description: "Normalizado para minúsculas.",
-            example: "brock@pokebox.dev",
+            example: "tracey@pokebox.dev",
           },
           password: {
             type: "string",

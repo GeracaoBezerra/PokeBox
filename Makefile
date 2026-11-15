@@ -253,7 +253,8 @@ test-listings: ## smoke test dos anuncios (#14, #15) com os usuarios do seed
 	ULTRA=$$(curl -s $(API)/collection -H "$$A" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "sv01-196"][0]'); \
 	MITEM=$$(curl -s $(API)/collection -H "$$M" | $(JSON) 'd["data"]["items"][0]["id"]'); \
 	printf '%-34s' "listar sem token -> 200";      curl -s -o /dev/null -w 'HTTP %{http_code}\n' $$L; \
-	printf '%-34s' "anuncios do seed -> 2";        curl -s $$L | $(JSON) 'len(d["data"]["items"])'; \
+	VITRINE=$$($(PSQL) -tAc "SELECT LEAST(count(*), 20) FROM \"Listing\" l JOIN \"CollectionItem\" ci ON ci.id = l.\"collectionItemId\" JOIN \"User\" u ON u.id = ci.\"userId\" WHERE l.status = 'ACTIVE' AND u.\"deletedAt\" IS NULL AND u.\"accountStatus\" IN ('ACTIVE', 'PENDING_VERIFICATION');"); \
+	printf '%-34s' "1a pagina da vitrine -> $$VITRINE"; curl -s $$L | $(JSON) 'len(d["data"]["items"])'; \
 	printf '%-34s' "filtro cardId -> [base1-4]";   curl -s "$$L?cardId=base1-4" | $(JSON) '[i["card"]["id"] for i in d["data"]["items"]]'; \
 	printf '%-34s' "filtro username -> [misty]";   curl -s "$$L?username=misty" | $(JSON) 'sorted(set(i["owner"]["username"] for i in d["data"]["items"]))'; \
 	printf '%-34s' "limit 1 -> hasNextPage True";  curl -s "$$L?limit=1" | $(JSON) 'd["pagination"]["hasNextPage"]'; \
@@ -309,7 +310,7 @@ test-offers: ## smoke test das ofertas (#16, #17) com os usuarios do seed
 	A="Authorization: Bearer $$ASH"; M="Authorization: Bearer $$MISTY"; AD="Authorization: Bearer $$ADMIN"; J='Content-Type: application/json'; L=$(API)/listings; O=$(API)/offers; \
 	PIKA=$$(curl -s $(API)/collection -H "$$A" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "base1-58"][0]'); \
 	ULTRA=$$(curl -s $(API)/collection -H "$$A" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "sv01-196"][0]'); \
-	FIRE=$$(curl -s $(API)/collection -H "$$M" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "sve-002"][0]'); \
+	FIRE=$$(curl -s $(API)/collection -H "$$M" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "base1-98"][0]'); \
 	CHARIZARD=$$(curl -s "$$L?cardId=base1-4" | $(JSON) 'd["data"]["items"][0]["id"]'); \
 	BLASTOISE=$$(curl -s "$$L?cardId=base1-2" | $(JSON) 'd["data"]["items"][0]["id"]'); \
 	SEED=$$(curl -s "$$O/me?status=PROPOSED" -H "$$M" | $(JSON) '[o["id"] for o in d["data"]["sent"] if o["listing"]["id"] == "'$$CHARIZARD'"][0]'); \
