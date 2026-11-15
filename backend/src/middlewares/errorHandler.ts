@@ -11,7 +11,7 @@ export function notFoundHandler(req: Request, res: Response) {
 }
 
 export function createErrorHandler(translators: ErrorTranslator[], logger: Logger = console): ErrorRequestHandler {
-  return (err, _req, res, _next) => {
+  return (err, req, res, _next) => {
     for (const translator of translators) {
       const translated = translator.translate(err);
       if (!translated) continue;
@@ -23,7 +23,7 @@ export function createErrorHandler(translators: ErrorTranslator[], logger: Logge
       return res.status(statusCode).json({ success: false, error: message, details });
     }
 
-    logger.error('[erro inesperado]', err);
+    (req.log ?? logger).error({ err }, 'erro inesperado');
 
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   };

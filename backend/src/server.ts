@@ -6,11 +6,11 @@ const env = loadEnv();
 const container = buildContainer(env);
 const app = createApp(container);
 
+const { logger } = container.infra;
 const PORT = env.PORT;
 
 const server = app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`Swagger em http://localhost:${PORT}/docs`);
+  logger.info({ port: PORT, docs: `http://localhost:${PORT}/docs` }, `servidor no ar em http://localhost:${PORT}`);
 });
 
 let shuttingDown = false;
@@ -18,7 +18,7 @@ let shuttingDown = false;
 async function shutdown(signal: NodeJS.Signals) {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`${signal} recebido, encerrando o servidor`);
+  logger.info({ signal }, 'encerrando o servidor');
 
   server.close();
   try {

@@ -9,13 +9,25 @@ import { notFoundHandler } from './middlewares/errorHandler.js';
 
 export function createApp(container: Container): Express {
   const app = express();
-  const { env } = container.infra;
+  const { env, prisma } = container.infra;
+  const version = env.RENDER_GIT_COMMIT ?? 'local';
 
+  app.use(container.requestLogger);
   app.use(cors(buildCorsOptions(env)));
   app.use(express.json());
 
   app.get('/health', (req, res) => {
-    return res.status(200).json({ success: true, data: { status: 'ok', version: env.RENDER_GIT_COMMIT ?? 'local' } });
+    return res.status(200).json({ success: true, data: { status: 'ok', version } });
+  });
+
+  app.get('/health/ready', async (req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return res.status(200).json({ success: true, data: { status: 'ok', database: 'ok', version } });
+    } catch (err) {
+      req.log.error({ err }, 'banco indisponível');
+      return res.status(503).json({ success: false, error: 'Banco de dados indisponível' });
+    }
   });
 
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { swaggerOptions: { persistAuthorization: true } }));

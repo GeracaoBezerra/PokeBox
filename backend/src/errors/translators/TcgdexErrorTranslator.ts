@@ -8,7 +8,7 @@ export class TcgdexErrorTranslator implements ErrorTranslator {
   translate(err: unknown): TranslatedError | null {
     if (!(err instanceof TcgdexUnavailableError)) return null;
 
-    this.logger.error('[TCGdex indisponível]', err.message);
+    this.logger.warn({ err: err.message, timeout: err.timeout }, 'TCGdex indisponível');
 
     if (err.timeout) {
       return {

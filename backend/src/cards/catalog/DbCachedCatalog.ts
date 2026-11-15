@@ -74,7 +74,7 @@ export class DbCachedCatalog implements CardCatalog {
     try {
       return await this.store.read(cardId, lang);
     } catch (err) {
-      this.logger.error('Falha ao ler CardCache:', errorMessage(err));
+      this.logger.warn({ err: errorMessage(err), cardId, lang }, 'falha ao ler o CardCache');
       return null;
     }
   }
@@ -83,7 +83,7 @@ export class DbCachedCatalog implements CardCatalog {
     try {
       await this.store.write(cardId, lang, card);
     } catch (err) {
-      this.logger.error('Falha ao salvar CardCache:', errorMessage(err));
+      this.logger.warn({ err: errorMessage(err), cardId, lang }, 'falha ao salvar o CardCache');
     }
   }
 
@@ -91,7 +91,7 @@ export class DbCachedCatalog implements CardCatalog {
     try {
       await this.prices.refreshPrice(card.id, card.marketPrice);
     } catch (err) {
-      this.logger.error('Falha ao atualizar preço da Card:', errorMessage(err));
+      this.logger.warn({ err: errorMessage(err), cardId: card.id }, 'falha ao atualizar o preço da carta');
     }
   }
 }

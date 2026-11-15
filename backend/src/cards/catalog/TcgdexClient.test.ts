@@ -24,12 +24,12 @@ const tcgdexCard = {
 
 describe('TcgdexClient', () => {
   let fetchMock: jest.Mock<FetchFn>;
-  let logger: { error: jest.Mock<(...args: unknown[]) => void> };
+  let logger: Record<'info' | 'warn' | 'error', jest.Mock<(fields: object, message: string) => void>>;
   let client: TcgdexClient;
 
   beforeEach(() => {
     fetchMock = jest.fn<FetchFn>();
-    logger = { error: jest.fn() };
+    logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
     client = new TcgdexClient({ baseUrl: 'https://tcgdex.test/v2', timeoutMs: 8000, fetch: fetchMock, logger });
   });
 
@@ -143,7 +143,10 @@ describe('TcgdexClient', () => {
     const card = await client.getById('base1-4', 'en');
 
     expect(card.set).toMatchObject({ series: null, releaseDate: null });
-    expect(logger.error).toHaveBeenCalledWith('Falha ao buscar o set base1 na TCGdex:', 'TCGdex respondeu 503');
+    expect(logger.warn).toHaveBeenCalledWith(
+      { err: 'TCGdex respondeu 503', setId: 'base1', lang: 'en' },
+      'falha ao buscar o set na TCGdex',
+    );
   });
 
   it('listSets devolve os sets e guarda em memória', async () => {
@@ -172,7 +175,7 @@ describe('TcgdexClient', () => {
 
     await expect(client.listSets('de')).resolves.toEqual([]);
     await expect(client.listSets('de')).resolves.toHaveLength(1);
-    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
   });
 
   it('listSetCards devolve o resumo das cartas do set e guarda em memória', async () => {
