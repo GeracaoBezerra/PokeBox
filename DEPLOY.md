@@ -192,10 +192,12 @@ As migrations criaram as tabelas, mas o banco está vazio. O seed cria os usuár
 
 ```bash
 cd backend
-DATABASE_URL="<URL pooled do Neon>" PRISMA_DATABASE_URL="<URL direct do Neon>" npm run db:seed
+DATABASE_URL="<URL pooled do Neon>" PRISMA_DATABASE_URL="<URL direct do Neon>" SEED_ADMIN_PASSWORD="<senha forte só de vocês>" npm run db:seed
 ```
 
-As variáveis escritas antes do comando valem só para ele e têm prioridade sobre o seu `.env`. A saída esperada termina com `Seed ok. 10 cartas · usuários: admin, ash, misty`.
+As variáveis escritas antes do comando valem só para ele e têm prioridade sobre o seu `.env`. A saída esperada termina com `Seed ok. 10 cartas · usuários: admin, ash, misty · senha: pokebox123 (admin com SEED_ADMIN_PASSWORD)`.
+
+A senha `pokebox123` está no README, que é público. Com o app na internet, qualquer pessoa conseguiria entrar como `admin` e bloquear anúncios antes da apresentação. O `SEED_ADMIN_PASSWORD` dá ao `admin` uma senha que só vocês sabem; `ash` e `misty` continuam com `pokebox123`, para quem for avaliar conseguir testar. Se o seed já rodou sem a variável, rode de novo com ela: ele só troca a senha do `admin` e não duplica nada.
 
 O seed não fica no `CMD` do Dockerfile porque rodaria a cada deploy. Ele também não roda dentro da imagem de produção, que não tem o `tsx`.
 
@@ -217,7 +219,14 @@ Como conferir: no Swagger de produção, `POST /auth/login` com `ash@pokebox.dev
 
 O `VITE_API_URL` precisa estar certo antes do build. O Vite troca `import.meta.env.VITE_API_URL` pelo texto da URL dentro do JavaScript gerado. Mudou o valor? Só um build novo leva a mudança para o site. Pelo mesmo motivo, nunca coloque segredo numa variável `VITE_*`: qualquer pessoa vê o valor abrindo o JavaScript no navegador.
 
-4. Em **Settings > Environment Variables**, confira que `VITE_API_URL` vale para **Production** e **Preview**. Preview é a versão que a Vercel publica para cada PR, num endereço próprio. Não temos API de preview, então os previews usam a mesma API.
+4. Em **Settings > Environment Variables**, decidam para quais ambientes o `VITE_API_URL` vale. Preview é a versão que a Vercel publica para cada PR, num endereço próprio. Não temos API nem banco de preview, então há duas opções:
+
+   | Opção | O que acontece |
+   |---|---|
+   | `VITE_API_URL` só em Production (recomendada até a apresentação) | os previews abrem as telas, mas sem dados e sem login; os dados de produção ficam protegidos |
+   | `VITE_API_URL` em Production e Preview | dá para testar uma PR de ponta a ponta pelo preview, mas tudo o que se faz nele (cadastros, anúncios, trocas) grava no banco de produção; uma tela com bug pode bagunçar os dados da apresentação |
+
+   Escolhendo a segunda, façam também a parte de `CORS_ORIGIN_REGEX` do passo 6.
 5. Pegue os três valores que o pipeline vai usar:
    - Token: em **Account Settings > Tokens**, crie um token chamado `github-actions-pokebox`.
    - Project ID: em **Project Settings > General**.
@@ -237,7 +246,7 @@ CORS_ORIGIN=https://pokebox.vercel.app,http://localhost:5173
 
 A lista separada por vírgula diz quais sites podem chamar a API pelo navegador. O `localhost:5173` deixa alguém do time rodar o front local contra a API de produção, se precisar; tirem se não quiserem.
 
-Para os previews das PRs funcionarem com login, acrescente `CORS_ORIGIN_REGEX`. Os endereços de preview mudam a cada PR, como `https://pokebox-git-feat-logo-patricks-projects.vercel.app`, então uma lista fixa não serve. A regex precisa terminar no nome da sua conta ou time na Vercel (o pedaço depois do último hífen, que aparece no endereço dos previews):
+Só se vocês ligaram o `VITE_API_URL` também para Preview no passo 5: para os previews funcionarem com login, acrescente `CORS_ORIGIN_REGEX`. Os endereços de preview mudam a cada PR, como `https://pokebox-git-feat-logo-patricks-projects.vercel.app`, então uma lista fixa não serve. A regex precisa terminar no nome da sua conta ou time na Vercel (o pedaço depois do último hífen, que aparece no endereço dos previews):
 
 ```
 CORS_ORIGIN_REGEX=^https://pokebox-[a-z0-9-]+-patricks-projects\.vercel\.app$
@@ -252,6 +261,8 @@ Como conferir: login com `ash@pokebox.dev` em `https://pokebox.vercel.app` funci
 ### Passo 7. Secrets do pipeline no GitHub
 
 No repositório, **Settings > Environments > New environment**, com o nome `production`. O environment agrupa os segredos de produção e guarda o histórico de deploys, que aparece na página inicial do repositório com o link do site.
+
+Ainda no environment, em **Deployment branches and tags**, escolha **Selected branches and tags** e libere só a `main`. Assim os segredos de produção só existem para quem roda a partir da `main`. O `deploy.yml` também tem essa trava (`if: github.ref == 'refs/heads/main'`): se alguém rodar o Deploy à mão escolhendo outra branch, os testes rodam e a publicação é pulada. Sem as duas travas, um Deploy rodado numa branch qualquer publicaria o front dessa branch no site de produção.
 
 Dentro do environment `production`:
 
@@ -279,7 +290,7 @@ Como conferir: os três jobs ficam verdes (`ci`, `backend (Render)`, `frontend (
 - [ ] Uma troca completa entre `ash` e `misty`: anúncio, oferta, aceite.
 - [ ] No DevTools, aba **Network**, as chamadas vão para `pokebox-api.onrender.com`, não para `localhost`.
 - [ ] Na página inicial do repositório, o environment `production` aparece com o link do site.
-- [ ] Depois de 20 minutos sem usar, a primeira chamada demora (a API estava dormindo) e as seguintes voltam ao normal.
+- [ ] Depois de 20 minutos sem usar, a primeira chamada demora (a API estava dormindo) e as seguintes voltam ao normal. Meçam esse tempo e corrijam o número na tabela de limites e no README: cada vez que acorda, o container roda o `prisma migrate deploy` antes de subir a API, e o Neon também pode estar dormindo, então pode passar dos 50 segundos do Render.
 
 Atualizem o README com as URLs reais (seção Deploy) e marquem as issues #103, #104 e #105 como feitas.
 
@@ -301,14 +312,21 @@ Migration nova não precisa de passo extra. Ela entra na pasta `backend/prisma/m
 - Front: na Vercel, aba **Deployments**, escolha o anterior e clique em **Promote to Production**.
 - Depois, corrijam na `develop` e façam uma release nova.
 
+Antes de uma release com migration que apaga ou renomeia alguma coisa, criem um branch no Neon (**Branches > Create branch**, a partir da `main`). É gratuito, sai na hora e guarda uma foto do banco naquele momento. Se a migration estragar algum dado, dá para consultar ou restaurar a partir dele.
+
 ### Limites do plano gratuito
 
 | Limite | O que acontece | O que fazer |
 |---|---|---|
-| Render dorme depois de 15 minutos sem uso | a primeira chamada seguinte leva uns 50 segundos | abrir o site uns minutos antes de apresentar |
+| Render dorme depois de 15 minutos sem uso | a primeira chamada seguinte leva uns 50 segundos ou mais (medir no passo 8) | abrir o site uns minutos antes de apresentar |
 | Render free tem 750 horas por mês por conta | dá para um serviço ligado o mês inteiro | não criar um segundo serviço na mesma conta |
 | Neon suspende o banco quando ninguém usa | a primeira consulta depois disso demora um pouco mais | nada; ele acorda sozinho |
 | O cache de cartas em memória some quando a API dorme | a primeira busca de uma carta vai ao cache do banco | nada; o cache no banco (`CardCache`) continua |
+
+Outros riscos de ter a API pública, que também valem para a apresentação:
+
+- `ash` e `misty` têm a senha do README. Qualquer pessoa pode entrar com eles e mexer na coleção. Antes de apresentar, confiram os dados e, se precisar, rodem o seed de novo.
+- O `/auth/login` aceita tentativas sem limite. O limite de tentativas está previsto na #112 (rate limit).
 
 Esses limites também entram na apresentação, no critério de limitações e melhorias.
 
@@ -323,6 +341,7 @@ Esses limites também entram na apresentação, no critério de limitações e m
 | Site abre, mas as chamadas vão para `localhost:3000` | `VITE_API_URL` não estava definida no build | definir na Vercel e publicar de novo (Actions > Deploy > Run workflow) |
 | F5 numa página interna dá 404 na Vercel | o Root Directory não é `frontend`, então a Vercel não leu o `vercel.json` | corrigir em Project Settings > General |
 | Job `backend (Render)` falha com `A versão nova não subiu em 15 minutos` | o build ou a subida falhou no Render | abrir os Logs do Render; a versão antiga continua no ar |
+| Jobs `backend (Render)` e `frontend (Vercel)` aparecem como pulados (*skipped*) | o Deploy foi rodado à mão numa branch que não é a `main` | esperado; rode escolhendo a `main` |
 | Job `backend (Render)` falha logo no `curl` do hook | secret `RENDER_DEPLOY_HOOK_URL` ausente ou errado | conferir no environment `production` |
 | Job `frontend (Vercel)` falha no `vercel pull` | token, Org ID ou Project ID errados | conferir os três secrets |
 | Login dá 401 em produção com usuário do seed | o seed não rodou no Neon | passo 4 |

@@ -439,7 +439,8 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 
 ### Limitações conhecidas
 
-- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte pode levar uns 50 segundos. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
+- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte pode levar 50 segundos ou mais. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
+- Em produção, `ash` e `misty` usam a senha pública do seed (`pokebox123`), para quem for avaliar conseguir testar. O `admin` recebe outra senha pelo `SEED_ADMIN_PASSWORD` (veja o [DEPLOY.md](DEPLOY.md)). O `/auth/login` ainda não limita tentativas (#112).
 
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
 - Uma troca recusada ou cancelada não volta os anúncios que foram reduzidos quando ela nasceu, e a oferta não gera outra troca: é preciso fazer uma oferta nova.
