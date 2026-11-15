@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises';
 
 import { TcgdexClient } from '../src/cards/catalog/TcgdexClient.js';
 import type { CardDetail } from '../src/cards/types.js';
+import { CARD_ID_PATTERN, isValidCardId } from '../src/utils/cardId.js';
 import { toCardRecord } from '../src/utils/cardRecord.js';
 
 const CARD_IDS = [
@@ -94,8 +95,6 @@ const CARD_IDS = [
   'sv08-086',
 ];
 
-const VALID_ID = /^[a-zA-Z0-9.\-]+$/;
-
 const tcgdex = new TcgdexClient({
   baseUrl: process.env.TCGDEX_BASE_URL || 'https://api.tcgdex.net/v2',
   timeoutMs: 8000,
@@ -105,7 +104,7 @@ const tcgdex = new TcgdexClient({
 const OUTPUT = new URL('../prisma/seed-data/cards.json', import.meta.url);
 
 function refusalReason(id: string, details?: CardDetail): string | null {
-  if (!VALID_ID.test(id)) return 'id fora do padrão ^[a-zA-Z0-9.-]+$';
+  if (!isValidCardId(id)) return `id fora do padrão ${CARD_ID_PATTERN.source}`;
   if (details && !details.image.small) return 'sem imagem na TCGdex';
   return null;
 }

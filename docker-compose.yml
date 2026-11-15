@@ -1,3 +1,4 @@
+name: pokebox
 
 services:
   tcg-db:
