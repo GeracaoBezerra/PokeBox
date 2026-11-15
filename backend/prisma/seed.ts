@@ -2,13 +2,13 @@ import { readFile } from 'node:fs/promises';
 
 import bcrypt from 'bcrypt';
 
-import { loadDatabaseEnv } from '../src/config/env.js';
+import { loadSeedEnv } from '../src/config/env.js';
 import type { CardCondition, CardFinish, CollectionItem, Prisma, User, UserRole } from '../src/generated/prisma/index.js';
 import { createPrismaClient } from '../src/lib/prisma.js';
 
-const prisma = createPrismaClient(loadDatabaseEnv().DATABASE_URL);
+const env = loadSeedEnv();
+const prisma = createPrismaClient(env.DATABASE_URL);
 
-const SEED_PASSWORD = 'pokebox123';
 const SALT_ROUNDS = 12;
 
 interface SeedUser {
@@ -70,13 +70,15 @@ async function loadCards(): Promise<SeedCard[]> {
 }
 
 async function seedUsers() {
-  const passwordHash = await bcrypt.hash(SEED_PASSWORD, SALT_ROUNDS);
+  const adminHash = await bcrypt.hash(env.SEED_ADMIN_PASSWORD, SALT_ROUNDS);
+  const demoHash = await bcrypt.hash(env.SEED_DEMO_PASSWORD, SALT_ROUNDS);
   const byUsername: UsersByUsername = {};
 
   for (const user of users) {
+    const passwordHash = user.role === 'ADMIN' ? adminHash : demoHash;
     byUsername[user.username] = await prisma.user.upsert({
       where: { username: user.username },
-      update: {},
+      update: { passwordHash },
       create: { ...user, passwordHash, accountStatus: 'ACTIVE', emailVerified: true },
     });
   }
@@ -178,7 +180,7 @@ async function main() {
   await seedWishlist(byUsername);
   await seedMarketplace(byUsername, items);
 
-  console.log(`Seed ok. ${cards.length} cartas · usuários: ${users.map((user) => user.username).join(', ')} · senha: ${SEED_PASSWORD}`);
+  console.log(`Seed ok. ${cards.length} cartas · usuários: ${users.map((user) => user.username).join(', ')} · senhas: SEED_ADMIN_PASSWORD (admin) e SEED_DEMO_PASSWORD (demais)`);
 }
 
 main()

@@ -4,5 +4,8 @@ npm-debug.log
 .env.*
 !.env.example
 dist
+coverage
 .git
 src/generated
+playground.js
+.DS_Store
