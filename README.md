@@ -458,7 +458,7 @@ Todas as respostas seguem o mesmo formato:
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação. Entende nome de set e ignora palavras que não acham nada: `charizard base` traz os Charizard com o do Base Set primeiro, e `charizard base x pipi popo` ainda traz os Charizard. O resultado vem ordenado por relevância, cada carta traz `set: { id, name }` e `number`, e a resposta traz `search: { name, sets, ignored }` dizendo como a busca foi entendida. Erro de digitação (`charzard`) ainda não é tolerado |
+| `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação. Entende nome de set e ignora palavras que não acham nada: `charizard base` traz os Charizard com o do Base Set primeiro, e `charizard base x pipi popo` ainda traz os Charizard. O resultado vem ordenado por relevância, cada carta traz `set: { id, name }` e `number`, e a resposta traz `search: { name, sets, ignored }` dizendo como a busca foi entendida. Erro de digitação (`charzard`) ainda não é tolerado. Cartas com id que o detalhe não aceita (fora de letras, números, ponto e hífen) ficam fora da lista: hoje são só as Unown "!" e "?" do set `exu`; por isso uma página pode vir com uma carta a menos |
 | `GET /cards/:id` | 🔓 | detalhe da carta (ataques, variantes, preço de referência) e os anúncios ativos dela; com login, traz `user` (quantas você tem, se está na sua wishlist, se você tem anúncio ativo dela) |
 
 ### Coleção

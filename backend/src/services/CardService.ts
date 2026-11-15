@@ -5,6 +5,7 @@ import { AppError } from '../errors/AppError.js';
 import { CardNotFoundError } from '../errors/CardNotFoundError.js';
 import type { CollectionQuantityReader } from '../repositories/CollectionRepository.js';
 import type { WishlistLookup } from '../repositories/WishlistRepository.js';
+import { isValidCardId } from '../utils/cardId.js';
 import { toUserCardInfo, type UserCardInfo } from '../utils/cardRecord.js';
 
 export interface ActiveListingReader {
@@ -32,8 +33,9 @@ export class CardService implements CardFetcher {
     return this.catalog.getById(id, lang);
   }
 
-  find(query: CardListQuery): Promise<CardListResult> {
-    return this.finder.find(query);
+  async find(query: CardListQuery): Promise<CardListResult> {
+    const result = await this.finder.find(query);
+    return { ...result, cards: result.cards.filter((card) => isValidCardId(card.id)) };
   }
 
   async fetchCard(cardId: string): Promise<CardDetail> {
