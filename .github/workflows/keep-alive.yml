@@ -1,0 +1,22 @@
+name: Keep alive
+
+on:
+  schedule:
+    - cron: '4,14,24,34,44,54 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: keep-alive
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  ping:
+    name: ping /health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      API_URL: https://pokebox-api.onrender.com
+    steps:
+      - run: curl -fsS --retry 3 --retry-all-errors --retry-delay 10 --max-time 150 "$API_URL/health"
