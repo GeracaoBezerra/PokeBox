@@ -15,7 +15,7 @@ Registro de onde a IA ajudou, com o que foi pedido, o que saiu e o que precisou 
 - Propôs e implementou a TCGdex simulada como um servidor local apontado por `TCGDEX_BASE_URL`, gerado a partir do `prisma/seed-data/cards.json`, no lugar do msw sugerido na issue. O motivo: o jest roda em ESM experimental, e o servidor local não precisa de biblioteca nova nem muda o código de produção.
 - Propôs rodar o seed uma vez só e fazer cada arquivo criar os próprios usuários, no lugar de apagar o banco antes de cada teste (que deixaria a suíte lenta).
 - Pôs a trava que impede a suíte de apagar um banco cujo nome não termina em `_test`.
-- Escreveu os 93 casos.
+- Escreveu os casos (93 na primeira leva). Ao revisar, o Patrick perguntou pela RN-09, que tinha ficado sem teste porque a IA afirmou, sem conferir o PDF da aula, que ela não existia no projeto. A regra existe (snapshot local da carta) e ganhou 2 testes, chegando a 95.
 
 **O que a IA errou e foi corrigido rodando os testes:**
 
@@ -29,6 +29,6 @@ Registro de onde a IA ajudou, com o que foi pedido, o que saiu e o que precisou 
 
 Nenhuma dessas diferenças era bug da API. Em todos os casos, o teste foi corrigido para o comportamento documentado no README e no schema, e não o contrário.
 
-**Como conferimos que os testes testam algo:** desligamos de propósito a checagem de dono do item (RN-02, `utils/collectionRules.ts`). Dois testes falharam (editar item de outra pessoa e anunciar item de outra pessoa). Com a checagem de volta, os 93 passaram.
+**Como conferimos que os testes testam algo:** desligamos de propósito a checagem de dono do item (RN-02, `utils/collectionRules.ts`). Dois testes falharam (editar item de outra pessoa e anunciar item de outra pessoa). Com a checagem de volta, todos passaram.
 
 **O que ficou de fora:** o 504 (TCGdex demorando mais de 8 s). O timeout é fixo no `cards.module.ts`, e um teste de integração dele levaria 8 s. Ele já é coberto pelos testes de unidade do `TcgdexClient`.
