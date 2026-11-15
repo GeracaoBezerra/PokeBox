@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { createApp } from './app.js';
 import { parseEnv } from './config/env.js';
 import type { Container } from './container.js';
+import { BodyParserErrorTranslator } from './errors/translators/BodyParserErrorTranslator.js';
 import type { PrismaClient } from './generated/prisma/index.js';
 import { createLogger } from './lib/logger.js';
 import type { AuthMiddleware } from './middlewares/AuthMiddleware.js';
@@ -39,7 +40,7 @@ function buildFakeContainer(): Container {
       logger,
     },
     requestLogger: createRequestLogger(logger),
-    errorHandler: createErrorHandler([], logger),
+    errorHandler: createErrorHandler([new BodyParserErrorTranslator()], logger),
     modules: [{ routes: [{ path: '/boom', router: boom }] }],
     shutdown: async () => {},
   };
@@ -55,6 +56,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
 });
 
@@ -134,5 +136,30 @@ describe('createApp', () => {
     const res = await fetch(`${baseUrl}/health`, { headers: { origin: 'http://localhost:5173' } });
 
     expect(res.headers.get('access-control-expose-headers')).toBe('x-request-id');
+  });
+
+  it('respostas levam os cabeçalhos de segurança do helmet', async () => {
+    const res = await fetch(`${baseUrl}/health`);
+
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(res.headers.get('x-powered-by')).toBeNull();
+  });
+
+  it('resposta grande sai comprimida para quem aceita gzip', async () => {
+    const res = await fetch(`${baseUrl}/docs/swagger-ui-bundle.js`, { headers: { 'accept-encoding': 'gzip' } });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-encoding')).toBe('gzip');
+    await res.arrayBuffer();
+  });
+
+  it('corpo JSON acima de 100 KB é recusado', async () => {
+    const res = await fetch(`${baseUrl}/boom`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ texto: 'x'.repeat(200 * 1024) }),
+    });
+
+    expect(res.status).toBe(413);
   });
 });

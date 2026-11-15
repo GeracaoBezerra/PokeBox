@@ -357,6 +357,15 @@ export const swaggerSpec = {
               },
             },
           },
+          429: {
+            description: "Muitas tentativas sem sucesso nesta rota para o mesmo e-mail a partir do mesmo IP: passou do limite configurado em AUTH_RATE_LIMIT (padrão 20) em 15 minutos. Só as que falharam contam. O header Retry-After diz quantos segundos esperar",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+                example: { success: false, error: "Muitas tentativas sem sucesso. Tente de novo em alguns minutos." },
+              },
+            },
+          },
           500: {
             description: "Erro interno",
             content: {
@@ -413,6 +422,15 @@ export const swaggerSpec = {
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          429: {
+            description: "Muitas tentativas sem sucesso nesta rota para o mesmo e-mail a partir do mesmo IP: passou do limite configurado em AUTH_RATE_LIMIT (padrão 20) em 15 minutos. Só as que falharam contam. O header Retry-After diz quantos segundos esperar",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiError" },
+                example: { success: false, error: "Muitas tentativas sem sucesso. Tente de novo em alguns minutos." },
               },
             },
           },

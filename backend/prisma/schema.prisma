@@ -122,7 +122,7 @@ model Listing {
   offers         Offer[]
 
   @@index([collectionItemId])
-  @@index([status])
+  @@index([status, createdAt(sort: Desc), id])
 }
 
 model Offer {

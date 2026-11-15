@@ -1,5 +1,6 @@
 import { AuthController } from '../controllers/AuthController.js';
 import { UserController } from '../controllers/UserController.js';
+import { createAuthLimiter } from '../middlewares/rateLimit.js';
 import { PrismaUserRepository } from '../repositories/PrismaUserRepository.js';
 import { createAuthRoutes } from '../routes/auth.routes.js';
 import { createUserRoutes } from '../routes/user.routes.js';
@@ -18,10 +19,14 @@ export function buildAuthModule(infra: Infra): AppModule {
 
   const authController = new AuthController(new AuthService(users, hasher, tokens));
   const userController = new UserController(new UserService(users));
+  const limiters = {
+    login: createAuthLimiter(infra.env.AUTH_RATE_LIMIT),
+    register: createAuthLimiter(infra.env.AUTH_RATE_LIMIT),
+  };
 
   return {
     routes: [
-      { path: '/auth', router: createAuthRoutes(infra.auth, authController) },
+      { path: '/auth', router: createAuthRoutes(infra.auth, authController, limiters) },
       { path: '/user', router: createUserRoutes(infra.auth, userController) },
     ],
   };

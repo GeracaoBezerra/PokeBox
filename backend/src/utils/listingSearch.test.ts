@@ -48,6 +48,11 @@ describe('listingOrderBy', () => {
     expect(listingOrderBy('oldest')[0]).toEqual({ createdAt: 'asc' });
   });
 
+  it('oldest é o inverso exato de recent, para o banco ler o mesmo índice de trás para frente', () => {
+    expect(listingOrderBy('recent')).toEqual([{ createdAt: 'desc' }, { id: 'asc' }]);
+    expect(listingOrderBy('oldest')).toEqual([{ createdAt: 'asc' }, { id: 'desc' }]);
+  });
+
   it('name ordena pelo nome da carta', () => {
     expect(listingOrderBy('name')[0]).toEqual({ collectionItem: { card: { name: 'asc' } } });
   });

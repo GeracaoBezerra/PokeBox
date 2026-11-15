@@ -15,7 +15,13 @@ describe('parseEnv', () => {
       TCGDEX_BASE_URL: 'https://api.tcgdex.net/v2',
       USE_MOCK: false,
       CORS_ORIGIN: ['http://localhost:5173', 'http://localhost:8080'],
+      AUTH_RATE_LIMIT: 20,
     });
+  });
+
+  it('AUTH_RATE_LIMIT aceita 0 para desligar e recusa número negativo', () => {
+    expect(parseEnv({ ...valid, AUTH_RATE_LIMIT: '0' }).AUTH_RATE_LIMIT).toBe(0);
+    expect(() => parseEnv({ ...valid, AUTH_RATE_LIMIT: '-1' })).toThrow('AUTH_RATE_LIMIT');
   });
 
   it('converte a porta e USE_MOCK a partir de texto', () => {
