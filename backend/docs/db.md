@@ -147,6 +147,7 @@ Como fica idempotente:
 - usuários, cartas, itens de coleção e wishlist usam `upsert` pelas chaves únicas. Item de coleção que já existe não muda, para não desfazer o que as trocas já moveram;
 - anúncios são procurados pelo item da coleção (`findFirst`); se já existe, fica como está;
 - ofertas são procuradas pelo par anúncio + quem ofertou. As que o seed deixa em aberto voltam para `PROPOSED` (e o anúncio delas para `ACTIVE`) a cada execução, como a da misty pelo Charizard do ash, que o `make test` usa. Se uma delas já virou troca, o seed avisa e não mexe: para voltar ao estado inicial, `npx prisma migrate reset` (apaga o banco local). Ofertas recusadas, canceladas ou aceitas e as trocas já criadas não são refeitas;
+- item que saiu do seed é apagado: hoje só a Fire Energy `sve-002` da `misty` (o set `sve` não tem imagem; ela passou a ter a `base1-98`). Vale para bancos populados pelo seed antigo, como o de produção. Se o item estiver num anúncio, numa oferta ou reservado, o seed avisa e mantém;
 - anúncios, ofertas e trocas são criados pelos services da API (`ListingService`, `OfferService`, `TradeService`), com as mesmas regras e transações (RN-05 a RN-08). Só duas coisas vão direto no banco: a data de criação dos anúncios (a API não deixa escolher) e a volta das ofertas em aberto para `PROPOSED` (a API não deixa uma oferta finalizada voltar).
 
 Antes de gravar, o seed confere os próprios dados: toda carta existe no `cards.json`, toda variante existe na carta e nenhuma wishlist pede carta que a pessoa já tem.

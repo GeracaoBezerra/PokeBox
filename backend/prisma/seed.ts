@@ -34,6 +34,8 @@ const prisma = createPrismaClient(env.DATABASE_URL);
 const SALT_ROUNDS = 12;
 const ONE_DAY = 24 * 60 * 60 * 1000;
 
+const RETIRED_ITEMS = [{ username: 'misty', cardId: 'sve-002' }];
+
 interface SeedUser {
   username: string;
   name: string;
@@ -518,6 +520,25 @@ async function seedCollection(byUsername: UsersByUsername) {
   return items;
 }
 
+async function removeRetiredItems(byUsername: UsersByUsername) {
+  for (const { username, cardId } of RETIRED_ITEMS) {
+    const retired = await prisma.collectionItem.findMany({
+      where: { userId: byUsername[username].id, cardId },
+      include: { _count: { select: { listings: true, offerItems: true } } },
+    });
+
+    for (const item of retired) {
+      if (item.reservedQuantity > 0 || item._count.listings > 0 || item._count.offerItems > 0) {
+        console.log(
+          `O item ${cardId} de ${username} saiu do seed, mas está num anúncio, oferta ou troca e foi mantido. Para apagar: encerre o que o usa e rode o seed de novo`,
+        );
+        continue;
+      }
+      await prisma.collectionItem.delete({ where: { id: item.id } });
+    }
+  }
+}
+
 async function seedWishlist(byUsername: UsersByUsername) {
   for (const { username, cardId } of wishlist) {
     const userId = byUsername[username].id;
@@ -655,6 +676,7 @@ async function main() {
   const byUsername = await seedUsers();
   await seedCards(cards);
   const items = await seedCollection(byUsername);
+  await removeRetiredItems(byUsername);
   await seedWishlist(byUsername);
   const byItem = await seedListings(byUsername, items);
   await seedOffers(byUsername, items, byItem);
