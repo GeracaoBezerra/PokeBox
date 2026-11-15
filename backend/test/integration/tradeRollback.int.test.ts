@@ -1,16 +1,14 @@
-import { loadEnv } from '../config/env.js';
-import type { CollectionItem, PrismaClient, Trade, User } from '../generated/prisma/index.js';
-import { createPrismaClient } from '../lib/prisma.js';
-import { PrismaCollectionRepository } from '../repositories/PrismaCollectionRepository.js';
-import { PrismaOfferRepository } from '../repositories/PrismaOfferRepository.js';
-import { PrismaTradeRepository } from '../repositories/PrismaTradeRepository.js';
-import { PrismaTransactionRunner } from '../repositories/PrismaTransactionRunner.js';
-import { buildPrismaTradeUnitOfWork, PrismaUnitOfWorkFactory } from '../repositories/PrismaUnitOfWorkFactory.js';
-import { TradeService } from './TradeService.js';
+import { loadEnv } from '../../src/config/env.js';
+import type { CollectionItem, PrismaClient, Trade, User } from '../../src/generated/prisma/index.js';
+import { createPrismaClient } from '../../src/lib/prisma.js';
+import { PrismaCollectionRepository } from '../../src/repositories/PrismaCollectionRepository.js';
+import { PrismaOfferRepository } from '../../src/repositories/PrismaOfferRepository.js';
+import { PrismaTradeRepository } from '../../src/repositories/PrismaTradeRepository.js';
+import { PrismaTransactionRunner } from '../../src/repositories/PrismaTransactionRunner.js';
+import { buildPrismaTradeUnitOfWork, PrismaUnitOfWorkFactory } from '../../src/repositories/PrismaUnitOfWorkFactory.js';
+import { TradeService } from '../../src/services/TradeService.js';
 
-const describeDb = process.env.RUN_DB_TESTS ? describe : describe.skip;
-
-describeDb('accept com banco (RN-07): falha no meio desfaz tudo', () => {
+describe('accept com banco (RN-07): falha no meio desfaz tudo', () => {
   const suffix = String(Date.now()).slice(-8);
   let prisma: PrismaClient | undefined;
   let service: TradeService;
