@@ -55,6 +55,24 @@ const databaseEnvSchema = envSchema.pick({ DATABASE_URL: true });
 
 export type DatabaseEnv = z.infer<typeof databaseEnvSchema>;
 
+const seedPassword = z
+  .string()
+  .min(8, 'precisa ter pelo menos 8 caracteres')
+  .max(72, 'precisa ter no máximo 72 caracteres');
+
+const seedEnvSchema = databaseEnvSchema
+  .extend({
+    SEED_ADMIN_PASSWORD: seedPassword,
+    SEED_DEMO_PASSWORD: seedPassword,
+  })
+  .refine((env) => env.SEED_ADMIN_PASSWORD !== env.SEED_DEMO_PASSWORD, {
+    path: ['SEED_DEMO_PASSWORD'],
+    message: 'precisa ser diferente de SEED_ADMIN_PASSWORD',
+    when: (payload) => payload.issues.length === 0,
+  });
+
+export type SeedEnv = z.infer<typeof seedEnvSchema>;
+
 export class EnvValidationError extends Error {
   readonly problems: string[];
 
@@ -99,10 +117,18 @@ export function parseDatabaseEnv(source: NodeJS.ProcessEnv): DatabaseEnv {
   return parseWith(databaseEnvSchema, source);
 }
 
+export function parseSeedEnv(source: NodeJS.ProcessEnv): SeedEnv {
+  return parseWith(seedEnvSchema, source);
+}
+
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   return exitIfInvalid(() => parseEnv(source));
 }
 
 export function loadDatabaseEnv(source: NodeJS.ProcessEnv = process.env): DatabaseEnv {
   return exitIfInvalid(() => parseDatabaseEnv(source));
+}
+
+export function loadSeedEnv(source: NodeJS.ProcessEnv = process.env): SeedEnv {
+  return exitIfInvalid(() => parseSeedEnv(source));
 }

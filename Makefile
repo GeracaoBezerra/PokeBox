@@ -3,6 +3,8 @@ SHELL := /bin/bash
 
 DB_USER := $(shell grep -E '^POSTGRES_USER=' .env 2>/dev/null | cut -d= -f2-)
 DB_NAME := $(shell grep -E '^POSTGRES_DB=' .env 2>/dev/null | cut -d= -f2-)
+ADMIN_PASSWORD := $(shell grep -E '^SEED_ADMIN_PASSWORD=' .env 2>/dev/null | cut -d= -f2-)
+DEMO_PASSWORD := $(shell grep -E '^SEED_DEMO_PASSWORD=' .env 2>/dev/null | cut -d= -f2-)
 API := http://localhost:3000
 PSQL := docker compose exec -T tcg-db psql -U $(DB_USER) -d $(DB_NAME)
 
@@ -143,9 +145,9 @@ LOGIN = curl -s -X POST $(API)/auth/login -H 'Content-Type: application/json' -d
 test-collection: ## smoke test da colecao (#9, #10, #11) com os usuarios do seed
 	@echo ""
 	@echo "colecao"
-	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
-	MISTY=$$($(LOGIN) '{"email":"misty@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
-	ADMIN=$$($(LOGIN) '{"email":"admin@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
+	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
+	MISTY=$$($(LOGIN) '{"email":"misty@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
+	ADMIN=$$($(LOGIN) '{"email":"admin@pokebox.dev","password":"$(ADMIN_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
 	A="Authorization: Bearer $$ASH"; J='Content-Type: application/json'; C=$(API)/collection; \
 	NEW='{"cardId":"sv01-001","quantity":2,"finish":"NORMAL","firstEdition":false}'; \
 	printf '%-34s' "sem token -> 401";             curl -s -o /dev/null -w 'HTTP %{http_code}\n' $$C; \
@@ -177,7 +179,7 @@ COUNT = python3 -c 'import sys,json;print(len(json.load(sys.stdin)["data"]["item
 test-profile: ## smoke test do perfil publico (#12) com os usuarios do seed
 	@echo ""
 	@echo "perfil publico"
-	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
+	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
 	A="Authorization: Bearer $$ASH"; J='Content-Type: application/json'; P=$(API)/users/ash/collection; \
 	PUBLIC=$$($(PSQL) -tAc "SELECT count(*) FROM \"CollectionItem\" ci JOIN \"User\" u ON u.id = ci.\"userId\" WHERE u.username = 'ash' AND ci.\"isPublic\" AND ci.quantity > 0;"); \
 	printf '%-34s' "ash sem token -> 200";         curl -s -o /dev/null -w 'HTTP %{http_code}\n' $$P; \
@@ -207,9 +209,9 @@ test-profile: ## smoke test do perfil publico (#12) com os usuarios do seed
 test-wishlist: ## smoke test da wishlist (#13) com os usuarios do seed
 	@echo ""
 	@echo "wishlist"
-	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
-	MISTY=$$($(LOGIN) '{"email":"misty@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
-	ADMIN=$$($(LOGIN) '{"email":"admin@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
+	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
+	MISTY=$$($(LOGIN) '{"email":"misty@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
+	ADMIN=$$($(LOGIN) '{"email":"admin@pokebox.dev","password":"$(ADMIN_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
 	M="Authorization: Bearer $$MISTY"; J='Content-Type: application/json'; W=$(API)/wishlist; \
 	printf '%-34s' "sem token -> 401";             curl -s -o /dev/null -w 'HTTP %{http_code}\n' $$W; \
 	printf '%-34s' "listar (misty) -> 200";       curl -s -o /dev/null -w 'HTTP %{http_code}\n' $$W -H "$$M"; \
@@ -244,9 +246,9 @@ test-listings: ## smoke test dos anuncios (#14, #15) com os usuarios do seed
 	@echo ""
 	@echo "anuncios"
 	@$(PSQL) -c "DELETE FROM \"Listing\" WHERE description = 'make-test';" > /dev/null
-	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
-	MISTY=$$($(LOGIN) '{"email":"misty@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
-	ADMIN=$$($(LOGIN) '{"email":"admin@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
+	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
+	MISTY=$$($(LOGIN) '{"email":"misty@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
+	ADMIN=$$($(LOGIN) '{"email":"admin@pokebox.dev","password":"$(ADMIN_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
 	A="Authorization: Bearer $$ASH"; M="Authorization: Bearer $$MISTY"; AD="Authorization: Bearer $$ADMIN"; J='Content-Type: application/json'; L=$(API)/listings; \
 	ULTRA=$$(curl -s $(API)/collection -H "$$A" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "sv01-196"][0]'); \
 	MITEM=$$(curl -s $(API)/collection -H "$$M" | $(JSON) 'd["data"]["items"][0]["id"]'); \
@@ -301,9 +303,9 @@ test-offers: ## smoke test das ofertas (#16, #17) com os usuarios do seed
 	@echo ""
 	@echo "ofertas"
 	@$(PSQL) -c "DELETE FROM \"OfferItem\" WHERE \"offerId\" IN (SELECT o.id FROM \"Offer\" o JOIN \"Listing\" l ON l.id = o.\"listingId\" WHERE o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Offer\" o USING \"Listing\" l WHERE l.id = o.\"listingId\" AND (o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Listing\" WHERE description = 'make-test';" > /dev/null
-	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
-	MISTY=$$($(LOGIN) '{"email":"misty@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
-	ADMIN=$$($(LOGIN) '{"email":"admin@pokebox.dev","password":"pokebox123"}' | $(JSON) 'd["data"]["token"]'); \
+	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
+	MISTY=$$($(LOGIN) '{"email":"misty@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
+	ADMIN=$$($(LOGIN) '{"email":"admin@pokebox.dev","password":"$(ADMIN_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
 	A="Authorization: Bearer $$ASH"; M="Authorization: Bearer $$MISTY"; AD="Authorization: Bearer $$ADMIN"; J='Content-Type: application/json'; L=$(API)/listings; O=$(API)/offers; \
 	PIKA=$$(curl -s $(API)/collection -H "$$A" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "base1-58"][0]'); \
 	ULTRA=$$(curl -s $(API)/collection -H "$$A" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "sv01-196"][0]'); \
