@@ -64,7 +64,6 @@ Projeto em equipe do curso **Geração Tech**.
 ├── .github/workflows/     ci.yml (testes) e deploy.yml (testes, depois Render e Vercel)
 ├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento
 ├── docker-compose.prod.yml o que muda no modo produção local
-├── DEPLOY.md              passo a passo do deploy
 └── .env.example           variáveis de ambiente
 ```
 
@@ -285,7 +284,7 @@ Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow d
 | API | Render, com o Dockerfile de `backend/` (estágio `prod`) | o pipeline chama o deploy hook do Render |
 | Front | Vercel, pasta `frontend/` | o pipeline publica com a CLI da Vercel |
 
-O app ainda não está no ar. O passo a passo para criar as contas, configurar cada serviço e fazer o primeiro deploy está em [DEPLOY.md](DEPLOY.md).
+O app ainda não está no ar.
 
 O caminho de uma mudança até a produção:
 
@@ -440,7 +439,7 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 ### Limitações conhecidas
 
 - No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte pode levar 50 segundos ou mais. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
-- Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time (veja o [DEPLOY.md](DEPLOY.md)). O `/auth/login` ainda não limita tentativas (#112).
+- Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time. O `/auth/login` ainda não limita tentativas (#112).
 
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
 - Uma troca recusada ou cancelada não volta os anúncios que foram reduzidos quando ela nasceu, e a oferta não gera outra troca: é preciso fazer uma oferta nova.
