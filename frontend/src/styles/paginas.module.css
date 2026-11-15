@@ -1,0 +1,266 @@
+.pagina {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  color: var(--texto);
+}
+
+.titulo {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-size: 1.8rem;
+  margin-bottom: 4px;
+}
+
+.subtitulo {
+  color: var(--texto-suave);
+  margin-bottom: 20px;
+}
+
+.secao {
+  margin-top: 28px;
+}
+
+.secao > h2 {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+}
+
+.painel {
+  background: var(--superficie);
+  border: 1px solid var(--borda-suave);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  background: var(--superficie-funda);
+  color: var(--texto);
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.campo input[type="number"] {
+  width: 90px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.botao,
+.botaoSecundario,
+.botaoPerigo {
+  border-radius: 6px;
+  padding: 8px 14px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.botao {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+.botao:hover {
+  background: var(--acento-hover);
+}
+
+.botaoSecundario {
+  background: transparent;
+  color: var(--texto);
+  border-color: var(--borda);
+}
+
+.botaoSecundario:hover {
+  background: var(--superficie-hover);
+}
+
+.botaoPerigo {
+  background: transparent;
+  color: var(--erro);
+  border-color: var(--erro);
+}
+
+.botao:disabled,
+.botaoSecundario:disabled,
+.botaoPerigo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 16px;
+}
+
+.cartaMini {
+  background: var(--superficie);
+  border: 1px solid var(--borda-suave);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--texto);
+  text-decoration: none;
+}
+
+.cartaMini:hover {
+  border-color: var(--acento);
+}
+
+.cartaMini img,
+.imagemCarta {
+  width: 100%;
+  aspect-ratio: 245 / 342;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.miniatura {
+  width: 56px;
+  aspect-ratio: 245 / 342;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.tabelaWrap {
+  overflow-x: auto;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tabela th,
+.tabela td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--borda-suave);
+  vertical-align: middle;
+}
+
+.tabela th {
+  color: var(--texto-suave);
+  font-weight: 600;
+}
+
+.status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: var(--superficie-hover);
+  border: 1px solid var(--borda);
+  white-space: nowrap;
+}
+
+.suave {
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}
+
+.detalhe {
+  display: grid;
+  grid-template-columns: minmax(200px, 320px) 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 720px) {
+  .detalhe {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lista {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  font-size: 0.95rem;
+}
+
+.lista dt {
+  color: var(--texto-suave);
+}
+
+.cartaoNegociacao {
+  background: var(--superficie);
+  border: 1px solid var(--borda-suave);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.linhaCartas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.abas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.abaAtiva {
+  composes: botao;
+}
+
+.aba {
+  composes: botaoSecundario;
+}
+
+.paginacao {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.link {
+  color: var(--acento);
+}
+
+.tabela td.campo {
+  display: table-cell;
+}

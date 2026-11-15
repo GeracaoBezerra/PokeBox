@@ -21,7 +21,7 @@ html {
 }
 
 body {
-  min-height: 100vh;
+  
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -110,7 +110,15 @@ q::after {
 /* 13. Root do React */
 #root {
   min-height: 100vh;
+  min-height: 100dvh; /* celular: ignora a barra do navegador */
   isolation: isolate;
+  display: flex;
+  flex-direction: column;
+}
+
+/* o Footer vai para o fim da tela quando a página é curta */
+footer {
+  margin-top: auto;
 }
 
 /* 14. Acessibilidade: respeita preferência por menos animação */

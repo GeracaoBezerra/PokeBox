@@ -1,0 +1,85 @@
+.painel {
+  min-width: 0;
+}
+
+/* Mesma altura do título do menu: as duas linhas divisórias ficam alinhadas */
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-8) var(--esp-16);
+  min-height: var(--alvo-min);
+
+  border-bottom: 1px solid var(--borda-suave);
+}
+
+.titulo {
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-lg);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-lg);
+}
+
+.acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-8);
+}
+
+/* "Editar": botão com cara de link */
+.editar {
+  min-height: var(--alvo-min);
+  padding: 0 var(--esp-8);
+
+  background: none;
+
+  color: var(--acento);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.editar:hover {
+  color: var(--acento-hover);
+}
+
+.editar:active {
+  color: var(--acento-press);
+}
+
+.salvar,
+.cancelar {
+  min-height: var(--altura-controle);
+  padding: 0 var(--esp-16);
+
+  border-radius: var(--raio-botao);
+
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+}
+
+.salvar {
+  background-color: var(--acento);
+  color: var(--acento-texto);
+}
+
+.salvar:hover {
+  background-color: var(--acento-hover);
+}
+
+.salvar:active {
+  background-color: var(--acento-press);
+}
+
+.cancelar {
+  background-color: transparent;
+  border: 1px solid var(--borda);
+  color: var(--texto);
+}
+
+.cancelar:hover {
+  background-color: var(--superficie-hover);
+}

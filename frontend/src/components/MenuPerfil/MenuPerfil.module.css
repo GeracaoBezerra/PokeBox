@@ -1,0 +1,75 @@
+.menu {
+  min-width: 0;
+}
+
+/* Mesma altura do cabeçalho do painel da direita: as duas linhas
+   divisórias ficam alinhadas. */
+.titulo {
+  display: flex;
+  align-items: center;
+  min-height: var(--alvo-min);
+
+  border-bottom: 1px solid var(--borda-suave);
+
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-lg);
+  font-weight: var(--peso-semi);
+  line-height: var(--lh-lg);
+}
+
+.item + .item {
+  border-top: 1px solid var(--borda-suave);
+}
+
+.opcao {
+  display: block;
+  width: 100%;
+  min-height: var(--alvo-min);
+  padding: var(--esp-16) 0;
+
+  background: none;
+
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  text-align: left;
+}
+
+.opcao:hover {
+  color: var(--texto);
+}
+
+/* Opção escolhida: cor de destaque + peso (não depende só da cor) */
+.opcao[aria-current="true"] {
+  color: var(--acento);
+  font-weight: var(--peso-semi);
+}
+
+/* o foco fica por dentro, para não ser cortado pela faixa de rolagem */
+.opcao:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Celular: opções lado a lado, com um traço embaixo da escolhida */
+@media (max-width: 767px) {
+  .lista {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .item + .item {
+    border-top: 0;
+  }
+
+  .opcao {
+    width: auto;
+    padding: var(--esp-12) var(--esp-16);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+  }
+
+  .opcao[aria-current="true"] {
+    border-bottom-color: var(--acento);
+  }
+}

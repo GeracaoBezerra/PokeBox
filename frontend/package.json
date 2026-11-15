@@ -11,11 +11,12 @@
   },
   "dependencies": {
     "axios": "^1.20.0",
-    "lucide-react": "^1.55.0",
+    "lucide-react": "^1.57.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-input-mask": "^2.0.4",
-    "react-router-dom": "^7.18.4"
+    "react-router-dom": "^7.18.4",
+    "swiper": "^14.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

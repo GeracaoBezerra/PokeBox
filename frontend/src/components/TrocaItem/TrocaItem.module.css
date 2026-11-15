@@ -1,0 +1,145 @@
+/* Card da troca: cartas à esquerda, informações à direita */
+.item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--esp-32);
+  padding: var(--esp-24);
+}
+
+/* As duas cartas com a seta no meio. A seta fica na altura do centro das
+   imagens (e não das legendas): a conta usa a altura da carta (63:88). */
+.cartas {
+  --carta-troca: 120px;
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-16);
+}
+
+.seta {
+  flex-shrink: 0;
+  margin-top: calc(var(--carta-troca) * 88 / 63 / 2 - 12px);
+  color: var(--acento);
+}
+
+/* Informações */
+
+.info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--esp-12);
+  align-self: stretch;
+  padding-left: var(--esp-32);
+
+  border-left: 1px solid var(--borda-suave);
+}
+
+.topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-8);
+}
+
+.codigo {
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Status: sempre com texto (não depende só da cor) */
+.status {
+  padding: 2px var(--esp-12);
+
+  border-radius: var(--raio-pilula);
+
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-semi);
+}
+
+.concluida {
+  background-color: var(--sucesso-fundo);
+  color: var(--sucesso);
+}
+
+.pendente {
+  background-color: var(--aviso-fundo);
+  color: var(--aviso);
+}
+
+.cancelada {
+  background-color: var(--erro-fundo);
+  color: var(--erro);
+}
+
+.lista {
+  margin: 0;
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--esp-16);
+  padding: var(--esp-4) 0;
+}
+
+.linha dt {
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.linha dd {
+  margin: 0;
+  color: var(--texto);
+  font-size: var(--fs-md);
+  line-height: var(--lh-md);
+  overflow-wrap: anywhere;
+}
+
+/* Celular e tablet em pé: cartas em cima, informações embaixo */
+@media (max-width: 767px) {
+  .item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--esp-16);
+    padding: var(--esp-16);
+  }
+
+  .cartas {
+    --carta-troca: min(104px, 26vw);
+
+    justify-content: space-between;
+  }
+
+  .info {
+    padding-top: var(--esp-16);
+    padding-left: 0;
+
+    border-top: 1px solid var(--borda-suave);
+    border-left: 0;
+  }
+
+  .linha {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--esp-16);
+  }
+
+  .linha dt {
+    flex-shrink: 0;
+  }
+
+  .linha dd {
+    text-align: right;
+  }
+}
+.lado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-8);
+}

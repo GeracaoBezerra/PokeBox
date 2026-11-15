@@ -1,1 +1,615 @@
 # PokeBox
+
+Plataforma para colecionadores de cartas **Pokémon TCG**: organizar a coleção, montar a wishlist, ver a coleção pública de outros colecionadores e **trocar cartas** entre si.
+
+O PokeBox é **só de trocas**. Não existe venda, preço de venda nem pagamento. O preço que aparece nas cartas é uma **referência de mercado** (vinda da TCGdex), útil para comparar o que se dá e o que se recebe numa troca.
+
+Projeto em equipe do curso **Geração Tech**.
+
+> Este README descreve o que está na branch `develop`.
+
+## Sumário
+
+- [Stack](#stack)
+- [Estrutura do repositório](#estrutura-do-repositório)
+- [Como rodar](#como-rodar)
+- [Usuários de teste (seed)](#usuários-de-teste-seed)
+- [Testes](#testes)
+- [Deploy](#deploy)
+- [Logs e saúde da API](#logs-e-saúde-da-api)
+- [Performance e segurança](#performance-e-segurança)
+- [API](#api)
+- [Regras de negócio](#regras-de-negócio)
+- [Status do projeto](#status-do-projeto)
+- [Como contribuir](#como-contribuir)
+
+## Stack
+
+| Parte | Tecnologia |
+|---|---|
+| Backend | Node.js (LTS), TypeScript 6, Express 5, Prisma 7 (`@prisma/adapter-pg`), zod 4, JWT, bcrypt |
+| Banco | PostgreSQL 17 |
+| Frontend | React 19, Vite, React Router, axios |
+| Dados das cartas | API pública [TCGdex](https://tcgdex.dev), com cache no banco |
+| Testes | Jest com ts-jest (backend), ESLint e build (frontend) |
+| Documentação da API | Swagger em `/docs` |
+| Infra | Docker Compose (modo dev e modo produção), GitHub Actions (CI e deploy), Render (API), Neon (banco), Vercel (front) |
+
+## Estrutura do repositório
+
+```
+.
+├── backend/
+│   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json)
+│   ├── docs/db.md         modelo de dados, constraints, migrations e seed
+│   ├── docs/guia-backend  guia do backend e das regras de negócio (.md e .pdf)
+│   ├── scripts/           snapshot-cards.ts (regera as cartas do seed), clean-dist.mjs e copy-generated.mjs (build)
+│   ├── Dockerfile         estágios dev e prod da API
+│   └── src/
+│       ├── server.ts      sobe a API: valida o env, monta o container e o app
+│       ├── container.ts   raiz de composição: cria a infraestrutura e chama um build<Modulo>Module por módulo
+│       ├── app.ts         createApp(container): middlewares, rotas dos módulos e tratador de erros
+│       ├── modules/       um arquivo por módulo (auth, cards, collection, wishlist, listings, trading) que dá new nas classes
+│       ├── routes/        URLs e middlewares de cada rota (createXRoutes(auth, controller))
+│       ├── controllers/   classes: leem a requisição, validam com zod e respondem
+│       ├── services/      classes com as regras de negócio, dependências pelo construtor
+│       ├── repositories/  interfaces (<Nome>Repository.ts) e implementações Prisma (Prisma<Nome>Repository.ts), TransactionRunner e Unit of Work
+│       ├── cards/         catálogo de cartas em camadas (decorators de cache) e busca esperta
+│       ├── security/      PasswordHasher (bcrypt) e TokenSigner (JWT)
+│       ├── errors/        AppError, erros de domínio e tradutores de erro
+│       ├── config/        env.ts (variáveis validadas com zod) e cors.ts (quem pode chamar a API pelo navegador)
+│       ├── schemas/       validação de entrada (zod) e tipos de entrada
+│       ├── middlewares/   autenticação, papéis, validação e tratador de erros
+│       ├── utils/         regras puras (testadas com jest)
+│       └── docs/          especificação do Swagger
+├── frontend/              app React (Vite), Dockerfile (dev, build, prod com nginx), nginx.conf e vercel.json
+├── .github/workflows/     ci.yml (testes) e deploy.yml (testes, depois Render e Vercel)
+├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento
+├── docker-compose.prod.yml o que muda no modo produção local
+└── .env.example           variáveis de ambiente
+```
+
+O backend segue as camadas **routes → controllers → services → repositories** e é escrito em **TypeScript**, com classes e injeção de dependência.
+
+### TypeScript, classes e injeção de dependência
+
+- **Build:** `npm run build` limpa `backend/dist/`, compila com `tsc` e copia o cliente gerado do Prisma. Roda também no Windows, sem `rm -rf`. `npm start` sobe `dist/server.js`. Em desenvolvimento, `npm run dev` usa `tsx watch`. `npm run typecheck` checa o código, os testes, o seed e os scripts. O TypeScript fica na versão 6, porque o ts-jest ainda não aceita a 7.
+- **Ambiente validado:** `src/config/env.ts` valida as variáveis com zod quando a API sobe. A API não sobe, e diz qual variável está errada, quando:
+  - falta `DATABASE_URL` ou ela não é uma URL;
+  - `JWT_SECRET` tem menos de 16 caracteres (quem tinha um segredo curto no `.env` precisa trocar);
+  - `JWT_EXPIRES_IN` não é um prazo como `1d`, `12h` ou `30m`;
+  - `NODE_ENV` não é `development`, `test` ou `production`;
+  - `USE_MOCK` não é `true` ou `false`.
+
+  O seed (`npm run db:seed`) só exige `DATABASE_URL`.
+- **Docker:** o container roda as migrations e depois troca o shell pelo `node` (`exec`). Assim o `docker stop` chega à API, que fecha o servidor e a conexão com o banco antes de sair.
+- **Raiz de composição:** `src/container.ts` cria o Prisma, o middleware de autenticação e o tratador de erros, e chama um `build<Modulo>Module(infra)` por módulo (`src/modules/`). Cada módulo dá `new` nos seus repositórios, services e controllers. Não usamos framework de DI (tsyringe, inversify): eles exigem decorators e `reflect-metadata` e escondem de onde vem cada dependência, sem ganho num backend deste tamanho.
+- **Interfaces pequenas:** cada service depende só do que usa (ex.: o `WishlistService` recebe um `CollectionQuantityReader`, não o repositório inteiro). Nos testes, as dependências são objetos falsos passados no construtor, sem banco.
+- **Padrões que dá para apontar no código:**
+
+| Padrão | Onde | Para quê |
+|---|---|---|
+| Decorator | `src/cards/catalog/`: `MemoryCachedCatalog` → `InFlightDedupCatalog` → `DbCachedCatalog` → `TcgdexClient` | cada camada acrescenta um comportamento (memória por 1 h, junta pedidos iguais, cache no banco por 24 h, HTTP) sem mexer nas outras |
+| Unit of Work | `PrismaUnitOfWorkFactory` em `src/repositories/` | ofertas e trocas recebem coleção, anúncios, ofertas, trocas e wishlist já dentro da mesma transação (RN-07) |
+| Repository | `repositories/<Nome>Repository.ts` + `Prisma<Nome>Repository.ts` | o service conhece a interface, não o Prisma |
+| Chain of Responsibility | `src/errors/translators/` | o tratador de erros tenta cada tradutor em ordem; erro novo = tradutor novo, sem mexer no tratador |
+| Strategy | `PasswordHasher` (bcrypt) e `TokenSigner` (JWT) em `src/security/` | o `AuthService` não depende da biblioteca |
+
+Com `USE_MOCK=true`, o módulo de cartas troca a pilha da TCGdex pelo `MockCatalog`.
+
+## Como rodar
+
+### Pré-requisitos
+
+- Docker e Docker Compose
+- Node.js LTS, se for rodar sem Docker ou rodar os testes
+
+### 1. Variáveis de ambiente
+
+Copie o exemplo e preencha. O arquivo `.env` fica **na raiz** e é lido pelo Docker, pelo backend e pelo Prisma.
+
+```bash
+cp .env.example .env
+```
+
+Exemplo para desenvolvimento local:
+
+```env
+POSTGRES_USER=pokebox
+POSTGRES_PASSWORD=pokebox
+POSTGRES_DB=pokebox
+POSTGRES_PORT=5432
+
+BACKEND_PORT=3000
+DATABASE_URL=postgresql://pokebox:pokebox@localhost:5432/pokebox?schema=public
+PRISMA_DATABASE_URL="postgresql://pokebox:pokebox@localhost:5432/pokebox?schema=public"
+
+FRONTEND_PORT=5173
+
+CORS_ORIGIN=http://localhost:5173,http://localhost:8080
+
+JWT_SECRET=troque-por-um-segredo-com-16-ou-mais-caracteres
+JWT_EXPIRES_IN=1d
+```
+
+Use `localhost` nas URLs: dentro do Docker o `docker-compose.yml` troca o host para `tcg-db` sozinho.
+
+`PORT` é a porta em que a API escuta. `BACKEND_PORT` é só a porta do seu computador que o Docker liga ao container da API. `CORS_ORIGIN` lista os sites que podem chamar a API pelo navegador; sem ele, valem `http://localhost:5173` e `http://localhost:8080`.
+
+### 2a. Tudo no Docker
+
+```bash
+docker compose up -d --build
+docker compose exec tcg-backend npm run db:seed
+```
+
+O backend aplica as migrations sozinho ao subir (`prisma migrate deploy`). O seed é manual.
+
+| Serviço | Endereço |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API | http://localhost:3000 |
+| Swagger | http://localhost:3000/docs |
+| Saúde da API | http://localhost:3000/health |
+| PostgreSQL | `localhost:5432` |
+
+O compose de desenvolvimento usa o estágio `dev` dos Dockerfiles: o front roda o servidor do Vite e o backend tem as ferramentas de desenvolvimento, por isso o seed funciona com `docker compose exec`. A API tem healthcheck no `/health`, e o front só sobe depois que ela responde.
+
+### 2b. Banco no Docker, backend e frontend na máquina
+
+Bom para desenvolver, porque o backend reinicia sozinho a cada alteração.
+
+```bash
+docker compose up -d tcg-db
+
+cd backend
+npm install
+npx prisma migrate dev
+npx prisma generate
+npm run db:seed
+npm run dev
+```
+
+Em outro terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+O frontend chama a API em `http://localhost:3000`. Para outro endereço, defina `VITE_API_URL`.
+
+### 2c. Modo produção no seu computador
+
+Sobe as mesmas imagens que vão para a nuvem: API sem dependências de desenvolvimento, rodando com o usuário `node`, e front compilado servido pelo nginx.
+
+```bash
+make prod-up
+```
+
+| Serviço | Endereço |
+|---|---|
+| Frontend (nginx) | http://localhost:8080 |
+| API | http://localhost:3000 |
+
+Por baixo, o `make prod-up` roda `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait`. O segundo arquivo só troca o que muda em produção: o estágio dos Dockerfiles (`prod`), a porta do front (8080) e o `VITE_API_URL`, que o Vite grava no JavaScript na hora do build. Os containers têm o mesmo nome dos de desenvolvimento, então um modo substitui o outro. O banco é o mesmo, e os dados continuam. Para voltar: `make prod-down` e `docker compose up -d --build`.
+
+O seed não roda dentro da imagem de produção, porque ela não tem o `tsx`. Se o banco estiver vazio, rode da sua máquina: `cd backend && npm run db:seed`.
+
+### Depois de puxar a develop
+
+Se chegou dependência nova no `backend/package.json` (a migração para TypeScript trouxe várias), rode `cd backend && npm install` antes do `npm run dev`. Scripts locais que importam o código do backend, como um `playground.js`, rodam com `npx tsx playground.js`.
+
+Se chegou migration nova (pasta `backend/prisma/migrations`), atualize o banco e o cliente do Prisma:
+
+```bash
+cd backend
+npx prisma migrate dev
+npx prisma generate
+npm run db:seed
+```
+
+No Docker: `docker compose up -d --build tcg-backend` e rode o seed de novo.
+
+### Começar o banco do zero
+
+Apaga **todos** os dados locais:
+
+```bash
+docker compose down -v
+docker compose up -d --build
+docker compose exec tcg-backend npm run db:seed
+```
+
+### Ver o banco
+
+- Prisma Studio: `cd backend && npx prisma studio` (abre no navegador).
+- Ou qualquer cliente PostgreSQL (DBeaver, extensão do VS Code etc.) com os dados do `.env`.
+
+## Usuários de teste (seed)
+
+As senhas não ficam no repositório: vêm do `.env`. `SEED_ADMIN_PASSWORD` é a do `admin`; `SEED_DEMO_PASSWORD` é a do `ash` e da `misty`. As duas são obrigatórias, têm de 8 a 72 caracteres e precisam ser diferentes; sem elas o seed para e diz o que falta. Peça os valores ao time ou escolha os seus no seu `.env`. Rodar o seed de novo aplica as senhas atuais do `.env` aos três usuários.
+
+| Usuário | E-mail | Papel | O que tem |
+|---|---|---|---|
+| `admin` | `admin@pokebox.dev` | ADMIN | nada na coleção |
+| `ash` | `ash@pokebox.dev` | USER | Charizard holo 1ª edição (anunciado), Pikachus, Ultra Ball (4), Furret (privado) |
+| `misty` | `misty@pokebox.dev` | USER | Blastoise holo (anunciado), Mew holo, Fire Energy (10), Pikachu |
+
+Também há 4 itens de wishlist e uma oferta em aberto: a misty oferece o Mew holo dela pelo Charizard do ash. Rodar o seed de novo volta essa oferta para `PROPOSED`, a não ser que ela já tenha virado troca (aí o seed avisa; para recomeçar, `npx prisma migrate reset`, que apaga o banco local). Detalhes em [`backend/docs/db.md`](backend/docs/db.md#seed).
+
+O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, porque as cartas ficam em `backend/prisma/seed-data/cards.json`.
+
+### Testar rápido no Swagger
+
+1. Abra http://localhost:3000/docs.
+2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "<SEED_DEMO_PASSWORD do seu .env>" }`. Clique em **Try it out**, troque a senha do exemplo pela do seu `.env` e clique em **Execute**. Os exemplos das outras rotas também seguem o seed (o Charizard do ash, a oferta da misty); o do cadastro usa `brock`, que não está no seed, para não dar 409.
+3. Copie o `token` da resposta, clique em **Authorize** e cole. O token fica salvo até fechar a aba (um F5 não desloga).
+4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me`, `GET /offers/me`, `GET /trades/me` etc. Os ids que as outras rotas pedem saem dessas listas (a descrição de cada campo diz onde pegar).
+5. Para conferir o papel ADMIN, `GET /auth/admin-check`: com `admin@pokebox.dev` dá 200; com o ash, 403.
+
+O `/docs` chama a API no mesmo endereço em que foi aberto, então funciona em qualquer porta. Rotas sem cadeado não precisam de login. No detalhe da carta com `lang=pt`, use uma carta recente (ex.: `sv03.5-025`): a TCGdex não tem o Base Set em português e responde 404.
+
+## Testes
+
+```bash
+cd backend
+npm test
+```
+
+São testes de unidade (jest com ts-jest) das regras puras, dos schemas, dos services e dos controllers, com as dependências falsas passadas no construtor. Não precisam de banco. `npm run typecheck` checa os tipos dos testes também.
+
+Há também um teste **com banco** que prova a RN-07 de verdade: força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais. Ele fica desligado por padrão (a CI não tem PostgreSQL). Para rodar, com o banco no ar e as migrations aplicadas:
+
+```bash
+cd backend
+RUN_DB_TESTS=1 npm test
+```
+
+Ele cria dois usuários `rb_*` temporários e apaga tudo no fim.
+
+A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
+
+| Job | O que roda |
+|---|---|
+| `backend` | `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build`, `npm test` |
+| `frontend` | `npm ci`, `npm run lint`, `npm run build` |
+
+Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow de deploy, antes de publicar (veja [Deploy](#deploy)).
+
+## Deploy
+
+| Peça | Onde | Como chega lá |
+|---|---|---|
+| Banco PostgreSQL | Neon | as migrations rodam sozinhas quando a API sobe; o seed roda uma vez, à mão |
+| API | Render, com o Dockerfile de `backend/` (estágio `prod`) | o pipeline chama o deploy hook do Render |
+| Front | Vercel, pasta `frontend/` | o pipeline publica com a CLI da Vercel |
+
+O app ainda não está no ar.
+
+O caminho de uma mudança até a produção:
+
+```
+PR para a develop  ->  CI (testes)  ->  merge
+release develop -> main  ->  Deploy: CI de novo  ->  API no Render  ->  front na Vercel
+```
+
+O workflow `.github/workflows/deploy.yml` roda a cada push na `main` e também pode ser disparado à mão na aba Actions. Se algum teste falhar, nada é publicado. Ele só publica o front depois que o `/health` da API responde com o commit novo (`data.version`), para o front nunca chegar antes da API de que precisa.
+
+Configuração de produção no código:
+
+- `backend/Dockerfile` tem dois estágios. O `dev` instala tudo e compila; o `prod` copia só o resultado e as dependências de produção, roda como `node` e tem `HEALTHCHECK`. O Render usa o último, o `prod`.
+- `frontend/Dockerfile` tem o estágio `dev` (Vite), o `build` (gera `dist/`) e o `prod` (nginx com `frontend/nginx.conf`). A Vercel não usa Docker; o nginx serve para o modo produção local.
+- `frontend/vercel.json` manda qualquer caminho para o `index.html`, para o F5 em `/colecao` não dar 404, e desliga o deploy automático da Vercel na `main`, que passa a ser feito pelo pipeline.
+- A API aceita chamadas do navegador só dos sites em `CORS_ORIGIN` ou dos que batem com `CORS_ORIGIN_REGEX` (os previews da Vercel).
+
+## Logs e saúde da API
+
+A API registra uma linha por requisição com o [pino](https://getpino.io): método, rota, status, tempo de resposta (`responseTime`, em ms) e um id da requisição (`reqId`). Um erro de servidor (5xx) sai nessa mesma linha, com o stack. Senha, token e o header `Authorization` aparecem como `[oculto]`.
+
+| Onde | Formato | Como ver |
+|---|---|---|
+| `npm run dev` ou `docker compose up` | colorido, uma linha por evento | o próprio terminal, ou `docker compose logs -f tcg-backend` |
+| Produção (Render) e `make prod-up` | JSON, uma linha por evento | aba *Logs* do serviço no Render, ou `make prod-logs` |
+
+`LOG_LEVEL` muda o quanto aparece (`debug` mostra mais, `warn` só avisos e erros). Nos testes o padrão é `silent`.
+
+Toda resposta traz o header `x-request-id`, e o front consegue lê-lo (está liberado no CORS). Se quem chama já manda esse header, a API usa o mesmo id; senão, gera um.
+
+**Como investigar um erro em produção:**
+
+1. A pessoa conta o que fez e, se der, o `x-request-id` da resposta (na aba Network do navegador).
+2. No Render, aba *Logs*, busque o id (`3f2a...`) e veja tudo o que aconteceu naquela requisição, inclusive o stack do erro.
+3. Sem o id, busque `"statusCode":500` para ver os erros de servidor, ou ordene pelo `responseTime` para achar as rotas lentas.
+
+Duas rotas dizem se a API está bem:
+
+| Rota | Confere | Quem usa |
+|---|---|---|
+| `GET /health` | o processo está de pé (não toca no banco); devolve o commit em `version` | Health Check do Render e o pipeline de deploy |
+| `GET /health/ready` | o banco responde (`SELECT 1`); 503 se não | para conferir à mão ou num monitor externo |
+
+As duas ficam fora do log automático, porque o Render e o pipeline chamam o tempo todo. O preflight do CORS (`OPTIONS`, que o navegador manda antes de cada `POST`) também fica fora.
+
+## Performance e segurança
+
+### O que já existia
+
+- Cache das cartas da TCGdex em camadas (padrão Decorator, em `backend/src/cards/catalog/`): memória (1 h, até 500 cartas), depois junção de pedidos iguais em andamento, depois a tabela `CardCache` no banco (24 h, usada também quando a TCGdex cai), e só então a chamada HTTP.
+- Cache em memória da busca de cartas (10 min) e da lista de sets (1 dia), e timeout de 8 s nas chamadas à TCGdex.
+- `Cache-Control` nas cartas: a lista é `public, max-age=300`; o detalhe é `private`, porque traz os anúncios da carta e, com login, os dados da pessoa.
+- Paginação, busca e filtros no `GET /listings`.
+
+### O que a #112 acrescentou
+
+| O quê | Por quê |
+|---|---|
+| Compressão gzip (`compression`) | listas de cartas em JSON encolhem até 87% (tabela abaixo). Faz diferença no celular e na rede entre o Render e o navegador |
+| Cabeçalhos de segurança (`helmet`) | `X-Content-Type-Options`, `Strict-Transport-Security`, política de conteúdo e outros; tira o `X-Powered-By: Express`. O Swagger em `/docs` continua funcionando |
+| Limite de tentativas no login e no cadastro (`express-rate-limit`) | 20 tentativas **sem sucesso** para o mesmo e-mail a partir do mesmo IP, a cada 15 minutos, contadas à parte em cada rota. Depois disso, 429 com `Retry-After` |
+| `trust proxy` em produção | no Render a API fica atrás de um proxy; sem isso, todo mundo pareceria ter o mesmo IP |
+| `express.json({ limit: '100kb' })` | o limite já existia (padrão do Express), agora está escrito; acima dele, 413 |
+| Índice `(status, createdAt DESC, id)` em `Listing` | o `GET /listings` lê os anúncios ativos já na ordem e para no fim da página |
+
+Sobre o limite de tentativas:
+- Conta só o que falha, e por IP **e** e-mail. Na apresentação, a turma inteira entra do mesmo wi-fi, ou seja, do mesmo IP. Se o limite fosse só por IP, 20 senhas erradas de pessoas diferentes travariam o login de todo mundo. Assim, quem erra a própria senha bloqueia só a própria conta, e quem tenta adivinhar a senha de alguém para em 20 tentativas.
+- Depois do bloqueio, nem a senha certa entra naquele e-mail, a partir daquele IP, até a janela acabar: é o que impede a força bruta.
+- Login e cadastro têm contadores separados: errar o cadastro não bloqueia o login.
+- `AUTH_RATE_LIMIT` muda o número (padrão 20; `0` desliga).
+- Risco que fica: a mesma senha testada em muitos e-mails diferentes não é barrada, porque cada e-mail tem o próprio contador. É o preço de não travar a sala inteira. O próximo passo seria um segundo limite só por IP, bem mais alto (por exemplo, 200 falhas em 15 minutos).
+- O `trust proxy` confia em exatamente um proxy na frente da API, que é o caso do Render. Com outro proxy no meio (uma Cloudflare, por exemplo), a API passaria a enxergar o IP do proxy. Isso não abre brecha, porque a chave inclui o e-mail, mas precisa ser conferido com o app no ar (#60).
+
+### Medição antes e depois
+
+Máquina: Apple M4 Pro (12 núcleos), Node 24, Postgres 17 no Docker. API em modo produção (`NODE_ENV=production`, `LOG_LEVEL=warn`), aquecida com uma chamada antes de cada rota. Cada linha: `npx autocannon -c 20 -d 15 <url>` (20 conexões ao mesmo tempo, por 15 segundos). Latência média, p99 (99% das requisições ficam abaixo dele) e requisições por segundo.
+
+**Com o banco do seed (10 cartas, poucos anúncios):**
+
+| Rota | Antes | Depois |
+|---|---|---|
+| `GET /cards?name=pikachu` | 0,06 ms · p99 1 ms · 32.397 req/s | 0,09 ms · p99 1 ms · 27.515 req/s |
+| `GET /cards/base1-4` | 3,15 ms · p99 5 ms · 5.621 req/s | 3,18 ms · p99 5 ms · 5.510 req/s |
+| `GET /listings` | 3,23 ms · p99 6 ms · 5.411 req/s | 3,29 ms · p99 5 ms · 5.252 req/s |
+| `GET /collection` (com login) | 4,28 ms · p99 7 ms · 4.235 req/s | 4,47 ms · p99 7 ms · 4.051 req/s |
+| `GET /cards?name=pikachu&limit=100` pedindo gzip | 1,06 ms · p99 2 ms · 15.794 req/s | 1,22 ms · p99 3 ms · 11.120 req/s |
+
+**Tamanho da resposta** (`curl -s -o /dev/null -w "%{size_download}" -H "Accept-Encoding: gzip" <url>`):
+
+| Rota | Antes | Depois |
+|---|---|---|
+| `GET /cards?name=pikachu&limit=100` | 22.617 bytes | 2.828 bytes (−87%) |
+| `GET /collection` do `ash` | 5.687 bytes | 1.254 bytes (−78%) |
+| `GET /listings` | 2.075 bytes | 844 bytes (−59%) |
+
+**Com 100 mil anúncios (20 mil ativos)**, gerados por `backend/scripts/bench-listings.sql` num banco de teste:
+
+| Medida | Sem o índice novo | Com o índice novo |
+|---|---|---|
+| `GET /listings` (autocannon) | 23,79 ms · p99 42 ms · 823 req/s | 9,04 ms · p99 15 ms · 2.096 req/s |
+| Consulta da primeira página (`EXPLAIN ANALYZE`) | 6,3 ms: lê os 20 mil ativos, ordena todos e pega 21 | 0,3 ms: lê 21 linhas do índice, já na ordem |
+
+O log de SQL do Postgres estava ligado nas duas rodadas dessa última tabela, o que aumenta um pouco os números absolutos; a comparação vale porque as duas tiveram a mesma condição.
+
+**Como ler esses números:**
+- O índice é o ganho de verdade: 2,5 vezes mais requisições por segundo no `GET /listings` com volume de app em uso. A tabela do seed foi medida sem ele: com tão poucas linhas, o Postgres nem usaria o índice.
+- A compressão encolhe muito as respostas, mas custa CPU. Na mesma máquina, sem rede no meio, isso aparece como menos requisições por segundo na lista grande (de 15.794 para 11.120). Pela internet o gargalo é a rede, e mandar 2,8 KB em vez de 22,6 KB compensa. Na escala do projeto, as duas folgas sobram.
+- O helmet e a compressão custam de 2% a 15% de vazão nas rotas rápidas, diferença de microssegundos por requisição. É o preço dos cabeçalhos de segurança, e vale.
+
+### Decisões que ficaram como estão
+
+- **O `requireAuth` consulta o banco a cada requisição.** Medido: o `GET /auth/admin-check` (JWT mais a busca do usuário pela chave) responde em 1,36 ms de média, contra 0,02 ms do `/health`. Confiar só no JWT economizaria essa consulta, mas uma conta desativada ou suspensa continuaria entrando até o token vencer (1 dia). Mantido: 1,3 ms é pouco para perder o bloqueio imediato.
+- **O cache em memória some quando o Render dorme ou reinicia.** O cache no banco (`CardCache`) segura, e a TCGdex não é chamada de novo à toa. Com mais de uma instância, cada uma teria a própria memória; o próximo passo seria um Redis.
+- **Loops com `await` dentro das transações de troca e oferta** (`TradeService`, `OfferService`, `lockInOrder` no `PrismaCollectionRepository`). São em sequência de propósito: as travas em ordem evitam deadlock (RN-08), e o tamanho é o número de cartas de uma troca. Não paralelizar.
+- **Páginas muito fundas no `GET /listings`** ainda custam: com `OFFSET 1000`, a consulta leva 5,5 ms, porque o banco percorre as 1.000 linhas antes. Paginação por cursor resolveria; não vale agora.
+- **Coleção, wishlist, ofertas e trocas sem paginação:** #77.
+
+### Como repetir
+
+```bash
+cd backend && npm run build
+NODE_ENV=production LOG_LEVEL=warn npm start
+npx autocannon -c 20 -d 15 "http://localhost:3000/listings"
+```
+
+Para o teste com volume, crie antes um banco **separado**. O script cria 5 mil usuários e 100 mil anúncios, e não há jeito fácil de desfazer num banco que você usa no dia a dia:
+
+```bash
+docker compose exec tcg-db createdb -U <user> pokebox_bench
+cd backend
+export DATABASE_URL="postgresql://<user>:<senha>@localhost:5432/pokebox_bench" PRISMA_DATABASE_URL="$DATABASE_URL"
+npx prisma migrate deploy && npx prisma db seed
+docker compose exec -T tcg-db psql -U <user> -d pokebox_bench < scripts/bench-listings.sql
+NODE_ENV=production LOG_LEVEL=warn npm start
+```
+
+Para apagar depois: `docker compose exec tcg-db dropdb -U <user> pokebox_bench`.
+
+## API
+
+Para entender o fluxo do app (coleção, wishlist, anúncio, oferta e troca) antes dos detalhes, leia o [guia do backend](backend/docs/guia-backend.md) (também em [PDF](backend/docs/guia-backend.pdf)).
+
+Todas as respostas seguem o mesmo formato:
+
+```json
+{ "success": true, "data": { } }
+{ "success": false, "error": "mensagem", "details": [{ "field": "quantity", "message": "..." }] }
+```
+
+`details` só aparece em erro de validação (400). Rotas com 🔒 exigem `Authorization: Bearer <token>`; com 🔓 o token é opcional (muda o que a pessoa enxerga).
+
+### Autenticação e conta
+
+| Rota | | O que faz |
+|---|---|---|
+| `POST /auth/register` | | cria conta (`username`, `name`, `email`, `password`) e devolve o token |
+| `POST /auth/login` | | login com e-mail e senha, devolve o token |
+| `GET /auth/me` | 🔒 | dados do usuário logado |
+| `GET /auth/admin-check` | 🔒 ADMIN | testa o acesso de admin |
+| `PATCH /user/me` | 🔒 | edita nome, telefone e endereço |
+| `DELETE /user/me` | 🔒 | desativa a conta (soft delete) |
+
+### Cartas (catálogo)
+
+| Rota | | O que faz |
+|---|---|---|
+| `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação. Entende nome de set e ignora palavras que não acham nada: `charizard base` traz os Charizard com o do Base Set primeiro, e `charizard base x pipi popo` ainda traz os Charizard. O resultado vem ordenado por relevância, cada carta traz `set: { id, name }` e `number`, e a resposta traz `search: { name, sets, ignored }` dizendo como a busca foi entendida. Erro de digitação (`charzard`) ainda não é tolerado |
+| `GET /cards/:id` | 🔓 | detalhe da carta (ataques, variantes, preço de referência) e os anúncios ativos dela; com login, traz `user` (quantas você tem, se está na sua wishlist, se você tem anúncio ativo dela) |
+
+### Coleção
+
+| Rota | | O que faz |
+|---|---|---|
+| `GET /collection` | 🔒 | minha coleção, com `available` (quantidade menos reservada) |
+| `POST /collection` | 🔒 | adiciona carta: `cardId`, `quantity`, `finish`, `firstEdition`, `condition?`, `isPublic?`. Se a carta estava na sua wishlist, ela sai (RN-11) e a resposta traz `removedFromWishlist: true` |
+| `PATCH /collection/:id` | 🔒 | muda `quantity`, `condition` ou `isPublic`. A condição não muda enquanto o item está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**) |
+| `DELETE /collection/:id` | 🔒 | remove o item (não remove se tiver reserva ou se já foi anunciado; nesse caso, zere a quantidade) |
+| `GET /users/:username/collection` | | coleção pública de um colecionador |
+
+### Wishlist
+
+| Rota | | O que faz |
+|---|---|---|
+| `GET /wishlist` | 🔒 | minha wishlist, com `opportunities` em cada carta |
+| `POST /wishlist` | 🔒 | adiciona carta (`cardId`). Carta que você já tem na coleção → **409** (RN-12) |
+| `DELETE /wishlist/:id` | 🔒 | remove |
+
+### Anúncios de troca
+
+| Rota | | O que faz |
+|---|---|---|
+| `GET /listings?q=&cardId=&username=&condition=&finish=&firstEdition=&setId=&type=&rarity=&sort=&page=&limit=` | | anúncios ativos, com `hasNextPage`. `q` busca por palavras no nome da carta ou do set (`charizard base` acha o Charizard do Base Set). Os filtros se somam e não diferenciam maiúscula (`type=fire`, `rarity=rare`, `condition=near_mint`); `sort` é `recent` (padrão), `oldest` ou `name`. Valor inválido → **400** com `details` |
+| `GET /listings/me` | 🔒 | meus anúncios, em qualquer status |
+| `GET /listings/:id` | 🔓 | detalhe; anúncio pausado, fechado ou bloqueado só aparece para o dono e para o ADMIN |
+| `POST /listings` | 🔒 | anuncia um item da minha coleção: `collectionItemId`, `quantity`, `description?` |
+| `PATCH /listings/:id` | 🔒 | muda `quantity`, `description` ou `status` (`ACTIVE`, `PAUSED`, `CLOSED`); ADMIN só bloqueia (`BLOCKED`) ou desbloqueia. Fechar ou bloquear cancela as ofertas abertas e as aceitas que ainda não viraram troca; diminuir cancela as aceitas que pedem mais do que a nova quantidade |
+
+### Ofertas de troca
+
+| Rota | | O que faz |
+|---|---|---|
+| `POST /listings/:id/offers` | 🔒 | faz uma oferta num anúncio: `quantity` (quantas cartas do anúncio quero), `message?` e `items` (de 1 a 20 cartas da minha coleção, cada uma com `collectionItemId` e `quantity`) |
+| `GET /offers/me?status=` | 🔒 | minhas ofertas: `sent` (que fiz) e `received` (nos meus anúncios), mais novas primeiro |
+| `GET /offers/:id` | 🔒 | detalhe; só quem fez a oferta e o dono do anúncio veem (outros → 404) |
+| `PATCH /offers/:id/status` | 🔒 | `{ status }`: o dono do anúncio aceita (`ACCEPTED`) ou recusa (`REJECTED`); quem fez a oferta cancela (`CANCELED`). Oferta aceita que ainda não virou troca também pode ser recusada ou cancelada |
+
+### Trocas
+
+A troca é um aperto de mão em dois passos: o dono do anúncio aceita a oferta → **quem fez a oferta** cria a troca (as cartas dos dois lados ficam reservadas) → o **dono do anúncio** conclui e as cartas mudam de dono.
+
+| Rota | | O que faz |
+|---|---|---|
+| `POST /trades` | 🔒 | `{ offerId }`: quem fez a oferta cria a troca a partir da oferta aceita. Reserva as cartas e ajusta os anúncios |
+| `GET /trades/me?status=` | 🔒 | minhas trocas: `sent` (fiz a oferta) e `received` (meus anúncios), mais novas primeiro |
+| `GET /trades/:id` | 🔒 | detalhe; só as duas partes veem (outros, inclusive ADMIN → 403) |
+| `POST /trades/:id/accept` | 🔒 | o dono do anúncio conclui: as cartas trocam de dono, tudo ou nada |
+| `POST /trades/:id/reject` | 🔒 | o dono do anúncio recusa; a reserva é liberada |
+| `POST /trades/:id/cancel` | 🔒 | quem fez a oferta cancela; a reserva é liberada |
+
+A documentação completa, com exemplos de corpo e resposta, está no **Swagger (`/docs`)**.
+
+### Códigos de status
+
+| Código | Quando |
+|---|---|
+| 400 | dados inválidos (campo faltando, formato errado, campo a mais) ou JSON inválido no corpo (`"JSON inválido"`) |
+| 401 | sem token, token inválido ou expirado, senha errada |
+| 403 | logado, mas sem permissão (item de outra pessoa, rota de admin, conta suspensa) |
+| 404 | não encontrado (inclui perfil de conta desativada) |
+| 409 | conflito (e-mail/username já usados, carta repetida na wishlist, apagar item com reserva, que já foi anunciado ou que está numa oferta, segunda oferta aberta no mesmo anúncio, oferta que já virou troca, troca já finalizada) |
+| 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem, oferta no próprio anúncio, mudar oferta já finalizada, troca de oferta não aceita, cartas da troca indisponíveis) |
+| 413 | corpo da requisição acima do limite (100 KB) |
+| 429 | muitas tentativas de login ou cadastro sem sucesso para o mesmo e-mail (20 em 15 minutos); o header `Retry-After` diz quantos segundos esperar |
+| 500 | erro inesperado (o stack vai para o log com o `x-request-id`) |
+| 502 | serviço de cartas (TCGdex) fora do ar, sem conexão ou respondendo errado, e sem cópia da carta guardada: "tente novamente em instantes" |
+| 503 | `GET /health/ready` com o banco fora do ar |
+| 504 | serviço de cartas (TCGdex) demorou mais de 8 s para responder, e sem cópia da carta guardada |
+
+## Regras de negócio
+
+### Implementadas na develop
+
+| Regra | Como funciona |
+|---|---|
+| **RN-01** Catálogo × coleção | Ao adicionar uma carta à coleção ou à wishlist, os dados dela são buscados na TCGdex e gravados **uma vez** na tabela `Card`. A coleção só aponta para essa carta, nunca duplica. |
+| **RN-02** Dono do item | Só o dono vê, edita ou apaga os próprios itens. Mexer no item de outra pessoa → **403**, inclusive para ADMIN. Item que não existe → **404**. |
+| **RN-03** Quantidade | Quantidade nunca negativa (validação + CHECK no banco). Mesma carta com mesma condição e variante **soma** na quantidade em vez de criar outro item. Não pode baixar a quantidade abaixo do que está reservado em negociação (**422**) nem apagar item com reserva (**409**). |
+| **RN-04** Wishlist | Cada carta entra uma vez na wishlist (repetida → **409**). Cada item mostra `opportunities`: quantos **outros** colecionadores têm essa carta pública e disponível (contas desativadas não contam). A wishlist não tem variante: quem deseja aceita qualquer versão. |
+| **RN-05** Anúncios (adaptada: só trocas) | Só anuncia item da **própria** coleção (**403**). A soma das quantidades dos anúncios abertos (ativos e pausados) de um item não passa do disponível (quantidade menos reservada); senão **422**. Vale ao criar, ao aumentar a quantidade e ao desbloquear. A coleção também não deixa baixar a quantidade abaixo do que está anunciado (**422**). Anunciar **não reserva**: a reserva fica para a troca (RN-07/08). Pedidos ao mesmo tempo no mesmo item são tratados um de cada vez (trava no banco). |
+| **RN-06** Ofertas | Só faz oferta em anúncio **ativo** de outra pessoa (próprio anúncio → **422**; pausado, fechado ou bloqueado → **404**). Pede no máximo a quantidade do anúncio e oferece só cartas da **própria** coleção (**403**) que caibam no disponível (**422**). Uma oferta aberta por pessoa em cada anúncio (**409**). Só o **dono do anúncio** aceita ou recusa; só **quem fez** cancela (**403**, inclusive para ADMIN). Oferta finalizada (aceita, recusada ou cancelada) **não muda mais** nem volta para `PROPOSED` (**422**), com uma exceção: oferta **aceita que ainda não virou troca** pode ser recusada pelo dono ou cancelada por quem fez, para não ficar presa; se já virou troca, **409** e quem age é a troca. Recusar ou cancelar solta as cartas oferecidas. Fechar ou bloquear o anúncio cancela as ofertas abertas dele e as **aceitas que ainda não viraram troca** (desbloquear não traz de volta); diminuir o anúncio cancela as aceitas que pedem mais do que a nova quantidade (cada uma comparada sozinha); pausar não mexe em nenhuma. Oferta aceita que já virou troca não muda: quem manda é a troca. A oferta **não reserva** cartas, mas o aceite confere de novo: se o dono baixou o anúncio abaixo do que a oferta pede, ou se quem ofertou não tem mais as cartas, o aceite é recusado (**422**). Carta que está numa oferta aberta ou aceita não pode ser apagada da coleção (**409**). |
+| **RN-07** Troca atômica | O aceite da troca roda numa **transação só**: trava as cartas, confere de novo que cada uma ainda é de quem entrega e está reservada, tira de quem entrega e soma em quem recebe (no item igual em carta, condição e variante; se não houver, cria um item público). Se qualquer passo falhar, **nada muda**. Quem entrega fica com o item, mesmo que chegue a 0. Só o dono do anúncio aceita ou recusa; só quem fez a oferta cria e cancela a troca (**403**). Troca finalizada não muda mais (**409**). Uma troca por oferta (**409**). |
+| **RN-08** Reserva | Quando a troca nasce, as cartas dos dois lados ficam **reservadas**: nenhuma outra negociação consegue usá-las (anunciar, ofertar, aceitar outra oferta → **422**), nem dá para baixar a quantidade abaixo do reservado (**422**) ou apagar o item (**409**). No mesmo momento, o anúncio diminui pela quantidade da oferta (em 0, fecha e cancela as ofertas abertas dele) e os anúncios de quem ofertou que passariam do disponível são reduzidos. Outras ofertas já aceitas desse anúncio que não cabem mais são canceladas e soltam as cartas. Recusar ou cancelar a troca libera a reserva (os anúncios não voltam). Pedidos ao mesmo tempo na mesma troca: um passa, o outro recebe **409**. A **condição** de um item não muda enquanto ele está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**): assim o que foi anunciado e oferecido é o que chega. |
+| **RN-10** Privacidade | Item com `isPublic: false` não aparece no perfil público. O perfil público nunca mostra e-mail, reserva nem dados internos. Conta desativada ou suspensa → **404**. |
+| **RN-11** Coleção limpa a wishlist | Carta que entra na coleção sai da wishlist da pessoa, na mesma transação: vale ao adicionar (`POST /collection`), ao receber numa troca concluída (`POST /trades/:id/accept`) e quando um item zerado volta a ter quantidade (`PATCH /collection/:id`). Como a wishlist não tem variante, qualquer condição ou acabamento conta. |
+| **RN-12** Wishlist só do que falta | Carta que você já tem na coleção (quantidade maior que 0, em qualquer variante, pública ou privada) não entra na wishlist (**409**). Item zerado não conta. Junto com a RN-11, a wishlist guarda só o que a pessoa ainda não tem. |
+
+Outras regras que já valem:
+
+- **Variante da carta:** cada item tem `finish` (`NORMAL`, `HOLO`, `REVERSE`) e `firstEdition`. Só aceita combinações que a carta realmente tem na TCGdex (senão **422**).
+- **Condição:** `MINT`, `NEAR_MINT`, `EXCELLENT`, `GOOD`, `LIGHT_PLAYED`, `PLAYED` ou `POOR`.
+- **Conta:** login de conta suspensa ou inativa → **403**. Excluir a conta só desativa (soft delete); o histórico fica.
+- **Cache das cartas:** o detalhe de uma carta é buscado na TCGdex só na primeira vez e guardado por 24h no banco (`CardCache`) e por 1h em memória. Se a TCGdex cair, a API usa a última cópia guardada; sem cópia guardada (ou na busca `GET /cards`, que guarda o resultado em memória por 10 min e a lista de sets por 1 dia; trocar de página não chama a TCGdex de novo), responde **502** (fora do ar) ou **504** (demorou mais de 8 s). O cache é gravado com o id oficial da carta, mesmo que a URL use outra caixa (`/cards/BASE1-4` grava e atualiza o preço de `base1-4`).
+- **Preço de referência:** cada carta guarda o preço de mercado da TCGdex (TCGplayer em USD ou Cardmarket em EUR), atualizado quando a carta é consultada de novo. É **só informativo**.
+- **Status do anúncio:** o dono alterna entre ativo e pausado e pode fechar; anúncio fechado não volta. Só o ADMIN bloqueia, e só ele desbloqueia (volta como pausado). Um item que já foi anunciado não pode mais ser apagado da coleção, porque o anúncio fica no histórico; para tirá-lo do perfil, zere a quantidade.
+- **Integridade no banco:** chaves estrangeiras, uniques e CHECKs em todas as tabelas. Lista completa em [`backend/docs/db.md`](backend/docs/db.md).
+
+### Adaptação: só trocas
+
+O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox é só de trocas** (sem venda nem pagamento). Por isso:
+
+- o anúncio não tem tipo nem preço;
+- a oferta diz **quais cartas da coleção** o proponente dá em troca;
+- a RN-05 vira "só anuncia o que tem disponível para troca".
+
+### Limitações conhecidas
+
+- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte pode levar 50 segundos ou mais. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
+- Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time. O login e o cadastro param depois de 20 tentativas sem sucesso para o mesmo e-mail em 15 minutos.
+
+- Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
+- Uma troca recusada ou cancelada não volta os anúncios que foram reduzidos quando ela nasceu, e a oferta não gera outra troca: é preciso fazer uma oferta nova.
+
+## MVP do front (PR rascunho, não mergear)
+
+A branch `feat/mvp-front` liga as telas do front a **todas** as rotas da API, sem firula, para demonstrar o app ponta a ponta e servir de referência para as telas do board (#22 a #27). Ela inclui a tela de perfil da #50 ligada à API.
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Abra `http://localhost:5173`, entre com um usuário do seed e use o menu: Cards (catálogo), Marketplace, Coleção, Wishlist, Anúncios, Propostas, Trocas e Meu perfil. Para mostrar uma troca, use duas janelas (uma normal e uma anônima), uma com o `ash` e outra com a `misty`. Os erros aparecem com a mensagem da API e o código HTTP, por exemplo "Você já tem uma oferta aberta neste anúncio (409)".
+
+As chamadas ficam em `frontend/src/api/` (axios com interceptores em `http.js`, uma função por rota).
+
+## Status do projeto
+
+| Parte | Situação |
+|---|---|
+| Autenticação e autorização | ✅ backend e frontend (login, cadastro, logout) |
+| Coleção, perfil público, wishlist | ✅ backend · frontend a fazer |
+| Anúncios | ✅ backend · frontend a fazer |
+| Ofertas | ✅ backend · frontend a fazer |
+| Trocas | ✅ backend · frontend a fazer |
+| Frontend | 🟡 home, login e cadastro prontos; demais telas a fazer |
+
+Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).
+
+## Como contribuir
+
+1. Pegue uma issue no board e mova para **In progress**.
+2. Crie a branch a partir da `develop` atualizada:
+   ```bash
+   git switch develop
+   git pull origin develop
+   git switch -c feat/<numero-da-issue>-<descricao>
+   ```
+3. **Uma issue → uma branch → uma PR**, sempre apontando para a `develop`.
+4. Use o template de PR: `Closes #<issue>`, o que muda e **como testar**.
+5. A CI precisa passar e um colega precisa revisar antes do merge.
+6. A `main` só recebe a `develop` por PR, em releases.
+
+Mudou o banco? Altere o `schema.prisma`, rode `npx prisma migrate dev --name <descricao>` e atualize o [`backend/docs/db.md`](backend/docs/db.md) no mesmo PR. CHECK constraints vão escritas à mão no SQL da migration.
+
+Padrão de commits: `tipo(escopo): descrição`, por exemplo `feat(wishlist): ...`, `fix(db): ...`, `docs: ...`.
+
+Respostas e erros da API seguem o contrato `{ success, data }` / `{ success: false, error }`. Erros de regra são lançados com `AppError(status, mensagem)` no service.

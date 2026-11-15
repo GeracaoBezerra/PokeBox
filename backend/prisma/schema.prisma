@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
@@ -9,6 +9,7 @@ datasource db {
 
 model User {
   id            String        @id @default(uuid())
+  username      String        @unique
   name          String
   email         String        @unique
   phone         String?
@@ -27,6 +28,187 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
+
+  collectionItems  CollectionItem[]
+  wishlistItems    WishlistItem[]
+  offersMade       Offer[]          @relation("OfferProposer")
+  tradesProposed   Trade[]          @relation("TradeProposer")
+  tradesReceived   Trade[]          @relation("TradeRecipient")
+  tradeItemsSent   TradeItem[]      @relation("TradeItemFrom")
+  tradeItemsGotten TradeItem[]      @relation("TradeItemTo")
+}
+
+model Card {
+  id                   String    @id
+  name                 String
+  setId                String
+  setName              String
+  setSeries            String?
+  releaseDate          DateTime? @db.Date
+  number               String
+  rarity               String?
+  imageUrl             String?
+  category             String?
+  types                String[]  @default([])
+  hp                   Int?
+  stage                String?
+  illustrator          String?
+  dexId                Int[]     @default([])
+  regulationMark       String?
+  trainerType          String?
+  energyType           String?
+  marketPrice          Decimal?  @db.Decimal(10, 2)
+  marketPriceCurrency  String?
+  marketPriceSource    String?
+  marketPriceUpdatedAt DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  collectionItems CollectionItem[]
+  wishlistItems   WishlistItem[]
+  tradeItems      TradeItem[]
+
+  @@index([name])
+  @@index([setId])
+  @@index([category])
+}
+
+model CollectionItem {
+  id               String        @id @default(uuid())
+  userId           String
+  cardId           String
+  quantity         Int
+  reservedQuantity Int           @default(0)
+  condition        CardCondition @default(NEAR_MINT)
+  finish           CardFinish
+  firstEdition     Boolean       @default(false)
+  isPublic         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id])
+  card       Card        @relation(fields: [cardId], references: [id])
+  listings   Listing[]
+  offerItems OfferItem[]
+  tradeItems TradeItem[]
+
+  @@unique([userId, cardId, condition, finish, firstEdition])
+  @@index([cardId])
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  cardId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  card Card @relation(fields: [cardId], references: [id])
+
+  @@unique([userId, cardId])
+  @@index([cardId])
+}
+
+model Listing {
+  id               String        @id @default(uuid())
+  collectionItemId String
+  quantity         Int
+  description      String?
+  status           ListingStatus @default(ACTIVE)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  collectionItem CollectionItem @relation(fields: [collectionItemId], references: [id])
+  offers         Offer[]
+
+  @@index([collectionItemId])
+  @@index([status, createdAt(sort: Desc), id])
+}
+
+model Offer {
+  id          String      @id @default(uuid())
+  listingId   String
+  proposerId  String
+  quantity    Int
+  message     String?
+  status      OfferStatus @default(PROPOSED)
+  respondedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  listing  Listing     @relation(fields: [listingId], references: [id])
+  proposer User        @relation("OfferProposer", fields: [proposerId], references: [id])
+  items    OfferItem[]
+  trade    Trade?
+
+  @@index([listingId])
+  @@index([proposerId])
+}
+
+model OfferItem {
+  id               String @id @default(uuid())
+  offerId          String
+  collectionItemId String
+  quantity         Int
+
+  offer          Offer          @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  collectionItem CollectionItem @relation(fields: [collectionItemId], references: [id])
+
+  @@unique([offerId, collectionItemId])
+  @@index([collectionItemId])
+}
+
+model Trade {
+  id          String      @id @default(uuid())
+  proposerId  String
+  recipientId String
+  offerId     String?     @unique
+  status      TradeStatus @default(PROPOSED)
+  completedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  proposer  User        @relation("TradeProposer", fields: [proposerId], references: [id])
+  recipient User        @relation("TradeRecipient", fields: [recipientId], references: [id])
+  offer     Offer?      @relation(fields: [offerId], references: [id])
+  items     TradeItem[]
+
+  @@index([proposerId])
+  @@index([recipientId])
+}
+
+model TradeItem {
+  id               String        @id @default(uuid())
+  tradeId          String
+  collectionItemId String?
+  cardId           String
+  condition        CardCondition
+  finish           CardFinish
+  firstEdition     Boolean       @default(false)
+  quantity         Int
+  fromUserId       String
+  toUserId         String
+
+  trade          Trade           @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  collectionItem CollectionItem? @relation(fields: [collectionItemId], references: [id], onDelete: SetNull)
+  card           Card            @relation(fields: [cardId], references: [id])
+  fromUser       User            @relation("TradeItemFrom", fields: [fromUserId], references: [id])
+  toUser         User            @relation("TradeItemTo", fields: [toUserId], references: [id])
+
+  @@index([tradeId])
+  @@index([collectionItemId])
+}
+
+model CardCache {
+  id        String   @id @default(uuid())
+  cardId    String
+  lang      String   @default("en")
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cardId, lang])
+  @@index([updatedAt])
 }
 
 enum AccountStatus {
@@ -39,4 +221,41 @@ enum AccountStatus {
 enum UserRole {
   USER
   ADMIN
+}
+
+enum CardCondition {
+  MINT
+  NEAR_MINT
+  EXCELLENT
+  GOOD
+  LIGHT_PLAYED
+  PLAYED
+  POOR
+}
+
+enum CardFinish {
+  NORMAL
+  HOLO
+  REVERSE
+}
+
+enum ListingStatus {
+  ACTIVE
+  PAUSED
+  CLOSED
+  BLOCKED
+}
+
+enum OfferStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+  CANCELED
+}
+
+enum TradeStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+  CANCELED
 }
