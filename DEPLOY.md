@@ -90,7 +90,7 @@ Experimente o modo produção antes de tudo:
 make prod-up
 ```
 
-Abra `http://localhost:8080`, entre com `ash@pokebox.dev` / `pokebox123`, navegue e dê F5 numa página interna. Se tudo funcionar aqui, o que muda na nuvem são só os endereços. Para voltar ao modo de sempre: `make prod-down` e `docker compose up -d --build`.
+Abra `http://localhost:8080`, entre com `ash@pokebox.dev` e a `SEED_DEMO_PASSWORD` do seu `.env`, navegue e dê F5 numa página interna. Se tudo funcionar aqui, o que muda na nuvem são só os endereços. Para voltar ao modo de sempre: `make prod-down` e `docker compose up -d --build`.
 
 ## Antes de começar
 
@@ -192,16 +192,16 @@ As migrations criaram as tabelas, mas o banco está vazio. O seed cria os usuár
 
 ```bash
 cd backend
-DATABASE_URL="<URL pooled do Neon>" PRISMA_DATABASE_URL="<URL direct do Neon>" SEED_ADMIN_PASSWORD="<senha forte só de vocês>" npm run db:seed
+DATABASE_URL="<URL pooled do Neon>" PRISMA_DATABASE_URL="<URL direct do Neon>" SEED_ADMIN_PASSWORD="<senha do admin>" SEED_DEMO_PASSWORD="<senha da demo>" npm run db:seed
 ```
 
-As variáveis escritas antes do comando valem só para ele e têm prioridade sobre o seu `.env`. A saída esperada termina com `Seed ok. 10 cartas · usuários: admin, ash, misty · senha: pokebox123 (admin com SEED_ADMIN_PASSWORD)`.
+As variáveis escritas antes do comando valem só para ele e têm prioridade sobre o seu `.env`. A saída esperada termina com `Seed ok. 10 cartas · usuários: admin, ash, misty · senhas: SEED_ADMIN_PASSWORD (admin) e SEED_DEMO_PASSWORD (demais)`. O seed nunca escreve as senhas na saída.
 
-A senha `pokebox123` está no README, que é público. Com o app na internet, qualquer pessoa conseguiria entrar como `admin` e bloquear anúncios antes da apresentação. O `SEED_ADMIN_PASSWORD` dá ao `admin` uma senha que só vocês sabem; `ash` e `misty` continuam com `pokebox123`, para quem for avaliar conseguir testar. Se o seed já rodou sem a variável, rode de novo com ela: ele só troca a senha do `admin` e não duplica nada.
+O repositório é público, então nenhuma senha do seed fica nele. Use em produção valores diferentes dos do seu `.env` local: a do `admin` só o time sabe (com ela dá para bloquear anúncios); a da demo vale para `ash` e `misty` e vai para quem for avaliar por um canal fora do GitHub (formulário de entrega, e-mail). Guarde as duas no gerenciador de senhas, com as URLs do Neon. Para trocar uma senha depois, rode o seed de novo com os valores novos: ele atualiza a senha dos três usuários e não duplica nada.
 
 O seed não fica no `CMD` do Dockerfile porque rodaria a cada deploy. Ele também não roda dentro da imagem de produção, que não tem o `tsx`.
 
-Como conferir: no Swagger de produção, `POST /auth/login` com `ash@pokebox.dev` / `pokebox123` devolve 200 e um token.
+Como conferir: no Swagger de produção, `POST /auth/login` com `ash@pokebox.dev` e a senha da demo devolve 200 e um token; com `admin@pokebox.dev` e a senha da demo devolve 401.
 
 ### Passo 5. Front na Vercel
 

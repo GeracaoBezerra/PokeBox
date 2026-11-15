@@ -229,5 +229,5 @@ available = quantity - reservedQuantity
 ## Para testar
 
 - Swagger: `http://localhost:3000/docs`. Faça login, clique em Authorize e cole o token.
-- Usuários do seed: `admin@pokebox.dev`, `ash@pokebox.dev` e `misty@pokebox.dev`, senha `pokebox123`.
+- Usuários do seed: `admin@pokebox.dev`, `ash@pokebox.dev` e `misty@pokebox.dev`, senhas no `.env` (`SEED_ADMIN_PASSWORD` para o admin, `SEED_DEMO_PASSWORD` para ash e misty).
 - Testes automáticos: `cd backend && npm test`.

@@ -1418,7 +1418,7 @@ export const swaggerSpec = {
             minLength: 8,
             maxLength: 72,
             description: "O limite de 72 é do bcrypt, que trunca acima disso.",
-            example: "pokebox123",
+            example: "senhaForte123",
           },
         },
       },
@@ -1431,7 +1431,11 @@ export const swaggerSpec = {
             format: "email",
             example: "ash@pokebox.dev",
           },
-          password: { type: "string", example: "pokebox123" },
+          password: {
+            type: "string",
+            description: "Nos usuários do seed, é o valor de SEED_DEMO_PASSWORD (ash e misty) ou SEED_ADMIN_PASSWORD (admin) do .env.",
+            example: "senha-do-seed",
+          },
         },
       },
       UpdateUserRequest: {

@@ -229,7 +229,7 @@ docker compose exec tcg-backend npm run db:seed
 
 ## Usuários de teste (seed)
 
-Senha de todos: **`pokebox123`**
+As senhas não ficam no repositório: vêm do `.env`. `SEED_ADMIN_PASSWORD` é a do `admin`; `SEED_DEMO_PASSWORD` é a do `ash` e da `misty`. As duas são obrigatórias, têm de 8 a 72 caracteres e precisam ser diferentes; sem elas o seed para e diz o que falta. Peça os valores ao time ou escolha os seus no seu `.env`. Rodar o seed de novo aplica as senhas atuais do `.env` aos três usuários.
 
 | Usuário | E-mail | Papel | O que tem |
 |---|---|---|---|
@@ -244,7 +244,7 @@ O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, p
 ### Testar rápido no Swagger
 
 1. Abra http://localhost:3000/docs.
-2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "pokebox123" }`. Esse já é o exemplo do Swagger: basta clicar em **Try it out** e **Execute**. Os exemplos das outras rotas também seguem o seed (o Charizard do ash, a oferta da misty); o do cadastro usa `brock`, que não está no seed, para não dar 409.
+2. `POST /auth/login` com `{ "email": "ash@pokebox.dev", "password": "<SEED_DEMO_PASSWORD do seu .env>" }`. Clique em **Try it out**, troque a senha do exemplo pela do seu `.env` e clique em **Execute**. Os exemplos das outras rotas também seguem o seed (o Charizard do ash, a oferta da misty); o do cadastro usa `brock`, que não está no seed, para não dar 409.
 3. Copie o `token` da resposta, clique em **Authorize** e cole. O token fica salvo até fechar a aba (um F5 não desloga).
 4. Chame `GET /collection`, `GET /wishlist`, `GET /listings/me`, `GET /offers/me`, `GET /trades/me` etc. Os ids que as outras rotas pedem saem dessas listas (a descrição de cada campo diz onde pegar).
 5. Para conferir o papel ADMIN, `GET /auth/admin-check`: com `admin@pokebox.dev` dá 200; com o ash, 403.
@@ -470,7 +470,7 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 ### Limitações conhecidas
 
 - No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte pode levar 50 segundos ou mais. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
-- Em produção, `ash` e `misty` usam a senha pública do seed (`pokebox123`), para quem for avaliar conseguir testar. O `admin` recebe outra senha pelo `SEED_ADMIN_PASSWORD` (veja o [DEPLOY.md](DEPLOY.md)). O `/auth/login` ainda não limita tentativas (#112).
+- Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time (veja o [DEPLOY.md](DEPLOY.md)). O `/auth/login` ainda não limita tentativas (#112).
 
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
 - Uma troca recusada ou cancelada não volta os anúncios que foram reduzidos quando ela nasceu, e a oferta não gera outra troca: é preciso fazer uma oferta nova.
