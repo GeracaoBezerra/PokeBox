@@ -1,4 +1,4 @@
-import { EnvValidationError, parseDatabaseEnv, parseEnv } from './env.js';
+import { EnvValidationError, parseDatabaseEnv, parseEnv, parseSeedEnv } from './env.js';
 
 const valid = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/pokebox?schema=public',
@@ -99,5 +99,51 @@ describe('parseDatabaseEnv', () => {
 
   it('sem DATABASE_URL diz que falta', () => {
     expect(() => parseDatabaseEnv({})).toThrow('DATABASE_URL: variável obrigatória ausente');
+  });
+});
+
+describe('parseSeedEnv', () => {
+  const seed = {
+    DATABASE_URL: valid.DATABASE_URL,
+    SEED_ADMIN_PASSWORD: 'senha-do-admin',
+    SEED_DEMO_PASSWORD: 'senha-da-demo',
+  };
+
+  it('exige DATABASE_URL e as duas senhas', () => {
+    expect(parseSeedEnv(seed)).toEqual(seed);
+  });
+
+  it('sem as senhas diz quais faltam', () => {
+    expect(() => parseSeedEnv({ DATABASE_URL: valid.DATABASE_URL })).toThrow(
+      expect.objectContaining({
+        problems: [
+          'SEED_ADMIN_PASSWORD: variável obrigatória ausente',
+          'SEED_DEMO_PASSWORD: variável obrigatória ausente',
+        ],
+      }),
+    );
+  });
+
+  it('senhas vazias contam como ausentes e só aparecem uma vez', () => {
+    expect(() => parseSeedEnv({ ...seed, SEED_ADMIN_PASSWORD: '', SEED_DEMO_PASSWORD: '' })).toThrow(
+      expect.objectContaining({
+        problems: [
+          'SEED_ADMIN_PASSWORD: variável obrigatória ausente',
+          'SEED_DEMO_PASSWORD: variável obrigatória ausente',
+        ],
+      }),
+    );
+  });
+
+  it('recusa senha com menos de 8 caracteres', () => {
+    expect(() => parseSeedEnv({ ...seed, SEED_DEMO_PASSWORD: 'curta' })).toThrow(
+      'SEED_DEMO_PASSWORD: precisa ter pelo menos 8 caracteres',
+    );
+  });
+
+  it('recusa a mesma senha para o admin e para a demo', () => {
+    expect(() => parseSeedEnv({ ...seed, SEED_DEMO_PASSWORD: seed.SEED_ADMIN_PASSWORD })).toThrow(
+      'SEED_DEMO_PASSWORD: precisa ser diferente de SEED_ADMIN_PASSWORD',
+    );
   });
 });

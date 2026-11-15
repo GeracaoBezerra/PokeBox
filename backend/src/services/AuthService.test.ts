@@ -16,7 +16,7 @@ const ash: PublicUser = {
   createdAt: new Date('2026-01-01'),
 };
 
-const ashWithPassword: UserWithCredentials = { ...ash, passwordHash: 'hash:pokebox123' };
+const ashWithPassword: UserWithCredentials = { ...ash, passwordHash: 'hash:senha-correta' };
 
 function setup(stored: UserWithCredentials | null = ashWithPassword) {
   const users = {
@@ -71,7 +71,7 @@ describe('AuthService.login', () => {
   it('login certo registra o último acesso e devolve token sem o hash', async () => {
     const { users, tokens, service } = setup();
 
-    const session = await service.login({ email: 'ash@pokebox.dev', password: 'pokebox123' });
+    const session = await service.login({ email: 'ash@pokebox.dev', password: 'senha-correta' });
 
     expect(users.touchLastLogin).toHaveBeenCalledWith('u-ash');
     expect(tokens.sign).toHaveBeenCalledWith('u-ash');
@@ -90,16 +90,16 @@ describe('AuthService.login', () => {
   it('e-mail inexistente devolve o mesmo 401 e ainda compara com o hash falso', async () => {
     const { hasher, service } = setup(null);
 
-    await expect(service.login({ email: 'ninguem@pokebox.dev', password: 'pokebox123' })).rejects.toEqual(
+    await expect(service.login({ email: 'ninguem@pokebox.dev', password: 'senha-correta' })).rejects.toEqual(
       new AppError(401, INVALID_CREDENTIALS),
     );
-    expect(hasher.compare).toHaveBeenCalledWith('pokebox123', 'hash:dummy-password');
+    expect(hasher.compare).toHaveBeenCalledWith('senha-correta', 'hash:dummy-password');
   });
 
   it.each(['INACTIVE', 'SUSPENDED'] as const)('conta %s devolve 403', async (accountStatus) => {
     const { users, service } = setup({ ...ashWithPassword, accountStatus });
 
-    await expect(service.login({ email: 'ash@pokebox.dev', password: 'pokebox123' })).rejects.toMatchObject({
+    await expect(service.login({ email: 'ash@pokebox.dev', password: 'senha-correta' })).rejects.toMatchObject({
       statusCode: 403,
       message: 'Conta indisponível. Procure o suporte.',
     });
@@ -109,7 +109,7 @@ describe('AuthService.login', () => {
   it('conta pendente de verificação consegue entrar', async () => {
     const { service } = setup({ ...ashWithPassword, accountStatus: 'PENDING_VERIFICATION' });
 
-    await expect(service.login({ email: 'ash@pokebox.dev', password: 'pokebox123' })).resolves.toMatchObject({
+    await expect(service.login({ email: 'ash@pokebox.dev', password: 'senha-correta' })).resolves.toMatchObject({
       token: 'token-de-u-ash',
     });
   });

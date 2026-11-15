@@ -125,7 +125,7 @@ Cria:
 | `ash` | `ash@pokebox.dev` | USER |
 | `misty` | `misty@pokebox.dev` | USER |
 
-Senha de todos: `pokebox123`. Mais 10 cartas reais, 10 itens de coleção (1 privado), 4 itens de wishlist, 2 anúncios e 1 oferta em aberto (a misty oferece o Mew holo dela pelo Charizard do ash). Rodar o seed de novo volta essa oferta para `PROPOSED` e o anúncio do Charizard para `ACTIVE` com 1 unidade. O seed não cria troca; se a oferta já virou troca, ele avisa e não mexe nela: para voltar ao estado inicial, `npx prisma migrate reset` (apaga o banco local). As cartas cobrem Pokémon, Treinador e Energia, holo de 1ª edição, reverse e o mesmo Pikachu em duas variantes.
+Senhas pelo `.env`: `SEED_ADMIN_PASSWORD` para o `admin` e `SEED_DEMO_PASSWORD` para `ash` e `misty` (obrigatórias, 8 a 72 caracteres, diferentes entre si; rodar o seed de novo aplica os valores atuais). Mais 10 cartas reais, 10 itens de coleção (1 privado), 4 itens de wishlist, 2 anúncios e 1 oferta em aberto (a misty oferece o Mew holo dela pelo Charizard do ash). Rodar o seed de novo volta essa oferta para `PROPOSED` e o anúncio do Charizard para `ACTIVE` com 1 unidade. O seed não cria troca; se a oferta já virou troca, ele avisa e não mexe nela: para voltar ao estado inicial, `npx prisma migrate reset` (apaga o banco local). As cartas cobrem Pokémon, Treinador e Energia, holo de 1ª edição, reverse e o mesmo Pikachu em duas variantes.
 
 ### Cartas do seed
 
