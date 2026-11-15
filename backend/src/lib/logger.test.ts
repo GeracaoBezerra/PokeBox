@@ -29,7 +29,7 @@ describe('createLogger', () => {
     createLogger({ NODE_ENV: 'production', LOG_LEVEL: undefined }, stream).info(
       {
         req: { headers: { authorization: 'Bearer abc', host: 'api' } },
-        body: { email: 'ash@pokebox.dev', password: 'pokebox123' },
+        body: { email: 'ash@pokebox.dev', password: 'senha-correta' },
         data: { token: 'jwt' },
       },
       'teste',
