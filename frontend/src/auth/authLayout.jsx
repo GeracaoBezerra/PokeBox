@@ -15,7 +15,8 @@ export default function AuthLayout({
       <BackgroundVideo />
       <main className="card">
         <div className="logo">
-          <Logo variante="simbolo" tamanho={48} />
+          <Logo variante="simbolo" tamanho={98} />
+          <span>Poke<b>Box</b></span>
         </div>
         <p className="sub">{subtitle}</p>
 

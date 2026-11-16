@@ -40,8 +40,9 @@ export default function Header() {
             to="/"
             className={styles.logo}
             aria-label="PokeBox, página inicial"
+            
           >
-            <Logo decorativa />
+            <Logo decorativa  tamanho={150}/>
           </Link>
 
           {/* Busca para desktop */}
