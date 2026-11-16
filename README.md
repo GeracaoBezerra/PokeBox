@@ -647,6 +647,8 @@ Abra `http://localhost:5173`, entre com um usuário do seed e use o menu: Cards 
 
 As chamadas ficam em `frontend/src/api/` (axios com interceptores em `http.js`, uma função por rota).
 
+As páginas (`frontend/src/pages/`) só buscam os dados e montam a tela; cada bloco visual é um componente em `frontend/src/components/<Nome>/<Nome>.jsx`. Os reaproveitados entre páginas são `CabecalhoPagina`, `Paginacao`, `CartaMini`, `MiniaturaCarta`, `AbasNegociacao` e `GradeCartas`. O catálogo (`/catalogo`) usa o mesmo `CartaCard` da home, via `GradeCartas`; o `utils/cartaCard.js` converte a carta da API para o formato que o `CartaCard` espera. A busca do catálogo só traz id, nome, número e imagem, então ali o painel de dados do hover fica escondido até a API mandar mais campos.
+
 ## Status do projeto
 
 | Parte | Situação |
