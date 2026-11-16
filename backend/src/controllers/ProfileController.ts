@@ -1,17 +1,25 @@
 import type { RequestHandler } from 'express';
 
+import { listPublicCollectionQuerySchema } from '../schemas/collection.schema.js';
 import { usernameParamSchema } from '../schemas/user.schema.js';
 import type { ProfileService } from '../services/ProfileService.js';
 
-export type ProfileActions = Pick<ProfileService, 'getPublicCollection'>;
+export type ProfileActions = Pick<ProfileService, 'getPublicCollection' | 'getPublicCollectionPage'>;
 
 export class ProfileController {
   constructor(private readonly profiles: ProfileActions) {}
 
   publicCollection: RequestHandler = async (req, res) => {
     const { username } = usernameParamSchema.parse(req.params);
-    const data = await this.profiles.getPublicCollection(username);
+    const { filters, page } = listPublicCollectionQuerySchema.parse(req.query);
 
-    res.status(200).json({ success: true, data });
+    if (!page) {
+      const data = await this.profiles.getPublicCollection(username);
+      res.status(200).json({ success: true, data });
+      return;
+    }
+
+    const { user, items, hasNextPage } = await this.profiles.getPublicCollectionPage(username, filters, page);
+    res.status(200).json({ success: true, data: { user, items }, pagination: { ...page, hasNextPage } });
   };
 }

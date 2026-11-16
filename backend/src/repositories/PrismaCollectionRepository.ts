@@ -1,34 +1,47 @@
 import type { Db } from '../lib/prisma.js';
 import { USABLE_STATUSES } from '../utils/accountStatus.js';
+import { itemOrderBy } from '../utils/itemSort.js';
+import { cardWhere } from '../utils/listingSearch.js';
+import type { PageWindow } from '../utils/pagination.js';
 import {
   collectionItemWithCard,
   type CardOwner,
+  type CollectionFilters,
   type CollectionItemChanges,
   type CollectionItemKey,
   type CollectionItemWithCard,
   type CollectionRepository,
   type LockedCollectionItem,
   type NewCollectionItem,
+  type PublicCollectionFilters,
 } from './CollectionRepository.js';
-
-const byCardName = [{ card: { name: 'asc' } }, { createdAt: 'asc' }] as const;
 
 export class PrismaCollectionRepository implements CollectionRepository {
   constructor(private readonly db: Db) {}
 
-  findManyByUser(userId: string): Promise<CollectionItemWithCard[]> {
+  findManyByUser(
+    userId: string,
+    { q, setId, type, condition, finish, isPublic, sort, skip, take }: CollectionFilters & Partial<PageWindow> = {},
+  ): Promise<CollectionItemWithCard[]> {
     return this.db.collectionItem.findMany({
-      where: { userId },
+      where: { userId, condition, finish, isPublic, card: cardWhere({ q, setId, type }) },
       include: collectionItemWithCard,
-      orderBy: [...byCardName],
+      orderBy: itemOrderBy(sort),
+      skip,
+      take,
     });
   }
 
-  findPublicByUser(userId: string): Promise<CollectionItemWithCard[]> {
+  findPublicByUser(
+    userId: string,
+    { q, type, skip, take }: PublicCollectionFilters & Partial<PageWindow> = {},
+  ): Promise<CollectionItemWithCard[]> {
     return this.db.collectionItem.findMany({
-      where: { userId, isPublic: true, quantity: { gt: 0 } },
+      where: { userId, isPublic: true, quantity: { gt: 0 }, card: cardWhere({ q, type }) },
       include: collectionItemWithCard,
-      orderBy: [...byCardName],
+      orderBy: itemOrderBy(),
+      skip,
+      take,
     });
   }
 

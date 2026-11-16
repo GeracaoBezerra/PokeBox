@@ -4,7 +4,7 @@ import { createTradeSchema, listTradesQuerySchema, tradeIdSchema } from '../sche
 import type { TradeService, TradeView } from '../services/TradeService.js';
 import { currentUser } from '../utils/currentUser.js';
 
-export type TradeActions = Pick<TradeService, 'create' | 'listMine' | 'getById' | 'accept' | 'reject' | 'cancel'>;
+export type TradeActions = Pick<TradeService, 'create' | 'listMine' | 'listMinePage' | 'getById' | 'accept' | 'reject' | 'cancel'>;
 
 type TradeStep = (userId: string, id: string) => Promise<TradeView>;
 
@@ -19,10 +19,20 @@ export class TradeController {
   };
 
   listMine: RequestHandler = async (req, res) => {
-    const { status } = listTradesQuerySchema.parse(req.query);
-    const { sent, received } = await this.trades.listMine(currentUser(req).id, status);
+    const userId = currentUser(req).id;
+    const {
+      filters: { status, side },
+      page,
+    } = listTradesQuerySchema.parse(req.query);
 
-    res.status(200).json({ success: true, data: { sent, received } });
+    if (!side || !page) {
+      const { sent, received } = await this.trades.listMine(userId, status);
+      res.status(200).json({ success: true, data: { sent, received } });
+      return;
+    }
+
+    const { items, hasNextPage } = await this.trades.listMinePage(userId, side, status, page);
+    res.status(200).json({ success: true, data: { items }, pagination: { ...page, hasNextPage } });
   };
 
   getById: RequestHandler = async (req, res) => {
