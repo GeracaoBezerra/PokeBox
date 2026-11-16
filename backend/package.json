@@ -17,6 +17,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:seed-cards": "tsx scripts/seed-cards.ts",
+    "catalog:sync": "tsx scripts/sync-catalog.ts",
     "contract:emit": "prisma contract emit"
   },
   "keywords": [],

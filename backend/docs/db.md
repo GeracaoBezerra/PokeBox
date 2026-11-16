@@ -20,6 +20,7 @@ User ─┬─< CollectionItem >── Card ──< WishlistItem >── User
 | `User` | conta: `username` e `email` únicos, `passwordHash` (bcrypt), dados de contato e endereço opcionais, `role` (`USER`/`ADMIN`), `accountStatus` (`PENDING_VERIFICATION`/`ACTIVE`/`INACTIVE`/`SUSPENDED`), `deletedAt` para soft delete | auth |
 | `Card` | catálogo local: snapshot da carta da TCGdex com os campos usados em filtros e listagens (nome, set, série, lançamento, número, raridade, imagem, categoria, tipos, HP, estágio, ilustrador, nº da Pokédex, regulation mark, tipo de treinador/energia) e o preço de referência (`marketPrice`, `marketPriceCurrency`, `marketPriceSource`, `marketPriceUpdatedAt`). Ataques e habilidades ficam só no `CardCache`. `id` = id da TCGdex | RN-01, RN-09 |
 | `CardCache` | cache HTTP do JSON completo da TCGdex (TTL 24h). Não é referenciado por FK | RN-09 |
+| `CatalogCard` | resumo de **todas** as cartas da TCGdex, só para a busca (#78): `id` e `lang` (chave composta), `name`, `nameNormalized` (minúsculas e sem acento), `localId`, `setId`, `setName`, `imageUrl` (imagem pequena, `.../low.webp`) e `syncedAt`. Preenchida pelo `npm run catalog:sync`, não pela API. Sem FK: não se mistura com `Card`, que guarda só as cartas que alguém tem ou quer | busca |
 | `CollectionItem` | posse: quanto de cada carta, em qual condição e variante, o usuário tem | RN-01, RN-02, RN-03, RN-08, RN-10 |
 | `WishlistItem` | desejo: carta que o usuário quer | RN-04, RN-11, RN-12 |
 | `Listing` | anúncio de troca de um item da coleção | RN-05 |
@@ -34,6 +35,8 @@ User ─┬─< CollectionItem >── Card ──< WishlistItem >── User
 - **Item de coleção único por `(userId, cardId, condition, finish, firstEdition)`:** a mesma carta em condição ou variante diferente é outro item; igual em tudo, soma em `quantity`.
 - **Variante:** `finish` (`NORMAL`, `HOLO`, `REVERSE`) é o acabamento; `firstEdition` é o carimbo de 1ª edição, que combina com qualquer acabamento (existe "holo 1ª edição"). As combinações válidas de cada carta vêm de `variants` da TCGdex e são validadas no service. A wishlist não tem variante: quem deseja uma carta aceita qualquer versão.
 - **Idioma:** fora do escopo. Todas as cartas são da edição em inglês.
+- **Catálogo local da busca (#78):** a `CatalogCard` é separada da `Card`. A `Card` tem o detalhe completo de poucas cartas (as que alguém usa); a `CatalogCard` tem o resumo das ~24 mil cartas, só com o que a lista da busca mostra. Ela não tem tipo nem raridade porque a lista de cartas do set da TCGdex não traz esses campos; por isso a busca com filtro de tipo, raridade ou categoria continua indo à TCGdex. A chave é `(id, lang)` e não só `id`, para um segundo idioma não sobrescrever o primeiro (hoje só `en` é sincronizado).
+- **`nameNormalized` em vez de `unaccent` no índice:** o índice não aceita `unaccent(name)`, porque a função não é `IMMUTABLE` (o Postgres responde `functions in index expression must be marked IMMUTABLE`). O sync grava `lower(unaccent(name))` na coluna `nameNormalized`, e o índice GIN de trigramas fica nela. Na busca, a palavra digitada passa pelo mesmo `lower(unaccent(...))`.
 - **Reserva (RN-08):** `reservedQuantity` guarda quanto do item está comprometido numa troca aberta (`PROPOSED`). Disponível = `quantity - reservedQuantity`. Sobe quando a troca nasce (`POST /trades`), nos itens dos dois lados; desce quando a troca é recusada ou cancelada; no aceite, desce junto com `quantity`. Anúncio e oferta não reservam.
 - **Coleção limpa a wishlist (RN-11):** quando uma carta entra em `CollectionItem` (por `POST /collection`, recebida no aceite de uma troca ou quando um item zerado volta a ter quantidade no `PATCH /collection/:id`), o `WishlistItem` daquele usuário com o mesmo `cardId` é apagado na mesma transação. Como a wishlist não tem variante, qualquer condição, acabamento ou 1ª edição conta.
 - **Wishlist só do que falta (RN-12):** `POST /wishlist` recusa (409) a carta que a pessoa já tem: soma de `CollectionItem.quantity` com o mesmo `userId` e `cardId` maior que 0, em qualquer variante. Item zerado não conta; item privado conta. É uma regra do service, não uma constraint do banco.
@@ -89,7 +92,24 @@ Além dos índices que o Postgres cria para PK e `UNIQUE`:
 | `Listing` por `collectionItemId` | anúncios abertos de um item (RN-05, `GET /listings/me`) |
 | `Listing` por `(status, createdAt DESC, id)` (#112) | `GET /listings`: o banco lê os anúncios ativos já na ordem de "mais recentes" e para no fim da página, em vez de ordenar todos. Também atende filtro só por `status` |
 
+| `CatalogCard` por `setId` | cartas de um set reconhecido na busca (`charizard base`) |
+| `CatalogCard_nameNormalized_trgm_idx`: GIN com `gin_trgm_ops` em `nameNormalized` (#78) | busca tolerante a erro de digitação. Atende os operadores `<<%` (semelhança por palavra) e `LIKE '%texto%'` do `pg_trgm` |
+
 O índice de `Listing` por `(status, createdAt DESC, id)` substituiu o que era só por `status`, que ficou redundante. Medido com o `EXPLAIN ANALYZE` num banco com 100 mil anúncios (20 mil ativos): a primeira página caiu de 6,3 ms para 0,3 ms. Detalhes e números no README, em "Performance".
+
+### Índice de trigramas da busca (#78)
+
+Medido com `EXPLAIN ANALYZE` no banco local com o catálogo inteiro (23.912 cartas), com as consultas que a API manda (parâmetros como no `PrismaCatalogSearchStore`). "Sem índice" é a mesma consulta com `SET enable_bitmapscan = off; SET enable_indexscan = off`:
+
+| Consulta | Com índice | Sem índice (leitura da tabela toda) |
+|---|---|---|
+| `charzard`, primeira página | 1,5 ms | 33,4 ms |
+| `pikachu`, segunda página | 2,0 ms | 26,7 ms |
+| a palavra `pipi` existe em algum nome? (decide o `search.ignored`) | 0,1 ms | 22,7 ms |
+
+O plano com índice é `Bitmap Index Scan on "CatalogCard_nameNormalized_trgm_idx"` (um para o `<<%` e outro para o `LIKE`, juntos num `BitmapOr`).
+
+O `npm run catalog:sync` (`backend/scripts/sync-catalog.ts`) preenche a tabela: busca a lista de sets da TCGdex (`GET /en/sets`), depois as cartas de cada set (`GET /en/sets/{id}`), com 200 ms de pausa entre os sets, e grava em lotes de 500 com `INSERT ... ON CONFLICT (id, lang) DO UPDATE`. Rodar de novo atualiza as linhas, não duplica. Não apaga cartas que sumirem da TCGdex. Se algum set falhar (a TCGdex responde 503 com frequência), os outros seguem, o script lista os que falharam e termina com erro; basta rodar de novo.
 
 ## Migrations
 
@@ -105,6 +125,9 @@ O índice de `Listing` por `(status, createdAt DESC, id)` substituiu o que era s
 | `20261105220000_trade_only` | só trocas (D-08): remove `priceCents` de `Listing` e `Offer`, `Listing.type` e o enum `ListingType` e as CHECKs de preço; cria `OfferItem` com a CHECK `offer_item_quantity_check` |
 | `20261106025357_add_card_market_price` | preço de referência em `Card` (`marketPrice`, `marketPriceCurrency`, `marketPriceSource`, `marketPriceUpdatedAt`) e a CHECK `card_market_price_check` |
 | `20261115113657_indice_anuncios_recentes` | troca o índice de `Listing` por `status` pelo índice `(status, createdAt DESC, id)` (#112) |
+
+| `20261116212649_catalog_card` | cria `CatalogCard` com o índice por `setId` (#78) |
+| `20261116212650_catalog_card_search` | escrita à mão: cria as extensões `pg_trgm` e `unaccent` e o índice GIN de trigramas em `CatalogCard.nameNormalized` (#78). O índice também está no `schema.prisma` (`type: Gin`), para o Prisma não achar diferença entre o schema e o banco |
 
 Nova tabela ou coluna: altere o `schema.prisma`, rode `npx prisma migrate dev --name <descricao>` e atualize este arquivo no mesmo PR.
 
