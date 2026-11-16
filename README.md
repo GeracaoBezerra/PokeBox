@@ -291,7 +291,7 @@ Como funcionam os testes de integração:
 - No `.env.test`, o limite de tentativas de login fica desligado (`AUTH_RATE_LIMIT=0`) e os logs ficam em silêncio (`LOG_LEVEL=silent`).
 - A RN-07 tem um teste próprio (`tradeRollback.int.test.ts`): ele força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais.
 
-O que a integração cobre (102 testes, um arquivo por área):
+O que a integração cobre (104 testes, um arquivo por área):
 
 | Arquivo | Casos |
 |---|---|

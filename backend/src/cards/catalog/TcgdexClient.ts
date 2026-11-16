@@ -4,6 +4,7 @@ import { CardNotFoundError } from '../../errors/CardNotFoundError.js';
 import { TcgdexUnavailableError } from '../../errors/TcgdexUnavailableError.js';
 import type { Logger } from '../../lib/logger.js';
 import { MemoryCache } from '../../utils/memoryCache.js';
+import { orStale } from '../orStale.js';
 import type { CardDetail, CardFilters, CardFilterValues, CardSummary, MarketPrice, SetInfo, SetSummary } from '../types.js';
 import type { CardCatalog, CardSearchQuery } from './CardCatalog.js';
 import {
@@ -228,7 +229,7 @@ export class TcgdexClient implements CardCatalog {
     const fromMemory = this.setCardsMemory.get(key);
     if (fromMemory) return fromMemory;
 
-    return this.orStale(this.setCardsMemory, key, async () => {
+    return orStale(this.setCardsMemory, key, this.logger, async () => {
       const set = await this.request(`/${lang}/sets/${encodeURIComponent(setId)}`, tcgdexSetWithCardsSchema);
       if (!set) return [];
       const cards = set.cards.map(toCardSummary);
@@ -241,7 +242,7 @@ export class TcgdexClient implements CardCatalog {
     const fromMemory = this.filterValuesMemory.get(lang);
     if (fromMemory) return fromMemory;
 
-    return this.orStale(this.filterValuesMemory, lang, async () => {
+    return orStale(this.filterValuesMemory, lang, this.logger, async () => {
       const [types, rarities, categories] = await Promise.all(
         ['types', 'rarities', 'categories'].map((list) => this.request(`/${lang}/${list}`, tcgdexNameListSchema)),
       );
@@ -252,17 +253,6 @@ export class TcgdexClient implements CardCatalog {
       this.filterValuesMemory.set(lang, values);
       return values;
     });
-  }
-
-  private async orStale<T>(memory: MemoryCache<T>, key: string, load: () => Promise<T>): Promise<T> {
-    try {
-      return await load();
-    } catch (err) {
-      const stale = memory.getStale(key);
-      if (stale === null) throw err;
-      this.logger.warn({ err: errorMessage(err), key }, 'TCGdex fora, usando o resultado guardado');
-      return stale;
-    }
   }
 
   private async findSetInfo(setId: string, lang: string): Promise<SetInfo> {
@@ -283,23 +273,27 @@ export class TcgdexClient implements CardCatalog {
   }
 
   private async request<S extends z.ZodType>(path: string, schema: S): Promise<z.output<S> | null> {
-    const startedAt = Date.now();
+    const deadline = Date.now() + this.timeoutMs;
     for (let attempt = 0; ; attempt++) {
       try {
-        return await this.requestOnce(path, schema);
+        return await this.requestOnce(path, schema, deadline - Date.now());
       } catch (err) {
         const delay = this.retryDelaysMs[attempt];
         const retryable = err instanceof TcgdexUnavailableError && err.retryable;
-        if (!retryable || delay === undefined || Date.now() - startedAt + delay >= this.timeoutMs) throw err;
+        if (!retryable || delay === undefined || Date.now() + delay >= deadline) throw err;
         this.logger.warn({ err: errorMessage(err), path, attempt: attempt + 1 }, 'TCGdex falhou, tentando de novo');
         await wait(delay);
       }
     }
   }
 
-  private async requestOnce<S extends z.ZodType>(path: string, schema: S): Promise<z.output<S> | null> {
+  private async requestOnce<S extends z.ZodType>(
+    path: string,
+    schema: S,
+    timeoutMs: number,
+  ): Promise<z.output<S> | null> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const res = await this.fetch(`${this.baseUrl}${path}`, { signal: controller.signal });

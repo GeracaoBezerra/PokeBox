@@ -355,6 +355,34 @@ describe('TcgdexClient', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
+    it('a nova tentativa só usa o tempo que sobrou do timeout', async () => {
+      const slow = new TcgdexClient({
+        baseUrl: 'https://tcgdex.test/v2',
+        timeoutMs: 300,
+        fetch: fetchMock,
+        logger,
+        retryDelaysMs: [0, 0],
+      });
+      fetchMock.mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        return down();
+      });
+      fetchMock.mockImplementation(
+        (_url, init) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(abortError()));
+          }),
+      );
+      const startedAt = Date.now();
+
+      const err = await slow.getById('base1-4', 'en').catch((e: unknown) => e);
+
+      expect((err as TcgdexUnavailableError).timeout).toBe(true);
+      expect((err as Error).message).toBe('TCGdex não respondeu em 300 ms');
+      expect(Date.now() - startedAt).toBeLessThan(450);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it('não passa do tempo máximo somando as esperas', async () => {
       const slow = new TcgdexClient({
         baseUrl: 'https://tcgdex.test/v2',

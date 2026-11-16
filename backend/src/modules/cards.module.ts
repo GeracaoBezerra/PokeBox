@@ -48,7 +48,7 @@ function buildCatalog(infra: Infra, cardRepository: CardRepository): { catalog: 
     isCacheable: (card) => !dbCached.isStale(card),
   });
 
-  return { catalog, finder: new SmartCardFinder(catalog, { ttlMs: TEN_MINUTES }) };
+  return { catalog, finder: new SmartCardFinder(catalog, { ttlMs: TEN_MINUTES, logger: infra.logger }) };
 }
 
 export interface CardsModuleDeps {

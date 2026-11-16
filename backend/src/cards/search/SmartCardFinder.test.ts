@@ -255,9 +255,11 @@ describe('SmartCardFinder filtros (#75)', () => {
 
 describe('SmartCardFinder com a TCGdex fora (#145)', () => {
   let expiring: SmartCardFinder;
+  let logger: Record<'info' | 'warn' | 'error', jest.Mock<(fields: object, message: string) => void>>;
 
   beforeEach(() => {
-    expiring = new SmartCardFinder(catalog, { ttlMs: -1 });
+    logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+    expiring = new SmartCardFinder(catalog, { ttlMs: -1, logger });
   });
 
   test('busca já feita devolve o resultado vencido', async () => {
@@ -269,6 +271,10 @@ describe('SmartCardFinder com a TCGdex fora (#145)', () => {
 
     expect(second).toEqual(first);
     expect(catalog.search).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ key: expect.stringContaining('charizard') }),
+      'TCGdex fora, usando o resultado guardado',
+    );
   });
 
   test('lista sem nome já vista devolve a página vencida', async () => {

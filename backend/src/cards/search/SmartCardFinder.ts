@@ -1,7 +1,8 @@
-import { TcgdexUnavailableError } from '../../errors/TcgdexUnavailableError.js';
+import type { Logger } from '../../lib/logger.js';
 import { MemoryCache } from '../../utils/memoryCache.js';
 import { matchSets, nameMatchesAny, rankCards, toCardListItem, tokenize } from '../../utils/cardSearch.js';
 import type { CardCatalog, CardSearchQuery } from '../catalog/CardCatalog.js';
+import { orStale } from '../orStale.js';
 import type {
   CardFilters,
   CardListItem,
@@ -32,16 +33,6 @@ function sortCards(cards: CardListItem[], sort?: CardSort): CardListItem[] {
   return [...cards].sort((a, b) => direction * a.name.localeCompare(b.name));
 }
 
-async function orStale<T>(memory: MemoryCache<T>, key: string, load: () => Promise<T>): Promise<T> {
-  try {
-    return await load();
-  } catch (err) {
-    const stale = memory.getStale(key);
-    if (!(err instanceof TcgdexUnavailableError) || stale === null) throw err;
-    return stale;
-  }
-}
-
 interface RankedSearch {
   cards: CardListItem[];
   search: CardSearchInfo;
@@ -54,16 +45,19 @@ interface NameSearch {
 
 export interface SmartCardFinderOptions {
   ttlMs: number;
+  logger?: Logger;
 }
 
 export class SmartCardFinder implements CardFinder {
   private readonly searches: MemoryCache<RankedSearch>;
   private readonly lists: MemoryCache<CardListResult>;
+  private readonly logger: Logger;
 
   constructor(
     private readonly catalog: CardCatalog,
-    { ttlMs }: SmartCardFinderOptions,
+    { ttlMs, logger = console }: SmartCardFinderOptions,
   ) {
+    this.logger = logger;
     this.searches = new MemoryCache(ttlMs);
     this.lists = new MemoryCache(ttlMs);
   }
@@ -76,7 +70,7 @@ export class SmartCardFinder implements CardFinder {
     const key = `search:${lang}:${filtersKey}:${tokens.join(' ')}`;
     const result =
       this.searches.get(key) ??
-      (await orStale(this.searches, key, async () => {
+      (await orStale(this.searches, key, this.logger, async () => {
         const found = await this.searchCards(lang, tokens, filters);
         const ranked = { ...found, cards: sortCards(found.cards, sort) };
         this.searches.set(key, ranked);
@@ -98,7 +92,7 @@ export class SmartCardFinder implements CardFinder {
     const fromMemory = this.lists.get(key);
     if (fromMemory) return fromMemory;
 
-    return orStale(this.lists, key, async () => {
+    return orStale(this.lists, key, this.logger, async () => {
       const [found, sets] = await Promise.all([this.catalog.search(query), this.catalog.listSets(lang)]);
       const result: CardListResult = {
         cards: found.map((card) => toCardListItem(card, sets)),

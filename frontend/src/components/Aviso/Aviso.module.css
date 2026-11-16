@@ -6,6 +6,11 @@
 }
 
 .erro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-8);
   background: var(--erro-fundo);
   color: var(--erro);
   border: 1px solid var(--erro);
@@ -22,18 +27,10 @@
   opacity: 0.8;
 }
 
-.erro {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
 .tentar {
-  padding: 4px 12px;
+  padding: var(--esp-4) var(--esp-12);
   border: 1px solid var(--erro);
-  border-radius: 6px;
+  border-radius: var(--raio-botao);
   background: transparent;
   color: var(--erro);
   font: inherit;
