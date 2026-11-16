@@ -1,4 +1,5 @@
-
+import { Link } from "react-router-dom";
+import Logo from "../Logo/Logo";
 import styles from "./footer.module.css";
 
 const informacoes = [
@@ -85,10 +86,13 @@ export default function Footer() {
     <footer className={styles.footer}>
       <div className={styles.footerContent}>
         <section className={styles.brandColumn} aria-label="Sobre a PokeBox">
-          <a className={styles.logo} href="/" aria-label="PokeBox — página inicial">
-            <span>Poke</span>
-            <span className={styles.logoAccent}>Box</span>
-          </a>
+          <Link
+            className={styles.logo}
+            to="/"
+            aria-label="PokeBox, página inicial"
+          >
+            <Logo decorativa />
+          </Link>
 
           <p className={styles.description}>
             Conectando colecionadores de Pokémon TCG.
