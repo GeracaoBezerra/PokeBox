@@ -17,6 +17,7 @@ Projeto em equipe do curso **Geração Tech**.
 - [Testes](#testes)
 - [Deploy](#deploy)
 - [Logs e saúde da API](#logs-e-saúde-da-api)
+- [Traces](#traces)
 - [Performance e segurança](#performance-e-segurança)
 - [API](#api)
 - [Regras de negócio](#regras-de-negócio)
@@ -397,6 +398,34 @@ Duas rotas dizem se a API está bem:
 
 As duas ficam fora do log automático, porque o Render e o pipeline chamam o tempo todo. O preflight do CORS (`OPTIONS`, que o navegador manda antes de cada `POST`) também fica fora.
 
+## Traces
+
+Um trace é a linha do tempo de uma requisição: quanto tempo ela passou no Express, em cada consulta ao banco e na chamada à TCGdex. O log diz *que* uma rota demorou; o trace diz *onde*. A API usa o [OpenTelemetry](https://opentelemetry.io), o padrão aberto: o mesmo código manda os traces para o Jaeger local ou para qualquer serviço compatível, trocando só variáveis de ambiente.
+
+```bash
+make traces
+```
+
+`make traces` sobe o [Jaeger](https://www.jaegertracing.io) (perfil `observabilidade` do compose) e a API em modo watch mandando os traces para ele. A tela fica em http://localhost:16686: escolha o serviço `pokebox-backend` e a operação.
+
+| O que aparece | De onde vem |
+|---|---|
+| a requisição (`POST /trades/:id/accept`) e o handler da rota | instrumentação de HTTP e do Express |
+| cada operação do Prisma e cada SQL, com o texto da consulta | `@prisma/instrumentation` e instrumentação do `pg` |
+| a chamada à TCGdex (`GET`) | instrumentação do `fetch` (undici) |
+| `trade.accept`, em volta do aceite da troca | span manual (`withSpan`, em `src/lib/tracing.ts`) |
+
+Como funciona:
+
+- `src/instrumentation.ts` liga o OpenTelemetry e precisa carregar **antes** do Express e do `pg`, para conseguir "embrulhar" essas bibliotecas. Por isso ele entra com `node --import` (no `npm run dev`, no `npm start` e no `CMD` do Dockerfile), e não por um `import` no `server.ts`.
+- Sem `OTEL_EXPORTER_OTLP_ENDPOINT`, nada liga: os testes e quem não quer traces não são afetados.
+- O `/health` não gera trace (o monitor chama a cada 5 minutos), e os spans de middleware ficaram de fora para o trace mostrar só o que importa.
+- Com os traces ligados, cada linha de log ganha `trace_id` e `span_id`. Achou um erro no log? Copie o `trace_id` e cole na busca do Jaeger para ver a requisição inteira.
+
+**Roteiro para a apresentação:** com `make traces`, `misty` cria uma troca e `ash` aceita. No Jaeger, a operação `trade.accept` mostra a transação (`BEGIN` ... `COMMIT`), as travas `SELECT ... FOR UPDATE` da RN-08 em ordem e o tempo de cada consulta. Depois, abra um `GET /cards/:id` de uma carta nunca vista (span da TCGdex, centenas de ms) e o mesmo id de novo (sai do cache em memória, sem span da TCGdex).
+
+Em produção, o Render pode mandar os traces para o Grafana Cloud (plano gratuito) com três variáveis: `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS` (o token, segredo) e `OTEL_SERVICE_NAME`. Sem elas, a API de produção roda sem traces.
+
 ## Performance e segurança
 
 ### O que já existia
@@ -630,7 +659,7 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 
 ### Limitações conhecidas
 
-- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte leva cerca de 2 minutos (a imagem sobe e roda o `prisma migrate deploy` antes de atender). Para isso não acontecer durante a avaliação, o workflow `.github/workflows/keep-alive.yml` chama `GET /health` a cada 10 minutos (só roda na `main`; para desligar: Actions → Keep alive → Disable workflow). Não custa nada: Actions é livre em repositório público, um serviço ligado o mês todo cabe nas 750 h grátis do Render (não criar outro serviço grátis na mesma conta) e o `/health` não consulta o banco, então o Neon continua dormindo. O GitHub pode atrasar um agendamento, e aí a API dorme uma vez. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
+- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte leva cerca de 2 minutos (a imagem sobe e roda o `prisma migrate deploy` antes de atender). Para isso não acontecer durante a avaliação, um monitor externo gratuito (UptimeRobot) chama `GET /health` a cada 5 minutos. O workflow `.github/workflows/keep-alive.yml` faz o mesmo a cada 10 minutos, mas fica só como reserva: o GitHub atrasa e descarta agendamentos quando a fila está cheia, e na prática ele rodou 1 vez em 5 horas. Não custa nada: um serviço ligado o mês todo cabe nas 750 h grátis do Render (não criar outro serviço grátis na mesma conta) e o `/health` não consulta o banco, então o Neon continua dormindo. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
 - Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time. O login e o cadastro param depois de 20 tentativas sem sucesso para o mesmo e-mail em 15 minutos.
 
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
