@@ -100,11 +100,35 @@ export type CardSearchInfo = {
   ignored: string[];
 };
 
+export type CardFilters = {
+  type?: string;
+  rarity?: string;
+  set?: string;
+  category?: string;
+};
+
+export type CardSort = {
+  field: 'name';
+  order: 'asc' | 'desc';
+};
+
 export type CardListQuery = {
   lang: string;
   name?: string;
   page: number;
   limit: number;
+  filters?: CardFilters;
+  sort?: CardSort;
+};
+
+export type CardFilterValues = {
+  types: string[];
+  rarities: string[];
+  categories: string[];
+};
+
+export type CardFilterOptions = CardFilterValues & {
+  sets: { id: string; name: string }[];
 };
 
 export type CardListResult = {

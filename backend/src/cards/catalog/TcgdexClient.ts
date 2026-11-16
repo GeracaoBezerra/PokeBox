@@ -4,11 +4,12 @@ import { CardNotFoundError } from '../../errors/CardNotFoundError.js';
 import { TcgdexUnavailableError } from '../../errors/TcgdexUnavailableError.js';
 import type { Logger } from '../../lib/logger.js';
 import { MemoryCache } from '../../utils/memoryCache.js';
-import type { CardDetail, CardSummary, MarketPrice, SetInfo, SetSummary } from '../types.js';
+import type { CardDetail, CardFilters, CardFilterValues, CardSummary, MarketPrice, SetInfo, SetSummary } from '../types.js';
 import type { CardCatalog, CardSearchQuery } from './CardCatalog.js';
 import {
   tcgdexCardBriefListSchema,
   tcgdexCardSchema,
+  tcgdexNameListSchema,
   tcgdexPricingSchema,
   tcgdexSetListSchema,
   tcgdexSetSchema,
@@ -28,6 +29,13 @@ export interface TcgdexClientOptions {
 }
 
 const ONE_DAY = 24 * 60 * 60 * 1000;
+
+const FILTER_PARAMS: [keyof CardFilters, string][] = [
+  ['type', 'types'],
+  ['rarity', 'rarity'],
+  ['set', 'set.id'],
+  ['category', 'category'],
+];
 
 function errorDetail(err: unknown): string | undefined {
   if (!(err instanceof Error)) return undefined;
@@ -133,6 +141,7 @@ export class TcgdexClient implements CardCatalog {
   private readonly setInfoMemory: MemoryCache<SetInfo>;
   private readonly setListMemory: MemoryCache<SetSummary[]>;
   private readonly setCardsMemory: MemoryCache<CardSummary[]>;
+  private readonly filterValuesMemory: MemoryCache<CardFilterValues>;
 
   constructor({ baseUrl, timeoutMs, fetch, logger = console, setTtlMs = ONE_DAY }: TcgdexClientOptions) {
     this.baseUrl = baseUrl;
@@ -142,6 +151,7 @@ export class TcgdexClient implements CardCatalog {
     this.setInfoMemory = new MemoryCache(setTtlMs);
     this.setListMemory = new MemoryCache(setTtlMs);
     this.setCardsMemory = new MemoryCache(setTtlMs);
+    this.filterValuesMemory = new MemoryCache(setTtlMs);
   }
 
   async getById(id: string, lang: string): Promise<CardDetail> {
@@ -151,12 +161,20 @@ export class TcgdexClient implements CardCatalog {
     return toCardDetail(card, setInfo);
   }
 
-  async search({ lang, name, page, limit }: CardSearchQuery): Promise<CardSummary[]> {
+  async search({ lang, name, page, limit, filters = {}, sort }: CardSearchQuery): Promise<CardSummary[]> {
     const params = new URLSearchParams({
       'pagination:page': String(page),
       'pagination:itemsPerPage': String(limit),
     });
     if (name) params.set('name', name);
+    for (const [filter, param] of FILTER_PARAMS) {
+      const value = filters[filter];
+      if (value) params.set(param, `eq:${value}`);
+    }
+    if (sort) {
+      params.set('sort:field', sort.field);
+      params.set('sort:order', sort.order.toUpperCase());
+    }
 
     const cards = await this.request(`/${lang}/cards?${params}`, tcgdexCardBriefListSchema);
     if (!cards) return [];
@@ -195,6 +213,21 @@ export class TcgdexClient implements CardCatalog {
     const cards = set.cards.map(toCardSummary);
     this.setCardsMemory.set(key, cards);
     return cards;
+  }
+
+  async listFilterValues(lang: string): Promise<CardFilterValues> {
+    const fromMemory = this.filterValuesMemory.get(lang);
+    if (fromMemory) return fromMemory;
+
+    const [types, rarities, categories] = await Promise.all(
+      ['types', 'rarities', 'categories'].map((list) => this.request(`/${lang}/${list}`, tcgdexNameListSchema)),
+    );
+    if (!types || !rarities || !categories) {
+      return { types: types ?? [], rarities: rarities ?? [], categories: categories ?? [] };
+    }
+    const values = { types, rarities, categories };
+    this.filterValuesMemory.set(lang, values);
+    return values;
   }
 
   private async findSetInfo(setId: string, lang: string): Promise<SetInfo> {

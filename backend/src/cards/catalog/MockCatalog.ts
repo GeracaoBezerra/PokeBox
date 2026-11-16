@@ -1,6 +1,6 @@
 import { cardMock } from '../../mocks/cardMock.js';
 import type { CardFinder } from '../search/CardFinder.js';
-import type { CardDetail, CardListResult, CardSummary, SetSummary } from '../types.js';
+import type { CardDetail, CardFilterValues, CardListResult, CardSummary, SetSummary } from '../types.js';
 import type { CardCatalog } from './CardCatalog.js';
 
 export class MockCatalog implements CardCatalog, CardFinder {
@@ -19,6 +19,10 @@ export class MockCatalog implements CardCatalog, CardFinder {
 
   async listSetCards(): Promise<CardSummary[]> {
     return [];
+  }
+
+  async listFilterValues(): Promise<CardFilterValues> {
+    return { types: cardMock.types, rarities: cardMock.rarity ? [cardMock.rarity] : [], categories: [cardMock.category] };
   }
 
   async find(): Promise<CardListResult> {

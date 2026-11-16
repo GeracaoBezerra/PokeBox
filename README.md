@@ -17,6 +17,7 @@ Projeto em equipe do curso **Geração Tech**.
 - [Testes](#testes)
 - [Deploy](#deploy)
 - [Logs e saúde da API](#logs-e-saúde-da-api)
+- [Traces](#traces)
 - [Performance e segurança](#performance-e-segurança)
 - [API](#api)
 - [Regras de negócio](#regras-de-negócio)
@@ -63,7 +64,7 @@ Projeto em equipe do curso **Geração Tech**.
 │       ├── utils/         regras puras (testadas com jest)
 │       └── docs/          especificação do Swagger
 ├── frontend/              app React (Vite), Dockerfile (dev, build, prod com nginx), nginx.conf e vercel.json
-├── .github/workflows/     ci.yml (testes), deploy.yml (testes, depois Render e Vercel) e keep-alive.yml (ping na API)
+├── .github/workflows/     ci.yml (testes) e deploy.yml (testes, depois Render e Vercel)
 ├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento
 ├── docker-compose.prod.yml o que muda no modo produção local
 └── .env.example           variáveis de ambiente
@@ -263,27 +264,77 @@ O `/docs` chama a API no mesmo endereço em que foi aberto, então funciona em q
 
 ## Testes
 
+São dois andares da pirâmide de testes, com comandos separados:
+
+| Tipo | Onde | O que testa | Precisa de banco |
+|---|---|---|---|
+| Unidade | `backend/src/**/*.test.ts` | regras puras, schemas, services e controllers, com as dependências falsas passadas no construtor | não |
+| Integração | `backend/test/integration/*.int.test.ts` | requisição HTTP de verdade (supertest) passando por rota, middleware, controller, service e repository até um PostgreSQL de verdade | sim, um banco só de teste |
+
 ```bash
 cd backend
 npm test
 ```
 
-São testes de unidade (jest com ts-jest) das regras puras, dos schemas, dos services e dos controllers, com as dependências falsas passadas no construtor. Não precisam de banco. `npm run typecheck` checa os tipos dos testes também.
-
-Há também um teste **com banco** que prova a RN-07 de verdade: força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais. Ele fica desligado por padrão (a CI não tem PostgreSQL). Para rodar, com o banco no ar e as migrations aplicadas:
+`npm test` roda só os de unidade: é rápido e não precisa de nada no ar. `npm run typecheck` checa os tipos dos dois tipos de teste.
 
 ```bash
-cd backend
-RUN_DB_TESTS=1 npm test
+make test-int
 ```
 
-Ele cria dois usuários `rb_*` temporários e apaga tudo no fim.
+`make test-int` cria o `backend/.env.test` a partir do `backend/.env.test.example` (se ainda não existir), sobe o banco de teste `tcg-db-test` (porta 5433, dados só em memória) e roda `npm run test:integration`. A cada execução, o banco de teste é apagado e recriado com as migrations e o seed. Por isso a suíte se recusa a rodar se o nome do banco não terminar em `_test`: o banco de desenvolvimento nunca é tocado. `make test-db-down` remove o banco de teste.
+
+Como funcionam os testes de integração:
+
+- Cada arquivo de teste monta o app de verdade (`buildContainer` + `createApp`) sem abrir porta, e cria os próprios usuários pelo `POST /auth/register`. Os usuários do seed entram com as senhas do `.env.test`.
+- A TCGdex é simulada por um servidor local que responde com as 87 cartas de `prisma/seed-data/cards.json` no formato da TCGdex. Nenhum teste usa a internet, e dá para simular a TCGdex fora do ar (502).
+- No `.env.test`, o limite de tentativas de login fica desligado (`AUTH_RATE_LIMIT=0`) e os logs ficam em silêncio (`LOG_LEVEL=silent`).
+- A RN-07 tem um teste próprio (`tradeRollback.int.test.ts`): ele força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais.
+
+O que a integração cobre (102 testes, um arquivo por área):
+
+| Arquivo | Casos |
+|---|---|
+| `auth` | cadastro, e-mail e username repetidos (409), senha curta (400 com `details`), login certo e errado (401), sem token e token inválido (401), `admin-check` (403/200), limite de tentativas (429 com `Retry-After`, outro e-mail entra) |
+| `user` | editar o perfil, campo inválido ou a mais (400), excluir a conta: login depois → 403 e perfil público → 404 |
+| `collection` | adicionar e listar com `available`; RN-01 (a carta é gravada uma vez só); RN-02 (403 e 404); RN-03 (soma, quantidade negativa 400 e CHECK no banco); variante que a carta não tem (422); quantidade abaixo do anunciado (422) e apagar item anunciado (409); condição presa (409); RN-11 nos três caminhos |
+| `wishlist` | adicionar, listar, remover; repetida (409); `opportunities` conta só item público de outra pessoa; RN-12 (tem a carta, mesmo privada → 409; item zerado → 201) |
+| `profile` | RN-10: item privado, e-mail e reserva não aparecem; usuário inexistente (404) |
+| `listings` | RN-05 (403, 422, soma dos anúncios abertos); pausar, fechar sem volta, bloqueio só do ADMIN; marketplace: `q`, `type`, `rarity`, filtros somados, `sort=name`, valor inválido (400 com `details`), `GET /listings/me` |
+| `offers` | RN-06: próprio anúncio (422), anúncio pausado (404), carta de outra pessoa (403), mais do que tem (422), segunda oferta (409), quem aceita e quem cancela (403), oferta finalizada não muda (422), aceita sem troca pode ser cancelada, fechar o anúncio cancela as ofertas; quem vê a oferta; carta em oferta não é apagada (409) |
+| `trades` | quem cria a troca (403), oferta não aceita (422), segunda troca (409); RN-08 (reserva dos dois lados, anúncio fecha, quantidade abaixo do reservado 422, apagar 409); RN-07 (as cartas trocam de dono) com RN-11 (a carta recebida sai da wishlist); troca finalizada não muda (409); recusar libera a reserva; cancelar; quem vê a troca (inclusive ADMIN → 403) |
+| `cards` | busca, busca esperta (`charizard base`, palavras ignoradas), ids recusados fora da lista, `limit` acima de 100 (400), detalhe com e sem login, carta inexistente (404), id fora da regra (400); filtros: `GET /cards/filters` (e 502 com a TCGdex fora), `type` sem nome, mesmo nome com tipos diferentes (cache separado), nome + raridade + set, `category` com `sort=name&order=desc` e duas páginas, valor que não existe (400 com `details`) |
+| `snapshot` | RN-09: com a TCGdex fora do ar, coleção, wishlist, perfil público e marketplace continuam respondendo com os dados da carta; o detalhe de uma carta já consultada sai da cópia guardada no banco |
+| `health` e `errors` | `/health/ready`, TCGdex fora do ar (502), JSON malformado (400), corpo acima de 100 KB (413), rota inexistente (404), id que não é UUID (400), `x-request-id` |
+
+O 504 (TCGdex demorando mais de 8 s) fica só nos testes de unidade do `TcgdexClient`, para a suíte não esperar 8 s. Como a IA ajudou a escrever esses testes, e o que ela errou, está em [`docs/ia.md`](docs/ia.md).
+
+### Cobertura
+
+Cobertura é a porcentagem do código que os testes executaram pelo menos uma vez. Ela não prova que o código está certo, mas mostra onde nenhum teste passa.
+
+```bash
+make coverage
+```
+
+`make coverage` sobe o banco de teste e roda `npm run test:coverage`: os testes de unidade e os de integração numa execução só, somando a cobertura dos dois. O relatório, arquivo por arquivo e linha por linha, fica em `backend/coverage/lcov-report/index.html`.
+
+Entram na conta os arquivos `.ts` de `backend/src`. Ficam de fora os testes, o client gerado do Prisma, o Swagger escrito à mão (`src/docs`), os mocks, os arquivos só de tipos e o `server.ts`, que só sobe o servidor.
+
+| Métrica | Só unidade | Unidade + integração | Mínimo exigido |
+|---|---|---|---|
+| Linhas | 86,1% | 97,8% | 95% |
+| Comandos | 85,0% | 96,3% | 94% |
+| Funções | 75,7% | 97,5% | 95% |
+| Ramos (if/else) | 79,1% | 88,1% | 86% |
+
+Números de 15/11/2026, medidos na CI, com 682 testes de unidade e 95 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. O front ainda não tem testes nem cobertura: isso entra com a #107.
 
 A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 
 | Job | O que roda |
 |---|---|
-| `backend` | `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build`, `npm test` |
+| `backend` | sobe um PostgreSQL de teste; `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build` e `npm run test:coverage` (unidade + integração, com o mínimo de cobertura). Mostra a tabela de cobertura no resumo da execução e guarda o relatório completo como artefato `coverage-backend` |
 | `frontend` | `npm ci`, `npm run lint`, `npm run build` |
 
 Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow de deploy, antes de publicar (veja [Deploy](#deploy)).
@@ -346,6 +397,51 @@ Duas rotas dizem se a API está bem:
 | `GET /health/ready` | o banco responde (`SELECT 1`); 503 se não | para conferir à mão ou num monitor externo |
 
 As duas ficam fora do log automático, porque o Render e o pipeline chamam o tempo todo. O preflight do CORS (`OPTIONS`, que o navegador manda antes de cada `POST`) também fica fora.
+
+## Traces
+
+Um trace é a linha do tempo de uma requisição: quanto tempo ela passou no Express, em cada consulta ao banco e na chamada à TCGdex. O log diz *que* uma rota demorou; o trace diz *onde*. A API usa o [OpenTelemetry](https://opentelemetry.io), o padrão aberto: o mesmo código manda os traces para o Jaeger local ou para qualquer serviço compatível, trocando só variáveis de ambiente.
+
+```bash
+make traces
+```
+
+`make traces` sobe o [Jaeger](https://www.jaegertracing.io) (perfil `observabilidade` do compose) e a API em modo watch mandando os traces para ele. A tela fica em http://localhost:16686: escolha o serviço `pokebox-backend` e a operação.
+
+| O que aparece | De onde vem |
+|---|---|
+| a requisição (`POST /trades/:id/accept`) e o handler da rota | instrumentação de HTTP e do Express |
+| cada operação do Prisma e cada SQL, com o texto da consulta | `@prisma/instrumentation` e instrumentação do `pg` |
+| a chamada à TCGdex (`GET`) | instrumentação do `fetch` (undici) |
+| `trade.accept`, em volta do aceite da troca | span manual (`withSpan`, em `src/lib/tracing.ts`) |
+
+Como funciona:
+
+- `src/instrumentation.ts` liga o OpenTelemetry e precisa carregar **antes** do Express e do `pg`, para conseguir "embrulhar" essas bibliotecas. Por isso ele entra com `node --import` (no `npm run dev`, no `npm start` e no `CMD` do Dockerfile), e não por um `import` no `server.ts`.
+- Sem `OTEL_EXPORTER_OTLP_ENDPOINT`, nada liga: os testes e quem não quer traces não são afetados.
+- O `/health` não gera trace (o monitor chama a cada 5 minutos), e os spans de middleware ficaram de fora para o trace mostrar só o que importa.
+- Com os traces ligados, cada linha de log ganha `trace_id` e `span_id`. Achou um erro no log? Copie o `trace_id` e cole na busca do Jaeger para ver a requisição inteira.
+
+**Roteiro para a apresentação:** com `make traces`, `misty` cria uma troca e `ash` aceita. No Jaeger, a operação `trade.accept` mostra a transação (`BEGIN` ... `COMMIT`), as travas `SELECT ... FOR UPDATE` da RN-08 em ordem e o tempo de cada consulta. Depois, abra um `GET /cards/:id` de uma carta nunca vista (span da TCGdex, centenas de ms) e o mesmo id de novo (sai do cache em memória, sem span da TCGdex).
+
+Na mão, sem o `make`: com o Jaeger de pé, rode a API com `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` (ou `http://jaeger:4318` com o backend no compose). Os traces vão em protobuf por HTTP (OTLP), formato que o Jaeger e o Grafana aceitam.
+
+### Traces da produção (Grafana Cloud)
+
+A API no Render manda os traces para o Grafana Cloud (plano gratuito, retenção curta). Para ver: no Grafana, **Explore**, fonte **Tempo**, e busque `{resource.service.name="pokebox-backend"}`, ou cole um `trace_id` copiado dos logs do Render.
+
+Configuração:
+
+1. No Grafana Cloud, **Connections → OpenTelemetry (OTLP)**: gera o endpoint e um token.
+2. No Render, serviço da API, **Environment**:
+
+| Variável | Valor |
+|---|---|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | o endpoint do Grafana (`https://otlp-gateway-prod-<região>.grafana.net/otlp`) |
+| `OTEL_EXPORTER_OTLP_HEADERS` | `Authorization=Basic <token>`. É segredo: só no painel do Render, nunca no Git |
+| `OTEL_SERVICE_NAME` | `pokebox-backend` |
+
+Sem essas variáveis, a API roda sem traces. Os traces saem em lotes a cada poucos segundos e, ao desligar, a API espera o último lote ser enviado.
 
 ## Performance e segurança
 
@@ -468,7 +564,8 @@ Todas as respostas seguem o mesmo formato:
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação. Entende nome de set e ignora palavras que não acham nada: `charizard base` traz os Charizard com o do Base Set primeiro, e `charizard base x pipi popo` ainda traz os Charizard. O resultado vem ordenado por relevância, cada carta traz `set: { id, name }` e `number`, e a resposta traz `search: { name, sets, ignored }` dizendo como a busca foi entendida. Erro de digitação (`charzard`) ainda não é tolerado. Cartas com id que o detalhe não aceita (fora de letras, números, ponto e hífen) ficam fora da lista: hoje são só as Unown "!" e "?" do set `exu`; por isso uma página pode vir com uma carta a menos |
+| `GET /cards?name=&page=&limit=&lang=&type=&rarity=&set=&category=&sort=&order=` | | busca cartas na TCGdex, com paginação. Entende nome de set e ignora palavras que não acham nada: `charizard base` traz os Charizard com o do Base Set primeiro, e `charizard base x pipi popo` ainda traz os Charizard. O resultado vem ordenado por relevância, cada carta traz `set: { id, name }` e `number`, e a resposta traz `search: { name, sets, ignored }` dizendo como a busca foi entendida. Erro de digitação (`charzard`) ainda não é tolerado. Cartas com id que o detalhe não aceita (fora de letras, números, ponto e hífen) ficam fora da lista: hoje são só as Unown "!" e "?" do set `exu`; por isso uma página pode vir com uma carta a menos. **Filtros (#75):** `type`, `rarity`, `set` (id do set) e `category` filtram pelo valor exato, com ou sem nome; a caixa não importa (`fire` vira `Fire`), e valor que não existe no idioma responde 400 com `details`. `sort=name` com `order=asc` ou `desc` ordena pelo nome no lugar da relevância |
+| `GET /cards/filters?lang=` | | opções dos filtros do catálogo no idioma pedido: `{ types, rarities, categories, sets: [{ id, name }] }`. Os valores vêm traduzidos pela TCGdex (em `pt`, `Fire` vira `Fogo`). Fica 1 dia em memória; TCGdex fora do ar → 502 |
 | `GET /cards/:id` | 🔓 | detalhe da carta (ataques, variantes, preço de referência) e os anúncios ativos dela; com login, traz `user` (quantas você tem, se está na sua wishlist, se você tem anúncio ativo dela) |
 
 ### Coleção
@@ -554,6 +651,7 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | **RN-06** Ofertas | Só faz oferta em anúncio **ativo** de outra pessoa (próprio anúncio → **422**; pausado, fechado ou bloqueado → **404**). Pede no máximo a quantidade do anúncio e oferece só cartas da **própria** coleção (**403**) que caibam no disponível (**422**). Uma oferta aberta por pessoa em cada anúncio (**409**). Só o **dono do anúncio** aceita ou recusa; só **quem fez** cancela (**403**, inclusive para ADMIN). Oferta finalizada (aceita, recusada ou cancelada) **não muda mais** nem volta para `PROPOSED` (**422**), com uma exceção: oferta **aceita que ainda não virou troca** pode ser recusada pelo dono ou cancelada por quem fez, para não ficar presa; se já virou troca, **409** e quem age é a troca. Recusar ou cancelar solta as cartas oferecidas. Fechar ou bloquear o anúncio cancela as ofertas abertas dele e as **aceitas que ainda não viraram troca** (desbloquear não traz de volta); diminuir o anúncio cancela as aceitas que pedem mais do que a nova quantidade (cada uma comparada sozinha); pausar não mexe em nenhuma. Oferta aceita que já virou troca não muda: quem manda é a troca. A oferta **não reserva** cartas, mas o aceite confere de novo: se o dono baixou o anúncio abaixo do que a oferta pede, ou se quem ofertou não tem mais as cartas, o aceite é recusado (**422**). Carta que está numa oferta aberta ou aceita não pode ser apagada da coleção (**409**). |
 | **RN-07** Troca atômica | O aceite da troca roda numa **transação só**: trava as cartas, confere de novo que cada uma ainda é de quem entrega e está reservada, tira de quem entrega e soma em quem recebe (no item igual em carta, condição e variante; se não houver, cria um item público). Se qualquer passo falhar, **nada muda**. Quem entrega fica com o item, mesmo que chegue a 0. Só o dono do anúncio aceita ou recusa; só quem fez a oferta cria e cancela a troca (**403**). Troca finalizada não muda mais (**409**). Uma troca por oferta (**409**). |
 | **RN-08** Reserva | Quando a troca nasce, as cartas dos dois lados ficam **reservadas**: nenhuma outra negociação consegue usá-las (anunciar, ofertar, aceitar outra oferta → **422**), nem dá para baixar a quantidade abaixo do reservado (**422**) ou apagar o item (**409**). No mesmo momento, o anúncio diminui pela quantidade da oferta (em 0, fecha e cancela as ofertas abertas dele) e os anúncios de quem ofertou que passariam do disponível são reduzidos. Outras ofertas já aceitas desse anúncio que não cabem mais são canceladas e soltam as cartas. Recusar ou cancelar a troca libera a reserva (os anúncios não voltam). Pedidos ao mesmo tempo na mesma troca: um passa, o outro recebe **409**. A **condição** de um item não muda enquanto ele está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**): assim o que foi anunciado e oferecido é o que chega. |
+| **RN-09** Snapshot local da carta | Quando uma carta entra numa coleção ou wishlist, nome, set, número, imagem, raridade, tipos e preço de referência são gravados na tabela `Card` (RN-01). Coleção, wishlist, perfil público e marketplace leem dali, sem chamar a TCGdex: com ela fora do ar, essas telas continuam funcionando. O detalhe completo (ataques, habilidades) fica guardado 24 h no `CardCache` e é usado quando a TCGdex cai (veja "Cache das cartas" abaixo). |
 | **RN-10** Privacidade | Item com `isPublic: false` não aparece no perfil público. O perfil público nunca mostra e-mail, reserva nem dados internos. Conta desativada ou suspensa → **404**. |
 | **RN-11** Coleção limpa a wishlist | Carta que entra na coleção sai da wishlist da pessoa, na mesma transação: vale ao adicionar (`POST /collection`), ao receber numa troca concluída (`POST /trades/:id/accept`) e quando um item zerado volta a ter quantidade (`PATCH /collection/:id`). Como a wishlist não tem variante, qualquer condição ou acabamento conta. |
 | **RN-12** Wishlist só do que falta | Carta que você já tem na coleção (quantidade maior que 0, em qualquer variante, pública ou privada) não entra na wishlist (**409**). Item zerado não conta. Junto com a RN-11, a wishlist guarda só o que a pessoa ainda não tem. |
@@ -578,7 +676,7 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 
 ### Limitações conhecidas
 
-- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte leva cerca de 2 minutos (a imagem sobe e roda o `prisma migrate deploy` antes de atender). Para isso não acontecer durante a avaliação, o workflow `.github/workflows/keep-alive.yml` chama `GET /health` a cada 10 minutos (só roda na `main`; para desligar: Actions → Keep alive → Disable workflow). Não custa nada: Actions é livre em repositório público, um serviço ligado o mês todo cabe nas 750 h grátis do Render (não criar outro serviço grátis na mesma conta) e o `/health` não consulta o banco, então o Neon continua dormindo. O GitHub pode atrasar um agendamento, e aí a API dorme uma vez. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
+- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte leva cerca de 2 minutos (a imagem sobe e roda o `prisma migrate deploy` antes de atender). Para isso não acontecer durante a avaliação, um monitor externo gratuito (UptimeRobot) chama `GET /health` a cada 5 minutos e avisa por e-mail se a API cair. Antes isso era um workflow agendado no GitHub Actions, a cada 10 minutos; ele foi removido porque o GitHub atrasa e descarta agendamentos quando a fila está cheia, e na prática rodou 1 vez em 5 horas. Não custa nada: um serviço ligado o mês todo cabe nas 750 h grátis do Render (não criar outro serviço grátis na mesma conta) e o `/health` não consulta o banco, então o Neon continua dormindo. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
 - Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time. O login e o cadastro param depois de 20 tentativas sem sucesso para o mesmo e-mail em 15 minutos.
 
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
@@ -595,6 +693,8 @@ cd frontend && npm install && npm run dev
 Abra `http://localhost:5173`, entre com um usuário do seed e use o menu: Cards (catálogo), Marketplace, Coleção, Wishlist, Anúncios, Propostas, Trocas e Meu perfil. Para mostrar uma troca, use duas janelas (uma normal e uma anônima), uma com o `ash` e outra com a `misty`. Os erros aparecem com a mensagem da API e o código HTTP, por exemplo "Você já tem uma oferta aberta neste anúncio (409)".
 
 As chamadas ficam em `frontend/src/api/` (axios com interceptores em `http.js`, uma função por rota).
+
+As páginas (`frontend/src/pages/`) só buscam os dados e montam a tela; cada bloco visual é um componente em `frontend/src/components/<Nome>/<Nome>.jsx`. Os reaproveitados entre páginas são `CabecalhoPagina`, `Paginacao`, `CartaMini`, `MiniaturaCarta`, `AbasNegociacao` e `GradeCartas`. O catálogo (`/catalogo`) usa o mesmo `CartaCard` da home, via `GradeCartas`; o `utils/cartaCard.js` converte a carta da API para o formato que o `CartaCard` espera. A busca do catálogo só traz id, nome, número e imagem, então ali o painel de dados do hover fica escondido até a API mandar mais campos.
 
 ## Status do projeto
 
