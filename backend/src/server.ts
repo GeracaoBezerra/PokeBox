@@ -1,6 +1,7 @@
 import { loadEnv } from './config/env.js';
 import { createApp } from './app.js';
 import { buildContainer } from './container.js';
+import { shutdownTracing } from './instrumentation.js';
 
 const env = loadEnv();
 const container = buildContainer(env);
@@ -23,6 +24,7 @@ async function shutdown(signal: NodeJS.Signals) {
   server.close();
   try {
     await container.shutdown();
+    await shutdownTracing();
   } finally {
     process.exit(0);
   }
