@@ -91,7 +91,6 @@ Além dos índices que o Postgres cria para PK e `UNIQUE`:
 | `CollectionItem` e `WishlistItem` por `cardId` | achar quem tem ou quer uma carta (oportunidades da wishlist, detalhe da carta). A busca por dono usa a chave única, que começa por `userId` |
 | `Listing` por `collectionItemId` | anúncios abertos de um item (RN-05, `GET /listings/me`) |
 | `Listing` por `(status, createdAt DESC, id)` (#112) | `GET /listings`: o banco lê os anúncios ativos já na ordem de "mais recentes" e para no fim da página, em vez de ordenar todos. Também atende filtro só por `status` |
-
 | `CatalogCard` por `setId` | cartas de um set reconhecido na busca (`charizard base`) |
 | `CatalogCard_nameNormalized_trgm_idx`: GIN com `gin_trgm_ops` em `nameNormalized` (#78) | busca tolerante a erro de digitação. Atende os operadores `<<%` (semelhança por palavra) e `LIKE '%texto%'` do `pg_trgm` |
 
@@ -125,7 +124,6 @@ O `npm run catalog:sync` (`backend/scripts/sync-catalog.ts`) preenche a tabela: 
 | `20261105220000_trade_only` | só trocas (D-08): remove `priceCents` de `Listing` e `Offer`, `Listing.type` e o enum `ListingType` e as CHECKs de preço; cria `OfferItem` com a CHECK `offer_item_quantity_check` |
 | `20261106025357_add_card_market_price` | preço de referência em `Card` (`marketPrice`, `marketPriceCurrency`, `marketPriceSource`, `marketPriceUpdatedAt`) e a CHECK `card_market_price_check` |
 | `20261115113657_indice_anuncios_recentes` | troca o índice de `Listing` por `status` pelo índice `(status, createdAt DESC, id)` (#112) |
-
 | `20261116212649_catalog_card` | cria `CatalogCard` com o índice por `setId` (#78) |
 | `20261116212650_catalog_card_search` | escrita à mão: cria as extensões `pg_trgm` e `unaccent` e o índice GIN de trigramas em `CatalogCard.nameNormalized` (#78). O índice também está no `schema.prisma` (`type: Gin`), para o Prisma não achar diferença entre o schema e o banco |
 
