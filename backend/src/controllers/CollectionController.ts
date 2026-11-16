@@ -3,20 +3,29 @@ import type { RequestHandler } from 'express';
 import {
   collectionItemIdSchema,
   createCollectionItemSchema,
+  listCollectionQuerySchema,
   updateCollectionItemSchema,
 } from '../schemas/collection.schema.js';
 import type { CollectionService } from '../services/CollectionService.js';
 import { currentUser } from '../utils/currentUser.js';
 
-export type CollectionActions = Pick<CollectionService, 'list' | 'add' | 'update' | 'remove'>;
+export type CollectionActions = Pick<CollectionService, 'list' | 'listPage' | 'add' | 'update' | 'remove'>;
 
 export class CollectionController {
   constructor(private readonly collection: CollectionActions) {}
 
   list: RequestHandler = async (req, res) => {
-    const items = await this.collection.list(currentUser(req).id);
+    const userId = currentUser(req).id;
+    const { filters, page } = listCollectionQuerySchema.parse(req.query);
 
-    res.status(200).json({ success: true, data: { items } });
+    if (!page) {
+      const items = await this.collection.list(userId);
+      res.status(200).json({ success: true, data: { items } });
+      return;
+    }
+
+    const { items, hasNextPage } = await this.collection.listPage(userId, filters, page);
+    res.status(200).json({ success: true, data: { items }, pagination: { ...page, hasNextPage } });
   };
 
   add: RequestHandler = async (req, res) => {

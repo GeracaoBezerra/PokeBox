@@ -115,7 +115,7 @@ function setup() {
   const unitOfWork = new FakeUnitOfWorkFactory(uow);
   const service = new OfferService({ listings, offers: readers, unitOfWork });
 
-  return { service, offers, listings, trades, lockItemsInOrder, unitOfWork };
+  return { service, offers, listings, trades, lockItemsInOrder, unitOfWork, readers };
 }
 
 describe('changeStatus em oferta aceita', () => {
@@ -216,5 +216,44 @@ describe('create', () => {
 
     await expect(service.create(proposer, LISTING_ID, input)).rejects.toMatchObject({ statusCode: 404 });
     expect(unitOfWork.runs).toBe(0);
+  });
+});
+
+describe('listMine e listMinePage', () => {
+  it('sem paginação busca os dois lados inteiros, só com o status', async () => {
+    const { service, readers } = setup();
+    const repo = readers;
+    jest.mocked(repo.findSent).mockResolvedValueOnce([offerFrom('PROPOSED')]);
+
+    const result = await service.listMine(OWNER_ID, 'PROPOSED');
+
+    expect(repo.findSent).toHaveBeenCalledWith(OWNER_ID, { status: 'PROPOSED' });
+    expect(repo.findReceived).toHaveBeenCalledWith(OWNER_ID, { status: 'PROPOSED' });
+    expect(result.sent).toHaveLength(1);
+    expect(result.received).toEqual([]);
+  });
+
+  it('side sent pede skip/take só das enviadas', async () => {
+    const { service, readers } = setup();
+    const repo = readers;
+    jest.mocked(repo.findSent).mockResolvedValueOnce([offerFrom('PROPOSED'), offerFrom('PROPOSED'), offerFrom('PROPOSED')]);
+
+    const result = await service.listMinePage(OWNER_ID, 'sent', undefined, { page: 2, limit: 2 });
+
+    expect(repo.findSent).toHaveBeenCalledWith(OWNER_ID, { status: undefined, skip: 2, take: 3 });
+    expect(repo.findReceived).not.toHaveBeenCalled();
+    expect(result.items).toHaveLength(2);
+    expect(result.hasNextPage).toBe(true);
+  });
+
+  it('side received pede só as recebidas, com o status', async () => {
+    const { service, readers } = setup();
+    const repo = readers;
+
+    const result = await service.listMinePage(OWNER_ID, 'received', 'PROPOSED', { page: 1, limit: 20 });
+
+    expect(repo.findReceived).toHaveBeenCalledWith(OWNER_ID, { status: 'PROPOSED', skip: 0, take: 21 });
+    expect(repo.findSent).not.toHaveBeenCalled();
+    expect(result).toEqual({ items: [], hasNextPage: false });
   });
 });

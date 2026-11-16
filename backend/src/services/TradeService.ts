@@ -6,6 +6,7 @@ import type { OfferRepository } from '../repositories/OfferRepository.js';
 import type { LockedTrade, TradeRepository, TradeWithItems } from '../repositories/TradeRepository.js';
 import type { TradeUnitOfWork, UnitOfWorkFactory } from '../repositories/UnitOfWork.js';
 import { assertStillFulfillable } from '../utils/offerRules.js';
+import { toPage, toSkipTake, type ListSide, type Page, type PageParams } from '../utils/pagination.js';
 import {
   TRADE_ACTIONS,
   assertCanCreate,
@@ -120,14 +121,25 @@ export class TradeService {
 
   async listMine(userId: string, status?: TradeStatus): Promise<MyTrades> {
     const [sent, received] = await Promise.all([
-      this.deps.trades.findSent(userId, status),
-      this.deps.trades.findReceived(userId, status),
+      this.deps.trades.findSent(userId, { status }),
+      this.deps.trades.findReceived(userId, { status }),
     ]);
 
     return {
       sent: sent.map((trade) => toTradeResponse(trade)),
       received: received.map((trade) => toTradeResponse(trade)),
     };
+  }
+
+  async listMinePage(userId: string, side: ListSide, status: TradeStatus | undefined, page: PageParams): Promise<Page<TradeView>> {
+    const options = { status, ...toSkipTake(page) };
+    const rows =
+      side === 'sent'
+        ? await this.deps.trades.findSent(userId, options)
+        : await this.deps.trades.findReceived(userId, options);
+    const { items, hasNextPage } = toPage(rows, page);
+
+    return { items: items.map((trade) => toTradeResponse(trade)), hasNextPage };
   }
 
   async getById(userId: string, id: string): Promise<TradeView> {

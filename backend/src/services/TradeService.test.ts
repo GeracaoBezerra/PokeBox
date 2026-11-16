@@ -313,3 +313,42 @@ describe('create (RN-08)', () => {
     expect(unitOfWork.runs).toBe(0);
   });
 });
+
+describe('listMine e listMinePage', () => {
+  it('sem paginação busca os dois lados inteiros, só com o status', async () => {
+    const { service, readers } = setup();
+    const repo = readers.trades;
+    jest.mocked(repo.findSent).mockResolvedValueOnce([trade]);
+
+    const result = await service.listMine(OWNER_ID, 'ACCEPTED');
+
+    expect(repo.findSent).toHaveBeenCalledWith(OWNER_ID, { status: 'ACCEPTED' });
+    expect(repo.findReceived).toHaveBeenCalledWith(OWNER_ID, { status: 'ACCEPTED' });
+    expect(result.sent).toHaveLength(1);
+    expect(result.received).toEqual([]);
+  });
+
+  it('side sent pede skip/take só das enviadas', async () => {
+    const { service, readers } = setup();
+    const repo = readers.trades;
+    jest.mocked(repo.findSent).mockResolvedValueOnce([trade, trade, trade]);
+
+    const result = await service.listMinePage(OWNER_ID, 'sent', undefined, { page: 2, limit: 2 });
+
+    expect(repo.findSent).toHaveBeenCalledWith(OWNER_ID, { status: undefined, skip: 2, take: 3 });
+    expect(repo.findReceived).not.toHaveBeenCalled();
+    expect(result.items).toHaveLength(2);
+    expect(result.hasNextPage).toBe(true);
+  });
+
+  it('side received pede só as recebidas, com o status', async () => {
+    const { service, readers } = setup();
+    const repo = readers.trades;
+
+    const result = await service.listMinePage(OWNER_ID, 'received', 'ACCEPTED', { page: 1, limit: 20 });
+
+    expect(repo.findReceived).toHaveBeenCalledWith(OWNER_ID, { status: 'ACCEPTED', skip: 0, take: 21 });
+    expect(repo.findSent).not.toHaveBeenCalled();
+    expect(result).toEqual({ items: [], hasNextPage: false });
+  });
+});

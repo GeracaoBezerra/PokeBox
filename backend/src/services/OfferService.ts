@@ -5,6 +5,7 @@ import type { OfferRepository, OfferWithDetails } from '../repositories/OfferRep
 import type { UnitOfWorkFactory } from '../repositories/UnitOfWork.js';
 import type { CreateOfferInput, OfferStatusChange } from '../schemas/offer.schema.js';
 import { isListingVisible, type ListingViewer } from '../utils/listingRules.js';
+import { toPage, toSkipTake, type ListSide, type Page, type PageParams } from '../utils/pagination.js';
 import {
   assertCanPropose,
   assertListingActive,
@@ -87,14 +88,25 @@ export class OfferService {
 
   async listMine(userId: string, status?: OfferStatus): Promise<MyOffers> {
     const [sent, received] = await Promise.all([
-      this.deps.offers.findSent(userId, status),
-      this.deps.offers.findReceived(userId, status),
+      this.deps.offers.findSent(userId, { status }),
+      this.deps.offers.findReceived(userId, { status }),
     ]);
 
     return {
       sent: sent.map((offer) => toOfferResponse(offer)),
       received: received.map((offer) => toOfferResponse(offer)),
     };
+  }
+
+  async listMinePage(userId: string, side: ListSide, status: OfferStatus | undefined, page: PageParams): Promise<Page<OfferView>> {
+    const options = { status, ...toSkipTake(page) };
+    const rows =
+      side === 'sent'
+        ? await this.deps.offers.findSent(userId, options)
+        : await this.deps.offers.findReceived(userId, options);
+    const { items, hasNextPage } = toPage(rows, page);
+
+    return { items: items.map((offer) => toOfferResponse(offer)), hasNextPage };
   }
 
   async getById(userId: string, id: string): Promise<OfferView> {

@@ -6,6 +6,8 @@ import { MockCatalog } from '../cards/catalog/MockCatalog.js';
 import { PrismaCardCacheStore } from '../cards/catalog/PrismaCardCacheStore.js';
 import { TcgdexClient } from '../cards/catalog/TcgdexClient.js';
 import type { CardFinder } from '../cards/search/CardFinder.js';
+import { LocalCatalogFinder } from '../cards/search/LocalCatalogFinder.js';
+import { PrismaCatalogSearchStore } from '../cards/search/PrismaCatalogSearchStore.js';
 import { SmartCardFinder } from '../cards/search/SmartCardFinder.js';
 import { CardController, type CardListingsReader } from '../controllers/CardController.js';
 import { PrismaCardRepository, type CardRepository } from '../repositories/PrismaCardRepository.js';
@@ -48,7 +50,12 @@ function buildCatalog(infra: Infra, cardRepository: CardRepository): { catalog: 
     isCacheable: (card) => !dbCached.isStale(card),
   });
 
-  return { catalog, finder: new SmartCardFinder(catalog, { ttlMs: TEN_MINUTES }) };
+  const smartFinder = new SmartCardFinder(catalog, { ttlMs: TEN_MINUTES, logger: infra.logger });
+  const finder = new LocalCatalogFinder(new PrismaCatalogSearchStore(infra.prisma), smartFinder, {
+    setsTtlMs: TEN_MINUTES,
+  });
+
+  return { catalog, finder };
 }
 
 export interface CardsModuleDeps {

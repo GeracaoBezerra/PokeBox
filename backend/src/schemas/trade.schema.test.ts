@@ -21,8 +21,20 @@ describe('createTradeSchema', () => {
 });
 
 describe('listTradesQuerySchema', () => {
-  it('status é opcional', () => {
-    expect(listTradesQuerySchema.parse({})).toEqual({});
+  it('sem parâmetros não pagina', () => {
+    expect(listTradesQuerySchema.parse({})).toEqual({ filters: {}, page: null });
+  });
+
+  it('status sozinho não pagina', () => {
+    expect(listTradesQuerySchema.parse({ status: 'ACCEPTED' })).toEqual({ filters: { status: 'ACCEPTED' }, page: null });
+  });
+
+  it('side pagina na página 1 com 20 itens', () => {
+    expect(listTradesQuerySchema.parse({ side: 'sent' })).toEqual({ filters: { side: 'sent' }, page: { page: 1, limit: 20 } });
+  });
+
+  it('recusa page sem side', () => {
+    expect(listTradesQuerySchema.safeParse({ page: '1' }).error?.issues[0].path).toEqual(['side']);
   });
 
   it.each(['PROPOSED', 'ACCEPTED', 'REJECTED', 'CANCELED'])('aceita status %s', (status) => {

@@ -10,7 +10,7 @@ import {
 import type { OfferService } from '../services/OfferService.js';
 import { currentUser } from '../utils/currentUser.js';
 
-export type OfferActions = Pick<OfferService, 'create' | 'listMine' | 'getById' | 'changeStatus'>;
+export type OfferActions = Pick<OfferService, 'create' | 'listMine' | 'listMinePage' | 'getById' | 'changeStatus'>;
 
 export class OfferController {
   constructor(private readonly offers: OfferActions) {}
@@ -24,10 +24,20 @@ export class OfferController {
   };
 
   listMine: RequestHandler = async (req, res) => {
-    const { status } = listOffersQuerySchema.parse(req.query);
-    const { sent, received } = await this.offers.listMine(currentUser(req).id, status);
+    const userId = currentUser(req).id;
+    const {
+      filters: { status, side },
+      page,
+    } = listOffersQuerySchema.parse(req.query);
 
-    res.status(200).json({ success: true, data: { sent, received } });
+    if (!side || !page) {
+      const { sent, received } = await this.offers.listMine(userId, status);
+      res.status(200).json({ success: true, data: { sent, received } });
+      return;
+    }
+
+    const { items, hasNextPage } = await this.offers.listMinePage(userId, side, status, page);
+    res.status(200).json({ success: true, data: { items }, pagination: { ...page, hasNextPage } });
   };
 
   getById: RequestHandler = async (req, res) => {

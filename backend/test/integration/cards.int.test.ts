@@ -149,3 +149,35 @@ describe('filtros do catálogo (#75)', () => {
     }
   });
 });
+
+describe('TCGdex instável (#145)', () => {
+  test('503 uma vez: a API tenta de novo e responde 200', async () => {
+    const flaky = await startTestApp();
+    try {
+      flaky.tcgdex.failNext(503, 1);
+      const before = flaky.tcgdex.calls();
+
+      const res = await request(flaky.app).get('/cards/filters');
+
+      expect(res.status).toBe(200);
+      expect(flaky.tcgdex.calls() - before).toBeGreaterThan(3);
+    } finally {
+      await flaky.close();
+    }
+  });
+
+  test('503 três vezes seguidas: 502 depois de 3 chamadas', async () => {
+    const down = await startTestApp();
+    try {
+      down.tcgdex.failNext(503, 3);
+      const before = down.tcgdex.calls();
+
+      const res = await request(down.app).get('/cards/naoexiste-998');
+
+      expect(res.status).toBe(502);
+      expect(down.tcgdex.calls() - before).toBe(3);
+    } finally {
+      await down.close();
+    }
+  });
+});

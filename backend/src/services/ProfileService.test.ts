@@ -81,3 +81,27 @@ describe('ProfileService.getPublicCollection (RN-10)', () => {
     await expect(service.getPublicCollection('ash')).rejects.toMatchObject({ statusCode: 404 });
   });
 });
+
+describe('ProfileService.getPublicCollectionPage', () => {
+  it('pede skip/take com q e type e mantém o usuário na resposta', async () => {
+    const { collection, service } = setup();
+    collection.findPublicByUser.mockResolvedValue([item, { ...item, id: 'item-2' }]);
+
+    const result = await service.getPublicCollectionPage('ash', { q: 'char', type: 'Fire' }, { page: 1, limit: 1 });
+
+    expect(collection.findPublicByUser).toHaveBeenCalledWith('u-ash', { q: 'char', type: 'Fire', skip: 0, take: 2 });
+    expect(result.user).toEqual({ username: 'ash', name: 'Ash Ketchum', createdAt: ash.createdAt });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).not.toHaveProperty('isPublic');
+    expect(result.hasNextPage).toBe(true);
+  });
+
+  it('usuário inexistente dá 404 sem consultar a coleção', async () => {
+    const { collection, service } = setup(null);
+
+    await expect(service.getPublicCollectionPage('ninguem', {}, { page: 1, limit: 20 })).rejects.toMatchObject({
+      statusCode: 404,
+    });
+    expect(collection.findPublicByUser).not.toHaveBeenCalled();
+  });
+});
