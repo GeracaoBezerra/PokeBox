@@ -106,3 +106,5 @@ export type TcgdexCard = z.infer<typeof tcgdexCardSchema>;
 export type TcgdexCardBrief = z.infer<typeof tcgdexCardBriefListSchema>[number];
 export type TcgdexSetListItem = z.infer<typeof tcgdexSetListSchema>[number];
 export type TcgdexPricing = z.infer<typeof tcgdexPricingSchema>;
+
+export const tcgdexNameListSchema = z.array(z.string());

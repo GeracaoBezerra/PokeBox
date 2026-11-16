@@ -119,6 +119,28 @@ function detail(card: SeedCard) {
   };
 }
 
+const LIST_FILTERS: [string, (card: SeedCard) => (string | null)[]][] = [
+  ['types', (card) => card.types],
+  ['rarity', (card) => [card.rarity]],
+  ['set.id', (card) => [card.setId]],
+  ['category', (card) => [card.category]],
+];
+
+function exact(value: unknown): string | null {
+  return typeof value === 'string' && value.startsWith('eq:') ? value.slice(3) : null;
+}
+
+function matchesFilters(card: SeedCard, query: Request['query']): boolean {
+  return LIST_FILTERS.every(([param, valuesOf]) => {
+    const wanted = exact(query[param]);
+    return wanted === null || valuesOf(card).includes(wanted);
+  });
+}
+
+function distinct(values: (string | null)[]): string[] {
+  return [...new Set(values.filter((value): value is string => value !== null))].sort();
+}
+
 function setsOf(cards: SeedCard[]) {
   const sets = new Map<string, { id: string; name: string; serie?: { id: string; name: string }; releaseDate?: string; cards: SeedCard[] }>();
 
@@ -154,9 +176,21 @@ export async function startFakeTcgdex(): Promise<FakeTcgdex> {
     const name = String(req.query.name ?? '').toLowerCase();
     const page = Number(req.query['pagination:page'] ?? 1);
     const perPage = Number(req.query['pagination:itemsPerPage'] ?? 100);
-    const matches = [...cards.map(brief), ...LIST_ONLY_CARDS].filter((card) => card.name.toLowerCase().includes(name));
+    const filtered = LIST_FILTERS.some(([param]) => req.query[param] !== undefined);
+    const listed = filtered
+      ? cards.filter((card) => matchesFilters(card, req.query)).map(brief)
+      : [...cards.map(brief), ...LIST_ONLY_CARDS];
+    const matches = listed.filter((card) => card.name.toLowerCase().includes(name));
+    if (req.query['sort:field'] === 'name') {
+      const direction = req.query['sort:order'] === 'DESC' ? -1 : 1;
+      matches.sort((a, b) => direction * a.name.localeCompare(b.name));
+    }
     res.json(matches.slice((page - 1) * perPage, page * perPage));
   });
+
+  app.get('/:lang/types', (_req: Request, res: Response) => res.json(distinct(cards.flatMap((card) => card.types))));
+  app.get('/:lang/rarities', (_req: Request, res: Response) => res.json(distinct(cards.map((card) => card.rarity))));
+  app.get('/:lang/categories', (_req: Request, res: Response) => res.json(distinct(cards.map((card) => card.category))));
 
   app.get('/:lang/cards/:id', (req: Request<{ id: string }>, res: Response) => {
     const card = byId.get(req.params.id);

@@ -290,7 +290,7 @@ Como funcionam os testes de integração:
 - No `.env.test`, o limite de tentativas de login fica desligado (`AUTH_RATE_LIMIT=0`) e os logs ficam em silêncio (`LOG_LEVEL=silent`).
 - A RN-07 tem um teste próprio (`tradeRollback.int.test.ts`): ele força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais.
 
-O que a integração cobre (95 testes, um arquivo por área):
+O que a integração cobre (102 testes, um arquivo por área):
 
 | Arquivo | Casos |
 |---|---|
@@ -302,7 +302,7 @@ O que a integração cobre (95 testes, um arquivo por área):
 | `listings` | RN-05 (403, 422, soma dos anúncios abertos); pausar, fechar sem volta, bloqueio só do ADMIN; marketplace: `q`, `type`, `rarity`, filtros somados, `sort=name`, valor inválido (400 com `details`), `GET /listings/me` |
 | `offers` | RN-06: próprio anúncio (422), anúncio pausado (404), carta de outra pessoa (403), mais do que tem (422), segunda oferta (409), quem aceita e quem cancela (403), oferta finalizada não muda (422), aceita sem troca pode ser cancelada, fechar o anúncio cancela as ofertas; quem vê a oferta; carta em oferta não é apagada (409) |
 | `trades` | quem cria a troca (403), oferta não aceita (422), segunda troca (409); RN-08 (reserva dos dois lados, anúncio fecha, quantidade abaixo do reservado 422, apagar 409); RN-07 (as cartas trocam de dono) com RN-11 (a carta recebida sai da wishlist); troca finalizada não muda (409); recusar libera a reserva; cancelar; quem vê a troca (inclusive ADMIN → 403) |
-| `cards` | busca, busca esperta (`charizard base`, palavras ignoradas), ids recusados fora da lista, `limit` acima de 100 (400), detalhe com e sem login, carta inexistente (404), id fora da regra (400) |
+| `cards` | busca, busca esperta (`charizard base`, palavras ignoradas), ids recusados fora da lista, `limit` acima de 100 (400), detalhe com e sem login, carta inexistente (404), id fora da regra (400); filtros: `GET /cards/filters` (e 502 com a TCGdex fora), `type` sem nome, mesmo nome com tipos diferentes (cache separado), nome + raridade + set, `category` com `sort=name&order=desc` e duas páginas, valor que não existe (400 com `details`) |
 | `snapshot` | RN-09: com a TCGdex fora do ar, coleção, wishlist, perfil público e marketplace continuam respondendo com os dados da carta; o detalhe de uma carta já consultada sai da cópia guardada no banco |
 | `health` e `errors` | `/health/ready`, TCGdex fora do ar (502), JSON malformado (400), corpo acima de 100 KB (413), rota inexistente (404), id que não é UUID (400), `x-request-id` |
 
@@ -518,7 +518,8 @@ Todas as respostas seguem o mesmo formato:
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação. Entende nome de set e ignora palavras que não acham nada: `charizard base` traz os Charizard com o do Base Set primeiro, e `charizard base x pipi popo` ainda traz os Charizard. O resultado vem ordenado por relevância, cada carta traz `set: { id, name }` e `number`, e a resposta traz `search: { name, sets, ignored }` dizendo como a busca foi entendida. Erro de digitação (`charzard`) ainda não é tolerado. Cartas com id que o detalhe não aceita (fora de letras, números, ponto e hífen) ficam fora da lista: hoje são só as Unown "!" e "?" do set `exu`; por isso uma página pode vir com uma carta a menos |
+| `GET /cards?name=&page=&limit=&lang=&type=&rarity=&set=&category=&sort=&order=` | | busca cartas na TCGdex, com paginação. Entende nome de set e ignora palavras que não acham nada: `charizard base` traz os Charizard com o do Base Set primeiro, e `charizard base x pipi popo` ainda traz os Charizard. O resultado vem ordenado por relevância, cada carta traz `set: { id, name }` e `number`, e a resposta traz `search: { name, sets, ignored }` dizendo como a busca foi entendida. Erro de digitação (`charzard`) ainda não é tolerado. Cartas com id que o detalhe não aceita (fora de letras, números, ponto e hífen) ficam fora da lista: hoje são só as Unown "!" e "?" do set `exu`; por isso uma página pode vir com uma carta a menos. **Filtros (#75):** `type`, `rarity`, `set` (id do set) e `category` filtram pelo valor exato, com ou sem nome; a caixa não importa (`fire` vira `Fire`), e valor que não existe no idioma responde 400 com `details`. `sort=name` com `order=asc` ou `desc` ordena pelo nome no lugar da relevância |
+| `GET /cards/filters?lang=` | | opções dos filtros do catálogo no idioma pedido: `{ types, rarities, categories, sets: [{ id, name }] }`. Os valores vêm traduzidos pela TCGdex (em `pt`, `Fire` vira `Fogo`). Fica 1 dia em memória; TCGdex fora do ar → 502 |
 | `GET /cards/:id` | 🔓 | detalhe da carta (ataques, variantes, preço de referência) e os anúncios ativos dela; com login, traz `user` (quantas você tem, se está na sua wishlist, se você tem anúncio ativo dela) |
 
 ### Coleção
