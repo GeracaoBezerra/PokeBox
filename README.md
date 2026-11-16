@@ -63,7 +63,7 @@ Projeto em equipe do curso **Geração Tech**.
 │       ├── utils/         regras puras (testadas com jest)
 │       └── docs/          especificação do Swagger
 ├── frontend/              app React (Vite), Dockerfile (dev, build, prod com nginx), nginx.conf e vercel.json
-├── .github/workflows/     ci.yml (testes), deploy.yml (testes, depois Render e Vercel) e keep-alive.yml (ping na API)
+├── .github/workflows/     ci.yml (testes) e deploy.yml (testes, depois Render e Vercel)
 ├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento
 ├── docker-compose.prod.yml o que muda no modo produção local
 └── .env.example           variáveis de ambiente
@@ -630,7 +630,7 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 
 ### Limitações conhecidas
 
-- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte leva cerca de 2 minutos (a imagem sobe e roda o `prisma migrate deploy` antes de atender). Para isso não acontecer durante a avaliação, o workflow `.github/workflows/keep-alive.yml` chama `GET /health` a cada 10 minutos (só roda na `main`; para desligar: Actions → Keep alive → Disable workflow). Não custa nada: Actions é livre em repositório público, um serviço ligado o mês todo cabe nas 750 h grátis do Render (não criar outro serviço grátis na mesma conta) e o `/health` não consulta o banco, então o Neon continua dormindo. O GitHub pode atrasar um agendamento, e aí a API dorme uma vez. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
+- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte leva cerca de 2 minutos (a imagem sobe e roda o `prisma migrate deploy` antes de atender). Para isso não acontecer durante a avaliação, um monitor externo gratuito (UptimeRobot) chama `GET /health` a cada 5 minutos e avisa por e-mail se a API cair. Antes isso era um workflow agendado no GitHub Actions, a cada 10 minutos; ele foi removido porque o GitHub atrasa e descarta agendamentos quando a fila está cheia, e na prática rodou 1 vez em 5 horas. Não custa nada: um serviço ligado o mês todo cabe nas 750 h grátis do Render (não criar outro serviço grátis na mesma conta) e o `/health` não consulta o banco, então o Neon continua dormindo. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
 - Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time. O login e o cadastro param depois de 20 tentativas sem sucesso para o mesmo e-mail em 15 minutos.
 
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
