@@ -14,6 +14,7 @@ export default {
     '!src/mocks/**',
     '!src/types/**',
     '!src/server.ts',
+    '!src/instrumentation.ts',
   ],
   coverageReporters: ['text', 'text-summary', 'lcov', 'json-summary'],
   coverageThreshold: {
