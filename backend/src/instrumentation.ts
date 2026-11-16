@@ -36,6 +36,10 @@ if (process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
   sdk.start();
 }
 
+const SHUTDOWN_LIMIT_MS = 3000;
+
 export async function shutdownTracing(): Promise<void> {
-  await sdk?.shutdown().catch(() => undefined);
+  if (!sdk) return;
+  const limit = new Promise<void>((resolve) => setTimeout(resolve, SHUTDOWN_LIMIT_MS).unref());
+  await Promise.race([sdk.shutdown().catch(() => undefined), limit]);
 }
