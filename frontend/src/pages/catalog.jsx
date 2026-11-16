@@ -3,11 +3,10 @@ import { searchCards } from "../api/cards";
 import Aviso from "../components/Aviso/Aviso";
 import BuscaCatalogo from "../components/BuscaCatalogo/BuscaCatalogo";
 import CabecalhoPagina from "../components/CabecalhoPagina/CabecalhoPagina";
-import GradeCartas from "../components/GradeCartas/GradeCartas";
 import Paginacao from "../components/Paginacao/Paginacao";
 import { useCarregar } from "../hooks/useCarregar";
 import s from "../styles/paginas.module.css";
-import { cartaDoCatalogo } from "../utils/cartaCard";
+import { ListaDeCartas } from "../components/GridCartas/GridCartas";
 
 export default function CatalogPage() {
   const [params, setParams] = useSearchParams();
@@ -44,7 +43,7 @@ export default function CatalogPage() {
           {dados.items.length === 0 ? (
             <p className={s.suave}>Nenhuma carta encontrada.</p>
           ) : (
-            <GradeCartas cartas={dados.items.map((carta) => cartaDoCatalogo(carta, lang))} />
+            <ListaDeCartas cartas={dados.items} lang={lang} />
           )}
           <Paginacao pagina={page} temProxima={dados.pagination?.hasNextPage} onIrPara={irPara} />
         </div>
