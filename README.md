@@ -64,7 +64,7 @@ Projeto em equipe do curso **Geração Tech**.
 │       ├── utils/         regras puras (testadas com jest)
 │       └── docs/          especificação do Swagger
 ├── frontend/              app React (Vite), Dockerfile (dev, build, prod com nginx), nginx.conf e vercel.json
-├── .github/workflows/     ci.yml (testes), deploy.yml (testes, depois Render e Vercel) e keep-alive.yml (ping na API)
+├── .github/workflows/     ci.yml (testes) e deploy.yml (testes, depois Render e Vercel)
 ├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento
 ├── docker-compose.prod.yml o que muda no modo produção local
 └── .env.example           variáveis de ambiente
