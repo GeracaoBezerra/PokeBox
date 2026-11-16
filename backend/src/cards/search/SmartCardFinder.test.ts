@@ -252,3 +252,47 @@ describe('SmartCardFinder filtros (#75)', () => {
     expect(desc.cards.map((card) => card.name)).toEqual(['Pikachu', 'Pikachu', 'Detective Pikachu']);
   });
 });
+
+describe('SmartCardFinder com a TCGdex fora (#145)', () => {
+  let expiring: SmartCardFinder;
+
+  beforeEach(() => {
+    expiring = new SmartCardFinder(catalog, { ttlMs: -1 });
+  });
+
+  test('busca já feita devolve o resultado vencido', async () => {
+    const lang = freshLang();
+    const first = await expiring.find({ lang, name: 'charizard', page: 1, limit: 20 });
+    catalog.search.mockRejectedValue(new TcgdexUnavailableError('TCGdex respondeu 503'));
+
+    const second = await expiring.find({ lang, name: 'charizard', page: 1, limit: 20 });
+
+    expect(second).toEqual(first);
+    expect(catalog.search).toHaveBeenCalledTimes(2);
+  });
+
+  test('lista sem nome já vista devolve a página vencida', async () => {
+    const lang = freshLang();
+    catalog.search.mockResolvedValueOnce([brief('base1-4', 'Charizard')]);
+    const first = await expiring.find({ lang, page: 1, limit: 20 });
+    catalog.search.mockRejectedValue(new TcgdexUnavailableError('TCGdex respondeu 503'));
+
+    await expect(expiring.find({ lang, page: 1, limit: 20 })).resolves.toEqual(first);
+  });
+
+  test('busca nunca feita repassa o erro', async () => {
+    catalog.search.mockRejectedValue(new TcgdexUnavailableError('TCGdex respondeu 503'));
+
+    await expect(expiring.find({ lang: freshLang(), name: 'charizard', page: 1, limit: 20 })).rejects.toBeInstanceOf(
+      TcgdexUnavailableError,
+    );
+  });
+
+  test('erro que não é da TCGdex não usa o resultado vencido', async () => {
+    const lang = freshLang();
+    await expiring.find({ lang, name: 'charizard', page: 1, limit: 20 });
+    catalog.search.mockRejectedValue(new Error('bug'));
+
+    await expect(expiring.find({ lang, name: 'charizard', page: 1, limit: 20 })).rejects.toThrow('bug');
+  });
+});

@@ -34,6 +34,8 @@ export interface FakeTcgdex {
   url: string;
   cards: SeedCard[];
   failWith(status: number | null): void;
+  failNext(status: number, times: number): void;
+  calls(): number;
   close(): Promise<void>;
 }
 
@@ -164,11 +166,15 @@ export async function startFakeTcgdex(): Promise<FakeTcgdex> {
   const byId = new Map(cards.map((card) => [card.id, card]));
   const sets = setsOf(cards);
   let failure: number | null = null;
+  let nextFailures: number[] = [];
+  let calls = 0;
 
   const app = express();
 
   app.use((_req, res, next) => {
-    if (failure !== null) return res.status(failure).json({ error: 'falha simulada' });
+    calls++;
+    const status = nextFailures.shift() ?? failure;
+    if (status !== null) return res.status(status).json({ error: 'falha simulada' });
     return next();
   });
 
@@ -225,6 +231,10 @@ export async function startFakeTcgdex(): Promise<FakeTcgdex> {
     failWith(status) {
       failure = status;
     },
+    failNext(status, times) {
+      nextFailures = Array.from({ length: times }, () => status);
+    },
+    calls: () => calls,
     close: () => new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve()))),
   };
 }

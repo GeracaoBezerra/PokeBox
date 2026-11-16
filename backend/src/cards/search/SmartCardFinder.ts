@@ -1,3 +1,4 @@
+import { TcgdexUnavailableError } from '../../errors/TcgdexUnavailableError.js';
 import { MemoryCache } from '../../utils/memoryCache.js';
 import { matchSets, nameMatchesAny, rankCards, toCardListItem, tokenize } from '../../utils/cardSearch.js';
 import type { CardCatalog, CardSearchQuery } from '../catalog/CardCatalog.js';
@@ -29,6 +30,16 @@ function sortCards(cards: CardListItem[], sort?: CardSort): CardListItem[] {
   if (!sort) return cards;
   const direction = sort.order === 'desc' ? -1 : 1;
   return [...cards].sort((a, b) => direction * a.name.localeCompare(b.name));
+}
+
+async function orStale<T>(memory: MemoryCache<T>, key: string, load: () => Promise<T>): Promise<T> {
+  try {
+    return await load();
+  } catch (err) {
+    const stale = memory.getStale(key);
+    if (!(err instanceof TcgdexUnavailableError) || stale === null) throw err;
+    return stale;
+  }
 }
 
 interface RankedSearch {
@@ -63,12 +74,14 @@ export class SmartCardFinder implements CardFinder {
     if (tokens.length === 0) return this.listAll({ lang, page, limit, filters, sort }, filtersKey);
 
     const key = `search:${lang}:${filtersKey}:${tokens.join(' ')}`;
-    let result = this.searches.get(key);
-    if (!result) {
-      const found = await this.searchCards(lang, tokens, filters);
-      result = { ...found, cards: sortCards(found.cards, sort) };
-      this.searches.set(key, result);
-    }
+    const result =
+      this.searches.get(key) ??
+      (await orStale(this.searches, key, async () => {
+        const found = await this.searchCards(lang, tokens, filters);
+        const ranked = { ...found, cards: sortCards(found.cards, sort) };
+        this.searches.set(key, ranked);
+        return ranked;
+      }));
 
     const start = (page - 1) * limit;
     const end = start + limit;
@@ -85,14 +98,16 @@ export class SmartCardFinder implements CardFinder {
     const fromMemory = this.lists.get(key);
     if (fromMemory) return fromMemory;
 
-    const [found, sets] = await Promise.all([this.catalog.search(query), this.catalog.listSets(lang)]);
-    const result: CardListResult = {
-      cards: found.map((card) => toCardListItem(card, sets)),
-      hasNextPage: found.length === limit,
-      search: null,
-    };
-    this.lists.set(key, result);
-    return result;
+    return orStale(this.lists, key, async () => {
+      const [found, sets] = await Promise.all([this.catalog.search(query), this.catalog.listSets(lang)]);
+      const result: CardListResult = {
+        cards: found.map((card) => toCardListItem(card, sets)),
+        hasNextPage: found.length === limit,
+        search: null,
+      };
+      this.lists.set(key, result);
+      return result;
+    });
   }
 
   private searchByName(lang: string, words: string, filters: CardFilters): Promise<CardSummary[]> {

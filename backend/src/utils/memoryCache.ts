@@ -13,15 +13,16 @@ export class MemoryCache<T> {
 
   get(key: string): T | null {
     const entry = this.store.get(key);
-    if (!entry) return null;
-    if (Date.now() > entry.expiresAt) {
-      this.store.delete(key);
-      return null;
-    }
+    if (!entry || Date.now() > entry.expiresAt) return null;
     return entry.value;
   }
 
+  getStale(key: string): T | null {
+    return this.store.get(key)?.value ?? null;
+  }
+
   set(key: string, value: T): void {
+    this.store.delete(key);
     if (this.store.size >= this.maxItems) {
       const oldestKey = this.store.keys().next().value;
       if (oldestKey) this.store.delete(oldestKey);
