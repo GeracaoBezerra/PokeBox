@@ -154,7 +154,7 @@ export class SmartCardFinder implements CardFinder {
       cards: ranked.map((card) => toCardListItem(card, sets)),
       search: {
         name: searchWords.length > 0 ? searchWords.join(' ') : null,
-        sets: matched.sets.map((set) => set.name),
+        sets: matched.sets.filter((set) => setIds.includes(set.id)).map((set) => set.name),
         ignored: nameTokens.filter((token) => !searchWords.includes(token)),
       },
     };

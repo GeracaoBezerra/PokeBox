@@ -271,4 +271,15 @@ describe('TcgdexClient', () => {
     fetchMock.mockImplementation(async () => jsonResponse(200, ['Fire']));
     await expect(client.listFilterValues('en')).resolves.toEqual({ types: ['Fire'], rarities: ['Fire'], categories: ['Fire'] });
   });
+
+  it('listFilterValues com uma lista faltando (404) não guarda nada', async () => {
+    fetchMock.mockImplementation(async (url) =>
+      url.endsWith('/types') ? jsonResponse(404, { error: 'not found' }) : jsonResponse(200, ['Rare']),
+    );
+
+    await expect(client.listFilterValues('en')).resolves.toEqual({ types: [], rarities: ['Rare'], categories: ['Rare'] });
+
+    fetchMock.mockImplementation(async () => jsonResponse(200, ['Fire']));
+    await expect(client.listFilterValues('en')).resolves.toEqual({ types: ['Fire'], rarities: ['Fire'], categories: ['Fire'] });
+  });
 });

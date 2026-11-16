@@ -238,7 +238,7 @@ describe('SmartCardFinder filtros (#75)', () => {
       filters: { set: 'base4' },
     });
 
-    expect(result.search?.sets).toEqual(['Base Set', 'Base Set 2']);
+    expect(result.search?.sets).toEqual(['Base Set 2']);
     expect(catalog.search).not.toHaveBeenCalledWith(expect.objectContaining({ filters: { set: 'base1' } }));
     expect(catalog.search).toHaveBeenCalledWith(expect.objectContaining({ filters: { set: 'base4' } }));
   });

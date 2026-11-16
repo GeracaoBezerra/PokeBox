@@ -222,7 +222,10 @@ export class TcgdexClient implements CardCatalog {
     const [types, rarities, categories] = await Promise.all(
       ['types', 'rarities', 'categories'].map((list) => this.request(`/${lang}/${list}`, tcgdexNameListSchema)),
     );
-    const values = { types: types ?? [], rarities: rarities ?? [], categories: categories ?? [] };
+    if (!types || !rarities || !categories) {
+      return { types: types ?? [], rarities: rarities ?? [], categories: categories ?? [] };
+    }
+    const values = { types, rarities, categories };
     this.filterValuesMemory.set(lang, values);
     return values;
   }
