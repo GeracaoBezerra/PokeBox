@@ -619,7 +619,7 @@ export const swaggerSpec = {
         tags: ["Cards"],
         summary: "Lista/busca cartas",
         description:
-          "Lista paginada de cartas da TCGdex, com busca opcional. A busca quebra o texto em palavras (sem acento, ignorando palavras de 1 letra) e reconhece nomes de set: em \"charizard base\", \"base\" vira os sets Base Set, Base Set 2 e Expedition Base Set (no máximo 3) e \"charizard\" é procurado no nome. Se a frase inteira não achar nada, cada palavra é tentada sozinha (até 4), e as que não trazem nada voltam em search.ignored. Palavra que só cobre parte do nome de um set (\"pikachu\" em Detective Pikachu) também é procurada no nome quando o resto não acha nada, para \"pikachu\" continuar trazendo todos os Pikachu. O resultado é ordenado por relevância (carta do set reconhecido, nome igual ao buscado, palavras contidas no nome) e paginado sobre a lista inteira, que fica 10 min em memória: trocar de página não chama a TCGdex de novo. A lista de sets fica 1 dia em memória. Cada item traz o set e o número da carta. Sem name, devolve a lista da TCGdex como antes, sem o campo search. Cartas com id fora do padrão aceito por GET /cards/{id} (letras, números, ponto e hífen) não aparecem na lista, porque o detalhe delas não abriria: hoje são as Unown \"!\" e \"?\" (exu-! e exu-%3F). Por isso uma página pode vir com menos cartas que o limit.",
+          "Lista paginada de cartas da TCGdex, com busca opcional. A busca quebra o texto em palavras (sem acento, ignorando palavras de 1 letra) e reconhece nomes de set: em \"charizard base\", \"base\" vira os sets Base Set, Base Set 2 e Expedition Base Set (no máximo 3) e \"charizard\" é procurado no nome. Se a frase inteira não achar nada, cada palavra é tentada sozinha (até 4), e as que não trazem nada voltam em search.ignored. Palavra que só cobre parte do nome de um set (\"pikachu\" em Detective Pikachu) também é procurada no nome quando o resto não acha nada, para \"pikachu\" continuar trazendo todos os Pikachu. O resultado é ordenado por relevância (carta do set reconhecido, nome igual ao buscado, palavras contidas no nome) e paginado sobre a lista inteira, que fica 10 min em memória: trocar de página não chama a TCGdex de novo. A lista de sets fica 1 dia em memória. Cada item traz o set e o número da carta. Sem name, devolve a lista da TCGdex como antes, sem o campo search. Cartas com id fora do padrão aceito por GET /cards/{id} (letras, números, ponto e hífen) não aparecem na lista, porque o detalhe delas não abriria: hoje são as Unown \"!\" e \"?\" (exu-! e exu-%3F). Por isso uma página pode vir com menos cartas que o limit. Filtros (type, rarity, set, category) usam o valor exato do idioma pedido, que vem de GET /cards/filters; a caixa não importa (fire vira Fire). Valor que não existe no idioma responde 400. Com nome, os filtros entram na busca antes do ranking; sort=name troca a ordem por relevância pela ordem alfabética.",
         security: [],
         parameters: [
           {
@@ -640,6 +640,48 @@ export const swaggerSpec = {
             in: "query",
             required: false,
             schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+          },
+          {
+            name: "type",
+            in: "query",
+            required: false,
+            description: "Tipo da carta, como em GET /cards/filters (types)",
+            schema: { type: "string", maxLength: 30, example: "Fire" },
+          },
+          {
+            name: "rarity",
+            in: "query",
+            required: false,
+            description: "Raridade, como em GET /cards/filters (rarities)",
+            schema: { type: "string", maxLength: 50, example: "Rare Holo" },
+          },
+          {
+            name: "set",
+            in: "query",
+            required: false,
+            description: "Id do set, como em GET /cards/filters (sets)",
+            schema: { type: "string", maxLength: 30, example: "base1" },
+          },
+          {
+            name: "category",
+            in: "query",
+            required: false,
+            description: "Categoria, como em GET /cards/filters (categories)",
+            schema: { type: "string", maxLength: 30, example: "Trainer" },
+          },
+          {
+            name: "sort",
+            in: "query",
+            required: false,
+            description: "Ordena pelo nome no lugar da relevância",
+            schema: { type: "string", enum: ["name"] },
+          },
+          {
+            name: "order",
+            in: "query",
+            required: false,
+            description: "Direção da ordenação (só vale com sort)",
+            schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
           },
           langParam,
         ],
@@ -665,6 +707,35 @@ export const swaggerSpec = {
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          ...tcgdexErrors,
+        },
+      },
+    },
+    "/cards/filters": {
+      get: {
+        tags: ["Cards"],
+        summary: "Opções dos filtros do catálogo",
+        description:
+          "Valores aceitos em type, rarity, category e set de GET /cards, no idioma pedido (a TCGdex traduz: em pt, Fire vira Fogo). Tipos, raridades e categorias ficam 1 dia em memória, como a lista de sets. Cache: public, max-age=3600.",
+        security: [],
+        parameters: [langParam],
+        responses: {
+          200: {
+            description: "Opções dos filtros",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CardFilterOptionsResponse" },
+              },
+            },
+          },
+          400: {
+            description: "Idioma inválido",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiValidationError" },
               },
             },
           },
@@ -1598,6 +1669,28 @@ export const swaggerSpec = {
           image: {
             type: "object",
             properties: { small: nullableString, large: nullableString },
+          },
+        },
+      },
+      CardFilterOptionsResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
+            type: "object",
+            properties: {
+              types: { type: "array", items: { type: "string" }, example: ["Fire", "Water"] },
+              rarities: { type: "array", items: { type: "string" }, example: ["Common", "Rare Holo"] },
+              categories: { type: "array", items: { type: "string" }, example: ["Energy", "Pokemon", "Trainer"] },
+              sets: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: { id: { type: "string" }, name: { type: "string" } },
+                },
+                example: [{ id: "base1", name: "Base Set" }],
+              },
+            },
           },
         },
       },

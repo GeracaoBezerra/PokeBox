@@ -216,4 +216,59 @@ describe('TcgdexClient', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it('busca com filtros pede o valor exato (eq:) e repassa a ordenação', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, []));
+
+    await client.search({
+      lang: 'en',
+      page: 1,
+      limit: 20,
+      filters: { type: 'Fire', rarity: 'Rare Holo', set: 'base1', category: 'Pokemon' },
+      sort: { field: 'name', order: 'desc' },
+    });
+
+    const url = new URL(fetchMock.mock.calls[0][0]);
+    expect(url.searchParams.get('types')).toBe('eq:Fire');
+    expect(url.searchParams.get('rarity')).toBe('eq:Rare Holo');
+    expect(url.searchParams.get('set.id')).toBe('eq:base1');
+    expect(url.searchParams.get('category')).toBe('eq:Pokemon');
+    expect(url.searchParams.get('sort:field')).toBe('name');
+    expect(url.searchParams.get('sort:order')).toBe('DESC');
+  });
+
+  it('busca sem filtros não manda filtro nem ordenação', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, []));
+
+    await client.search({ lang: 'en', page: 1, limit: 20, filters: { type: undefined } });
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://tcgdex.test/v2/en/cards?pagination%3Apage=1&pagination%3AitemsPerPage=20',
+    );
+  });
+
+  it('listFilterValues junta tipos, raridades e categorias e guarda por idioma', async () => {
+    const lists: Record<string, string[]> = {
+      '/pt/types': ['Fogo', 'Água'],
+      '/pt/rarities': ['Comum', 'Rara'],
+      '/pt/categories': ['Pokémon', 'Treinador'],
+    };
+    fetchMock.mockImplementation(async (url) => jsonResponse(200, lists[new URL(url).pathname.replace('/v2', '')]));
+
+    const first = await client.listFilterValues('pt');
+    const second = await client.listFilterValues('pt');
+
+    expect(first).toEqual({ types: ['Fogo', 'Água'], rarities: ['Comum', 'Rara'], categories: ['Pokémon', 'Treinador'] });
+    expect(second).toBe(first);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('listFilterValues com a TCGdex fora lança TcgdexUnavailableError e não guarda nada', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(503, { error: 'down' }));
+
+    await expect(client.listFilterValues('en')).rejects.toBeInstanceOf(TcgdexUnavailableError);
+
+    fetchMock.mockImplementation(async () => jsonResponse(200, ['Fire']));
+    await expect(client.listFilterValues('en')).resolves.toEqual({ types: ['Fire'], rarities: ['Fire'], categories: ['Fire'] });
+  });
 });

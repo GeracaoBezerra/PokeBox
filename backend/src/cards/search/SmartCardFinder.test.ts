@@ -52,6 +52,7 @@ beforeEach(() => {
     ),
     listSets: jest.fn<CardCatalog['listSets']>(async () => sets),
     listSetCards: jest.fn<CardCatalog['listSetCards']>(async (setId) => setCards[setId] ?? []),
+    listFilterValues: jest.fn<CardCatalog['listFilterValues']>(async () => ({ types: [], rarities: [], categories: [] })),
   };
   finder = new SmartCardFinder(catalog, { ttlMs: 10 * 60 * 1000 });
 });
@@ -188,5 +189,66 @@ describe('SmartCardFinder cache', () => {
     await finder.find({ lang: 'en', page: 2, limit: 20 });
 
     expect(catalog.search).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('SmartCardFinder filtros (#75)', () => {
+  const fire = { type: 'Fire' };
+
+  test('busca com nome repassa os filtros para a TCGdex', async () => {
+    await finder.find({ lang: freshLang(), name: 'charizard', page: 1, limit: 20, filters: fire });
+
+    expect(catalog.search).toHaveBeenCalledWith(expect.objectContaining({ name: 'charizard', filters: fire }));
+  });
+
+  test('mesma busca com filtros diferentes não divide o cache', async () => {
+    const lang = freshLang();
+    await finder.find({ lang, name: 'charizard', page: 1, limit: 20, filters: fire });
+    await finder.find({ lang, name: 'charizard', page: 1, limit: 20, filters: { type: 'Water' } });
+    await finder.find({ lang, name: 'charizard', page: 1, limit: 20, filters: fire });
+
+    expect(catalog.search).toHaveBeenCalledTimes(2);
+  });
+
+  test('lista sem nome com filtros diferentes não divide o cache', async () => {
+    const lang = freshLang();
+    await finder.find({ lang, page: 1, limit: 20 });
+    await finder.find({ lang, page: 1, limit: 20, filters: fire });
+    await finder.find({ lang, page: 1, limit: 20, filters: fire, sort: { field: 'name', order: 'desc' } });
+
+    expect(catalog.search).toHaveBeenCalledTimes(3);
+    expect(catalog.search).toHaveBeenLastCalledWith(
+      expect.objectContaining({ filters: fire, sort: { field: 'name', order: 'desc' } }),
+    );
+  });
+
+  test('set reconhecido no nome, com filtro, busca o set filtrado em vez da lista inteira do set', async () => {
+    await finder.find({ lang: freshLang(), name: 'charizard base', page: 1, limit: 20, filters: fire });
+
+    expect(catalog.listSetCards).not.toHaveBeenCalled();
+    expect(catalog.search).toHaveBeenCalledWith(expect.objectContaining({ filters: { type: 'Fire', set: 'base1' } }));
+  });
+
+  test('filtro de set fica só com o set pedido entre os reconhecidos no nome', async () => {
+    const result = await finder.find({
+      lang: freshLang(),
+      name: 'charizard base',
+      page: 1,
+      limit: 20,
+      filters: { set: 'base4' },
+    });
+
+    expect(result.search?.sets).toEqual(['Base Set', 'Base Set 2']);
+    expect(catalog.search).not.toHaveBeenCalledWith(expect.objectContaining({ filters: { set: 'base1' } }));
+    expect(catalog.search).toHaveBeenCalledWith(expect.objectContaining({ filters: { set: 'base4' } }));
+  });
+
+  test('ordenação por nome troca a relevância pela ordem alfabética', async () => {
+    const lang = freshLang();
+    const asc = await finder.find({ lang, name: 'pikachu', page: 1, limit: 20, sort: { field: 'name', order: 'asc' } });
+    const desc = await finder.find({ lang, name: 'pikachu', page: 1, limit: 20, sort: { field: 'name', order: 'desc' } });
+
+    expect(asc.cards.map((card) => card.name)).toEqual(['Detective Pikachu', 'Pikachu', 'Pikachu']);
+    expect(desc.cards.map((card) => card.name)).toEqual(['Pikachu', 'Pikachu', 'Detective Pikachu']);
   });
 });

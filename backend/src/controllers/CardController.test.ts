@@ -10,7 +10,7 @@ import { createCardRoutes } from '../routes/card.routes.js';
 import type { CardService } from '../services/CardService.js';
 import { CardController, type CardListingsReader } from './CardController.js';
 
-type Cards = Pick<CardService, 'getById' | 'find' | 'getUserCardInfo'>;
+type Cards = Pick<CardService, 'getById' | 'find' | 'getFilterOptions' | 'getUserCardInfo'>;
 
 const USER = { id: 'user-1' };
 
@@ -18,6 +18,12 @@ function setup() {
   const cards: jest.Mocked<Cards> = {
     getById: jest.fn<Cards['getById']>(async () => cardMock),
     find: jest.fn<Cards['find']>(async () => ({ cards: [], hasNextPage: false, search: null })),
+    getFilterOptions: jest.fn<Cards['getFilterOptions']>(async () => ({
+      types: ['Fire'],
+      rarities: ['Rare'],
+      categories: ['Pokemon'],
+      sets: [{ id: 'base1', name: 'Base Set' }],
+    })),
     getUserCardInfo: jest.fn<Cards['getUserCardInfo']>(async () => ({ inCollection: 1, inWishlist: false, onTradeList: false })),
   };
   const listings: jest.Mocked<CardListingsReader> = { listByCard: jest.fn<CardListingsReader['listByCard']>(async () => []) };
@@ -98,7 +104,7 @@ describe('CardController', () => {
       search: { name: 'charizard', sets: [], ignored: [] },
     });
     expect(res.headers.get('cache-control')).toBe('public, max-age=300');
-    expect(cards.find).toHaveBeenCalledWith({ lang: 'en', name: 'charizard', page: 2, limit: 5 });
+    expect(cards.find).toHaveBeenCalledWith({ lang: 'en', name: 'charizard', page: 2, limit: 5, filters: {} });
   });
 
   test('lista sem search não manda o campo', async () => {
@@ -107,5 +113,55 @@ describe('CardController', () => {
     const res = await request(app, '/cards');
 
     expect(res.body).not.toHaveProperty('search');
+  });
+
+  test('lista repassa filtros e ordenação', async () => {
+    const { app, cards } = setup();
+
+    const res = await request(app, '/cards?type=Fire&rarity=Rare%20Holo&set=base1&category=Pokemon&sort=name&order=desc');
+
+    expect(res.status).toBe(200);
+    expect(cards.find).toHaveBeenCalledWith({
+      lang: 'en',
+      page: 1,
+      limit: 20,
+      filters: { type: 'Fire', rarity: 'Rare Holo', set: 'base1', category: 'Pokemon' },
+      sort: { field: 'name', order: 'desc' },
+    });
+  });
+
+  test('GET /cards/filters devolve as opções do idioma com cache de 1 hora', async () => {
+    const { app, cards } = setup();
+
+    const res = await request(app, '/cards/filters?lang=pt-br');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({
+      types: ['Fire'],
+      rarities: ['Rare'],
+      categories: ['Pokemon'],
+      sets: [{ id: 'base1', name: 'Base Set' }],
+    });
+    expect(res.headers.get('cache-control')).toBe('public, max-age=3600');
+    expect(cards.getFilterOptions).toHaveBeenCalledWith('pt');
+    expect(cards.getById).not.toHaveBeenCalled();
+  });
+
+  test('GET /cards/filters com idioma inválido → 400', async () => {
+    const { app, cards } = setup();
+
+    const res = await request(app, '/cards/filters?lang=xx');
+
+    expect(res.status).toBe(400);
+    expect(cards.getFilterOptions).not.toHaveBeenCalled();
+  });
+
+  test('GET /cards/filters repassa o erro da TCGdex', async () => {
+    const { app, cards } = setup();
+    cards.getFilterOptions.mockRejectedValue(new AppError(502, 'TCGdex fora'));
+
+    const res = await request(app, '/cards/filters');
+
+    expect(res.status).toBe(502);
   });
 });

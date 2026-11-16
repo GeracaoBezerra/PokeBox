@@ -1,5 +1,5 @@
 import type { Logger } from '../../lib/logger.js';
-import type { CardDetail, CardSummary, MarketPrice, SetSummary } from '../types.js';
+import type { CardDetail, CardFilterValues, CardSummary, MarketPrice, SetSummary } from '../types.js';
 import type { CardCacheStore, CachedCard } from './CardCacheStore.js';
 import type { CardCatalog, CardSearchQuery } from './CardCatalog.js';
 
@@ -68,6 +68,10 @@ export class DbCachedCatalog implements CardCatalog {
 
   listSetCards(setId: string, lang: string): Promise<CardSummary[]> {
     return this.inner.listSetCards(setId, lang);
+  }
+
+  listFilterValues(lang: string): Promise<CardFilterValues> {
+    return this.inner.listFilterValues(lang);
   }
 
   private async readCache(cardId: string, lang: string): Promise<CachedCard | null> {
