@@ -1,18 +1,26 @@
 import type { RequestHandler } from 'express';
 
-import { addWishlistItemSchema, wishlistItemIdSchema } from '../schemas/wishlist.schema.js';
+import { addWishlistItemSchema, listWishlistQuerySchema, wishlistItemIdSchema } from '../schemas/wishlist.schema.js';
 import type { WishlistService } from '../services/WishlistService.js';
 import { currentUser } from '../utils/currentUser.js';
 
-export type WishlistActions = Pick<WishlistService, 'list' | 'add' | 'remove'>;
+export type WishlistActions = Pick<WishlistService, 'list' | 'listPage' | 'add' | 'remove'>;
 
 export class WishlistController {
   constructor(private readonly wishlist: WishlistActions) {}
 
   list: RequestHandler = async (req, res) => {
-    const items = await this.wishlist.list(currentUser(req).id);
+    const userId = currentUser(req).id;
+    const { filters, page } = listWishlistQuerySchema.parse(req.query);
 
-    res.status(200).json({ success: true, data: { items } });
+    if (!page) {
+      const items = await this.wishlist.list(userId);
+      res.status(200).json({ success: true, data: { items } });
+      return;
+    }
+
+    const { items, hasNextPage } = await this.wishlist.listPage(userId, filters, page);
+    res.status(200).json({ success: true, data: { items }, pagination: { ...page, hasNextPage } });
   };
 
   add: RequestHandler = async (req, res) => {

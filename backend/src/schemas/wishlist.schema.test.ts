@@ -1,4 +1,4 @@
-import { addWishlistItemSchema, wishlistItemIdSchema } from './wishlist.schema.js';
+import { addWishlistItemSchema, listWishlistQuerySchema, wishlistItemIdSchema } from './wishlist.schema.js';
 
 describe('addWishlistItemSchema', () => {
   it('aceita cardId', () => {
@@ -27,5 +27,22 @@ describe('wishlistItemIdSchema', () => {
 
   it('recusa id que não é uuid', () => {
     expect(wishlistItemIdSchema.safeParse({ id: 'abc' }).success).toBe(false);
+  });
+});
+
+describe('listWishlistQuerySchema', () => {
+  it('sem parâmetros não pagina', () => {
+    expect(listWishlistQuerySchema.parse({})).toEqual({ filters: {}, page: null });
+  });
+
+  it('aceita q, type, rarity e sort', () => {
+    expect(listWishlistQuerySchema.parse({ q: 'char', type: 'FIRE', rarity: ' Rare ', sort: 'name' })).toEqual({
+      filters: { q: 'char', type: 'Fire', rarity: 'Rare', sort: 'name' },
+      page: { page: 1, limit: 20 },
+    });
+  });
+
+  it.each([{ rarity: '' }, { sort: 'price' }, { limit: '101' }])('recusa %o', (query) => {
+    expect(listWishlistQuerySchema.safeParse(query).success).toBe(false);
   });
 });

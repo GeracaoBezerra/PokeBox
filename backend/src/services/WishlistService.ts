@@ -1,11 +1,12 @@
 import type { CollectionOwnersReader, CollectionQuantityReader } from '../repositories/CollectionRepository.js';
 import type { CardRepository } from '../repositories/PrismaCardRepository.js';
-import type { WishlistItemWithCard, WishlistRepository } from '../repositories/WishlistRepository.js';
+import type { WishlistFilters, WishlistItemWithCard, WishlistRepository } from '../repositories/WishlistRepository.js';
 import { AppError } from '../errors/AppError.js';
 import { ConflictError } from '../errors/domainErrors.js';
 import type { AddWishlistItemInput } from '../schemas/wishlist.schema.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import { assertOwner } from '../utils/collectionRules.js';
+import { toPage, toSkipTake, type Page, type PageParams } from '../utils/pagination.js';
 import { countOwnersByCard, toWishlistItemResponse, type WishlistItemResponse } from '../utils/wishlistRules.js';
 import type { CardFetcher } from './CardService.js';
 
@@ -27,12 +28,14 @@ export class WishlistService {
 
   async list(userId: string): Promise<WishlistItemView[]> {
     const items = await this.wishlist.findManyByUser(userId);
-    const owners = await this.ownersByCard(
-      items.map((item) => item.cardId),
-      userId,
-    );
+    return this.withOpportunities(items, userId);
+  }
 
-    return items.map((item) => toWishlistItemResponse(item, owners));
+  async listPage(userId: string, filters: WishlistFilters, page: PageParams): Promise<Page<WishlistItemView>> {
+    const rows = await this.wishlist.findManyByUser(userId, { ...filters, ...toSkipTake(page) });
+    const { items, hasNextPage } = toPage(rows, page);
+
+    return { items: await this.withOpportunities(items, userId), hasNextPage };
   }
 
   async add(userId: string, input: AddWishlistItemInput): Promise<WishlistItemView> {
@@ -55,6 +58,15 @@ export class WishlistService {
 
     assertOwner(item, userId);
     await this.wishlist.remove(id);
+  }
+
+  private async withOpportunities(items: WishlistItemWithCard[], userId: string): Promise<WishlistItemView[]> {
+    const owners = await this.ownersByCard(
+      items.map((item) => item.cardId),
+      userId,
+    );
+
+    return items.map((item) => toWishlistItemResponse(item, owners));
   }
 
   private async ownersByCard(cardIds: string[], userId: string): Promise<Map<string, number>> {

@@ -1,6 +1,17 @@
 import { z } from 'zod';
 
 import { CardCondition, CardFinish } from '../generated/prisma/index.js';
+import { toPageRequest } from '../utils/pagination.js';
+import {
+  booleanFilter,
+  conditionFilter,
+  finishFilter,
+  itemSortFilter,
+  qFilter,
+  setIdFilter,
+  typeFilter,
+} from './cardFilters.schema.js';
+import { optionalPaginationQuery } from './pagination.schema.js';
 
 const condition = z.enum(CardCondition);
 
@@ -24,6 +35,27 @@ export const updateCollectionItemSchema = z
   .partial()
   .strict()
   .refine((data) => Object.keys(data).length > 0, 'Envie ao menos um campo');
+
+export const listCollectionQuerySchema = z
+  .object({
+    q: qFilter.optional(),
+    condition: conditionFilter.optional(),
+    finish: finishFilter.optional(),
+    isPublic: booleanFilter('isPublic').optional(),
+    setId: setIdFilter.optional(),
+    type: typeFilter.optional(),
+    sort: itemSortFilter.optional(),
+    ...optionalPaginationQuery,
+  })
+  .transform((query) => toPageRequest(query));
+
+export const listPublicCollectionQuerySchema = z
+  .object({
+    q: qFilter.optional(),
+    type: typeFilter.optional(),
+    ...optionalPaginationQuery,
+  })
+  .transform((query) => toPageRequest(query));
 
 export const collectionItemIdSchema = z.object({ id: z.uuid() });
 

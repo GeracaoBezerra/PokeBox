@@ -5,6 +5,7 @@ import type { ListingRepository, ListingWithItem } from '../repositories/Listing
 import type { TransactionRunner } from '../repositories/TransactionRunner.js';
 import type { CreateListingInput, ListListingsQuery, UpdateListingInput } from '../schemas/listing.schema.js';
 import { assertOwner } from '../utils/collectionRules.js';
+import { toPage, toSkipTake, type Page, type PageParams } from '../utils/pagination.js';
 import {
   assertListingQuantity,
   assertListingUpdate,
@@ -32,10 +33,7 @@ export interface ListingServiceDeps {
 
 export type ListingView = ListingResponse<ListingWithItem['collectionItem']['card']>;
 
-export interface ListingPage {
-  items: ListingView[];
-  hasNextPage: boolean;
-}
+export type ListingPage = Page<ListingView>;
 
 const LISTINGS_PER_CARD = 50;
 const LISTING_NOT_FOUND = 'Anúncio não encontrado';
@@ -45,16 +43,10 @@ export class ListingService {
   constructor(private readonly deps: ListingServiceDeps) {}
 
   async list({ page, limit, ...filters }: ListListingsQuery): Promise<ListingPage> {
-    const listings = await this.deps.listings.findActive({
-      ...filters,
-      skip: (page - 1) * limit,
-      take: limit + 1,
-    });
+    const rows = await this.deps.listings.findActive({ ...filters, ...toSkipTake({ page, limit }) });
+    const { items, hasNextPage } = toPage(rows, { page, limit });
 
-    return {
-      items: listings.slice(0, limit).map((listing) => toListingResponse(listing)),
-      hasNextPage: listings.length > limit,
-    };
+    return { items: items.map((listing) => toListingResponse(listing)), hasNextPage };
   }
 
   async listByCard(cardId: string): Promise<ListingView[]> {
@@ -65,6 +57,13 @@ export class ListingService {
   async listMine(userId: string): Promise<ListingView[]> {
     const listings = await this.deps.listings.findByOwner(userId);
     return listings.map((listing) => toListingResponse(listing));
+  }
+
+  async listMinePage(userId: string, page: PageParams): Promise<ListingPage> {
+    const rows = await this.deps.listings.findByOwner(userId, toSkipTake(page));
+    const { items, hasNextPage } = toPage(rows, page);
+
+    return { items: items.map((listing) => toListingResponse(listing)), hasNextPage };
   }
 
   async getById(viewer: ListingViewer | undefined, id: string): Promise<ListingView> {

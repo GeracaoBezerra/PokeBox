@@ -2,6 +2,7 @@ import {
   createListingSchema,
   listingIdSchema,
   listListingsQuerySchema,
+  listMyListingsQuerySchema,
   updateListingSchema,
 } from './listing.schema.js';
 
@@ -170,6 +171,21 @@ describe('mensagens da paginação', () => {
     [{ limit: 'abc' }, 'limit deve ser um número'],
   ])('%o → %s', (query, message) => {
     expect(messageOf(query)).toBe(message);
+  });
+});
+
+describe('listMyListingsQuerySchema', () => {
+  it('sem parâmetros não pagina', () => {
+    expect(listMyListingsQuerySchema.parse({})).toEqual({ filters: {}, page: null });
+  });
+
+  it('page ou limit paginam', () => {
+    expect(listMyListingsQuerySchema.parse({ page: '2' }).page).toEqual({ page: 2, limit: 20 });
+    expect(listMyListingsQuerySchema.parse({ limit: '5' }).page).toEqual({ page: 1, limit: 5 });
+  });
+
+  it('recusa limit acima de 100', () => {
+    expect(listMyListingsQuerySchema.safeParse({ limit: '101' }).success).toBe(false);
   });
 });
 

@@ -1,6 +1,7 @@
 import type { OfferStatus, Prisma } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
 import type { OfferCounts } from '../utils/collectionRules.js';
+import type { PageWindow } from '../utils/pagination.js';
 import { listingInclude } from './ListingRepository.js';
 
 export const offerInclude = {
@@ -39,13 +40,17 @@ export interface NewOffer {
   items: NewOfferItem[];
 }
 
+export interface OfferListOptions extends Partial<PageWindow> {
+  status?: OfferStatus;
+}
+
 export interface OfferRepository {
   create(data: NewOffer, db?: Db): Promise<OfferWithDetails>;
   findById(id: string, db?: Db): Promise<OfferWithDetails | null>;
   lockById(id: string, db?: Db): Promise<LockedOffer | null>;
   findOpenByProposerAndListing(proposerId: string, listingId: string, db?: Db): Promise<{ id: string } | null>;
-  findSent(userId: string, status?: OfferStatus): Promise<OfferWithDetails[]>;
-  findReceived(userId: string, status?: OfferStatus): Promise<OfferWithDetails[]>;
+  findSent(userId: string, options?: OfferListOptions): Promise<OfferWithDetails[]>;
+  findReceived(userId: string, options?: OfferListOptions): Promise<OfferWithDetails[]>;
   countByItem(collectionItemId: string, db?: Db): Promise<OfferCounts>;
   updateStatus(id: string, status: OfferStatus, db?: Db): Promise<OfferWithDetails>;
   deleteItems(offerId: string, db?: Db): Promise<void>;

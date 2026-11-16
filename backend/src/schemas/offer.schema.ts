@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 import { OfferStatus } from '../generated/prisma/index.js';
+import { toPageRequest } from '../utils/pagination.js';
+import { sidePaginationQuery, sideRequiredToPaginate } from './pagination.schema.js';
 
 export const MAX_OFFER_ITEMS = 20;
 
@@ -38,9 +40,13 @@ export const updateOfferStatusSchema = z
   })
   .strict();
 
-export const listOffersQuerySchema = z.object({
-  status: z.enum(OfferStatus).optional(),
-});
+export const listOffersQuerySchema = z
+  .object({
+    status: z.enum(OfferStatus).optional(),
+    ...sidePaginationQuery,
+  })
+  .refine(sideRequiredToPaginate.check, sideRequiredToPaginate.issue)
+  .transform((query) => toPageRequest(query, ['status']));
 
 export const offerIdSchema = z.object({ id: z.uuid() });
 
