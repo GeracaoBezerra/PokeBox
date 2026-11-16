@@ -21,3 +21,26 @@
   font-family: "IBM Plex Mono", monospace;
   opacity: 0.8;
 }
+
+.erro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tentar {
+  padding: 4px 12px;
+  border: 1px solid var(--erro);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--erro);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tentar:hover {
+  background: var(--erro);
+  color: var(--erro-fundo);
+}

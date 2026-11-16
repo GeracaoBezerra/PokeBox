@@ -21,7 +21,7 @@ export default function CardPage() {
   if (erro) {
     return (
       <div className={s.pagina}>
-        <Aviso erro={erro} />
+        <Aviso erro={erro} onTentarDeNovo={recarregar} />
       </div>
     );
   }
