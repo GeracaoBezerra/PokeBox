@@ -127,6 +127,12 @@
   gap: 16px;
 }
 
+.gradeNegociacoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
 .cartaMini {
   background: var(--superficie);
   border: 1px solid var(--borda-suave);

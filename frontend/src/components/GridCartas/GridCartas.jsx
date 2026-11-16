@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
-import CartaCard from "../CartaCard/CartaCard";
+import GradeCartas from "../GradeCartas/GradeCartas";
 import { cartasDestaque } from "../../mocks/mocks";
 import styles from "./GridCartas.module.css";
 
@@ -21,13 +21,7 @@ export default function GridCartas() {
           </Link>
         </header>
 
-        <ul className={styles.grade} role="list">
-          {cartasDestaque.map((carta) => (
-            <li key={carta.id} className={styles.item}>
-              <CartaCard carta={carta} />
-            </li>
-          ))}
-        </ul>
+        <GradeCartas cartas={cartasDestaque} />
       </div>
     </section>
   );
