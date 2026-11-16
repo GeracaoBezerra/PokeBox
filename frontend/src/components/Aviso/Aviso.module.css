@@ -6,6 +6,11 @@
 }
 
 .erro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-8);
   background: var(--erro-fundo);
   color: var(--erro);
   border: 1px solid var(--erro);
@@ -20,4 +25,19 @@
 .codigo {
   font-family: "IBM Plex Mono", monospace;
   opacity: 0.8;
+}
+
+.tentar {
+  padding: var(--esp-4) var(--esp-12);
+  border: 1px solid var(--erro);
+  border-radius: var(--raio-botao);
+  background: transparent;
+  color: var(--erro);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tentar:hover {
+  background: var(--erro);
+  color: var(--erro-fundo);
 }

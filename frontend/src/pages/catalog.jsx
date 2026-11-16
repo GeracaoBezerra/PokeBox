@@ -15,7 +15,7 @@ export default function CatalogPage() {
   const lang = params.get("lang") ?? "en";
   const page = Number(params.get("page") ?? 1);
 
-  const { dados, erro, carregando } = useCarregar(
+  const { dados, erro, carregando, recarregar } = useCarregar(
     () => searchCards({ name, lang, page, limit: 24 }),
     `${name}|${lang}|${page}`
   );
@@ -36,7 +36,7 @@ export default function CatalogPage() {
 
       <BuscaCatalogo nome={name} idioma={lang} onBuscar={buscar} />
 
-      <Aviso erro={erro} />
+      <Aviso erro={erro} onTentarDeNovo={recarregar} />
       {carregando && <p className={s.suave}>Carregando...</p>}
 
       {dados && (

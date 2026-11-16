@@ -20,7 +20,10 @@ export function useCarregar(carregar, chave = "") {
     };
   }, [chave, versao]);
 
-  const recarregar = useCallback(() => setVersao((v) => v + 1), []);
+  const recarregar = useCallback(() => {
+    setEstado((atual) => ({ ...atual, erro: null, carregando: true }));
+    setVersao((v) => v + 1);
+  }, []);
 
   return { ...estado, recarregar };
 }

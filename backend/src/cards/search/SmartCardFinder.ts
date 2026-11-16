@@ -1,6 +1,8 @@
+import type { Logger } from '../../lib/logger.js';
 import { MemoryCache } from '../../utils/memoryCache.js';
 import { matchSets, nameMatchesAny, rankCards, toCardListItem, tokenize } from '../../utils/cardSearch.js';
 import type { CardCatalog, CardSearchQuery } from '../catalog/CardCatalog.js';
+import { orStale } from '../orStale.js';
 import type {
   CardFilters,
   CardListItem,
@@ -43,16 +45,19 @@ interface NameSearch {
 
 export interface SmartCardFinderOptions {
   ttlMs: number;
+  logger?: Logger;
 }
 
 export class SmartCardFinder implements CardFinder {
   private readonly searches: MemoryCache<RankedSearch>;
   private readonly lists: MemoryCache<CardListResult>;
+  private readonly logger: Logger;
 
   constructor(
     private readonly catalog: CardCatalog,
-    { ttlMs }: SmartCardFinderOptions,
+    { ttlMs, logger = console }: SmartCardFinderOptions,
   ) {
+    this.logger = logger;
     this.searches = new MemoryCache(ttlMs);
     this.lists = new MemoryCache(ttlMs);
   }
@@ -63,12 +68,14 @@ export class SmartCardFinder implements CardFinder {
     if (tokens.length === 0) return this.listAll({ lang, page, limit, filters, sort }, filtersKey);
 
     const key = `search:${lang}:${filtersKey}:${tokens.join(' ')}`;
-    let result = this.searches.get(key);
-    if (!result) {
-      const found = await this.searchCards(lang, tokens, filters);
-      result = { ...found, cards: sortCards(found.cards, sort) };
-      this.searches.set(key, result);
-    }
+    const result =
+      this.searches.get(key) ??
+      (await orStale(this.searches, key, this.logger, async () => {
+        const found = await this.searchCards(lang, tokens, filters);
+        const ranked = { ...found, cards: sortCards(found.cards, sort) };
+        this.searches.set(key, ranked);
+        return ranked;
+      }));
 
     const start = (page - 1) * limit;
     const end = start + limit;
@@ -85,14 +92,16 @@ export class SmartCardFinder implements CardFinder {
     const fromMemory = this.lists.get(key);
     if (fromMemory) return fromMemory;
 
-    const [found, sets] = await Promise.all([this.catalog.search(query), this.catalog.listSets(lang)]);
-    const result: CardListResult = {
-      cards: found.map((card) => toCardListItem(card, sets)),
-      hasNextPage: found.length === limit,
-      search: null,
-    };
-    this.lists.set(key, result);
-    return result;
+    return orStale(this.lists, key, this.logger, async () => {
+      const [found, sets] = await Promise.all([this.catalog.search(query), this.catalog.listSets(lang)]);
+      const result: CardListResult = {
+        cards: found.map((card) => toCardListItem(card, sets)),
+        hasNextPage: found.length === limit,
+        search: null,
+      };
+      this.lists.set(key, result);
+      return result;
+    });
   }
 
   private searchByName(lang: string, words: string, filters: CardFilters): Promise<CardSummary[]> {
