@@ -53,9 +53,10 @@ export function ListaDeCartas({
   lang,
   carregando = false,
   total = TOTAL,
+  variante = "padrao",
 }) {
   return (
-    <ul className={styles.grade} role="list" aria-busy={carregando}>
+    <ul className={`${styles.grade} ${variante === "catalogo" ? styles.catalogo : ""}`} role="list" aria-busy={carregando}>
       {carregando
         ? // Esqueleto com a mesma proporção da carta: a altura da seção
           // não muda quando os dados chegam (evita o rodapé "pular")

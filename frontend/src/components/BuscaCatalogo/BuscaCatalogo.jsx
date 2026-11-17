@@ -1,5 +1,6 @@
 import { useState } from "react";
-import s from "../../styles/paginas.module.css";
+import { Search } from "lucide-react";
+import s from "../../styles/catalogo.module.css";
 
 const IDIOMAS = { en: "Inglês", pt: "Português", es: "Espanhol", fr: "Francês", de: "Alemão", it: "Italiano", ja: "Japonês" };
 
@@ -13,10 +14,10 @@ export default function BuscaCatalogo({ nome, idioma, onBuscar }) {
   }
 
   return (
-    <form className={s.form} onSubmit={enviar}>
+    <form className={s.busca} onSubmit={enviar} role="search">
       <label className={s.campo}>
-        Nome
-        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="ex.: pikachu" />
+        Buscar cartas
+        <input type="search" maxLength={50} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome da carta ou expansão…" />
       </label>
       <label className={s.campo}>
         Idioma
@@ -29,7 +30,7 @@ export default function BuscaCatalogo({ nome, idioma, onBuscar }) {
         </select>
       </label>
       <button className={s.botao} type="submit">
-        Buscar
+        <Search size={16} aria-hidden="true" /> Buscar
       </button>
     </form>
   );
