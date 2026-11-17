@@ -1,3 +1,4 @@
+import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { useState } from "react";
 import { listMyTrades } from "../api/trades";
 import AbasNegociacao from "../components/AbasNegociacao/AbasNegociacao";
@@ -13,7 +14,7 @@ export default function SwitchNegociationPage() {
   const [status, setStatus] = useState("");
   const { dados, erro, carregando, recarregar } = useCarregar(() => listMyTrades(status), status);
 
-  const lista = dados?.[aba] ?? [];
+  const lista = carregando ? [] : dados?.[aba] ?? [];
 
   return (
     <div className={s.pagina}>
@@ -32,8 +33,8 @@ export default function SwitchNegociationPage() {
       />
 
       <Aviso erro={erro} />
-      {carregando && !dados && <p className={s.suave}>Carregando...</p>}
-      {dados && lista.length === 0 && <p className={s.suave}>Nenhuma troca aqui.</p>}
+      {carregando && <CarregandoCartas formato="negociacoes" total={4} />}
+      {!carregando && dados && lista.length === 0 && <p className={s.suave}>Nenhuma troca aqui.</p>}
 
       <div className={s.gradeNegociacoes}>
         {lista.map((troca) => (

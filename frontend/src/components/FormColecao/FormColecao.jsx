@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { addToCollection } from "../../api/collection";
 import { useAcao } from "../../hooks/useAcao";
-import s from "../../styles/paginas.module.css";
+import s from "../../styles/detalheCarta.module.css";
 import { CONDICOES, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
 
@@ -11,7 +11,7 @@ function acabamentosDisponiveis(variants = {}) {
   const lista = Object.entries(ACABAMENTO_DA_VARIANTE)
     .filter(([chave]) => variants[chave])
     .map(([, finish]) => finish);
-  return lista.length ? lista : ["NORMAL"];
+  return lista.length ? lista : ["NORMAL", "HOLO", "REVERSE"];
 }
 
 export default function FormColecao({ card, onAdicionado }) {
@@ -39,16 +39,15 @@ export default function FormColecao({ card, onAdicionado }) {
   }
 
   return (
-    <form className={s.painel} onSubmit={enviar}>
-      <h3>Adicionar à minha coleção</h3>
-      <div className={s.form}>
+    <form className={s.formulario} onSubmit={enviar}>
+      <p className={s.suave}>Escolha a versão e o estado da carta que você tem.</p>
+      <div className={s.campos}>
         <label className={s.campo}>
           Acabamento
           <select value={form.finish} onChange={(e) => alterar("finish", e.target.value)}>
-            {["NORMAL", "HOLO", "REVERSE"].map((finish) => (
+            {acabamentos.map((finish) => (
               <option key={finish} value={finish}>
                 {variante({ finish, firstEdition: false })}
-                {acabamentos.includes(finish) ? "" : " (a carta não tem)"}
               </option>
             ))}
           </select>
@@ -68,6 +67,7 @@ export default function FormColecao({ card, onAdicionado }) {
           <input
             type="number"
             min="1"
+            required
             value={form.quantity}
             onChange={(e) => alterar("quantity", e.target.value)}
           />
@@ -76,18 +76,19 @@ export default function FormColecao({ card, onAdicionado }) {
           <input
             type="checkbox"
             checked={form.firstEdition}
+            disabled={!card.variants?.firstEdition && Object.values(card.variants ?? {}).some(Boolean)}
             onChange={(e) => alterar("firstEdition", e.target.checked)}
           />
-          1ª edição{card.variants?.firstEdition ? "" : " (a carta não tem)"}
+          1ª edição{!card.variants?.firstEdition && Object.values(card.variants ?? {}).some(Boolean) ? " (indisponível)" : ""}
         </label>
         <label className={s.checkbox}>
           <input type="checkbox" checked={form.isPublic} onChange={(e) => alterar("isPublic", e.target.checked)} />
-          Pública
+          Visível no meu perfil público
         </label>
-        <button className={s.botao} type="submit" disabled={ocupado}>
-          Adicionar
-        </button>
       </div>
+      <button className={s.botao} type="submit" disabled={ocupado}>
+        {ocupado ? "Adicionando…" : "Adicionar à coleção"}
+      </button>
       <Aviso erro={erro} sucesso={sucesso} />
     </form>
   );

@@ -1,45 +1,27 @@
-.carta {
-  background: var(--superficie);
-  border: 1px solid var(--borda-suave);
-  border-radius: var(--raio-painel);
+.anuncio {
+  display: grid;
+  gap: var(--esp-12);
+}
+
+.legenda {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+  font-size: var(--fs-sm);
+}
+
+.selos {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px;
+  flex-wrap: wrap;
+  gap: var(--esp-4);
 }
 
-.carta:hover {
-  border-color: var(--acento);
-}
-
-.link {
-  color: var(--texto);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-decoration: none;
-}
-
-.imagem {
-  position: relative;
-}
-
-.imagem img,
-.imagem > div {
-  aspect-ratio: 245 / 342;
-  border-radius: var(--raio-botao);
-  object-fit: contain;
-  width: 100%;
-}
-
-.selo {
+.wishlist,
+.seu {
+  padding: var(--esp-4) var(--esp-8);
   border-radius: var(--raio-pilula);
-  font-size: 0.75rem;
-  font-weight: 700;
-  left: 6px;
-  padding: 2px 8px;
-  position: absolute;
-  top: 6px;
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-semi);
 }
 
 .wishlist {
@@ -48,27 +30,38 @@
 }
 
 .seu {
-  background: var(--info-fundo);
   border: 1px solid var(--info);
+  background: var(--info-fundo);
   color: var(--texto);
+}
+
+.nome {
+  color: var(--texto);
+  font-weight: var(--peso-semi);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.nome:hover {
+  color: var(--acento);
 }
 
 .suave {
   color: var(--texto-suave);
-  font-size: 0.85rem;
-}
-
-.preco {
-  color: var(--texto-suave);
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
 }
 
 .dono {
   color: var(--acento);
-  font-size: 0.9rem;
   text-decoration: none;
 }
 
 .dono:hover {
   text-decoration: underline;
+}
+
+.preco {
+  color: var(--texto-suave);
+  font-size: var(--fs-xs);
 }

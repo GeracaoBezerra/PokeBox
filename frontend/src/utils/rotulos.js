@@ -28,6 +28,8 @@ export const TIPOS = {
   Water: "Água",
 };
 
+export const CATEGORIAS = { Pokemon: "Pokémon", Trainer: "Treinador", Energy: "Energia" };
+
 export const ORDENACOES = {
   recent: "Mais novos",
   oldest: "Mais antigos",

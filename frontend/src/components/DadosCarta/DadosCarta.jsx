@@ -1,54 +1,26 @@
-import s from "../../styles/paginas.module.css";
+import s from "../../styles/detalheCarta.module.css";
+import PrecoReferencia from "../PrecoReferencia/PrecoReferencia";
 
-function formatarPreco(preco) {
-  if (!preco) return "Sem preço de referência";
-  const valor = preco.value.toLocaleString("pt-BR", { style: "currency", currency: preco.currency });
-  return `${valor} (${preco.source === "tcgplayer" ? "TCGplayer" : "Cardmarket"})`;
-}
-
-function Dado({ rotulo, children }) {
-  return (
-    <>
-      <dt>{rotulo}</dt>
-      <dd>{children}</dd>
-    </>
-  );
-}
+const VARIANTES = { normal: "Normal", holo: "Holo", reverse: "Reverse", firstEdition: "1ª edição" };
 
 export default function DadosCarta({ card }) {
-  const variantes = Object.entries(card.variants ?? {})
-    .filter(([, tem]) => tem)
-    .map(([nome]) => nome)
-    .join(", ");
-
   return (
     <>
-      <h1 className={s.titulo}>{card.name}</h1>
-      <p className={s.subtitulo}>
-        {card.set?.name} · {card.number} · <code>{card.id}</code>
-      </p>
-
-      <dl className={s.lista}>
-        <Dado rotulo="Categoria">{card.category}</Dado>
-        {card.rarity && <Dado rotulo="Raridade">{card.rarity}</Dado>}
-        {card.hp && <Dado rotulo="HP">{card.hp}</Dado>}
-        {card.types?.length > 0 && <Dado rotulo="Tipo">{card.types.join(", ")}</Dado>}
-        {card.illustrator && <Dado rotulo="Ilustrador">{card.illustrator}</Dado>}
-        <Dado rotulo="Variantes">{variantes || "—"}</Dado>
-        <Dado rotulo="Preço de referência">{formatarPreco(card.marketPrice)}</Dado>
-      </dl>
-
-      {card.attacks?.length > 0 && (
-        <div className={s.secao}>
-          <h2>Ataques</h2>
-          <ul>
-            {card.attacks.map((ataque) => (
-              <li key={ataque.name}>
-                <strong>{ataque.name}</strong> {ataque.damage && `· ${ataque.damage}`}
-                {ataque.effect && <p className={s.suave}>{ataque.effect}</p>}
-              </li>
-            ))}
-          </ul>
+      <header className={s.cabecalhoCarta}>
+        <span className={s.eyebrow}>{card.set?.name || "Pokémon TCG"}</span>
+        <h1>{card.name}</h1>
+        <div className={s.badges}>
+          <span className={s.numero}>Nº {card.number}</span>
+          {card.rarity && <span className={s.badgeDourado}>{card.rarity}</span>}
+          {card.types?.map((tipo) => <span className={s.badge} key={tipo}>{tipo}</span>)}
+          {card.hp != null && <span className={s.badge}>{card.hp} HP</span>}
+        </div>
+      </header>
+      <PrecoReferencia card={card} />
+      {Object.entries(card.variants ?? {}).some(([, tem]) => tem) && (
+        <div className={s.variantes}>
+          <span className={s.suave}>Versões disponíveis</span>
+          <div className={s.badges}>{Object.entries(VARIANTES).filter(([key]) => card.variants[key]).map(([key, nome]) => <span className={s.badge} key={key}>{nome}</span>)}</div>
         </div>
       )}
     </>

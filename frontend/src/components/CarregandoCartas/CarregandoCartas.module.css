@@ -1,0 +1,29 @@
+.linhas {
+  display: grid;
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-24);
+  padding: var(--esp-8);
+  border-bottom: 1px solid var(--borda-suave);
+}
+
+.texto {
+  width: 65%;
+  height: var(--esp-16);
+  background-color: var(--skeleton-base);
+  border-radius: var(--raio-botao);
+}
+
+.troca {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-16);
+}
+
+.cartaTroca {
+  width: var(--carta-medium);
+  max-width: 40%;
+}

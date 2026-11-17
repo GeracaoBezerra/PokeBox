@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
-import s from "../../styles/paginas.module.css";
+import { useEffect, useRef, useState } from "react";
+import s from "../../styles/vitrine.module.css";
 
 export default function CampoBusca({ rotulo, valor, placeholder, maxLength = 50, onMudar }) {
   const [texto, setTexto] = useState(valor);
   const [valorAnterior, setValorAnterior] = useState(valor);
+  const onMudarRef = useRef(onMudar);
+
+  useEffect(() => {
+    onMudarRef.current = onMudar;
+  });
 
   if (valor !== valorAnterior) {
     setValorAnterior(valor);
@@ -12,14 +17,14 @@ export default function CampoBusca({ rotulo, valor, placeholder, maxLength = 50,
 
   useEffect(() => {
     if (texto.trim() === valor) return undefined;
-    const espera = setTimeout(() => onMudar(texto.trim()), 400);
+    const espera = setTimeout(() => onMudarRef.current(texto.trim()), 400);
     return () => clearTimeout(espera);
-  }, [texto, valor, onMudar]);
+  }, [texto, valor]);
 
   function teclar(evento) {
     if (evento.key === "Enter") {
       evento.preventDefault();
-      onMudar(texto.trim());
+      onMudarRef.current(texto.trim());
     }
   }
 
