@@ -1,3 +1,4 @@
+import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { Link } from "react-router-dom";
 import { listCollection } from "../api/collection";
 import { useSession } from "../auth/useSession";
@@ -25,9 +26,9 @@ export default function MyCollectionPage() {
       </CabecalhoPagina>
 
       <Aviso erro={erro} />
-      {carregando && !itens && <p className={s.suave}>Carregando...</p>}
-      {itens && itens.length === 0 && <p className={s.suave}>Sua coleção está vazia.</p>}
-      {itens && itens.length > 0 && <TabelaColecao itens={itens} onMudou={recarregar} />}
+      {carregando && <CarregandoCartas formato="tabela" total={6} />}
+      {!carregando && itens && itens.length === 0 && <p className={s.suave}>Sua coleção está vazia.</p>}
+      {!carregando && itens && itens.length > 0 && <TabelaColecao itens={itens} onMudou={recarregar} />}
     </div>
   );
 }

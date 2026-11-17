@@ -1,3 +1,4 @@
+import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { Link } from "react-router-dom";
 import { listWishlist, removeFromWishlist } from "../api/wishlist";
 import Aviso from "../components/Aviso/Aviso";
@@ -24,10 +25,10 @@ export default function WishlistPage() {
       </CabecalhoPagina>
 
       <Aviso erro={erro || acao.erro} sucesso={acao.sucesso} />
-      {carregando && !itens && <p className={s.suave}>Carregando...</p>}
-      {itens && itens.length === 0 && <p className={s.suave}>Sua wishlist está vazia.</p>}
+      {carregando && <CarregandoCartas />}
+      {!carregando && itens && itens.length === 0 && <p className={s.suave}>Sua wishlist está vazia.</p>}
 
-      {itens && itens.length > 0 && (
+      {!carregando && itens && itens.length > 0 && (
         <div className={s.grade}>
           {itens.map((item) => (
             <ItemWishlist key={item.id} item={item} ocupado={acao.ocupado} onRemover={remover} />

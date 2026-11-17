@@ -1,41 +1,30 @@
 import { Link } from "react-router-dom";
-import s from "../../styles/paginas.module.css";
+import s from "../../styles/detalheCarta.module.css";
 import { CONDICOES, STATUS_ANUNCIO, formatarData, variante } from "../../utils/rotulos";
 
 export default function DadosAnuncio({ anuncio }) {
   return (
     <>
-      <h1 className={s.titulo}>{anuncio.card.name}</h1>
-      <p className={s.subtitulo}>
-        <span className={s.status}>{STATUS_ANUNCIO[anuncio.status]}</span> · anunciado em{" "}
-        {formatarData(anuncio.createdAt)}
-      </p>
-      <dl className={s.lista}>
-        <dt>Colecionador</dt>
-        <dd>
-          <Link className={s.link} to={`/u/${anuncio.owner.username}`}>
-            {anuncio.owner.name} (@{anuncio.owner.username})
-          </Link>
-        </dd>
-        <dt>Carta</dt>
-        <dd>
-          <Link className={s.link} to={`/cards/${anuncio.card.id}`}>
-            {anuncio.card.setName} · {anuncio.card.number}
-          </Link>
-        </dd>
-        <dt>Variante</dt>
-        <dd>{variante(anuncio.item)}</dd>
-        <dt>Condição</dt>
-        <dd>{CONDICOES[anuncio.item.condition]}</dd>
-        <dt>Quantidade</dt>
-        <dd>{anuncio.quantity}</dd>
-        {anuncio.description && (
-          <>
-            <dt>Descrição</dt>
-            <dd>{anuncio.description}</dd>
-          </>
-        )}
+      <header className={s.cabecalhoCarta}>
+        <span className={s.eyebrow}>Anúncio de troca · {anuncio.card.setName}</span>
+        <h1>{anuncio.card.name}</h1>
+        <div className={s.badges}>
+          <span className={s.numero}>Nº {anuncio.card.number}</span>
+          {anuncio.card.rarity && <span className={s.badgeDourado}>{anuncio.card.rarity}</span>}
+          <span className={s.statusAnuncio} data-status={anuncio.status}>{STATUS_ANUNCIO[anuncio.status]}</span>
+        </div>
+      </header>
+      <div className={s.colecionador}>
+        <span className={s.avatar} aria-hidden="true">{anuncio.owner.username.slice(0, 1).toUpperCase()}</span>
+        <div><span className={s.suave}>Anunciado por</span><Link className={s.link} to={`/u/${anuncio.owner.username}`}>{anuncio.owner.name} · @{anuncio.owner.username}</Link></div>
+      </div>
+      <dl className={s.especificacoes}>
+        <div><dt>Versão</dt><dd>{variante(anuncio.item)}</dd></div>
+        <div><dt>Condição</dt><dd>{CONDICOES[anuncio.item.condition]}</dd></div>
+        <div><dt>{anuncio.status === "ACTIVE" ? "Disponíveis" : "Quantidade anunciada"}</dt><dd>{anuncio.quantity} {anuncio.quantity === 1 ? "cópia" : "cópias"}</dd></div>
       </dl>
+      {anuncio.description && <div className={s.descricaoAnuncio}><h2>Sobre esta carta</h2><p>{anuncio.description}</p></div>}
+      <p className={s.suave}>Anúncio publicado em {formatarData(anuncio.createdAt)}</p>
     </>
   );
 }

@@ -1,3 +1,4 @@
+import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { useState } from "react";
 import { listMyOffers } from "../api/offers";
 import { listMyTrades } from "../api/trades";
@@ -20,7 +21,7 @@ export default function MyOffersPage() {
   const [status, setStatus] = useState("");
   const { dados, erro, carregando, recarregar } = useCarregar(() => carregarPropostas(status), status);
 
-  const lista = dados?.[aba] ?? [];
+  const lista = carregando ? [] : dados?.[aba] ?? [];
 
   return (
     <div className={s.pagina}>
@@ -39,8 +40,8 @@ export default function MyOffersPage() {
       />
 
       <Aviso erro={erro} />
-      {carregando && !dados && <p className={s.suave}>Carregando...</p>}
-      {dados && lista.length === 0 && <p className={s.suave}>Nenhuma oferta aqui.</p>}
+      {carregando && <CarregandoCartas formato="negociacoes" total={4} />}
+      {!carregando && dados && lista.length === 0 && <p className={s.suave}>Nenhuma oferta aqui.</p>}
 
       <div className={s.gradeNegociacoes}>
         {lista.map((oferta) => (

@@ -11,6 +11,10 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--esp-8);
+}
+
+.erro,
+.remocao {
   background: var(--erro-fundo);
   color: var(--erro);
   border: 1px solid var(--erro);

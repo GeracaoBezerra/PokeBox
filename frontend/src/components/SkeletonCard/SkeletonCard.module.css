@@ -1,0 +1,35 @@
+.carta {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--carta-proporcao);
+  overflow: hidden;
+  border-radius: var(--raio-carta);
+  background-color: color-mix(in srgb, var(--skeleton-base) 65%, var(--tipo-incolor));
+  box-shadow: var(--sombra-carta);
+}
+
+.carta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--skeleton-brilho) 40%, var(--tipo-incolor)),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: carregar var(--tempo-skeleton) var(--curva-sair) infinite;
+}
+
+@keyframes carregar {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carta::after {
+    animation: none;
+  }
+}
