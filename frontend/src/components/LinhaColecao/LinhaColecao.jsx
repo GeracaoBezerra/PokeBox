@@ -7,7 +7,7 @@ import s from "../../styles/paginas.module.css";
 import { CONDICOES, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
 import FormNovoAnuncio from "../FormNovoAnuncio/FormNovoAnuncio";
-import ImagemCarta from "../ImagemCarta/ImagemCarta";
+import MiniaturaCarta from "../MiniaturaCarta/MiniaturaCarta";
 
 export default function LinhaColecao({ item, onMudou }) {
   const [form, setForm] = useState({
@@ -51,7 +51,7 @@ export default function LinhaColecao({ item, onMudou }) {
     <>
       <tr>
         <td>
-          <ImagemCarta className={s.miniatura} src={item.card.imageUrl} alt={item.card.name} />
+          <MiniaturaCarta card={item.card} />
         </td>
         <td>
           <Link className={s.link} to={`/cards/${item.cardId}`}>

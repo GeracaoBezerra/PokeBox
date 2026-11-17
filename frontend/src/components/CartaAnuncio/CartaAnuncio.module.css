@@ -1,0 +1,67 @@
+.anuncio {
+  display: grid;
+  gap: var(--esp-12);
+}
+
+.legenda {
+  display: grid;
+  gap: var(--esp-4);
+  min-width: 0;
+  font-size: var(--fs-sm);
+}
+
+.selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--esp-4);
+}
+
+.wishlist,
+.seu {
+  padding: var(--esp-4) var(--esp-8);
+  border-radius: var(--raio-pilula);
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-semi);
+}
+
+.wishlist {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+.seu {
+  border: 1px solid var(--info);
+  background: var(--info-fundo);
+  color: var(--texto);
+}
+
+.nome {
+  color: var(--texto);
+  font-weight: var(--peso-semi);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.nome:hover {
+  color: var(--acento);
+}
+
+.suave {
+  color: var(--texto-suave);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+
+.dono {
+  color: var(--acento);
+  text-decoration: none;
+}
+
+.dono:hover {
+  text-decoration: underline;
+}
+
+.preco {
+  color: var(--texto-suave);
+  font-size: var(--fs-xs);
+}

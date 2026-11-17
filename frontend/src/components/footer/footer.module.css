@@ -27,20 +27,8 @@
 
 .logo {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   margin-bottom: var(--esp-16);
-
-  color: var(--texto);
-  font-family: var(--fonte-titulo);
-  font-size: clamp(28px, 2.8vw, 40px);
-  font-weight: var(--peso-forte);
-  line-height: var(--lh-xl);
-  letter-spacing: -0.04em;
-  text-decoration: none;
-}
-
-.logoAccent {
-  color: var(--acento);
 }
 
 .description {
@@ -223,10 +211,6 @@
 
   .brandColumn {
     grid-column: auto;
-  }
-
-  .logo {
-    font-size: 32px;
   }
 
   .columnTitle {

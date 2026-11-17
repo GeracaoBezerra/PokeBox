@@ -1,3 +1,4 @@
+import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getPublicCollection } from "../api/collection";
 import Aviso from "../components/Aviso/Aviso";
@@ -17,9 +18,9 @@ export default function PublicPerfilPage() {
       <BuscaPerfil username={username} onBuscar={(busca) => navigate(`/u/${busca}`)} />
 
       <Aviso erro={erro} />
-      {carregando && !dados && <p className={s.suave}>Carregando...</p>}
+      {carregando && <CarregandoCartas />}
 
-      {dados && (
+      {!carregando && dados && (
         <div className={s.secao}>
           <h1 className={s.titulo}>{dados.user.name}</h1>
           <p className={s.subtitulo}>
@@ -34,7 +35,7 @@ export default function PublicPerfilPage() {
           ) : (
             <div className={s.grade}>
               {dados.items.map((item) => (
-                <CartaMini key={item.id} to={`/cards/${item.card.id}`} src={item.card.imageUrl} nome={item.card.name}>
+                <CartaMini key={item.id} to={`/cards/${item.card.id}`} carta={item.card}>
                   <span className={s.suave}>
                     {variante(item)} · {CONDICOES[item.condition]}
                   </span>

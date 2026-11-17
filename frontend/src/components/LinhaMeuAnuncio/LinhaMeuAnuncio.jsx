@@ -5,7 +5,7 @@ import { useAcao } from "../../hooks/useAcao";
 import s from "../../styles/paginas.module.css";
 import { CONDICOES, STATUS_ANUNCIO, formatarData, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
-import ImagemCarta from "../ImagemCarta/ImagemCarta";
+import MiniaturaCarta from "../MiniaturaCarta/MiniaturaCarta";
 
 export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
   const [form, setForm] = useState({ quantity: anuncio.quantity, description: anuncio.description ?? "" });
@@ -36,7 +36,7 @@ export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
     <>
       <tr>
         <td>
-          <ImagemCarta className={s.miniatura} src={anuncio.card.imageUrl} alt={anuncio.card.name} />
+          <MiniaturaCarta card={anuncio.card} link={`/marketplace/${anuncio.id}`} />
         </td>
         <td>
           <Link className={s.link} to={`/marketplace/${anuncio.id}`}>

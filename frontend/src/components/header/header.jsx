@@ -13,6 +13,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import Logo from "../Logo/Logo";
 import MenuUsuario from "../MenuUsuario/MenuUsuario";
 import styles from "./header.module.css";
 
@@ -35,9 +36,12 @@ export default function Header() {
       <div className={styles.container}>
         {/* Logo, busca e ações */}
         <div className={styles.topo}>
-          <Link to="/" className={styles.logo}>
-            <span className={styles.monograma}>PB</span>
-            <span className={styles.logoTexto}>PokeBox</span>
+          <Link
+            to="/"
+            className={styles.logo}
+            aria-label="PokeBox, página inicial"
+          >
+            <Logo decorativa tamanho={44} />
           </Link>
 
           {/* Busca para desktop */}

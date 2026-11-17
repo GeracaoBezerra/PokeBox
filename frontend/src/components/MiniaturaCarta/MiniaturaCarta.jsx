@@ -1,16 +1,17 @@
-import { Link } from "react-router-dom";
 import s from "../../styles/paginas.module.css";
-import ImagemCarta from "../ImagemCarta/ImagemCarta";
+import CartaCard from "../CartaCard/CartaCard";
 
-export default function MiniaturaCarta({ card, legendas = [] }) {
+export default function MiniaturaCarta({ card, legendas = [], link }) {
   return (
-    <Link to={`/cards/${card.id}`} title={card.name}>
-      <ImagemCarta className={s.miniatura} src={card.imageUrl} alt={card.name} />
+    <div className={s.cartaComLegendas}>
+      <div className={s.miniatura}>
+        <CartaCard carta={card} link={link} painel={false} />
+      </div>
       {legendas.map((legenda) => (
         <div key={legenda} className={s.suave}>
           {legenda}
         </div>
       ))}
-    </Link>
+    </div>
   );
 }

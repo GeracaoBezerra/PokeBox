@@ -48,3 +48,15 @@
     gap: var(--esp-16);
   }
 }
+
+/* Catálogo com filtros: três colunas, sem alterar a grade da home. */
+.grade.catalogo {
+  grid-template-columns: repeat(3, minmax(0, var(--carta-largura)));
+}
+
+.catalogo > .item:nth-child(n) { --lado: 1; }
+.catalogo > .item:nth-child(3n) { --lado: -1; }
+
+@media (max-width: 600px) {
+  .grade.catalogo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

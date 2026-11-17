@@ -1,0 +1,61 @@
+.area {
+  --movimento-x: 0;
+  --movimento-y: 0;
+  width: var(--carta-hero);
+  max-width: 100%;
+  aspect-ratio: var(--carta-proporcao);
+  perspective: var(--perspectiva);
+}
+
+.superficie {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--raio-carta);
+  box-shadow: var(--sombra-x) var(--sombra-y) var(--sombra-blur) rgb(0 0 0 / var(--sombra-opac));
+  transform: rotateX(calc(var(--movimento-y) * var(--tilt-max-hero) * -1))
+    rotateY(calc(var(--movimento-x) * var(--tilt-max-hero)))
+    scale(var(--carta-escala));
+  transition:
+    transform var(--tempo-carta-retorno) var(--curva-entrar),
+    box-shadow var(--tempo-carta-retorno) var(--curva-entrar);
+}
+
+.area[data-ativa="true"] .superficie {
+  --carta-escala: 1.025;
+  --sombra-x: calc(var(--movimento-x) * -18px);
+  --sombra-y: calc(20px + var(--movimento-y) * -12px);
+  --sombra-blur: 48px;
+  transition-duration: var(--tempo-carta);
+}
+
+.imagem {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--carta-proporcao);
+  object-fit: contain;
+  border-radius: inherit;
+  user-select: none;
+}
+
+.imagem[data-carregada="false"] { opacity: 0; }
+.imagem[data-carregada="true"] {
+  animation: revelar var(--tempo-carta-retorno) var(--curva-entrar) both;
+}
+
+.esqueleto { position: absolute; inset: 0; border-radius: inherit; }
+
+@keyframes revelar {
+  from { opacity: 0; transform: translateY(var(--esp-12)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .area .superficie { transform: none; box-shadow: var(--sombra-carta); transition: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imagem[data-carregada="true"] { animation: none; }
+}

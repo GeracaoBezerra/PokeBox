@@ -1,47 +1,34 @@
 import { Link } from "react-router-dom";
-import s from "../../styles/paginas.module.css";
+import { ArrowUpRight, ArrowLeftRight } from "lucide-react";
+import s from "../../styles/detalheCarta.module.css";
 import { CONDICOES, variante } from "../../utils/rotulos";
 
 export default function AnunciosDaCarta({ listings }) {
   return (
-    <div className={s.secao}>
-      <h2>Anúncios ativos desta carta</h2>
+    <section className={s.secao} id="anuncios-carta" aria-labelledby="titulo-anuncios">
+      <header className={s.cabecalho}>
+        <span className={s.eyebrow}>Encontre sua próxima troca</span>
+        <h2 id="titulo-anuncios">Disponível na comunidade <span className={s.contador}>{listings.length}</span></h2>
+        <p className={s.suave}>Escolha um anúncio para conhecer a carta e oferecer uma troca.</p>
+      </header>
       {listings.length === 0 ? (
-        <p className={s.suave}>Ninguém está anunciando esta carta agora.</p>
-      ) : (
-        <div className={s.tabelaWrap}>
-          <table className={s.tabela}>
-            <thead>
-              <tr>
-                <th>Colecionador</th>
-                <th>Variante</th>
-                <th>Condição</th>
-                <th>Quantidade</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {listings.map((anuncio) => (
-                <tr key={anuncio.id}>
-                  <td>
-                    <Link className={s.link} to={`/u/${anuncio.owner.username}`}>
-                      @{anuncio.owner.username}
-                    </Link>
-                  </td>
-                  <td>{variante(anuncio.item)}</td>
-                  <td>{CONDICOES[anuncio.item.condition]}</td>
-                  <td>{anuncio.quantity}</td>
-                  <td>
-                    <Link className={s.link} to={`/marketplace/${anuncio.id}`}>
-                      Ver anúncio
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className={s.vazio}>
+          <ArrowLeftRight size={28} aria-hidden="true" /><h3>Nenhum anúncio por enquanto</h3>
+          <p>Explore outras cartas disponíveis para troca na comunidade.</p>
+          <Link className={s.botaoSecundario} to="/marketplace">Explorar marketplace</Link>
         </div>
+      ) : (
+        <ul className={s.anuncios}>
+          {listings.map((anuncio) => (
+            <li className={s.anuncio} key={anuncio.id}>
+              <div className={s.anuncioTopo}><span className={s.avatar} aria-hidden="true">{anuncio.owner.username.slice(0, 1).toUpperCase()}</span><Link className={s.link} to={`/u/${anuncio.owner.username}`}>@{anuncio.owner.username}</Link></div>
+              <h3>{variante(anuncio.item)}</h3>
+              <p className={s.suave}>{CONDICOES[anuncio.item.condition]} · {anuncio.quantity} {anuncio.quantity === 1 ? "disponível" : "disponíveis"}</p>
+              <Link className={s.botaoSecundario} to={`/marketplace/${anuncio.id}`}>Ver anúncio <ArrowUpRight size={16} aria-hidden="true" /></Link>
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+    </section>
   );
 }
