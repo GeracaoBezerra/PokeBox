@@ -14,6 +14,10 @@ import { CATEGORIAS, TIPOS } from "../utils/rotulos";
 const CAMPOS_FILTRO = ["category", "type", "rarity", "set"];
 const VAZIOS = Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, ""]));
 
+function valorAceito(valor, aceitos = []) {
+  return aceitos.find((opcao) => opcao.toLowerCase() === valor.toLowerCase()) ?? "";
+}
+
 function filtrosValidos(filtros, opcoes) {
   const aceitos = {
     category: opcoes.categories,
@@ -21,7 +25,9 @@ function filtrosValidos(filtros, opcoes) {
     rarity: opcoes.rarities,
     set: opcoes.sets?.map((set) => set.id),
   };
-  return Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, aceitos[campo]?.includes(filtros[campo]) ? filtros[campo] : ""]));
+  return Object.fromEntries(
+    CAMPOS_FILTRO.map((campo) => [campo, filtros[campo] ? valorAceito(filtros[campo], aceitos[campo]) : ""])
+  );
 }
 
 function rotuloDoSelo(campo, valor, opcoes) {
