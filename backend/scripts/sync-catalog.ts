@@ -63,9 +63,20 @@ async function syncSets(lang: string, sets: SetSummary[], label: string) {
   return { cardCount, failed };
 }
 
+async function listSets(lang: string): Promise<SetSummary[]> {
+  let sets = await tcgdex.listSets(lang);
+  for (const pause of RETRY_PAUSES_MS) {
+    if (sets.length > 0) break;
+    console.log(`${lang}: a TCGdex não devolveu a lista de sets; tentando de novo em ${pause / 1000} s`);
+    await wait(pause);
+    sets = await tcgdex.listSets(lang);
+  }
+  return sets;
+}
+
 async function syncLang(lang: string): Promise<string[]> {
   const started = Date.now();
-  const sets = await tcgdex.listSets(lang);
+  const sets = await listSets(lang);
   if (sets.length === 0) throw new Error(`A TCGdex não devolveu nenhum set em ${lang}; nada foi sincronizado`);
   console.log(`${sets.length} sets na TCGdex (${lang})`);
 
@@ -86,12 +97,22 @@ async function syncLang(lang: string): Promise<string[]> {
 
 async function main() {
   const langs = process.argv.length > 2 ? process.argv.slice(2) : DEFAULT_LANGS;
+  const unknown = langs.filter((lang) => !DEFAULT_LANGS.includes(lang));
+  if (unknown.length > 0) {
+    throw new Error(`Idioma não suportado: ${unknown.join(', ')}. Use ${DEFAULT_LANGS.join(' ou ')}.`);
+  }
+
   const failed: string[] = [];
   for (const lang of langs) {
-    failed.push(...(await syncLang(lang)));
+    try {
+      failed.push(...(await syncLang(lang)));
+    } catch (err) {
+      console.error(`${lang}: ${errorMessage(err)}`);
+      failed.push(`${lang} (lista de sets)`);
+    }
   }
   if (failed.length > 0) {
-    throw new Error(`${failed.length} sets falharam: ${failed.join(', ')}. Rode de novo para tentar outra vez.`);
+    throw new Error(`Falharam: ${failed.join(', ')}. Rode de novo para tentar outra vez.`);
   }
 }
 

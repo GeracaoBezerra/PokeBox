@@ -237,7 +237,7 @@ cd backend
 npm run catalog:sync
 ```
 
-Sincroniza inglês e português (#157) e leva perto de 3 minutos: busca os ~220 sets em inglês (cerca de 24 mil cartas) e os ~126 em português (cerca de 14 mil), com uma pausa de 200 ms entre os sets para não sobrecarregar a TCGdex. Para um idioma só: `npm run catalog:sync -- pt`. Rodar de novo atualiza, não duplica. A TCGdex responde 502 e 503 em rajadas: o script segue com os outros sets e, no fim de cada idioma, tenta de novo os que falharam, em até três voltas (depois de 5, 15 e 30 s). Se algum ainda falhar, ele lista e termina com erro; basta rodar de novo.
+Sincroniza inglês e português (#157) e leva perto de 3 minutos: busca os ~220 sets em inglês (cerca de 24 mil cartas) e os ~126 em português (cerca de 14 mil), com uma pausa de 200 ms entre os sets para não sobrecarregar a TCGdex. Para um idioma só: `npm run catalog:sync -- pt` (aceita `en` e `pt`). Rodar de novo atualiza, não duplica. A TCGdex responde 502 e 503 em rajadas: o script segue com os outros sets e, no fim de cada idioma, tenta de novo os que falharam, em até três voltas (depois de 5, 15 e 30 s); a lista de sets de cada idioma ganha as mesmas voltas. Se um idioma falhar, o outro roda do mesmo jeito. O que ainda falhar é listado e o script termina com erro; basta rodar de novo.
 
 Sem o sync (banco novo), nada quebra: a busca usa a TCGdex, como antes. Depois do sync, a busca local já vale na próxima chamada, sem reiniciar a API.
 
