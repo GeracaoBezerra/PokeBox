@@ -100,3 +100,21 @@
 .entrada { position: relative; display: block; }
 .entrada > svg { position: absolute; top: 50%; left: var(--esp-12); transform: translateY(-50%); color: var(--texto-suave); pointer-events: none; }
 .campo .entrada input { padding-left: calc(var(--esp-12) * 2 + 16px); }
+.carregandoFiltros { display: grid; gap: var(--esp-24); }
+.grupoCarregando { display: grid; gap: var(--esp-12); padding-top: var(--esp-16); border-top: 1px solid var(--borda-suave); }
+.tituloCarregando,
+.opcaoCarregando,
+.listaCarregando { position: relative; display: block; overflow: hidden; border-radius: var(--raio-botao); background: var(--skeleton-base); }
+.tituloCarregando { width: 45%; height: var(--esp-16); }
+.opcaoCarregando { width: 70%; height: var(--esp-12); margin: var(--esp-4) 0; }
+.opcaoCarregando:nth-child(odd) { width: 55%; }
+.listaCarregando { width: 100%; height: var(--altura-controle); }
+.tituloCarregando::after,
+.opcaoCarregando::after,
+.listaCarregando::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, var(--skeleton-brilho), transparent); transform: translateX(-100%); animation: brilharFiltro var(--tempo-skeleton) var(--curva-sair) infinite; }
+@keyframes brilharFiltro { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .tituloCarregando::after,
+  .opcaoCarregando::after,
+  .listaCarregando::after { animation: none; }
+}

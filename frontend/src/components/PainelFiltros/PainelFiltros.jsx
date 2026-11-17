@@ -22,6 +22,27 @@ export function GrupoFiltro({ titulo, valor, opcoes, todas = "Todas as opções"
   );
 }
 
+export function GruposCarregando({ grupos = 1, opcoes = 4, comLista = false, rotulo = "Carregando filtros" }) {
+  return (
+    <div className={s.carregandoFiltros} role="status" aria-label={rotulo} aria-busy="true">
+      {Array.from({ length: grupos }, (_, grupo) => (
+        <div key={grupo} className={s.grupoCarregando} aria-hidden="true">
+          <span className={s.tituloCarregando} />
+          {Array.from({ length: opcoes }, (_, opcao) => (
+            <span key={opcao} className={s.opcaoCarregando} />
+          ))}
+        </div>
+      ))}
+      {comLista && (
+        <div className={s.grupoCarregando} aria-hidden="true">
+          <span className={s.tituloCarregando} />
+          <span className={s.listaCarregando} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PainelFiltros({ rotulo, tituloModal, filtros, onAlterar, onLimpar, onAplicar, children }) {
   const [aberto, setAberto] = useState(false);
   const [rascunho, setRascunho] = useState(filtros);
@@ -91,7 +112,7 @@ export default function PainelFiltros({ rotulo, tituloModal, filtros, onAlterar,
             </button>
           )}
         </div>
-        <div className={s.conteudoFiltros}>{children(filtros, onAlterar)}</div>
+        <div className={s.conteudoFiltros}>{children(filtros, onAlterar, false)}</div>
       </div>
 
       <button
@@ -117,7 +138,7 @@ export default function PainelFiltros({ rotulo, tituloModal, filtros, onAlterar,
           </button>
         </header>
         <div className={s.modalConteudo}>
-          {aberto && <div className={s.conteudoFiltros}>{children(rascunho, alterarRascunho)}</div>}
+          {aberto && <div className={s.conteudoFiltros}>{children(rascunho, alterarRascunho, true)}</div>}
         </div>
         <footer className={s.modalRodape}>
           <button type="button" className={s.limpar} onClick={limparRascunho}>

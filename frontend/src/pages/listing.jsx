@@ -31,8 +31,7 @@ export default function ListingPage() {
       </nav>
       {erro ? (
         <section className={s.vazio}>
-          <h1>Não foi possível carregar o anúncio</h1><Aviso erro={erro} />
-          <button className={s.botaoSecundario} onClick={recarregar}>Tentar novamente</button>
+          <h1>Não foi possível carregar o anúncio</h1><Aviso erro={erro} onTentarDeNovo={recarregar} />
         </section>
       ) : !anuncio ? (
         <div className={s.hero} role="status" aria-label="Carregando anúncio" aria-busy="true">

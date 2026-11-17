@@ -1,13 +1,18 @@
 import s from "../../styles/vitrine.module.css";
 import { usernameValido } from "../../utils/filtrosMarketplace";
 import { ACABAMENTOS, CONDICOES, TIPOS } from "../../utils/rotulos";
+import Aviso from "../Aviso/Aviso";
 import CampoBusca from "../CampoBusca/CampoBusca";
-import PainelFiltros, { GrupoFiltro } from "../PainelFiltros/PainelFiltros";
+import PainelFiltros, { GrupoFiltro, GruposCarregando } from "../PainelFiltros/PainelFiltros";
 
 const EDICOES = [
   ["true", "Só 1ª edição"],
   ["false", "Sem 1ª edição"],
 ];
+
+function semUsernameInvalido(filtros) {
+  return usernameValido(filtros.username) ? filtros : { ...filtros, username: "" };
+}
 
 export default function FiltrosMarketplace({ filtros, raridades, logado, onAlterar, onLimpar, onAplicar }) {
   return (
@@ -17,9 +22,9 @@ export default function FiltrosMarketplace({ filtros, raridades, logado, onAlter
       filtros={filtros}
       onAlterar={onAlterar}
       onLimpar={onLimpar}
-      onAplicar={onAplicar}
+      onAplicar={(rascunho) => onAplicar(semUsernameInvalido(rascunho))}
     >
-      {(valores, alterar) => (
+      {(valores, alterar, noModal) => (
         <>
           <GrupoFiltro
             titulo="Condição"
@@ -45,11 +50,13 @@ export default function FiltrosMarketplace({ filtros, raridades, logado, onAlter
             opcoes={Object.entries(TIPOS)}
             onAlterar={(valor) => alterar("type", valor)}
           />
-          {raridades.length > 0 && (
+          {raridades.carregando && <GruposCarregando rotulo="Carregando raridades" />}
+          <Aviso erro={raridades.erro} onTentarDeNovo={raridades.recarregar} />
+          {raridades.dados?.length > 0 && (
             <GrupoFiltro
               titulo="Raridade"
               valor={valores.rarity}
-              opcoes={raridades.map((raridade) => [raridade, raridade])}
+              opcoes={raridades.dados.map((raridade) => [raridade, raridade])}
               onAlterar={(valor) => alterar("rarity", valor)}
             />
           )}
@@ -60,9 +67,10 @@ export default function FiltrosMarketplace({ filtros, raridades, logado, onAlter
               valor={valores.username}
               placeholder="ex.: ash"
               maxLength={20}
+              imediato={noModal}
               onMudar={(texto) => {
                 const username = texto.toLowerCase();
-                if (username === "" || usernameValido(username)) alterar("username", username);
+                if (noModal || username === "" || usernameValido(username)) alterar("username", username);
               }}
             />
           </fieldset>

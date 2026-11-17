@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import s from "../../styles/vitrine.module.css";
 
-export default function CampoBusca({ rotulo, valor, placeholder, maxLength = 50, onMudar }) {
+export default function CampoBusca({ rotulo, valor, placeholder, maxLength = 50, imediato = false, onMudar }) {
   const [texto, setTexto] = useState(valor);
   const [valorAnterior, setValorAnterior] = useState(valor);
   const onMudarRef = useRef(onMudar);
@@ -16,10 +16,15 @@ export default function CampoBusca({ rotulo, valor, placeholder, maxLength = 50,
   }
 
   useEffect(() => {
-    if (texto.trim() === valor) return undefined;
+    if (imediato || texto.trim() === valor) return undefined;
     const espera = setTimeout(() => onMudarRef.current(texto.trim()), 400);
     return () => clearTimeout(espera);
-  }, [texto, valor]);
+  }, [texto, valor, imediato]);
+
+  function digitar(evento) {
+    setTexto(evento.target.value);
+    if (imediato) onMudarRef.current(evento.target.value.trim());
+  }
 
   function teclar(evento) {
     if (evento.key === "Enter") {
@@ -36,7 +41,7 @@ export default function CampoBusca({ rotulo, valor, placeholder, maxLength = 50,
         value={texto}
         maxLength={maxLength}
         placeholder={placeholder}
-        onChange={(e) => setTexto(e.target.value)}
+        onChange={digitar}
         onKeyDown={teclar}
       />
     </label>

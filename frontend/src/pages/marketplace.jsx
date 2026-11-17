@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SearchX } from "lucide-react";
 import { getCardFilters } from "../api/cards";
@@ -59,11 +58,10 @@ export default function MarketplacePage() {
   const [params, setParams] = useSearchParams();
   const sessao = useSession();
   const meuUsername = sessao?.user?.username;
-  const [wishlist, setWishlist] = useState(null);
-  const [raridades, setRaridades] = useState([]);
 
   const q = params.get("q") ?? "";
-  const sort = params.get("sort") ?? "";
+  const sortPedido = params.get("sort") ?? "";
+  const sort = sortPedido !== "recent" && Object.hasOwn(ORDENACOES, sortPedido) ? sortPedido : "";
   const paginaPedida = Number(params.get("page") ?? 1);
   const page = Number.isInteger(paginaPedida) && paginaPedida > 0 ? paginaPedida : 1;
   const filtros = Object.fromEntries(
@@ -84,26 +82,11 @@ export default function MarketplacePage() {
     JSON.stringify({ ...filtrosApi, page })
   );
 
-  useEffect(() => {
-    let ativo = true;
-    getCardFilters("en")
-      .then((opcoes) => ativo && setRaridades(opcoes.rarities ?? []))
-      .catch(() => ativo && setRaridades([]));
-    return () => {
-      ativo = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!sessao) return undefined;
-    let ativo = true;
-    listWishlist()
-      .then((itens) => ativo && setWishlist(new Set(itens.map((item) => item.cardId))))
-      .catch(() => ativo && setWishlist(null));
-    return () => {
-      ativo = false;
-    };
-  }, [sessao]);
+  const raridades = useCarregar(async () => (await getCardFilters("en")).rarities ?? [], "en");
+  const wishlist = useCarregar(
+    async () => (meuUsername ? new Set((await listWishlist()).map((item) => item.cardId)) : null),
+    meuUsername ?? ""
+  );
 
   function atualizar(mudancas, reiniciarPagina = true) {
     const novos = new URLSearchParams(params);
@@ -119,8 +102,12 @@ export default function MarketplacePage() {
     atualizar(VAZIOS);
   }
 
-  const idsWishlist = sessao ? wishlist : null;
-  const soWishlist = filtros.wishlist === "1" && Boolean(idsWishlist);
+  const idsWishlist = sessao ? wishlist.dados : null;
+  const querWishlist = filtros.wishlist === "1" && Boolean(sessao);
+  const esperandoWishlist = querWishlist && wishlist.carregando;
+  const erroWishlist = querWishlist ? wishlist.erro : null;
+  const soWishlist = querWishlist && Boolean(idsWishlist);
+  const mostrarCarregando = carregando || esperandoWishlist;
   const nomeDaCarta = dados?.items.find((anuncio) => anuncio.card.id === filtros.cardId)?.card.name;
   const selos = CAMPOS_FILTRO.filter((campo) => filtros[campo] && (campo !== "wishlist" || sessao)).map((campo) => ({
     campo,
@@ -173,9 +160,9 @@ export default function MarketplacePage() {
               )}
             </p>
             <span>
-              {carregando
+              {mostrarCarregando
                 ? "Buscando anúncios…"
-                : dados
+                : dados && !erroWishlist
                   ? `${anuncios.length} ${anuncios.length === 1 ? "anúncio" : "anúncios"} nesta página`
                   : ""}
             </span>
@@ -183,8 +170,14 @@ export default function MarketplacePage() {
           {buscaCurta && <p className={s.dica}>Digite pelo menos 2 letras ou números para buscar pelo nome.</p>}
           <SelosFiltro selos={selos} onRemover={(campo) => atualizar({ [campo]: "" })} onLimpar={limparFiltros} />
           <Aviso erro={erro} onTentarDeNovo={recarregar} />
-          {carregando && <GradeCartas carregando total={24} variante="catalogo" />}
-          {!carregando && dados && (
+          {!erro && erroWishlist && (
+            <Aviso
+              erro={{ ...erroWishlist, message: `Não foi possível carregar sua wishlist. ${erroWishlist.message}` }}
+              onTentarDeNovo={wishlist.recarregar}
+            />
+          )}
+          {mostrarCarregando && <GradeCartas carregando total={24} variante="catalogo" />}
+          {!mostrarCarregando && !erroWishlist && dados && (
             <>
               {anuncios.length ? (
                 <GradeCartas variante="catalogo">

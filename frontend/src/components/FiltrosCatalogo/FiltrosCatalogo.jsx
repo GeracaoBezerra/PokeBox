@@ -1,7 +1,7 @@
 import s from "../../styles/vitrine.module.css";
 import { CATEGORIAS, TIPOS } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
-import PainelFiltros, { GrupoFiltro } from "../PainelFiltros/PainelFiltros";
+import PainelFiltros, { GrupoFiltro, GruposCarregando } from "../PainelFiltros/PainelFiltros";
 
 const comRotulos = (valores, rotulos = {}) => valores.map((valor) => [valor, rotulos[valor] ?? valor]);
 
@@ -19,11 +19,7 @@ export default function FiltrosCatalogo({ opcoes, filtros, onAlterar, onLimpar, 
     >
       {(valores, alterar) => (
         <>
-          {carregando && (
-            <p className={s.suave} role="status">
-              Carregando filtros…
-            </p>
-          )}
+          {carregando && <GruposCarregando grupos={3} comLista />}
           <Aviso erro={erro} onTentarDeNovo={recarregar} />
           {!carregando && dados && (
             <>
