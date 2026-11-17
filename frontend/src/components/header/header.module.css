@@ -36,34 +36,6 @@
   flex-shrink: 0;
 }
 
-.monograma {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 36px;
-  height: 48px;
-
-  background-color: var(--fundo);
-  border: var(--borda-painel);
-  border-radius: 4px;
-  box-shadow: var(--sombra-sm);
-
-  color: var(--acento);
-  font-family: var(--fonte-titulo);
-  font-size: var(--fs-sm);
-  font-weight: var(--peso-forte);
-
-  transform: rotate(-4deg);
-}
-
-.logoTexto {
-  font-family: var(--fonte-titulo);
-  font-size: var(--fs-xl);
-  font-weight: var(--peso-forte);
-  letter-spacing: -0.5px;
-}
-
 /* Busca */
 
 .buscaContainer {
@@ -244,15 +216,6 @@
 
   .logo {
     gap: var(--esp-8);
-  }
-
-  .logoTexto {
-    font-size: var(--fs-lg);
-  }
-
-  .monograma {
-    width: 32px;
-    height: 42px;
   }
 
   .acoes {

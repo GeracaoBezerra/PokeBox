@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import BackgroundVideo from "../components/ui/backGroundVideo";
-import Pokeball from "../components/ui/pokeball";
+import Logo from "../components/Logo/Logo";
 import "../styles/login.css";
 
 export default function AuthLayout({
@@ -15,7 +15,7 @@ export default function AuthLayout({
       <BackgroundVideo />
       <main className="card">
         <div className="logo">
-          <Pokeball />
+          <Logo variante="simbolo" tamanho={80} />
           <span>Poke<b>Box</b></span>
         </div>
         <p className="sub">{subtitle}</p>

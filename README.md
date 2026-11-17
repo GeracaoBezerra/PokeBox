@@ -6,6 +6,8 @@ O PokeBox é **só de trocas**. Não existe venda, preço de venda nem pagamento
 
 Projeto em equipe do curso **Geração Tech**.
 
+O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nintendo ou Game Freak.
+
 > Este README descreve o que está na branch `develop`.
 
 ## Sumário
