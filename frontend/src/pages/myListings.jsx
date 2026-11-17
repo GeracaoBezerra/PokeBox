@@ -1,3 +1,4 @@
+import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { Link } from "react-router-dom";
 import { listMyListings } from "../api/listings";
 import Aviso from "../components/Aviso/Aviso";
@@ -18,9 +19,9 @@ export default function MyListingsPage() {
       </CabecalhoPagina>
 
       <Aviso erro={erro} />
-      {carregando && !anuncios && <p className={s.suave}>Carregando...</p>}
-      {anuncios && anuncios.length === 0 && <p className={s.suave}>Você ainda não anunciou nada.</p>}
-      {anuncios && anuncios.length > 0 && <TabelaMeusAnuncios anuncios={anuncios} onMudou={recarregar} />}
+      {carregando && <CarregandoCartas formato="tabela" total={6} />}
+      {!carregando && anuncios && anuncios.length === 0 && <p className={s.suave}>Você ainda não anunciou nada.</p>}
+      {!carregando && anuncios && anuncios.length > 0 && <TabelaMeusAnuncios anuncios={anuncios} onMudou={recarregar} />}
     </div>
   );
 }

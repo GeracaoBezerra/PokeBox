@@ -36,9 +36,13 @@ export default function CatalogPage() {
       <BuscaCatalogo nome={name} idioma={lang} onBuscar={buscar} />
 
       <Aviso erro={erro} />
-      {carregando && <p className={s.suave}>Carregando...</p>}
+      {carregando && (
+        <div className={s.secao}>
+          <ListaDeCartas carregando total={24} />
+        </div>
+      )}
 
-      {dados && (
+      {!carregando && dados && (
         <div className={s.secao}>
           {dados.items.length === 0 ? (
             <p className={s.suave}>Nenhuma carta encontrada.</p>

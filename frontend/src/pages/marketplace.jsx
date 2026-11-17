@@ -1,3 +1,4 @@
+import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { useSearchParams } from "react-router-dom";
 import { listListings } from "../api/listings";
 import Aviso from "../components/Aviso/Aviso";
@@ -39,9 +40,9 @@ export default function MarketplacePage() {
       <FiltrosMarketplace cardId={cardId} username={username} onFiltrar={filtrar} />
 
       <Aviso erro={erro} />
-      {carregando && !dados && <p className={s.suave}>Carregando...</p>}
+      {carregando && <CarregandoCartas total={24} />}
 
-      {dados && (
+      {!carregando && dados && (
         <div className={s.secao}>
           {dados.items.length === 0 ? (
             <p className={s.suave}>Nenhum anúncio encontrado.</p>
@@ -51,8 +52,7 @@ export default function MarketplacePage() {
                 <CartaMini
                   key={anuncio.id}
                   to={`/marketplace/${anuncio.id}`}
-                  src={anuncio.card.imageUrl}
-                  nome={anuncio.card.name}
+                  carta={anuncio.card}
                 >
                   <span className={s.suave}>
                     {variante(anuncio.item)} · {CONDICOES[anuncio.item.condition]}

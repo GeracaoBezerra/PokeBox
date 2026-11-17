@@ -5,7 +5,8 @@
   font-size: 0.9rem;
 }
 
-.erro {
+.erro,
+.remocao {
   background: var(--erro-fundo);
   color: var(--erro);
   border: 1px solid var(--erro);

@@ -6,6 +6,7 @@ import { getCard, searchCards } from "../../api/cards";
 import { useCarregar } from "../../hooks/useCarregar";
 import Aviso from "../Aviso/Aviso";
 import CartaCard from "../CartaCard/CartaCard";
+import SkeletonCard from "../SkeletonCard/SkeletonCard";
 import styles from "./GridCartas.module.css";
 
 const TOTAL = 12; // 4 colunas × 3 linhas
@@ -60,7 +61,7 @@ export function ListaDeCartas({
           // não muda quando os dados chegam (evita o rodapé "pular")
           Array.from({ length: total }, (_, indice) => (
             <li key={indice} className={styles.item} aria-hidden="true">
-              <div className={styles.esqueleto} />
+              <SkeletonCard />
             </li>
           ))
         : cartas.map((carta) => (
@@ -101,7 +102,7 @@ export default function GridCartas() {
           <ListaDeCartas cartas={cartas} lang={LANG} carregando={carregando} />
         )}
 
-        {dados && cartas.length === 0 && (
+        {!carregando && dados && cartas.length === 0 && (
           <p className={styles.estado}>Nenhuma carta encontrada.</p>
         )}
       </div>

@@ -1,13 +1,11 @@
 import { Link } from "react-router-dom";
 import s from "../../styles/paginas.module.css";
-import ImagemCarta from "../ImagemCarta/ImagemCarta";
+import CartaCard from "../CartaCard/CartaCard";
 
 export default function ItemWishlist({ item, ocupado, onRemover }) {
   return (
     <div className={s.cartaMini}>
-      <Link to={`/cards/${item.cardId}`}>
-        <ImagemCarta src={item.card.imageUrl} alt={item.card.name} />
-      </Link>
+      <CartaCard carta={item.card} />
       <strong>{item.card.name}</strong>
       <span className={s.suave}>
         {item.card.setName} · {item.card.number}

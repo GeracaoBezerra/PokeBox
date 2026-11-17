@@ -1,62 +1,78 @@
 import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, ArrowDown, ArrowUpRight, ArrowLeftRight, ShieldCheck } from "lucide-react";
 import { getListing } from "../api/listings";
+import { useSession } from "../auth/useSession";
 import Aviso from "../components/Aviso/Aviso";
 import DadosAnuncio from "../components/DadosAnuncio/DadosAnuncio";
 import FormOferta from "../components/FormOferta/FormOferta";
-import ImagemCarta from "../components/ImagemCarta/ImagemCarta";
+import PalcoCarta from "../components/PalcoCarta/PalcoCarta";
+import PrecoReferencia from "../components/PrecoReferencia/PrecoReferencia";
 import ModeracaoAnuncio from "../components/ModeracaoAnuncio/ModeracaoAnuncio";
 import { useCarregar } from "../hooks/useCarregar";
 import { useMe } from "../hooks/useMe";
-import s from "../styles/paginas.module.css";
+import s from "../styles/detalheCarta.module.css";
 
 export default function ListingPage() {
   const { id } = useParams();
+  const session = useSession();
   const me = useMe();
-  const { dados: anuncio, erro, carregando, recarregar } = useCarregar(() => getListing(id), id);
-
-  if (carregando && !anuncio) return <div className={s.pagina}>Carregando...</div>;
-  if (erro) {
-    return (
-      <div className={s.pagina}>
-        <Aviso erro={erro} />
-      </div>
-    );
-  }
-
-  const souDono = me?.username === anuncio.owner.username;
+  const chave = `${id}|${!!session}`;
+  const { dados, erro, carregando, recarregar } = useCarregar(async () => ({ anuncio: await getListing(id), chave }), chave);
+  const anuncio = dados?.chave === chave ? dados.anuncio : null;
+  const souDono = me?.username === anuncio?.owner.username;
   const souAdmin = me?.role === "ADMIN";
-  const podeOfertar = me && !souDono && anuncio.status === "ACTIVE";
+  const podeOfertar = me && !souDono && anuncio?.status === "ACTIVE";
 
   return (
     <div className={s.pagina}>
-      <div className={s.detalhe}>
-        <ImagemCarta className={s.imagemCarta} src={anuncio.card.imageUrl} alt={anuncio.card.name} />
-        <div>
-          <DadosAnuncio anuncio={anuncio} />
-
-          {souDono && (
-            <p className={s.secao}>
-              Este anúncio é seu.{" "}
-              <Link className={s.link} to="/anuncios">
-                Gerenciar em Meus anúncios
-              </Link>
-            </p>
-          )}
-
-          {!me && (
-            <p className={s.secao}>
-              <Link className={s.link} to="/login">
-                Entre
-              </Link>{" "}
-              para fazer uma oferta.
-            </p>
-          )}
-
-          {souAdmin && !souDono && <ModeracaoAnuncio anuncio={anuncio} onMudou={recarregar} />}
+      <nav className={s.navegacao} aria-label="Navegação do anúncio">
+        <Link to="/marketplace"><ArrowLeft size={16} aria-hidden="true" /> Voltar ao marketplace</Link>
+        <span>Trocas na comunidade</span>
+      </nav>
+      {erro ? (
+        <section className={s.vazio}>
+          <h1>Não foi possível carregar o anúncio</h1><Aviso erro={erro} />
+          <button className={s.botaoSecundario} onClick={recarregar}>Tentar novamente</button>
+        </section>
+      ) : !anuncio ? (
+        <div className={s.hero} role="status" aria-label="Carregando anúncio" aria-busy="true">
+          <PalcoCarta carregando /><div className={s.resumoSkeleton} aria-hidden="true"><div /><div /><div /></div>
         </div>
-      </div>
-
-      {podeOfertar && <FormOferta anuncio={anuncio} />}
+      ) : (
+        <>
+          <div className={s.hero}>
+            <PalcoCarta card={anuncio.card} />
+            <div className={s.resumo}>
+              <DadosAnuncio anuncio={anuncio} />
+              <PrecoReferencia card={anuncio.card} />
+              {souDono ? (
+                <div className={s.convite}>
+                  <h2>Este anúncio é seu</h2><p>Acompanhe propostas ou ajuste a disponibilidade da sua carta.</p>
+                  <div className={s.acoes}><Link className={s.botao} to="/anuncios">Gerenciar anúncio</Link><Link className={s.link} to="/propostas">Ver propostas</Link></div>
+                </div>
+              ) : podeOfertar ? (
+                <div className={s.convite}>
+                  <h2>Vamos fazer uma troca?</h2><p>Escolha cartas da sua coleção e envie uma proposta para @{anuncio.owner.username}.</p>
+                  <a className={s.botao} href="#fazer-oferta"><ArrowLeftRight size={18} aria-hidden="true" /> Fazer uma oferta <ArrowDown size={16} aria-hidden="true" /></a>
+                </div>
+              ) : !session ? (
+                <div className={s.convite}>
+                  <h2>Encontre sua próxima troca</h2><p>Entre na sua conta para oferecer cartas da sua coleção.</p>
+                  <div className={s.acoes}><Link className={s.botao} to="/login">Entrar para negociar</Link><Link className={s.link} to="/register">Criar uma conta</Link></div>
+                </div>
+              ) : !me ? (
+                <p className={s.suave} role="status">Validando sua sessão para negociar…</p>
+              ) : (
+                <div className={s.convite}><h2>Anúncio indisponível para ofertas</h2><p>Você pode explorar outras cartas na comunidade.</p><Link className={s.link} to="/marketplace">Ver outros anúncios</Link></div>
+              )}
+              <Link className={s.link} to={`/cards/${anuncio.card.id}`}>Conhecer todos os detalhes da carta <ArrowUpRight size={16} aria-hidden="true" /></Link>
+              {souAdmin && !souDono && <ModeracaoAnuncio key={id} anuncio={anuncio} onMudou={recarregar} atualizando={carregando} />}
+            </div>
+          </div>
+          <div className={s.notaTroca}><ShieldCheck size={20} aria-hidden="true" /><p>A oferta inicia a conversa. As cartas só ficam reservadas quando a troca é criada.</p></div>
+          {podeOfertar && <FormOferta key={id} anuncio={anuncio} />}
+        </>
+      )}
     </div>
   );
 }

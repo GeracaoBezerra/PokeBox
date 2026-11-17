@@ -1,13 +1,12 @@
-import { Link } from "react-router-dom";
 import s from "../../styles/paginas.module.css";
-import ImagemCarta from "../ImagemCarta/ImagemCarta";
+import CartaCard from "../CartaCard/CartaCard";
 
-export default function CartaMini({ to, src, nome, children }) {
+export default function CartaMini({ to, carta, children }) {
   return (
-    <Link to={to} className={s.cartaMini}>
-      <ImagemCarta src={src} alt={nome} />
-      <strong>{nome}</strong>
+    <div className={s.cartaMini}>
+      <CartaCard carta={carta} link={to} />
+      <strong>{carta.name}</strong>
       {children}
-    </Link>
+    </div>
   );
 }

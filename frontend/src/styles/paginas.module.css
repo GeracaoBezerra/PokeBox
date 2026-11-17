@@ -123,8 +123,36 @@
 
 .grade {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 212px));
+  justify-content: space-between;
+  gap: var(--esp-32) var(--esp-24);
+}
+
+.grade > :nth-child(4n + 3),
+.grade > :nth-child(4n) {
+  --lado: -1;
+}
+
+@media (min-width: 601px) and (max-width: 1023px) {
+  .grade {
+    grid-template-columns: repeat(3, minmax(0, 212px));
+    gap: var(--esp-24) var(--esp-16);
+  }
+
+  .grade > :nth-child(n) {
+    --lado: 1;
+  }
+
+  .grade > :nth-child(3n) {
+    --lado: -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--esp-16);
+  }
 }
 
 .gradeNegociacoes {
@@ -134,22 +162,19 @@
 }
 
 .cartaMini {
-  background: var(--superficie);
-  border: 1px solid var(--borda-suave);
-  border-radius: 10px;
-  padding: 10px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--esp-8);
   color: var(--texto);
-  text-decoration: none;
 }
 
-.cartaMini:hover {
-  border-color: var(--acento);
+.cartaMini > strong {
+  margin-top: var(--esp-8);
+  font-family: var(--fonte-titulo);
+  font-weight: var(--peso-semi);
 }
 
-.cartaMini img,
 .imagemCarta {
   width: 100%;
   aspect-ratio: 245 / 342;
@@ -159,9 +184,15 @@
 
 .miniatura {
   width: 56px;
-  aspect-ratio: 245 / 342;
-  object-fit: contain;
-  border-radius: 4px;
+  flex: none;
+}
+
+.cartaComLegendas {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--esp-4);
 }
 
 .tabelaWrap {
