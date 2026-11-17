@@ -114,6 +114,29 @@ describe('CollectionService.list', () => {
   });
 });
 
+describe('CollectionService.listPage', () => {
+  it('pede uma linha a mais com os filtros e corta no limite', async () => {
+    const { collection, service } = setup();
+    collection.findManyByUser.mockResolvedValue([savedItem, { ...savedItem, id: 'item-2' }, { ...savedItem, id: 'item-3' }]);
+
+    const result = await service.listPage(USER_ID, { q: 'charizard', isPublic: false }, { page: 2, limit: 2 });
+
+    expect(collection.findManyByUser).toHaveBeenCalledWith(USER_ID, { q: 'charizard', isPublic: false, skip: 2, take: 3 });
+    expect(result.items.map((item) => item.id)).toEqual([ITEM_ID, 'item-2']);
+    expect(result.items[0]).toMatchObject({ available: 1 });
+    expect(result.hasNextPage).toBe(true);
+  });
+
+  it('última página não tem próxima', async () => {
+    const { service } = setup();
+
+    const result = await service.listPage(USER_ID, {}, { page: 1, limit: 20 });
+
+    expect(result).toMatchObject({ hasNextPage: false });
+    expect(result.items).toHaveLength(1);
+  });
+});
+
 describe('CollectionService.add (RN-01 e RN-11)', () => {
   it('grava o item e limpa a wishlist na mesma transação, com o id resolvido da carta', async () => {
     const { transactions, collection, wishlist, service } = setup();

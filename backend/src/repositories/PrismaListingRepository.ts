@@ -3,6 +3,7 @@ import { USABLE_STATUSES } from '../utils/accountStatus.js';
 import type { ListingCounts } from '../utils/collectionRules.js';
 import { isOpenStatus, OPEN_STATUSES } from '../utils/listingRules.js';
 import { cardWhere, listingOrderBy } from '../utils/listingSearch.js';
+import type { PageWindow } from '../utils/pagination.js';
 import {
   listingInclude,
   type ActiveListingFilters,
@@ -51,11 +52,13 @@ export class PrismaListingRepository implements ListingRepository {
     });
   }
 
-  findByOwner(userId: string): Promise<ListingWithItem[]> {
+  findByOwner(userId: string, { skip, take }: Partial<PageWindow> = {}): Promise<ListingWithItem[]> {
     return this.db.listing.findMany({
       where: { collectionItem: { userId } },
       include: listingInclude,
       orderBy: [...newestFirst],
+      skip,
+      take,
     });
   }
 

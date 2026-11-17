@@ -85,8 +85,36 @@ describe('updateOfferStatusSchema', () => {
 });
 
 describe('listOffersQuerySchema', () => {
-  it('status é opcional', () => {
-    expect(listOffersQuerySchema.parse({})).toEqual({});
+  it('sem parâmetros não pagina', () => {
+    expect(listOffersQuerySchema.parse({})).toEqual({ filters: {}, page: null });
+  });
+
+  it('status sozinho não pagina', () => {
+    expect(listOffersQuerySchema.parse({ status: 'ACCEPTED' })).toEqual({ filters: { status: 'ACCEPTED' }, page: null });
+  });
+
+  it('side pagina na página 1 com 20 itens', () => {
+    expect(listOffersQuerySchema.parse({ side: 'received', status: 'PROPOSED' })).toEqual({
+      filters: { side: 'received', status: 'PROPOSED' },
+      page: { page: 1, limit: 20 },
+    });
+  });
+
+  it('aceita side com page e limit', () => {
+    expect(listOffersQuerySchema.parse({ side: 'sent', page: '3', limit: '10' })).toEqual({
+      filters: { side: 'sent' },
+      page: { page: 3, limit: 10 },
+    });
+  });
+
+  it.each([{ page: '2' }, { limit: '5' }])('recusa %o sem side e aponta o campo side', (query) => {
+    const { error } = listOffersQuerySchema.safeParse(query);
+    expect(error?.issues[0].path).toEqual(['side']);
+    expect(error?.issues[0].message).toMatch(/side/);
+  });
+
+  it('recusa side desconhecido', () => {
+    expect(listOffersQuerySchema.safeParse({ side: 'both' }).success).toBe(false);
   });
 
   it.each(['PROPOSED', 'ACCEPTED', 'REJECTED', 'CANCELED'])('aceita filtro %s', (status) => {

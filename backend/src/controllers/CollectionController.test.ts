@@ -13,6 +13,7 @@ const item = { id: ITEM_ID, quantity: 1, available: 1 } as CollectionItemView;
 function setup() {
   const collection = {
     list: jest.fn<CollectionActions['list']>(async () => [item]),
+    listPage: jest.fn<CollectionActions['listPage']>(async () => ({ items: [item], hasNextPage: true })),
     add: jest.fn<CollectionActions['add']>(async () => ({ item, removedFromWishlist: true })),
     update: jest.fn<CollectionActions['update']>(async () => item),
     remove: jest.fn<CollectionActions['remove']>(async () => undefined),
@@ -34,11 +35,39 @@ describe('CollectionController', () => {
   it('list responde 200 com os itens', async () => {
     const { collection, res, controller } = setup();
 
-    await controller.list(request({}), res as unknown as Response, next);
+    await controller.list(request({ query: {} }), res as unknown as Response, next);
 
     expect(collection.list).toHaveBeenCalledWith('u-ash');
+    expect(collection.listPage).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({ success: true, data: { items: [item] } });
+  });
+
+  it('list com filtro pagina mesmo sem page', async () => {
+    const { collection, res, controller } = setup();
+
+    await controller.list(request({ query: { q: 'charizard', isPublic: 'false' } }), res as unknown as Response, next);
+
+    expect(collection.list).not.toHaveBeenCalled();
+    expect(collection.listPage).toHaveBeenCalledWith(
+      'u-ash',
+      { q: 'charizard', isPublic: false },
+      { page: 1, limit: 20 },
+    );
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      data: { items: [item] },
+      pagination: { page: 1, limit: 20, hasNextPage: true },
+    });
+  });
+
+  it('list com limit acima de 100 falha na validação', async () => {
+    const { collection, res, controller } = setup();
+
+    await expect(
+      controller.list(request({ query: { limit: '500' } }), res as unknown as Response, next),
+    ).rejects.toBeInstanceOf(ZodError);
+    expect(collection.listPage).not.toHaveBeenCalled();
   });
 
   it('add responde 201 com o item e removedFromWishlist', async () => {

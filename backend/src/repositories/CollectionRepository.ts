@@ -1,5 +1,8 @@
 import type { CardCondition, CardFinish, Prisma } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
+import type { ItemSort } from '../utils/itemSort.js';
+import type { CardFilters } from '../utils/listingSearch.js';
+import type { PageWindow } from '../utils/pagination.js';
 
 export const collectionItemWithCard = { card: true } satisfies Prisma.CollectionItemInclude;
 
@@ -38,14 +41,26 @@ export interface CollectionItemChanges {
   isPublic?: boolean;
 }
 
+export interface CollectionFilters extends Pick<CardFilters, 'q' | 'setId' | 'type'> {
+  condition?: CardCondition;
+  finish?: CardFinish;
+  isPublic?: boolean;
+  sort?: ItemSort;
+}
+
+export type PublicCollectionFilters = Pick<CardFilters, 'q' | 'type'>;
+
 export interface CardOwner {
   cardId: string;
   userId: string;
 }
 
 export interface CollectionRepository {
-  findManyByUser(userId: string): Promise<CollectionItemWithCard[]>;
-  findPublicByUser(userId: string): Promise<CollectionItemWithCard[]>;
+  findManyByUser(userId: string, options?: CollectionFilters & Partial<PageWindow>): Promise<CollectionItemWithCard[]>;
+  findPublicByUser(
+    userId: string,
+    options?: PublicCollectionFilters & Partial<PageWindow>,
+  ): Promise<CollectionItemWithCard[]>;
   findById(id: string): Promise<CollectionItemWithCard | null>;
   addOrIncrement(data: NewCollectionItem, db?: Db): Promise<CollectionItemWithCard>;
   findIdsByKeys(keys: CollectionItemKey[]): Promise<string[]>;

@@ -211,6 +211,22 @@ model CardCache {
   @@index([updatedAt])
 }
 
+model CatalogCard {
+  id             String
+  lang           String   @default("en")
+  name           String
+  nameNormalized String
+  localId        String
+  setId          String
+  setName        String
+  imageUrl       String?
+  syncedAt       DateTime @default(now())
+
+  @@id([id, lang])
+  @@index([setId])
+  @@index([nameNormalized(ops: raw("gin_trgm_ops"))], type: Gin, map: "CatalogCard_nameNormalized_trgm_idx")
+}
+
 enum AccountStatus {
   PENDING_VERIFICATION
   ACTIVE

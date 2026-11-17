@@ -1,10 +1,15 @@
 import { NotFoundError } from '../errors/domainErrors.js';
 import type { Db } from '../lib/prisma.js';
-import type { CollectionItemWithCard, CollectionRepository } from '../repositories/CollectionRepository.js';
+import type {
+  CollectionFilters,
+  CollectionItemWithCard,
+  CollectionRepository,
+} from '../repositories/CollectionRepository.js';
 import type { TransactionRunner } from '../repositories/TransactionRunner.js';
 import type { WishlistRemover } from '../repositories/WishlistRepository.js';
 import type { CreateCollectionItemInput, UpdateCollectionItemInput } from '../schemas/collection.schema.js';
 import { toCardRecord } from '../utils/cardRecord.js';
+import { toPage, toSkipTake, type Page, type PageParams } from '../utils/pagination.js';
 import {
   assertConditionChangeable,
   assertCoversListings,
@@ -61,6 +66,13 @@ export class CollectionService {
   async list(userId: string): Promise<CollectionItemView[]> {
     const items = await this.deps.collection.findManyByUser(userId);
     return items.map((item) => toCollectionItemResponse(item));
+  }
+
+  async listPage(userId: string, filters: CollectionFilters, page: PageParams): Promise<Page<CollectionItemView>> {
+    const rows = await this.deps.collection.findManyByUser(userId, { ...filters, ...toSkipTake(page) });
+    const { items, hasNextPage } = toPage(rows, page);
+
+    return { items: items.map((item) => toCollectionItemResponse(item)), hasNextPage };
   }
 
   async add(userId: string, input: CreateCollectionItemInput): Promise<AddedCollectionItem> {

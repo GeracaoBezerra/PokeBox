@@ -1,5 +1,6 @@
 import type { Prisma, TradeStatus } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
+import type { PageWindow } from '../utils/pagination.js';
 import type { NewTradeItem } from '../utils/tradeRules.js';
 
 const party = { select: { username: true, name: true } } as const;
@@ -33,12 +34,16 @@ export interface NewTrade {
   items: NewTradeItem[];
 }
 
+export interface TradeListOptions extends Partial<PageWindow> {
+  status?: TradeStatus;
+}
+
 export interface TradeRepository {
   create(data: NewTrade, db?: Db): Promise<TradeWithItems>;
   findById(id: string, db?: Db): Promise<TradeWithItems | null>;
   findByOfferId(offerId: string, db?: Db): Promise<{ id: string } | null>;
   lockById(id: string, db?: Db): Promise<LockedTrade | null>;
-  findSent(userId: string, status?: TradeStatus): Promise<TradeWithItems[]>;
-  findReceived(userId: string, status?: TradeStatus): Promise<TradeWithItems[]>;
+  findSent(userId: string, options?: TradeListOptions): Promise<TradeWithItems[]>;
+  findReceived(userId: string, options?: TradeListOptions): Promise<TradeWithItems[]>;
   updateStatus(id: string, status: TradeStatus, db?: Db): Promise<TradeWithItems>;
 }

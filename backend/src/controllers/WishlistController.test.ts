@@ -13,6 +13,7 @@ const item = { id: ITEM_ID, cardId: 'base1-4', opportunities: 1 } as WishlistIte
 function setup() {
   const wishlist = {
     list: jest.fn<WishlistActions['list']>(async () => [item]),
+    listPage: jest.fn<WishlistActions['listPage']>(async () => ({ items: [item], hasNextPage: false })),
     add: jest.fn<WishlistActions['add']>(async () => item),
     remove: jest.fn<WishlistActions['remove']>(async () => undefined),
   } satisfies WishlistActions;
@@ -33,11 +34,25 @@ describe('WishlistController', () => {
   it('list responde 200 com os itens', async () => {
     const { wishlist, res, controller } = setup();
 
-    await controller.list(request({}), res as unknown as Response, next);
+    await controller.list(request({ query: {} }), res as unknown as Response, next);
 
     expect(wishlist.list).toHaveBeenCalledWith('u-misty');
+    expect(wishlist.listPage).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({ success: true, data: { items: [item] } });
+  });
+
+  it('list com type pagina e devolve pagination', async () => {
+    const { wishlist, res, controller } = setup();
+
+    await controller.list(request({ query: { type: 'fire', page: '2', limit: '5' } }), res as unknown as Response, next);
+
+    expect(wishlist.listPage).toHaveBeenCalledWith('u-misty', { type: 'Fire' }, { page: 2, limit: 5 });
+    expect(res.json).toHaveBeenCalledWith({
+      success: true,
+      data: { items: [item] },
+      pagination: { page: 2, limit: 5, hasNextPage: false },
+    });
   });
 
   it('add valida o corpo e responde 201 com o item', async () => {

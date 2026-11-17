@@ -1,9 +1,13 @@
 import { ConflictError } from '../errors/domainErrors.js';
 import type { Db } from '../lib/prisma.js';
+import { itemOrderBy } from '../utils/itemSort.js';
+import { cardWhere } from '../utils/listingSearch.js';
+import type { PageWindow } from '../utils/pagination.js';
 import { isUniqueViolation } from './prismaErrors.js';
 import {
   wishlistItemWithCard,
   type NewWishlistItem,
+  type WishlistFilters,
   type WishlistItem,
   type WishlistItemWithCard,
   type WishlistRepository,
@@ -12,11 +16,16 @@ import {
 export class PrismaWishlistRepository implements WishlistRepository {
   constructor(private readonly db: Db) {}
 
-  findManyByUser(userId: string): Promise<WishlistItemWithCard[]> {
+  findManyByUser(
+    userId: string,
+    { q, type, rarity, sort, skip, take }: WishlistFilters & Partial<PageWindow> = {},
+  ): Promise<WishlistItemWithCard[]> {
     return this.db.wishlistItem.findMany({
-      where: { userId },
+      where: { userId, card: cardWhere({ q, type, rarity }) },
       include: wishlistItemWithCard,
-      orderBy: [{ card: { name: 'asc' } }, { createdAt: 'asc' }],
+      orderBy: itemOrderBy(sort),
+      skip,
+      take,
     });
   }
 

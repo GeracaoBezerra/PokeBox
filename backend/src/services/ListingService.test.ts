@@ -212,6 +212,26 @@ describe('leituras', () => {
     expect(result.hasNextPage).toBe(true);
   });
 
+  it('listMine sem paginação busca todos os anúncios do dono', async () => {
+    const { service, listings } = setup();
+
+    const items = await service.listMine(OWNER_ID);
+
+    expect(listings.findByOwner).toHaveBeenCalledWith(OWNER_ID);
+    expect(items).toHaveLength(1);
+  });
+
+  it('listMinePage pede skip/take e corta no limite', async () => {
+    const { service, listings } = setup();
+    listings.findByOwner.mockResolvedValueOnce([listing, listing]);
+
+    const result = await service.listMinePage(OWNER_ID, { page: 3, limit: 1 });
+
+    expect(listings.findByOwner).toHaveBeenCalledWith(OWNER_ID, { skip: 2, take: 2 });
+    expect(result.items).toHaveLength(1);
+    expect(result.hasNextPage).toBe(true);
+  });
+
   it('listByCard limita a 50 anúncios', async () => {
     const { service, listings } = setup();
 
