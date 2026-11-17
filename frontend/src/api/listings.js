@@ -1,9 +1,8 @@
 import { http } from "./http";
 
-export async function listListings({ cardId, username, page = 1, limit = 20 } = {}) {
-  const body = await http.get("/listings", {
-    params: { cardId: cardId || undefined, username: username || undefined, page, limit },
-  });
+export async function listListings({ page = 1, limit = 20, ...filtros } = {}) {
+  const params = Object.fromEntries(Object.entries(filtros).filter(([, valor]) => valor !== "" && valor != null));
+  const body = await http.get("/listings", { params: { ...params, page, limit } });
   return { items: body.data.items, pagination: body.pagination };
 }
 

@@ -9,3 +9,8 @@ export async function getCard(id, lang = "en") {
   const body = await http.get(`/cards/${encodeURIComponent(id)}`, { params: { lang } });
   return body.data;
 }
+
+export async function getCardFilters(lang = "en") {
+  const body = await http.get("/cards/filters", { params: { lang } });
+  return body.data;
+}

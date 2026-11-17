@@ -1,0 +1,74 @@
+.carta {
+  background: var(--superficie);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-painel);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+}
+
+.carta:hover {
+  border-color: var(--acento);
+}
+
+.link {
+  color: var(--texto);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+}
+
+.imagem {
+  position: relative;
+}
+
+.imagem img,
+.imagem > div {
+  aspect-ratio: 245 / 342;
+  border-radius: var(--raio-botao);
+  object-fit: contain;
+  width: 100%;
+}
+
+.selo {
+  border-radius: var(--raio-pilula);
+  font-size: 0.75rem;
+  font-weight: 700;
+  left: 6px;
+  padding: 2px 8px;
+  position: absolute;
+  top: 6px;
+}
+
+.wishlist {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+.seu {
+  background: var(--info-fundo);
+  border: 1px solid var(--info);
+  color: var(--texto);
+}
+
+.suave {
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}
+
+.preco {
+  color: var(--texto-suave);
+  font-size: 0.8rem;
+}
+
+.dono {
+  color: var(--acento);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.dono:hover {
+  text-decoration: underline;
+}

@@ -1,0 +1,39 @@
+.filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alternar {
+  display: none;
+}
+
+.painel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.painel select,
+.painel input[type="search"] {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .alternar {
+    display: inline-block;
+    align-self: flex-start;
+  }
+
+  .painel {
+    display: none;
+    background: var(--superficie);
+    border: 1px solid var(--borda-suave);
+    border-radius: var(--raio-painel);
+    padding: 16px;
+  }
+
+  .painel.aberto {
+    display: flex;
+  }
+}

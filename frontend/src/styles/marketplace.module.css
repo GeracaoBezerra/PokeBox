@@ -1,0 +1,34 @@
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.busca {
+  margin-bottom: 16px;
+}
+
+.busca label,
+.busca input {
+  width: 100%;
+}
+
+.vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+.atualizando {
+  opacity: 0.5;
+  transition: opacity var(--tempo-rapido);
+}
+
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
