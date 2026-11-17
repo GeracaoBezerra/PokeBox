@@ -11,6 +11,8 @@ export function createCardRoutes(controller: CardController, auth: Pick<AuthMidd
 
   router.get('/filters', validateCardLangQuery, controller.filters);
 
+  router.get('/most-wished', controller.mostWished);
+
   router.get('/:id', validateCardParams, auth.optionalAuth, controller.getDetails);
 
   return router;

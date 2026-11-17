@@ -4,6 +4,7 @@ import { AppError } from '../errors/AppError.js';
 import { CardNotFoundError } from '../errors/CardNotFoundError.js';
 import type { CardDetailLocals, CardLangLocals, CardListLocals } from '../middlewares/validateCardParams.js';
 import type { CardService } from '../services/CardService.js';
+import { mostWishedQuerySchema } from '../schemas/mostWished.schema.js';
 
 export interface CardListingsReader {
   listByCard(cardId: string): Promise<unknown[]>;
@@ -15,9 +16,20 @@ type CardFiltersHandler = RequestHandler<Record<string, string>, unknown, unknow
 
 export class CardController {
   constructor(
-    private readonly cards: Pick<CardService, 'getById' | 'find' | 'getFilterOptions' | 'getUserCardInfo'>,
+    private readonly cards: Pick<CardService, 'getById' | 'find' | 'getFilterOptions' | 'getUserCardInfo' | 'mostWished'>,
     private readonly listings: CardListingsReader,
   ) {}
+
+  readonly mostWished: RequestHandler = async (req, res, next) => {
+    try {
+      const { limit } = mostWishedQuerySchema.parse(req.query);
+      const cards = await this.cards.mostWished(limit);
+      res.set('Cache-Control', 'no-store');
+      res.json({ success: true, data: cards });
+    } catch (err) {
+      next(err);
+    }
+  };
 
   readonly getDetails: CardDetailHandler = async (req, res, next) => {
     try {

@@ -20,11 +20,11 @@
   line-height: var(--lh-lg);
 }
 
-/* Fileira de 3 blocos */
+/* Fileira de destaques */
 
 .grade {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--esp-12);
 }
 

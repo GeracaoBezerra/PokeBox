@@ -21,7 +21,7 @@ function setup() {
   };
   const readers = {
     collection: { sumQuantityByUserAndCard: jest.fn<UserCardReaders['collection']['sumQuantityByUserAndCard']>(async () => null) },
-    wishlist: { existsByUserAndCard: jest.fn<UserCardReaders['wishlist']['existsByUserAndCard']>(async () => null) },
+    wishlist: { findMostWished: jest.fn<UserCardReaders['wishlist']['findMostWished']>(async () => []), existsByUserAndCard: jest.fn<UserCardReaders['wishlist']['existsByUserAndCard']>(async () => null) },
     listings: { existsActiveByUserAndCard: jest.fn<UserCardReaders['listings']['existsActiveByUserAndCard']>(async () => null) },
   };
   return { catalog, finder, readers, service: new CardService(catalog, finder, readers) };
@@ -161,5 +161,21 @@ describe('CardService filtros (#75)', () => {
     catalog.listFilterValues.mockRejectedValue(new TcgdexUnavailableError('TCGdex respondeu 503'));
 
     await expect(service.getFilterOptions('en')).rejects.toBeInstanceOf(TcgdexUnavailableError);
+  });
+});
+
+describe('CardService.mostWished', () => {
+  test('usa o leitor local sem consultar o catálogo', async () => {
+    const { service, readers, catalog, finder } = setup();
+    await expect(service.mostWished(8)).resolves.toEqual([]);
+    expect(readers.wishlist.findMostWished).toHaveBeenCalledWith(8);
+    expect(catalog.getById).not.toHaveBeenCalled();
+    expect(finder.find).not.toHaveBeenCalled();
+  });
+  test('propaga falhas do leitor', async () => {
+    const { service, readers } = setup();
+    const error = new Error('database unavailable');
+    readers.wishlist.findMostWished.mockRejectedValueOnce(error);
+    await expect(service.mostWished(8)).rejects.toBe(error);
   });
 });

@@ -108,15 +108,15 @@ export default function CtaColecao() {
           <span className={styles.ctaEyebrow}>Para colecionadores</span>
 
           <h2 id="cta-colecao-titulo" className={styles.ctaTitle}>
-            Monte sua <span className={styles.ctaDestaque}>coleção</span>
+            {session ? "Continue de onde parou" : <>Monte sua <span className={styles.ctaDestaque}>coleção</span></>}
           </h2>
 
-          <p className={styles.ctaDescription}>
+          {session ? <p className={styles.ctaDescription}>Organize suas cartas, acompanhe sua wishlist e veja suas propostas de troca.</p> : <p className={styles.ctaDescription}>
             Cadastre as cartas que você já tem, marque as que quer trocar e
             encontre outros colecionadores para negociar.
-          </p>
+          </p>}
 
-          <ol className={styles.passos}>
+          {!session && <ol className={styles.passos}>
             {passos.map((passo, index) => (
               <li key={passo.titulo} className={styles.passo}>
                 <span className={styles.passoNumero} aria-hidden="true">
@@ -128,11 +128,13 @@ export default function CtaColecao() {
                 </div>
               </li>
             ))}
-          </ol>
+          </ol>}
 
-          <Link to={session ? "/" : "/register"} className={styles.ctaButton}>
-            Começar minha coleção
-          </Link>
+          {session ? <nav aria-label="Seus atalhos" className={styles.atalhos}>
+            <Link to="/colecao" className={styles.ctaButton}>Coleção</Link>
+            <Link to="/procuro" className={styles.ctaButton}>Wishlist</Link>
+            <Link to="/propostas" className={styles.ctaButton}>Propostas</Link>
+          </nav> : <Link to="/register" className={styles.ctaButton}>Começar minha coleção</Link>}
         </div>
 
         {/* Decorativo: some para leitores de tela */}

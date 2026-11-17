@@ -53,3 +53,36 @@ describe('PrismaWishlistRepository', () => {
     expect(own.wishlistItem.deleteMany).not.toHaveBeenCalled();
   });
 });
+
+describe('PrismaWishlistRepository.findMostWished', () => {
+  test('filtra contas utilizáveis, desempata por id e mantém a ordem do ranking', async () => {
+    const groupBy = jest.fn<(args: unknown) => Promise<unknown[]>>().mockResolvedValue([
+      { cardId: 'base1-4', _count: { cardId: 3 } },
+      { cardId: 'base1-58', _count: { cardId: 1 } },
+    ]);
+    const findMany = jest.fn<(args: unknown) => Promise<unknown[]>>().mockResolvedValue([
+      { id: 'base1-58', name: 'Pikachu' }, { id: 'base1-4', name: 'Charizard' },
+    ]);
+    const db = { wishlistItem: { groupBy }, card: { findMany } } as unknown as Db;
+    const result = await new PrismaWishlistRepository(db).findMostWished(8);
+    expect(groupBy).toHaveBeenCalledWith({
+      by: ['cardId'],
+      where: { user: { deletedAt: null, accountStatus: { in: ['ACTIVE', 'PENDING_VERIFICATION'] } } },
+      _count: { cardId: true },
+      orderBy: [{ _count: { cardId: 'desc' } }, { cardId: 'asc' }],
+      take: 8,
+    });
+    expect(findMany).toHaveBeenCalledWith({ where: { id: { in: ['base1-4', 'base1-58'] } } });
+    expect(result).toEqual([
+      { rank: 1, wishlistCount: 3, card: { id: 'base1-4', name: 'Charizard' } },
+      { rank: 2, wishlistCount: 1, card: { id: 'base1-58', name: 'Pikachu' } },
+    ]);
+  });
+  test('ranking vazio não consulta cartas', async () => {
+    const groupBy = jest.fn<(args: unknown) => Promise<unknown[]>>().mockResolvedValue([]);
+    const findMany = jest.fn();
+    const db = { wishlistItem: { groupBy }, card: { findMany } } as unknown as Db;
+    await expect(new PrismaWishlistRepository(db).findMostWished(8)).resolves.toEqual([]);
+    expect(findMany).not.toHaveBeenCalled();
+  });
+});

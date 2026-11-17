@@ -5,17 +5,19 @@ import type { Server } from 'node:http';
 
 import { AppError } from '../errors/AppError.js';
 import { CardNotFoundError } from '../errors/CardNotFoundError.js';
+import { ZodErrorTranslator } from '../errors/translators/ZodErrorTranslator.js';
 import { cardMock } from '../mocks/cardMock.js';
 import { createCardRoutes } from '../routes/card.routes.js';
 import type { CardService } from '../services/CardService.js';
 import { CardController, type CardListingsReader } from './CardController.js';
 
-type Cards = Pick<CardService, 'getById' | 'find' | 'getFilterOptions' | 'getUserCardInfo'>;
+type Cards = Pick<CardService, 'getById' | 'find' | 'getFilterOptions' | 'getUserCardInfo' | 'mostWished'>;
 
 const USER = { id: 'user-1' };
 
 function setup() {
   const cards: jest.Mocked<Cards> = {
+    mostWished: jest.fn<Cards['mostWished']>(async () => []),
     getById: jest.fn<Cards['getById']>(async () => cardMock),
     find: jest.fn<Cards['find']>(async () => ({ cards: [], hasNextPage: false, search: null })),
     getFilterOptions: jest.fn<Cards['getFilterOptions']>(async () => ({
@@ -36,6 +38,11 @@ function setup() {
   const app = express();
   app.use('/cards', createCardRoutes(new CardController(cards, listings), auth));
   const onError: ErrorRequestHandler = (err, _req, res, _next) => {
+    const validation = new ZodErrorTranslator().translate(err);
+    if (validation) {
+      res.status(validation.statusCode).json({ success: false, error: validation.message, details: validation.details });
+      return;
+    }
     const status = err instanceof AppError ? err.statusCode : 400;
     res.status(status).json({ success: false, error: err.message });
   };
@@ -163,5 +170,36 @@ describe('CardController', () => {
     const res = await request(app, '/cards/filters');
 
     expect(res.status).toBe(502);
+  });
+});
+
+describe('GET /cards/most-wished', () => {
+  test('é pública, usa limite padrão e não cai na rota de detalhe', async () => {
+    const { app, cards } = setup();
+    const response = await request(app, '/cards/most-wished');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ success: true, data: [] });
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(cards.mostWished).toHaveBeenCalledWith(8);
+    expect(cards.getById).not.toHaveBeenCalled();
+  });
+  test.each([1, 3, 24])('aceita limite %i', async (limit) => {
+    const { app, cards } = setup();
+    const response = await request(app, `/cards/most-wished?limit=${limit}`);
+    expect(response.status).toBe(200);
+    expect(cards.mostWished).toHaveBeenCalledWith(limit);
+  });
+  test.each(['0', '25', '-1', '1.5', 'abc', ''])('rejeita limite inválido %s', async (limit) => {
+    const { app, cards } = setup();
+    const response = await request(app, `/cards/most-wished?limit=${limit}`);
+    expect(response.status).toBe(400);
+    expect(response.body.details).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'limit' })]));
+    expect(cards.mostWished).not.toHaveBeenCalled();
+  });
+  test('encaminha erro do service', async () => {
+    const { app, cards } = setup();
+    cards.mostWished.mockRejectedValueOnce(new AppError(503, 'Banco indisponível'));
+    const response = await request(app, '/cards/most-wished');
+    expect(response.status).toBe(503);
   });
 });

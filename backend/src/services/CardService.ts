@@ -11,7 +11,7 @@ import type {
 import { AppError } from '../errors/AppError.js';
 import { CardNotFoundError } from '../errors/CardNotFoundError.js';
 import type { CollectionQuantityReader } from '../repositories/CollectionRepository.js';
-import type { WishlistLookup } from '../repositories/WishlistRepository.js';
+import type { MostWishedCard, WishlistLookup, WishlistRepository } from '../repositories/WishlistRepository.js';
 import { isValidCardId } from '../utils/cardId.js';
 import { toUserCardInfo, type UserCardInfo } from '../utils/cardRecord.js';
 
@@ -21,7 +21,7 @@ export interface ActiveListingReader {
 
 export interface UserCardReaders {
   collection: CollectionQuantityReader;
-  wishlist: WishlistLookup;
+  wishlist: WishlistLookup & Pick<WishlistRepository, 'findMostWished'>;
   listings: ActiveListingReader;
 }
 
@@ -41,6 +41,10 @@ export class CardService implements CardFetcher {
     private readonly finder: CardFinder,
     private readonly readers: UserCardReaders,
   ) {}
+
+  mostWished(limit: number): Promise<MostWishedCard[]> {
+    return this.readers.wishlist.findMostWished(limit);
+  }
 
   getById(id: string, lang: string): Promise<CardDetail> {
     return this.catalog.getById(id, lang);

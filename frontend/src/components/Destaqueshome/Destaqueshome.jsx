@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import styles from "./Destaqueshome.module.css";
 
@@ -11,21 +11,14 @@ const destaques = [
     id: 1,
     titulo: "Novas adições",
     texto: "As últimas cartas anunciadas para troca.",
-    to: "/", // TODO: "/marketplace?ordem=recentes"
+    to: "/marketplace",
     src: "https://assets.tcgdex.net/en/base/base1/10/high.webp",
-  },
-  {
-    id: 2,
-    titulo: "Trocas em alta",
-    texto: "As cartas mais negociadas da semana.",
-    to: "/", // TODO: "/marketplace?ordem=em-alta"
-    src: "https://assets.tcgdex.net/en/base/base1/6/high.webp",
   },
   {
     id: 3,
     titulo: "Mais desejadas",
     texto: "Cartas que aparecem em mais wishlists.",
-    to: "/", // TODO: "/cards?ordem=mais-desejadas"
+    to: "#mais-desejadas",
     src: "https://assets.tcgdex.net/en/base/base1/16/high.webp",
   },
 ];
@@ -39,8 +32,11 @@ export default function DestaquesHome() {
         </h2>
 
         <div className={styles.grade}>
-          {destaques.map((destaque) => (
-            <Link key={destaque.id} to={destaque.to} className={styles.card}>
+          {destaques.map((destaque) => {
+            const Componente = destaque.to.startsWith("#") ? "a" : Link;
+            const destino = destaque.to.startsWith("#") ? { href: destaque.to } : { to: destaque.to };
+            return (
+            <Componente key={destaque.id} {...destino} className={styles.card}>
               {/* Carta decorativa: inclinada, sangrando pela direita e por baixo */}
               <div className={styles.carta} aria-hidden="true">
                 <div className={styles.face}>
@@ -63,8 +59,9 @@ export default function DestaquesHome() {
                   <ArrowRight size={16} aria-hidden="true" />
                 </span>
               </div>
-            </Link>
-          ))}
+            </Componente>
+            );
+          })}
         </div>
       </div>
     </section>

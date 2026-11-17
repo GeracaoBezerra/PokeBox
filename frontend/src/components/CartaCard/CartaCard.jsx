@@ -50,7 +50,7 @@ function Linha({ rotulo, children }) {
 // link: use só se o destino for outro.
 // painel: passe false para esconder o painel (por exemplo, enquanto os dados
 // completos da carta ainda não chegaram).
-export default function CartaCard({ carta, lang, link, painel = true }) {
+export default function CartaCard({ carta, lang, link, painel = true, wishlistCount, rank }) {
   const { id, name: nome, rarity: raridade, illustrator: artista, types } = carta;
 
   const src = carta.image?.small ?? carta.imageUrl ?? null;
@@ -64,7 +64,7 @@ export default function CartaCard({ carta, lang, link, painel = true }) {
 
   const destino = link ?? (lang ? `/cards/${id}?lang=${lang}` : `/cards/${id}`);
   const alt = [nome, set, numeroTexto].filter(Boolean).join(", ");
-  const temDados = Boolean(tipo || raridade || set || numeroTexto || artista);
+  const temDados = Boolean(tipo || raridade || set || numeroTexto || artista || wishlistCount != null || rank != null);
 
   return (
     // Sem tipo, usa o "incolor" (cinza neutro) para o painel manter fundo e borda
@@ -94,6 +94,8 @@ export default function CartaCard({ carta, lang, link, painel = true }) {
             <p className={styles.nome}>{nome}</p>
 
             <dl className={styles.lista}>
+              {wishlistCount != null && <Linha rotulo="Wishlists">{new Intl.NumberFormat("pt-BR").format(wishlistCount)}</Linha>}
+              {rank != null && <Linha rotulo="Ranking">#{rank}</Linha>}
               {tipo && (
                 <Linha rotulo="Tipo">
                   <span className={styles.tipo}>{tipo}</span>

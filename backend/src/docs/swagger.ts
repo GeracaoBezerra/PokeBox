@@ -812,6 +812,48 @@ export const swaggerSpec = {
         },
       },
     },
+    "/cards/most-wished": {
+      get: {
+        tags: ["Cards"],
+        summary: "Cartas mais desejadas",
+        description: "Ranking local por quantidade de wishlists de contas utilizáveis e não excluídas. Desempate por id da carta. Sem cache ou chamadas à TCGdex.",
+        security: [],
+        parameters: [{ name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 24, default: 8 } }],
+        responses: {
+          200: {
+            description: "Ranking de cartas (lista vazia quando não há wishlists)",
+            content: { "application/json": { schema: {
+              type: "object",
+              required: ["success", "data"],
+              properties: {
+                success: { type: "boolean", example: true },
+                data: { type: "array", items: {
+                  type: "object", required: ["rank", "wishlistCount", "card"],
+                  properties: {
+                    rank: { type: "integer", example: 1 },
+                    wishlistCount: { type: "integer", example: 2 },
+                    card: { type: "object", properties: {
+                      id: { type: "string", example: "base1-4" },
+                      name: { type: "string", example: "Charizard" },
+                      setName: { type: "string", nullable: true, example: "Base Set" },
+                      number: { type: "string", nullable: true, example: "4/102" },
+                      rarity: { type: "string", nullable: true, example: "Rare Holo" },
+                      imageUrl: { type: "string", nullable: true },
+                      types: { type: "array", items: { type: "string" }, example: ["Fire"] },
+                      illustrator: { type: "string", nullable: true, example: "Mitsuhiro Arita" },
+                    } },
+                  },
+                } },
+              },
+            } } },
+          },
+          400: {
+            description: "Limite inválido",
+            content: { "application/json": { schema: { $ref: "#/components/schemas/ApiValidationError" } } },
+          },
+        },
+      },
+    },
     "/cards/filters": {
       get: {
         tags: ["Cards"],

@@ -1,5 +1,10 @@
 import { http } from "./http";
 
+export async function listMostWished(limit = 8) {
+  const body = await http.get("/cards/most-wished", { params: { limit } });
+  return body.data;
+}
+
 export async function searchCards({ name, page = 1, limit = 20, lang = "en", type, rarity, set, category, sort, order }) {
   const body = await http.get("/cards", { params: {
     name: name || undefined, page, limit, lang,

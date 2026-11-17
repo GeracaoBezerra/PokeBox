@@ -1,5 +1,6 @@
 import { ConflictError } from '../errors/domainErrors.js';
 import type { Db } from '../lib/prisma.js';
+import { USABLE_STATUSES } from '../utils/accountStatus.js';
 import { itemOrderBy } from '../utils/itemSort.js';
 import { cardWhere } from '../utils/listingSearch.js';
 import type { PageWindow } from '../utils/pagination.js';
@@ -7,6 +8,7 @@ import { isUniqueViolation } from './prismaErrors.js';
 import {
   wishlistItemWithCard,
   type NewWishlistItem,
+  type MostWishedCard,
   type WishlistFilters,
   type WishlistItem,
   type WishlistItemWithCard,
@@ -15,6 +17,23 @@ import {
 
 export class PrismaWishlistRepository implements WishlistRepository {
   constructor(private readonly db: Db) {}
+
+  async findMostWished(limit: number): Promise<MostWishedCard[]> {
+    const groups = await this.db.wishlistItem.groupBy({
+      by: ['cardId'],
+      where: { user: { deletedAt: null, accountStatus: { in: USABLE_STATUSES } } },
+      _count: { cardId: true },
+      orderBy: [{ _count: { cardId: 'desc' } }, { cardId: 'asc' }],
+      take: limit,
+    });
+    if (!groups.length) return [];
+    const cards = await this.db.card.findMany({ where: { id: { in: groups.map((group) => group.cardId) } } });
+    const byId = new Map(cards.map((card) => [card.id, card]));
+    return groups.flatMap((group, index) => {
+      const card = byId.get(group.cardId);
+      return card ? [{ rank: index + 1, wishlistCount: group._count.cardId, card }] : [];
+    });
+  }
 
   findManyByUser(
     userId: string,

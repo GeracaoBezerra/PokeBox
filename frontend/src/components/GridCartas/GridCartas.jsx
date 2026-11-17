@@ -1,48 +1,26 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-
-import { searchCards } from "../../api/cards";
+import { listMostWished } from "../../api/cards";
 import { useCarregar } from "../../hooks/useCarregar";
-import Aviso from "../Aviso/Aviso";
-import GradeCartas from "../GradeCartas/GradeCartas";
+import CartaCard from "../CartaCard/CartaCard";
+import GradeCartas, { ItemGrade } from "../GradeCartas/GradeCartas";
 import styles from "./GridCartas.module.css";
 
-const TOTAL = 12; // 4 colunas × 3 linhas
-const LANG = "en"; // a TCGdex não tem todos os sets em pt; en sempre existe
-
-// Seção "Cartas em destaque" da home: busca as cartas e usa a GradeCartas.
 export default function GridCartas() {
-  // name: "" é igual ao que o catálogo envia quando não há busca
-  const { dados, erro, carregando } = useCarregar(
-    () => searchCards({ name: "", lang: LANG, page: 1, limit: TOTAL }),
-    "grid-destaques",
-  );
-
-  const cartas = dados?.items ?? [];
-
+  const { dados, erro, carregando } = useCarregar(() => listMostWished(8), "mais-desejadas");
+  if (erro || (!carregando && !dados?.length)) return null;
   return (
-    <section className={styles.secao} aria-labelledby="grid-cartas-titulo">
+    <section id="mais-desejadas" className={styles.secao} aria-labelledby="grid-cartas-titulo">
       <div className={styles.container}>
         <header className={styles.cabecalho}>
-          <h2 id="grid-cartas-titulo" className={styles.titulo}>
-            Cartas em destaque
-          </h2>
-
-          <Link to="/catalogo" className={styles.verTodas}>
-            Ver todas
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
+          <h2 id="grid-cartas-titulo" className={styles.titulo}>Mais desejadas</h2>
+          <Link to="/catalogo" className={styles.verTodas}>Explorar catálogo <ArrowRight size={16} aria-hidden="true" /></Link>
         </header>
-
-        <Aviso erro={erro} />
-
-        {!erro && (
-          <GradeCartas cartas={cartas} lang={LANG} carregando={carregando} />
-        )}
-
-        {!carregando && dados && cartas.length === 0 && (
-          <p className={styles.estado}>Nenhuma carta encontrada.</p>
-        )}
+        <GradeCartas carregando={carregando} total={8}>
+          {dados?.map(({ card, wishlistCount, rank }) => (
+            <ItemGrade key={card.id}><CartaCard carta={card} wishlistCount={wishlistCount} rank={rank} /></ItemGrade>
+          ))}
+        </GradeCartas>
       </div>
     </section>
   );

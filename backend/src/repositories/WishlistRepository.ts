@@ -1,4 +1,4 @@
-import type { Prisma, WishlistItem } from '../generated/prisma/index.js';
+import type { Card, Prisma, WishlistItem } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
 import type { ItemSort } from '../utils/itemSort.js';
 import type { CardFilters } from '../utils/listingSearch.js';
@@ -10,6 +10,12 @@ export type WishlistItemWithCard = Prisma.WishlistItemGetPayload<{ include: type
 
 export type { WishlistItem };
 
+export interface MostWishedCard {
+  rank: number;
+  wishlistCount: number;
+  card: Card;
+}
+
 export interface NewWishlistItem {
   userId: string;
   cardId: string;
@@ -20,6 +26,7 @@ export interface WishlistFilters extends Pick<CardFilters, 'q' | 'type' | 'rarit
 }
 
 export interface WishlistRepository {
+  findMostWished(limit: number): Promise<MostWishedCard[]>;
   findManyByUser(userId: string, options?: WishlistFilters & Partial<PageWindow>): Promise<WishlistItemWithCard[]>;
   findById(id: string): Promise<WishlistItem | null>;
   create(data: NewWishlistItem): Promise<WishlistItemWithCard>;
