@@ -91,7 +91,7 @@ export default function Footer() {
             to="/"
             aria-label="PokeBox, página inicial"
           >
-            <Logo decorativa />
+            <Logo decorativa tamanho={48} />
           </Link>
 
           <p className={styles.description}>
