@@ -12,7 +12,8 @@
     "src",
     "test",
     "prisma/seed.ts",
-    "scripts/seed-cards.ts"
+    "scripts/seed-cards.ts",
+    "scripts/sync-catalog.ts"
   ],
   "exclude": [
     "node_modules",
