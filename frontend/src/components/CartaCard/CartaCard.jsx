@@ -19,6 +19,12 @@ const TIPOS = {
   water: { chave: "agua", rotulo: "Água" },
 };
 
+function acharTipo(nome) {
+  if (!nome) return undefined;
+  const chave = nome.toLowerCase();
+  return TIPOS[chave] ?? Object.values(TIPOS).find((tipo) => tipo.rotulo.toLowerCase() === chave);
+}
+
 // Uma linha "rótulo → valor" do painel de dados.
 function Linha({ rotulo, children }) {
   return (
@@ -31,7 +37,7 @@ function Linha({ rotulo, children }) {
 
 // Carta do catálogo + painel de dados que abre ao lado dela no hover ou no
 // foco por teclado. O lado em que o painel abre vem da variável CSS --lado,
-// definida por quem renderiza o card (veja o GridCartas).
+// definida por quem renderiza o card (veja o GradeCartas).
 //
 // Recebe a carta exatamente como a API devolve. Os campos que ela traz são:
 //   GET /cards      → id, name, number, set.name, image.small
@@ -53,7 +59,7 @@ export default function CartaCard({ carta, lang, link, painel = true }) {
   const numeroTexto = numero ? `Nº ${numero}` : null;
 
   const tipoApi = types?.[0];
-  const tipoInfo = tipoApi ? TIPOS[tipoApi.toLowerCase()] : undefined;
+  const tipoInfo = acharTipo(tipoApi);
   const tipo = tipoInfo?.rotulo ?? tipoApi;
 
   const destino = link ?? (lang ? `/cards/${id}?lang=${lang}` : `/cards/${id}`);
@@ -74,7 +80,7 @@ export default function CartaCard({ carta, lang, link, painel = true }) {
               height="342"
               loading="lazy"
               decoding="async"
-              draggable={true}
+              draggable={false}
             />
           ) : (
             <ImagemCarta className={styles.imagem} alt={alt} />

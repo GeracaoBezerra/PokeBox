@@ -5,7 +5,7 @@ import Aviso from "../components/Aviso/Aviso";
 import BuscaCatalogo from "../components/BuscaCatalogo/BuscaCatalogo";
 import FiltrosCatalogo from "../components/FiltrosCatalogo/FiltrosCatalogo";
 import Paginacao from "../components/Paginacao/Paginacao";
-import { ListaDeCartas } from "../components/GridCartas/GridCartas";
+import GradeCartas from "../components/GradeCartas/GradeCartas";
 import { useCarregar } from "../hooks/useCarregar";
 import s from "../styles/catalogo.module.css";
 
@@ -82,10 +82,10 @@ export default function CatalogPage() {
           {ativos.length > 0 && <div className={s.chips}>{ativos.map((campo) => <button key={campo} onClick={() => atualizar({ [campo]: "" })} aria-label={`Remover filtro ${ROTULOS[campo]}: ${filtros[campo]}`}>{ROTULOS[campo]}: {filtros[campo]} <X size={14} aria-hidden="true" /></button>)}</div>}
           <Aviso erro={erro} />
           {erro && <button className={s.botao} onClick={recarregar}>Tentar novamente</button>}
-          {carregando && <ListaDeCartas carregando total={24} variante="catalogo" />}
+          {carregando && <GradeCartas carregando total={24} variante="catalogo" />}
           {!carregando && dados && (
             <>
-              {dados.items.length ? <ListaDeCartas cartas={dados.items} lang={lang} variante="catalogo" /> : (
+              {dados.items.length ? <GradeCartas cartas={dados.items} lang={lang} variante="catalogo" /> : (
                 <div className={s.vazio}><SearchX size={32} aria-hidden="true" /><h2>Nenhuma carta encontrada</h2><p>Tente outro nome ou ajuste os filtros para ampliar a busca.</p>{ativos.length > 0 && <button className={s.botao} onClick={limparFiltros}>Limpar filtros</button>}</div>
               )}
               <Paginacao pagina={page} temProxima={dados.pagination?.hasNextPage} onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)} />
