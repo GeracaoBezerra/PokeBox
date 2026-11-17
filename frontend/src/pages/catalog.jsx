@@ -14,6 +14,22 @@ import { CATEGORIAS, TIPOS } from "../utils/rotulos";
 const CAMPOS_FILTRO = ["category", "type", "rarity", "set"];
 const VAZIOS = Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, ""]));
 
+function valorAceito(valor, aceitos = []) {
+  return aceitos.find((opcao) => opcao.toLowerCase() === valor.toLowerCase()) ?? "";
+}
+
+function filtrosValidos(filtros, opcoes) {
+  const aceitos = {
+    category: opcoes.categories,
+    type: opcoes.types,
+    rarity: opcoes.rarities,
+    set: opcoes.sets?.map((set) => set.id),
+  };
+  return Object.fromEntries(
+    CAMPOS_FILTRO.map((campo) => [campo, filtros[campo] ? valorAceito(filtros[campo], aceitos[campo]) : ""])
+  );
+}
+
 function rotuloDoSelo(campo, valor, opcoes) {
   switch (campo) {
     case "category":
@@ -35,15 +51,19 @@ export default function CatalogPage() {
   const lang = params.get("lang") ?? "en";
   const paginaPedida = Number(params.get("page") ?? 1);
   const page = Number.isInteger(paginaPedida) && paginaPedida > 0 ? paginaPedida : 1;
-  const filtros = Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, params.get(campo) ?? ""]));
+  const filtrosPedidos = Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, params.get(campo) ?? ""]));
+  const opcoes = useCarregar(() => getCardFilters(lang), lang);
+  const esperandoOpcoes = Object.values(filtrosPedidos).some(Boolean) && opcoes.carregando;
+  const filtros = opcoes.dados ? filtrosValidos(filtrosPedidos, opcoes.dados) : filtrosPedidos;
   const sort = params.get("sort") === "name" ? "name" : undefined;
   const order = params.get("order") === "desc" ? "desc" : "asc";
   const ordenacao = sort ? `name-${order}` : "relevance";
-  const { dados, erro, carregando, recarregar } = useCarregar(
-    () => searchCards({ name, lang, page, limit: 24, ...filtros, sort, order }),
-    JSON.stringify({ name, lang, page, ...filtros, sort, order })
+  const busca = useCarregar(
+    async () => (esperandoOpcoes ? null : searchCards({ name, lang, page, limit: 24, ...filtros, sort, order })),
+    esperandoOpcoes ? "esperando" : JSON.stringify({ name, lang, page, ...filtros, sort, order })
   );
-  const opcoes = useCarregar(() => getCardFilters(lang), lang);
+  const { dados, erro, recarregar } = busca;
+  const carregando = busca.carregando || esperandoOpcoes;
 
   function atualizar(mudancas, reiniciarPagina = true) {
     const novos = new URLSearchParams(params);
