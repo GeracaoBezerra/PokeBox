@@ -1,4 +1,5 @@
 import { NotFoundError } from '../errors/domainErrors.js';
+import { withSpan } from '../lib/tracing.js';
 import type { TradeStatus } from '../generated/prisma/index.js';
 import type { CollectionItemKey, CollectionRepository, LockedCollectionItem } from '../repositories/CollectionRepository.js';
 import type { OfferRepository } from '../repositories/OfferRepository.js';
@@ -133,7 +134,11 @@ export class TradeService {
     return toTradeResponse(await this.findTradeOf(userId, id));
   }
 
-  async accept(userId: string, id: string): Promise<TradeView> {
+  accept(userId: string, id: string): Promise<TradeView> {
+    return withSpan('trade.accept', { 'trade.id': id }, () => this.acceptTrade(userId, id));
+  }
+
+  private async acceptTrade(userId: string, id: string): Promise<TradeView> {
     const found = await this.findTradeOf(userId, id);
     const destinationIds = await this.deps.collection.findIdsByKeys(destinationKeys(found));
 

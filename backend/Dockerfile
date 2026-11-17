@@ -5,7 +5,7 @@ RUN npm ci
 COPY . .
 RUN npx prisma generate && npm run build
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node --import ./dist/instrumentation.js dist/server.js"]
 
 FROM node:24-alpine AS prod
 WORKDIR /app
@@ -18,4 +18,4 @@ COPY --from=dev /app/prisma.config.ts ./
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 CMD wget -qO- http://127.0.0.1:${PORT:-3000}/health > /dev/null || exit 1
-CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node --import ./dist/instrumentation.js dist/server.js"]
