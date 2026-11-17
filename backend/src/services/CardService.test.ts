@@ -14,6 +14,7 @@ function setup() {
     search: jest.fn<CardCatalog['search']>(async () => []),
     listSets: jest.fn<CardCatalog['listSets']>(async () => []),
     listSetCards: jest.fn<CardCatalog['listSetCards']>(async () => []),
+    listFilterValues: jest.fn<CardCatalog['listFilterValues']>(async () => ({ types: [], rarities: [], categories: [] })),
   };
   const finder: jest.Mocked<CardFinder> = {
     find: jest.fn<CardFinder['find']>(async () => ({ cards: [], hasNextPage: false, search: null })),
@@ -40,7 +41,7 @@ describe('CardService', () => {
 
     await service.find(query);
 
-    expect(finder.find).toHaveBeenCalledWith(query);
+    expect(finder.find).toHaveBeenCalledWith({ ...query, filters: {} });
   });
 
   test('find tira da lista as cartas com id que o detalhe recusa', async () => {
@@ -103,5 +104,62 @@ describe('CardService', () => {
     expect(readers.collection.sumQuantityByUserAndCard).toHaveBeenCalledWith('user-1', 'base1-4');
     expect(readers.wishlist.existsByUserAndCard).toHaveBeenCalledWith('user-1', 'base1-4');
     expect(readers.listings.existsActiveByUserAndCard).toHaveBeenCalledWith('user-1', 'base1-4');
+  });
+});
+
+describe('CardService filtros (#75)', () => {
+  const values = { types: ['Fire', 'Water'], rarities: ['Rare Holo'], categories: ['Pokemon', 'Trainer'] };
+
+  test('sem tipo, raridade ou categoria não consulta as listas da TCGdex', async () => {
+    const { service, catalog, finder } = setup();
+
+    await service.find({ lang: 'en', page: 1, limit: 20, filters: { set: 'base1' } });
+
+    expect(catalog.listFilterValues).not.toHaveBeenCalled();
+    expect(finder.find).toHaveBeenCalledWith(expect.objectContaining({ filters: { set: 'base1' } }));
+  });
+
+  test('aceita o valor em qualquer caixa e repassa como a TCGdex escreve', async () => {
+    const { service, catalog, finder } = setup();
+    catalog.listFilterValues.mockResolvedValue(values);
+
+    await service.find({ lang: 'en', page: 1, limit: 20, filters: { type: 'fire', rarity: 'rare holo', category: 'TRAINER' } });
+
+    expect(catalog.listFilterValues).toHaveBeenCalledWith('en');
+    expect(finder.find).toHaveBeenCalledWith(
+      expect.objectContaining({ filters: { type: 'Fire', rarity: 'Rare Holo', category: 'Trainer' } }),
+    );
+  });
+
+  test('valor que não existe no idioma → 400 com details de cada campo', async () => {
+    const { service, catalog, finder } = setup();
+    catalog.listFilterValues.mockResolvedValue(values);
+
+    const err = await service
+      .find({ lang: 'en', page: 1, limit: 20, filters: { type: 'Fogo', category: 'Monstro' } })
+      .catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(AppError);
+    expect((err as AppError).statusCode).toBe(400);
+    expect((err as AppError).details).toEqual([
+      { field: 'type', message: expect.stringContaining('Fogo') },
+      { field: 'category', message: expect.stringContaining('Monstro') },
+    ]);
+    expect(finder.find).not.toHaveBeenCalled();
+  });
+
+  test('getFilterOptions junta as listas com id e nome dos sets', async () => {
+    const { service, catalog } = setup();
+    catalog.listFilterValues.mockResolvedValue(values);
+    catalog.listSets.mockResolvedValue([{ id: 'base1', name: 'Base Set', logo: 'x', symbol: null, cardCount: { total: 102 } }]);
+
+    await expect(service.getFilterOptions('en')).resolves.toEqual({ ...values, sets: [{ id: 'base1', name: 'Base Set' }] });
+  });
+
+  test('getFilterOptions com a TCGdex fora repassa o erro', async () => {
+    const { service, catalog } = setup();
+    catalog.listFilterValues.mockRejectedValue(new TcgdexUnavailableError('TCGdex respondeu 503'));
+
+    await expect(service.getFilterOptions('en')).rejects.toBeInstanceOf(TcgdexUnavailableError);
   });
 });

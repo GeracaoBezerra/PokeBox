@@ -8,8 +8,8 @@ DEMO_PASSWORD := $(shell grep -E '^SEED_DEMO_PASSWORD=' .env 2>/dev/null | cut -
 API := http://localhost:3000
 PSQL := docker compose exec -T tcg-db psql -U $(DB_USER) -d $(DB_NAME)
 
-.PHONY: help up stop down ps logs psql reset dev generate migrate status studio \
-        users constraints migrations schema clean-users unit test-int test-db-down test test-db test-collection test-profile test-wishlist test-listings test-offers \
+.PHONY: help up stop down ps logs psql reset dev traces traces-down generate migrate status studio \
+        users constraints migrations schema clean-users unit test-int test-db-down coverage test test-db test-collection test-profile test-wishlist test-listings test-offers \
         prod-up prod-down prod-logs
 
 help:
@@ -65,6 +65,13 @@ prod-logs: ## logs da API em modo producao (ctrl+c para sair)
 dev: ## sobe a API em modo watch
 	@cd backend && npm run dev
 
+traces: ## sobe o Jaeger (http://localhost:16686) e a API em modo watch mandando os traces para ele
+	@docker compose --profile observabilidade up -d jaeger
+	@cd backend && OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run dev
+
+traces-down: ## para o Jaeger (os traces ficam so na memoria dele)
+	@docker compose --profile observabilidade rm -sf jaeger
+
 unit: ## roda os testes unitarios (nao precisa de banco nem API)
 	@cd backend && npm test
 
@@ -72,6 +79,11 @@ test-int: ## sobe o banco de teste (porta 5433, descartavel) e roda os testes de
 	@test -f backend/.env.test || cp backend/.env.test.example backend/.env.test
 	@docker compose --profile test up -d --wait tcg-db-test
 	@cd backend && npm run test:integration
+
+coverage: ## roda unidade + integracao com cobertura (relatorio em backend/coverage/lcov-report/index.html)
+	@test -f backend/.env.test || cp backend/.env.test.example backend/.env.test
+	@docker compose --profile test up -d --wait tcg-db-test
+	@cd backend && npm run test:coverage
 
 test-db-down: ## remove o banco de teste (os dados dele sao descartaveis)
 	@docker compose --profile test rm -sf tcg-db-test

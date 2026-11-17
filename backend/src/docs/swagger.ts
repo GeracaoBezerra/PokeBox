@@ -1,5 +1,8 @@
 import { CardCondition, CardFinish, ListingStatus, OfferStatus, TradeStatus } from "../generated/prisma/index.js";
 import { LANGS } from "../middlewares/validateCardParams.js";
+import { ITEM_SORTS } from "../utils/itemSort.js";
+import { CARD_TYPES } from "../utils/listingSearch.js";
+import { DEFAULT_PAGE_LIMIT, LIST_SIDES, MAX_PAGE_LIMIT } from "../utils/pagination.js";
 
 const nullableString = { type: "string", nullable: true };
 const typeValue = {
@@ -161,6 +164,101 @@ const cardFinishes = Object.values(CardFinish);
 const listingStatuses = Object.values(ListingStatus);
 const offerStatuses = Object.values(OfferStatus);
 const tradeStatuses = Object.values(TradeStatus);
+
+const optionalPaginationNote = `Paginação opcional (#77): sem nenhum dos parâmetros abaixo, responde a lista inteira como antes, sem o bloco pagination. Qualquer um deles (page, limit, filtro ou sort) ativa a paginação: no máximo limit itens (padrão ${DEFAULT_PAGE_LIMIT}, máximo ${MAX_PAGE_LIMIT}) e o bloco pagination, sem total.`;
+
+const paginationBlock = {
+  type: "object",
+  description: "Só vem quando a resposta é paginada",
+  properties: {
+    page: { type: "integer", example: 1 },
+    limit: { type: "integer", example: DEFAULT_PAGE_LIMIT },
+    hasNextPage: { type: "boolean" },
+  },
+};
+
+const optionalPageParams = [
+  {
+    name: "page",
+    in: "query",
+    required: false,
+    description: "Página, a partir de 1. Ativa a paginação",
+    schema: { type: "integer", minimum: 1, default: 1 },
+  },
+  {
+    name: "limit",
+    in: "query",
+    required: false,
+    description: "Itens por página. Ativa a paginação",
+    schema: { type: "integer", minimum: 1, maximum: MAX_PAGE_LIMIT, default: DEFAULT_PAGE_LIMIT },
+  },
+];
+
+const cardQueryParam = {
+  name: "q",
+  in: "query",
+  required: false,
+  description: "Busca no nome da carta ou do set, sem diferenciar maiúscula. Cada palavra tem que aparecer no nome da carta ou do set",
+  schema: { type: "string", minLength: 1, maxLength: 50, example: "charizard" },
+};
+
+const cardTypeParam = {
+  name: "type",
+  in: "query",
+  required: false,
+  description: "Só cartas que têm este tipo. Aceita qualquer caixa (fire, FIRE)",
+  schema: { type: "string", enum: [...CARD_TYPES], example: "Fire" },
+};
+
+const itemSortParam = {
+  name: "sort",
+  in: "query",
+  required: false,
+  description: "name: nome da carta (A-Z), a ordem de quando não vem sort; recent: entrada mais recente primeiro",
+  schema: { type: "string", enum: [...ITEM_SORTS] },
+};
+
+const sideParam = (what: string) => ({
+  name: "side",
+  in: "query",
+  required: false,
+  description: `sent: ${what} que o usuário fez; received: as que ele recebeu. Com side, a resposta vira { items } paginada. page e limit só valem com side (sem side → 400)`,
+  schema: { type: "string", enum: [...LIST_SIDES] },
+});
+
+const sideListResponse = (description: string, schema: string) => ({
+  description,
+  content: {
+    "application/json": {
+      schema: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
+            oneOf: [
+              {
+                type: "object",
+                description: "Sem side, page nem limit: os dois lados inteiros, como antes",
+                properties: {
+                  sent: { type: "array", items: { $ref: `#/components/schemas/${schema}` } },
+                  received: { type: "array", items: { $ref: `#/components/schemas/${schema}` } },
+                },
+              },
+              {
+                type: "object",
+                description: "Com side: só aquele lado, paginado",
+                properties: {
+                  items: { type: "array", items: { $ref: `#/components/schemas/${schema}` } },
+                },
+              },
+            ],
+          },
+          pagination: paginationBlock,
+        },
+      },
+    },
+  },
+});
 
 const offerIdParam = {
   name: "id",
@@ -619,7 +717,7 @@ export const swaggerSpec = {
         tags: ["Cards"],
         summary: "Lista/busca cartas",
         description:
-          "Lista paginada de cartas da TCGdex, com busca opcional. A busca quebra o texto em palavras (sem acento, ignorando palavras de 1 letra) e reconhece nomes de set: em \"charizard base\", \"base\" vira os sets Base Set, Base Set 2 e Expedition Base Set (no máximo 3) e \"charizard\" é procurado no nome. Se a frase inteira não achar nada, cada palavra é tentada sozinha (até 4), e as que não trazem nada voltam em search.ignored. Palavra que só cobre parte do nome de um set (\"pikachu\" em Detective Pikachu) também é procurada no nome quando o resto não acha nada, para \"pikachu\" continuar trazendo todos os Pikachu. O resultado é ordenado por relevância (carta do set reconhecido, nome igual ao buscado, palavras contidas no nome) e paginado sobre a lista inteira, que fica 10 min em memória: trocar de página não chama a TCGdex de novo. A lista de sets fica 1 dia em memória. Cada item traz o set e o número da carta. Sem name, devolve a lista da TCGdex como antes, sem o campo search. Cartas com id fora do padrão aceito por GET /cards/{id} (letras, números, ponto e hífen) não aparecem na lista, porque o detalhe delas não abriria: hoje são as Unown \"!\" e \"?\" (exu-! e exu-%3F). Por isso uma página pode vir com menos cartas que o limit.",
+          "Lista paginada de cartas da TCGdex, com busca opcional. Com o catálogo local sincronizado (npm run catalog:sync, tabela CatalogCard), a busca por nome roda no banco com pg_trgm e unaccent: tolera erro de digitação (charzard acha Charizard), ignora acento (flabebe acha Flabébé), não chama a TCGdex e continua funcionando com ela fora do ar; o set reconhecido, search e a paginação seguem as mesmas regras abaixo. Sem nome, com filtro type, rarity ou category, ou em idioma ainda não sincronizado, a busca é a da TCGdex descrita a seguir. A busca quebra o texto em palavras (sem acento, ignorando palavras de 1 letra) e reconhece nomes de set: em \"charizard base\", \"base\" vira os sets Base Set, Base Set 2 e Expedition Base Set (no máximo 3) e \"charizard\" é procurado no nome. Se a frase inteira não achar nada, cada palavra é tentada sozinha (até 4), e as que não trazem nada voltam em search.ignored. Palavra que só cobre parte do nome de um set (\"pikachu\" em Detective Pikachu) também é procurada no nome quando o resto não acha nada, para \"pikachu\" continuar trazendo todos os Pikachu. O resultado é ordenado por relevância (carta do set reconhecido, nome igual ao buscado, palavras contidas no nome) e paginado sobre a lista inteira, que fica 10 min em memória: trocar de página não chama a TCGdex de novo. A lista de sets fica 1 dia em memória. Cada item traz o set e o número da carta. Sem name, devolve a lista da TCGdex como antes, sem o campo search. Cartas com id fora do padrão aceito por GET /cards/{id} (letras, números, ponto e hífen) não aparecem na lista, porque o detalhe delas não abriria: hoje são as Unown \"!\" e \"?\" (exu-! e exu-%3F). Por isso uma página pode vir com menos cartas que o limit. Filtros (type, rarity, set, category) usam o valor exato do idioma pedido, que vem de GET /cards/filters; a caixa não importa (fire vira Fire). Valor que não existe no idioma responde 400. Com nome, os filtros entram na busca antes do ranking; sort=name troca a ordem por relevância pela ordem alfabética.",
         security: [],
         parameters: [
           {
@@ -640,6 +738,48 @@ export const swaggerSpec = {
             in: "query",
             required: false,
             schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+          },
+          {
+            name: "type",
+            in: "query",
+            required: false,
+            description: "Tipo da carta, como em GET /cards/filters (types)",
+            schema: { type: "string", maxLength: 30, example: "Fire" },
+          },
+          {
+            name: "rarity",
+            in: "query",
+            required: false,
+            description: "Raridade, como em GET /cards/filters (rarities)",
+            schema: { type: "string", maxLength: 50, example: "Rare Holo" },
+          },
+          {
+            name: "set",
+            in: "query",
+            required: false,
+            description: "Id do set, como em GET /cards/filters (sets)",
+            schema: { type: "string", maxLength: 30, example: "base1" },
+          },
+          {
+            name: "category",
+            in: "query",
+            required: false,
+            description: "Categoria, como em GET /cards/filters (categories)",
+            schema: { type: "string", maxLength: 30, example: "Trainer" },
+          },
+          {
+            name: "sort",
+            in: "query",
+            required: false,
+            description: "Ordena pelo nome no lugar da relevância",
+            schema: { type: "string", enum: ["name"] },
+          },
+          {
+            name: "order",
+            in: "query",
+            required: false,
+            description: "Direção da ordenação (só vale com sort)",
+            schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
           },
           langParam,
         ],
@@ -665,6 +805,35 @@ export const swaggerSpec = {
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ApiError" },
+              },
+            },
+          },
+          ...tcgdexErrors,
+        },
+      },
+    },
+    "/cards/filters": {
+      get: {
+        tags: ["Cards"],
+        summary: "Opções dos filtros do catálogo",
+        description:
+          "Valores aceitos em type, rarity, category e set de GET /cards, no idioma pedido (a TCGdex traduz: em pt, Fire vira Fogo). Tipos, raridades e categorias ficam 1 dia em memória, como a lista de sets. Cache: public, max-age=3600.",
+        security: [],
+        parameters: [langParam],
+        responses: {
+          200: {
+            description: "Opções dos filtros",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CardFilterOptionsResponse" },
+              },
+            },
+          },
+          400: {
+            description: "Idioma inválido",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ApiValidationError" },
               },
             },
           },
@@ -747,8 +916,42 @@ export const swaggerSpec = {
         tags: ["Collection"],
         summary: "Lista a coleção do usuário autenticado",
         description:
-          "Traz todos os itens, inclusive os com quantidade 0, ordenados pelo nome da carta. available = quantity - reservedQuantity.",
+          `Traz os itens, inclusive os com quantidade 0, ordenados pelo nome da carta. available = quantity - reservedQuantity. ${optionalPaginationNote}`,
         security: [{ bearerAuth: [] }],
+        parameters: [
+          cardQueryParam,
+          {
+            name: "condition",
+            in: "query",
+            required: false,
+            description: "Estado do item (aceita minúsculas)",
+            schema: { type: "string", enum: cardConditions, example: "NEAR_MINT" },
+          },
+          {
+            name: "finish",
+            in: "query",
+            required: false,
+            description: "Acabamento do item (aceita minúsculas)",
+            schema: { type: "string", enum: cardFinishes, example: "HOLO" },
+          },
+          {
+            name: "isPublic",
+            in: "query",
+            required: false,
+            description: "Só os itens públicos (true) ou só os privados (false)",
+            schema: { type: "string", enum: ["true", "false"] },
+          },
+          {
+            name: "setId",
+            in: "query",
+            required: false,
+            description: "Só cartas deste set (id exato)",
+            schema: { type: "string", pattern: "^[a-zA-Z0-9.\\-]+$", maxLength: 30, example: "base1" },
+          },
+          cardTypeParam,
+          itemSortParam,
+          ...optionalPageParams,
+        ],
         responses: {
           200: {
             description: "Itens da coleção",
@@ -767,11 +970,13 @@ export const swaggerSpec = {
                         },
                       },
                     },
+                    pagination: paginationBlock,
                   },
                 },
               },
             },
           },
+          400: errorResponse("Filtro ou paginação inválidos", "ApiValidationError"),
           ...authErrors,
         },
       },
@@ -847,7 +1052,7 @@ export const swaggerSpec = {
         tags: ["Users"],
         summary: "Coleção pública de um colecionador",
         description:
-          "Rota pública, sem login. Mostra só os itens com isPublic = true e quantidade maior que 0, ordenados pelo nome da carta. Itens privados não aparecem nem para o próprio dono (ele vê tudo em GET /collection). Conta inativa, suspensa ou apagada responde 404.",
+          `Rota pública, sem login. Mostra só os itens com isPublic = true e quantidade maior que 0, ordenados pelo nome da carta. Itens privados não aparecem nem para o próprio dono (ele vê tudo em GET /collection), nem com filtro. Conta inativa, suspensa ou apagada responde 404. ${optionalPaginationNote}`,
         security: [],
         parameters: [
           {
@@ -857,6 +1062,9 @@ export const swaggerSpec = {
             description: "3 a 20 caracteres, apenas a-z, 0-9 e _",
             schema: { type: "string", pattern: "^[a-z0-9_]{3,20}$", example: "ash" },
           },
+          cardQueryParam,
+          cardTypeParam,
+          ...optionalPageParams,
         ],
         responses: {
           200: {
@@ -877,12 +1085,13 @@ export const swaggerSpec = {
                         },
                       },
                     },
+                    pagination: paginationBlock,
                   },
                 },
               },
             },
           },
-          400: errorResponse("Username fora do formato", "ApiValidationError"),
+          400: errorResponse("Username fora do formato, ou filtro ou paginação inválidos", "ApiValidationError"),
           404: errorResponse("Usuário não encontrado"),
           500: errorResponse("Erro interno"),
         },
@@ -893,8 +1102,21 @@ export const swaggerSpec = {
         tags: ["Wishlist"],
         summary: "Lista a wishlist do usuário autenticado",
         description:
-          "Traz as cartas desejadas, ordenadas pelo nome. opportunities é quantos outros usuários têm a carta em item público com unidade disponível (quantity > reservedQuantity). Contas apagadas, suspensas ou inativas não entram. A wishlist nunca altera a coleção.",
+          `Traz as cartas desejadas, ordenadas pelo nome. opportunities é quantos outros usuários têm a carta em item público com unidade disponível (quantity > reservedQuantity). Contas apagadas, suspensas ou inativas não entram. A wishlist nunca altera a coleção. Com paginação, opportunities é calculado só para os itens da página. ${optionalPaginationNote}`,
         security: [{ bearerAuth: [] }],
+        parameters: [
+          cardQueryParam,
+          cardTypeParam,
+          {
+            name: "rarity",
+            in: "query",
+            required: false,
+            description: "Só cartas desta raridade, sem diferenciar maiúscula (rare acha Rare)",
+            schema: { type: "string", maxLength: 50, example: "Rare" },
+          },
+          itemSortParam,
+          ...optionalPageParams,
+        ],
         responses: {
           200: {
             description: "Itens da wishlist",
@@ -913,11 +1135,13 @@ export const swaggerSpec = {
                         },
                       },
                     },
+                    pagination: paginationBlock,
                   },
                 },
               },
             },
           },
+          400: errorResponse("Filtro ou paginação inválidos", "ApiValidationError"),
           ...authErrors,
         },
       },
@@ -1113,10 +1337,12 @@ export const swaggerSpec = {
       get: {
         tags: ["Listings"],
         summary: "Anúncios do usuário autenticado",
-        description: "Todos os status (ACTIVE, PAUSED, CLOSED, BLOCKED), mais recentes primeiro.",
+        description: `Todos os status (ACTIVE, PAUSED, CLOSED, BLOCKED), mais recentes primeiro. ${optionalPaginationNote}`,
         security: [{ bearerAuth: [] }],
+        parameters: [...optionalPageParams],
         responses: {
-          200: listingListResponse("Anúncios do usuário", false),
+          200: listingListResponse("Anúncios do usuário (pagination só quando paginado)", true),
+          400: errorResponse("Paginação inválida", "ApiValidationError"),
           ...authErrors,
         },
       },
@@ -1193,7 +1419,7 @@ export const swaggerSpec = {
       get: {
         tags: ["Offers"],
         summary: "Ofertas feitas e recebidas pelo usuário autenticado",
-        description: "sent: ofertas que o usuário fez. received: ofertas nos anúncios dele. Mais recentes primeiro.",
+        description: "sent: ofertas que o usuário fez. received: ofertas nos anúncios dele. Mais recentes primeiro. Sem side, page nem limit, responde { sent, received } inteiros como antes; status sozinho não pagina.",
         security: [{ bearerAuth: [] }],
         parameters: [
           {
@@ -1203,29 +1429,12 @@ export const swaggerSpec = {
             description: "Só ofertas neste status",
             schema: { type: "string", enum: offerStatuses },
           },
+          sideParam("ofertas"),
+          ...optionalPageParams,
         ],
         responses: {
-          200: {
-            description: "Ofertas do usuário",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: true },
-                    data: {
-                      type: "object",
-                      properties: {
-                        sent: { type: "array", items: { $ref: "#/components/schemas/Offer" } },
-                        received: { type: "array", items: { $ref: "#/components/schemas/Offer" } },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          400: errorResponse("Status inválido", "ApiValidationError"),
+          200: sideListResponse("Ofertas do usuário", "Offer"),
+          400: errorResponse("Status, side ou paginação inválidos; page ou limit sem side", "ApiValidationError"),
           ...authErrors,
         },
       },
@@ -1302,7 +1511,7 @@ export const swaggerSpec = {
       get: {
         tags: ["Trades"],
         summary: "Trocas do usuário autenticado",
-        description: "sent: trocas em que o usuário fez a oferta. received: trocas dos anúncios dele. Mais recentes primeiro.",
+        description: "sent: trocas em que o usuário fez a oferta. received: trocas dos anúncios dele. Mais recentes primeiro. Sem side, page nem limit, responde { sent, received } inteiros como antes; status sozinho não pagina.",
         security: [{ bearerAuth: [] }],
         parameters: [
           {
@@ -1312,29 +1521,12 @@ export const swaggerSpec = {
             description: "Só trocas neste status",
             schema: { type: "string", enum: tradeStatuses },
           },
+          sideParam("trocas"),
+          ...optionalPageParams,
         ],
         responses: {
-          200: {
-            description: "Trocas do usuário",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: true },
-                    data: {
-                      type: "object",
-                      properties: {
-                        sent: { type: "array", items: { $ref: "#/components/schemas/Trade" } },
-                        received: { type: "array", items: { $ref: "#/components/schemas/Trade" } },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          400: errorResponse("Status inválido", "ApiValidationError"),
+          200: sideListResponse("Trocas do usuário", "Trade"),
+          400: errorResponse("Status, side ou paginação inválidos; page ou limit sem side", "ApiValidationError"),
           ...authErrors,
         },
       },
@@ -1598,6 +1790,28 @@ export const swaggerSpec = {
           image: {
             type: "object",
             properties: { small: nullableString, large: nullableString },
+          },
+        },
+      },
+      CardFilterOptionsResponse: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: true },
+          data: {
+            type: "object",
+            properties: {
+              types: { type: "array", items: { type: "string" }, example: ["Fire", "Water"] },
+              rarities: { type: "array", items: { type: "string" }, example: ["Common", "Rare Holo"] },
+              categories: { type: "array", items: { type: "string" }, example: ["Energy", "Pokemon", "Trainer"] },
+              sets: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: { id: { type: "string" }, name: { type: "string" } },
+                },
+                example: [{ id: "base1", name: "Base Set" }],
+              },
+            },
           },
         },
       },

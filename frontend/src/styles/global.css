@@ -169,6 +169,8 @@
   --tempo-rapido: 120ms;    /* hover, foco, pressionar */
   --tempo-medio: 240ms;     /* abrir/fechar, toasts, troca de página */
   --tempo-lento: 480ms;     /* carta, layoutId, troca aceita */
+  --tempo-carta: 700ms;    /* inclinação e reflexo acompanhando o mouse */
+  --tempo-carta-retorno: 1100ms; /* entrada e retorno suave ao repouso */
   --tempo-feltro: 300ms;    /* feltro escurece no detalhe */
   --tempo-skeleton: 1400ms; /* (sugerido) */
   --tempo-toast: 4000ms;
@@ -184,7 +186,7 @@
 
   /* ---------- CARTA: VARIÁVEIS QUE O JS ESCREVE ---------- */
   --perspectiva: 1000px;
-  --tilt-max-hero: 14deg;
+  --tilt-max-hero: 8deg;
   --tilt-max-thumb: 8deg;     /* (sugerido) só hover com mouse */
   --tilt-x: 0deg;
   --tilt-y: 0deg;
@@ -279,6 +281,8 @@
     --tempo-rapido: 0.01ms;
     --tempo-medio: 0.01ms;
     --tempo-lento: 0.01ms;
+    --tempo-carta: 0.01ms;
+    --tempo-carta-retorno: 0.01ms;
     --tempo-feltro: 0.01ms;
     --tempo-skeleton: 0.01ms;
     --stagger: 0ms;

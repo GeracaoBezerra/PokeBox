@@ -4,6 +4,7 @@ import {
   tradeInclude,
   type LockedTrade,
   type NewTrade,
+  type TradeListOptions,
   type TradeRepository,
   type TradeWithItems,
 } from './TradeRepository.js';
@@ -36,19 +37,23 @@ export class PrismaTradeRepository implements TradeRepository {
     return rows[0] ?? null;
   }
 
-  findSent(userId: string, status?: TradeStatus): Promise<TradeWithItems[]> {
+  findSent(userId: string, { status, skip, take }: TradeListOptions = {}): Promise<TradeWithItems[]> {
     return this.db.trade.findMany({
       where: { proposerId: userId, status },
       include: tradeInclude,
       orderBy: [...newestFirst],
+      skip,
+      take,
     });
   }
 
-  findReceived(userId: string, status?: TradeStatus): Promise<TradeWithItems[]> {
+  findReceived(userId: string, { status, skip, take }: TradeListOptions = {}): Promise<TradeWithItems[]> {
     return this.db.trade.findMany({
       where: { recipientId: userId, status },
       include: tradeInclude,
       orderBy: [...newestFirst],
+      skip,
+      take,
     });
   }
 

@@ -19,11 +19,19 @@ const cardQuerySchema = z.object({
   lang: langSchema,
 });
 
-const cardListQuerySchema = z.object({
+const LETTERS = /^[\p{L} ]+$/u;
+
+export const cardListQuerySchema = z.object({
   lang: langSchema,
   name: z.string().trim().min(1).max(50, 'Nome muito longo').optional(),
   page: z.coerce.number({ message: 'page deve ser um número' }).int().min(1, 'page mínima é 1').default(1),
   limit: z.coerce.number({ message: 'limit deve ser um número' }).int().min(1).max(100, 'limit máximo é 100').default(20),
+  type: z.string().trim().max(30, 'Tipo muito longo').regex(LETTERS, 'Tipo inválido').optional(),
+  rarity: z.string().trim().min(1).max(50, 'Raridade muito longa').optional(),
+  set: z.string().max(30, 'Set muito longo').regex(CARD_ID_PATTERN, 'Set inválido').optional(),
+  category: z.string().trim().max(30, 'Categoria muito longa').regex(LETTERS, 'Categoria inválida').optional(),
+  sort: z.enum(['name'], { message: 'sort aceita só name' }).optional(),
+  order: z.enum(['asc', 'desc'], { message: 'order aceita asc ou desc' }).default('asc'),
 });
 
 export type CardListQueryParams = z.infer<typeof cardListQuerySchema>;
@@ -34,6 +42,10 @@ export interface CardDetailLocals {
 
 export interface CardListLocals {
   query: CardListQueryParams;
+}
+
+export interface CardLangLocals {
+  lang: Lang;
 }
 
 function normalizeLang(value: unknown): string {
@@ -53,12 +65,29 @@ export const validateCardParams: RequestHandler = (req, res, next) => {
   next();
 };
 
+export const validateCardLangQuery: RequestHandler = (req, res, next) => {
+  const query = cardQuerySchema.safeParse({ lang: normalizeLang(req.query.lang) });
+  if (!query.success) {
+    throw new ZodError(query.error.issues);
+  }
+
+  res.locals.lang = query.data.lang;
+  next();
+};
+
 export const validateCardListQuery: RequestHandler = (req, res, next) => {
+  const { name, type, rarity, set, category, sort, order } = req.query;
   const query = cardListQuerySchema.safeParse({
     lang: normalizeLang(req.query.lang),
-    name: req.query.name || undefined,
+    name: name || undefined,
     page: req.query.page,
     limit: req.query.limit,
+    type: type || undefined,
+    rarity: rarity || undefined,
+    set: set || undefined,
+    category: category || undefined,
+    sort: sort || undefined,
+    order: order || undefined,
   });
 
   if (!query.success) {

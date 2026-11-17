@@ -1,275 +1,102 @@
-import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ArrowDown } from "lucide-react";
 import { getCard } from "../api/cards";
-import { addToCollection } from "../api/collection";
-import { addToWishlist } from "../api/wishlist";
 import { useSession } from "../auth/useSession";
+import AnunciosDaCarta from "../components/AnunciosDaCarta/AnunciosDaCarta";
 import Aviso from "../components/Aviso/Aviso";
-import { useAcao } from "../hooks/useAcao";
+import DadosCarta from "../components/DadosCarta/DadosCarta";
+import FormColecao from "../components/FormColecao/FormColecao";
+import PalcoCarta from "../components/PalcoCarta/PalcoCarta";
+import VoceEACarta from "../components/VoceEACarta/VoceEACarta";
 import { useCarregar } from "../hooks/useCarregar";
-import s from "../styles/paginas.module.css";
-import { CONDICOES, variante } from "../utils/rotulos";
-import ImagemCarta from "../components/ImagemCarta/ImagemCarta";
-
-const ACABAMENTO_DA_VARIANTE = { normal: "NORMAL", holo: "HOLO", reverse: "REVERSE" };
-
-function acabamentosDisponiveis(variants = {}) {
-  const lista = Object.entries(ACABAMENTO_DA_VARIANTE)
-    .filter(([chave]) => variants[chave])
-    .map(([, finish]) => finish);
-  return lista.length ? lista : ["NORMAL"];
-}
-
-function formatarPreco(preco) {
-  if (!preco) return "Sem preço de referência";
-  const valor = preco.value.toLocaleString("pt-BR", { style: "currency", currency: preco.currency });
-  return `${valor} (${preco.source === "tcgplayer" ? "TCGplayer" : "Cardmarket"})`;
-}
-
-function FormColecao({ card, onAdicionado }) {
-  const acabamentos = acabamentosDisponiveis(card.variants);
-  const [form, setForm] = useState({
-    finish: acabamentos[0],
-    firstEdition: false,
-    condition: "NEAR_MINT",
-    quantity: 1,
-    isPublic: true,
-  });
-  const { erro, sucesso, ocupado, executar } = useAcao();
-
-  function alterar(campo, valor) {
-    setForm((atual) => ({ ...atual, [campo]: valor }));
-  }
-
-  async function enviar(evento) {
-    evento.preventDefault();
-    const { ok } = await executar(
-      () => addToCollection({ cardId: card.id, ...form, quantity: Number(form.quantity) }),
-      "Carta adicionada à coleção."
-    );
-    if (ok) onAdicionado();
-  }
-
-  return (
-    <form className={s.painel} onSubmit={enviar}>
-      <h3>Adicionar à minha coleção</h3>
-      <div className={s.form}>
-        <label className={s.campo}>
-          Acabamento
-          <select value={form.finish} onChange={(e) => alterar("finish", e.target.value)}>
-            {["NORMAL", "HOLO", "REVERSE"].map((finish) => (
-              <option key={finish} value={finish}>
-                {variante({ finish, firstEdition: false })}
-                {acabamentos.includes(finish) ? "" : " (a carta não tem)"}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={s.campo}>
-          Condição
-          <select value={form.condition} onChange={(e) => alterar("condition", e.target.value)}>
-            {Object.entries(CONDICOES).map(([valor, rotulo]) => (
-              <option key={valor} value={valor}>
-                {rotulo}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={s.campo}>
-          Quantidade
-          <input
-            type="number"
-            min="1"
-            value={form.quantity}
-            onChange={(e) => alterar("quantity", e.target.value)}
-          />
-        </label>
-        <label className={s.checkbox}>
-          <input
-            type="checkbox"
-            checked={form.firstEdition}
-            onChange={(e) => alterar("firstEdition", e.target.checked)}
-          />
-          1ª edição{card.variants?.firstEdition ? "" : " (a carta não tem)"}
-        </label>
-        <label className={s.checkbox}>
-          <input type="checkbox" checked={form.isPublic} onChange={(e) => alterar("isPublic", e.target.checked)} />
-          Pública
-        </label>
-        <button className={s.botao} type="submit" disabled={ocupado}>
-          Adicionar
-        </button>
-      </div>
-      <Aviso erro={erro} sucesso={sucesso} />
-    </form>
-  );
-}
+import s from "../styles/detalheCarta.module.css";
 
 export default function CardPage() {
   const { id } = useParams();
   const [params] = useSearchParams();
   const lang = params.get("lang") ?? "en";
   const session = useSession();
-  const { dados, erro, carregando, recarregar } = useCarregar(() => getCard(id, lang), `${id}|${lang}|${!!session}`);
-  const wishlist = useAcao();
-
-  if (carregando && !dados) return <div className={s.pagina}>Carregando...</div>;
-  if (erro) {
-    return (
-      <div className={s.pagina}>
-        <Aviso erro={erro} />
-      </div>
-    );
-  }
-
-  const { card, user, listings } = dados;
-
-  async function adicionarWishlist() {
-    const { ok } = await wishlist.executar(() => addToWishlist(card.id), "Carta adicionada à wishlist.");
-    if (ok) recarregar();
-  }
+  const chave = `${id}|${lang}|${!!session}`;
+  const { dados, erro, carregando, recarregar } = useCarregar(async () => ({
+    ...await getCard(id, lang),
+    chave,
+  }), chave);
+  const catalogo = `/catalogo?lang=${encodeURIComponent(lang)}`;
+  const atual = dados?.chave === chave;
 
   return (
     <div className={s.pagina}>
-      <div className={s.detalhe}>
-        <div>
-          <ImagemCarta className={s.imagemCarta} src={card.image?.large} alt={card.name} />
+      <nav className={s.navegacao} aria-label="Navegação da carta">
+        <Link to={catalogo}><ArrowLeft size={16} aria-hidden="true" /> Voltar ao catálogo</Link>
+        <span>Pokémon TCG</span>
+      </nav>
+      {erro ? (
+        <section className={s.vazio}>
+          <h1>Não foi possível carregar a carta</h1>
+          <Aviso erro={erro} onTentarDeNovo={recarregar} />
+        </section>
+      ) : (!dados || !atual) ? (
+        <div className={s.hero} role="status" aria-label="Carregando carta" aria-busy="true">
+          <PalcoCarta carregando />
+          <div className={s.resumoSkeleton} aria-hidden="true"><div /><div /><div /></div>
         </div>
-
-        <div>
-          <h1 className={s.titulo}>{card.name}</h1>
-          <p className={s.subtitulo}>
-            {card.set?.name} · {card.number} · <code>{card.id}</code>
-          </p>
-
-          <dl className={s.lista}>
-            <dt>Categoria</dt>
-            <dd>{card.category}</dd>
-            {card.rarity && (
-              <>
-                <dt>Raridade</dt>
-                <dd>{card.rarity}</dd>
-              </>
-            )}
-            {card.hp && (
-              <>
-                <dt>HP</dt>
-                <dd>{card.hp}</dd>
-              </>
-            )}
-            {card.types?.length > 0 && (
-              <>
-                <dt>Tipo</dt>
-                <dd>{card.types.join(", ")}</dd>
-              </>
-            )}
-            {card.illustrator && (
-              <>
-                <dt>Ilustrador</dt>
-                <dd>{card.illustrator}</dd>
-              </>
-            )}
-            <dt>Variantes</dt>
-            <dd>
-              {Object.entries(card.variants ?? {})
-                .filter(([, tem]) => tem)
-                .map(([nome]) => nome)
-                .join(", ") || "—"}
-            </dd>
-            <dt>Preço de referência</dt>
-            <dd>{formatarPreco(card.marketPrice)}</dd>
-          </dl>
-
-          {card.attacks?.length > 0 && (
-            <div className={s.secao}>
-              <h2>Ataques</h2>
-              <ul>
-                {card.attacks.map((ataque) => (
-                  <li key={ataque.name}>
-                    <strong>{ataque.name}</strong> {ataque.damage && `· ${ataque.damage}`}
-                    {ataque.effect && <p className={s.suave}>{ataque.effect}</p>}
-                  </li>
-                ))}
-              </ul>
+      ) : (
+        <>
+          <div className={s.hero}>
+            <PalcoCarta key={`${id}|${lang}`} card={dados.card} />
+            <div className={s.resumo}>
+              <DadosCarta card={dados.card} />
+              <a className={s.botaoSecundario} href="#anuncios-carta">Ver anúncios de troca ({dados.listings.length}) <ArrowDown size={16} aria-hidden="true" /></a>
+              {dados.user ? (
+                <>
+                  <VoceEACarta key={id} card={dados.card} user={dados.user} onMudou={recarregar} atualizando={carregando} />
+                  <details className={s.adicionar} key={`${id}|${lang}`}>
+                    <summary>Adicionar à minha coleção <span aria-hidden="true">+</span></summary>
+                    <FormColecao card={dados.card} onAdicionado={recarregar} />
+                  </details>
+                </>
+              ) : (
+                <div className={s.convite}>
+                  <h2>Sua próxima carta começa aqui</h2>
+                  <p>Entre para guardar na coleção, adicionar à wishlist e negociar com outros colecionadores.</p>
+                  <div className={s.acoes}><Link className={s.botao} to="/login">Entrar na minha conta</Link><Link className={s.link} to="/register">Criar uma conta</Link></div>
+                </div>
+              )}
             </div>
-          )}
-
-          {user ? (
-            <div className={`${s.secao} ${s.painel}`}>
-              <h3>Você e esta carta</h3>
-              <p>
-                Você tem <strong>{user.inCollection}</strong> na coleção ·{" "}
-                {user.inWishlist ? "está na sua wishlist" : "não está na sua wishlist"} ·{" "}
-                {user.onTradeList ? "você tem anúncio ativo dela" : "sem anúncio ativo seu"}
-              </p>
-              <div className={s.acoes}>
-                {!user.inWishlist && user.inCollection === 0 && (
-                  <button className={s.botaoSecundario} onClick={adicionarWishlist} disabled={wishlist.ocupado}>
-                    Adicionar à wishlist
-                  </button>
-                )}
-                <Link className={s.botaoSecundario} to="/colecao">
-                  Ver minha coleção
-                </Link>
-              </div>
-              <Aviso erro={wishlist.erro} sucesso={wishlist.sucesso} />
-            </div>
-          ) : (
-            <p className={s.secao}>
-              <Link className={s.link} to="/login">
-                Entre
-              </Link>{" "}
-              para adicionar à coleção ou à wishlist.
-            </p>
-          )}
-
-          {user && (
-            <div className={s.secao}>
-              <FormColecao card={card} onAdicionado={recarregar} />
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className={s.secao}>
-        <h2>Anúncios ativos desta carta</h2>
-        {listings.length === 0 ? (
-          <p className={s.suave}>Ninguém está anunciando esta carta agora.</p>
-        ) : (
-          <div className={s.tabelaWrap}>
-            <table className={s.tabela}>
-              <thead>
-                <tr>
-                  <th>Colecionador</th>
-                  <th>Variante</th>
-                  <th>Condição</th>
-                  <th>Quantidade</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {listings.map((anuncio) => (
-                  <tr key={anuncio.id}>
-                    <td>
-                      <Link className={s.link} to={`/u/${anuncio.owner.username}`}>
-                        @{anuncio.owner.username}
-                      </Link>
-                    </td>
-                    <td>{variante(anuncio.item)}</td>
-                    <td>{CONDICOES[anuncio.item.condition]}</td>
-                    <td>{anuncio.quantity}</td>
-                    <td>
-                      <Link className={s.link} to={`/marketplace/${anuncio.id}`}>
-                        Ver anúncio
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
-        )}
-      </div>
+          <section className={s.secao} aria-labelledby="sobre-carta">
+            <header className={s.cabecalho}><span className={s.eyebrow}>Conheça a carta</span><h2 id="sobre-carta">Detalhes e habilidades</h2></header>
+            <div className={s.detalhes}>
+              <div className={s.painel}>
+                <h3>Sobre esta edição</h3>
+                <dl className={s.ficha}>
+                  <div><dt>Categoria</dt><dd>{dados.card.category}</dd></div>
+                  {dados.card.stage && <div><dt>Estágio</dt><dd>{dados.card.stage}</dd></div>}
+                  {dados.card.illustrator && <div><dt>Ilustração</dt><dd>{dados.card.illustrator}</dd></div>}
+                  {dados.card.set?.series && <div><dt>Série</dt><dd>{dados.card.set.series}</dd></div>}
+                  <div><dt>Identificador</dt><dd className="dados">{dados.card.id}</dd></div>
+                </dl>
+                {dados.card.description && <p className={s.descricao}>{dados.card.description}</p>}
+              </div>
+              <div className={s.painel}>
+                <h3>Em jogo</h3>
+                {dados.card.abilities?.map((ability, index) => (
+                  <article className={s.ataque} key={`ability-${index}`}><span className={s.eyebrow}>{ability.type || "Habilidade"}</span><h4>{ability.name}</h4><p>{ability.effect}</p></article>
+                ))}
+                {dados.card.attacks?.map((ataque, index) => (
+                  <article className={s.ataque} key={`attack-${index}`}>
+                    <div className={s.ataqueTitulo}><h4>{ataque.name}</h4><span className="dados">{ataque.damage}</span></div>
+                    {ataque.cost?.length > 0 && <p className={s.suave}>Energia: {ataque.cost.join(" · ")}</p>}
+                    {ataque.effect && <p>{ataque.effect}</p>}
+                  </article>
+                ))}
+                {!dados.card.attacks?.length && !dados.card.abilities?.length && <p className={s.suave}>Esta carta não possui ataques ou habilidades listados.</p>}
+              </div>
+            </div>
+          </section>
+          <AnunciosDaCarta listings={dados.listings} />
+        </>
+      )}
     </div>
   );
 }

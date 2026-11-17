@@ -1,39 +1,26 @@
-import { useState } from "react";
+import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getPublicCollection } from "../api/collection";
 import Aviso from "../components/Aviso/Aviso";
+import BuscaPerfil from "../components/BuscaPerfil/BuscaPerfil";
+import CartaMini from "../components/CartaMini/CartaMini";
 import { useCarregar } from "../hooks/useCarregar";
 import s from "../styles/paginas.module.css";
 import { CONDICOES, formatarData, variante } from "../utils/rotulos";
-import ImagemCarta from "../components/ImagemCarta/ImagemCarta";
 
 export default function PublicPerfilPage() {
   const { username } = useParams();
   const navigate = useNavigate();
-  const [busca, setBusca] = useState(username);
   const { dados, erro, carregando } = useCarregar(() => getPublicCollection(username), username);
-
-  function buscar(evento) {
-    evento.preventDefault();
-    if (busca.trim()) navigate(`/u/${busca.trim().toLowerCase()}`);
-  }
 
   return (
     <div className={s.pagina}>
-      <form className={s.form} onSubmit={buscar}>
-        <label className={s.campo}>
-          Ver perfil de
-          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="username" />
-        </label>
-        <button className={s.botaoSecundario} type="submit">
-          Abrir
-        </button>
-      </form>
+      <BuscaPerfil username={username} onBuscar={(busca) => navigate(`/u/${busca}`)} />
 
       <Aviso erro={erro} />
-      {carregando && !dados && <p className={s.suave}>Carregando...</p>}
+      {carregando && <CarregandoCartas />}
 
-      {dados && (
+      {!carregando && dados && (
         <div className={s.secao}>
           <h1 className={s.titulo}>{dados.user.name}</h1>
           <p className={s.subtitulo}>
@@ -48,14 +35,12 @@ export default function PublicPerfilPage() {
           ) : (
             <div className={s.grade}>
               {dados.items.map((item) => (
-                <Link key={item.id} to={`/cards/${item.card.id}`} className={s.cartaMini}>
-                  <ImagemCarta src={item.card.imageUrl} alt={item.card.name} />
-                  <strong>{item.card.name}</strong>
+                <CartaMini key={item.id} to={`/cards/${item.card.id}`} carta={item.card}>
                   <span className={s.suave}>
                     {variante(item)} · {CONDICOES[item.condition]}
                   </span>
                   <span>Quantidade: {item.quantity}</span>
-                </Link>
+                </CartaMini>
               ))}
             </div>
           )}

@@ -6,6 +6,8 @@ O PokeBox é **só de trocas**. Não existe venda, preço de venda nem pagamento
 
 Projeto em equipe do curso **Geração Tech**.
 
+O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nintendo ou Game Freak.
+
 > Este README descreve o que está na branch `develop`.
 
 ## Sumário
@@ -17,6 +19,7 @@ Projeto em equipe do curso **Geração Tech**.
 - [Testes](#testes)
 - [Deploy](#deploy)
 - [Logs e saúde da API](#logs-e-saúde-da-api)
+- [Traces](#traces)
 - [Performance e segurança](#performance-e-segurança)
 - [API](#api)
 - [Regras de negócio](#regras-de-negócio)
@@ -30,7 +33,7 @@ Projeto em equipe do curso **Geração Tech**.
 | Backend | Node.js (LTS), TypeScript 6, Express 5, Prisma 7 (`@prisma/adapter-pg`), zod 4, JWT, bcrypt |
 | Banco | PostgreSQL 17 |
 | Frontend | React 19, Vite, React Router, axios |
-| Dados das cartas | API pública [TCGdex](https://tcgdex.dev), com cache no banco |
+| Dados das cartas | API pública [TCGdex](https://tcgdex.dev), com cache no banco e uma cópia resumida de todas as cartas para a busca (`pg_trgm` + `unaccent`) |
 | Testes | Jest com ts-jest (backend), ESLint e build (frontend) |
 | Documentação da API | Swagger em `/docs` |
 | Infra | Docker Compose (modo dev e modo produção), GitHub Actions (CI e deploy), Render (API), Neon (banco), Vercel (front) |
@@ -43,7 +46,7 @@ Projeto em equipe do curso **Geração Tech**.
 │   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json)
 │   ├── docs/db.md         modelo de dados, constraints, migrations e seed
 │   ├── docs/guia-backend  guia do backend e das regras de negócio (.md e .pdf)
-│   ├── scripts/           seed-cards.ts (regera as cartas do seed), clean-dist.mjs e copy-generated.mjs (build)
+│   ├── scripts/           seed-cards.ts (regera as cartas do seed), sync-catalog.ts (catálogo da busca), clean-dist.mjs e copy-generated.mjs (build)
 │   ├── Dockerfile         estágios dev e prod da API
 │   └── src/
 │       ├── server.ts      sobe a API: valida o env, monta o container e o app
@@ -54,7 +57,7 @@ Projeto em equipe do curso **Geração Tech**.
 │       ├── controllers/   classes: leem a requisição, validam com zod e respondem
 │       ├── services/      classes com as regras de negócio, dependências pelo construtor
 │       ├── repositories/  interfaces (<Nome>Repository.ts) e implementações Prisma (Prisma<Nome>Repository.ts), TransactionRunner e Unit of Work
-│       ├── cards/         catálogo de cartas em camadas (decorators de cache) e busca esperta
+│       ├── cards/         catálogo de cartas em camadas (decorators de cache), busca no catálogo local e busca esperta na TCGdex
 │       ├── security/      PasswordHasher (bcrypt) e TokenSigner (JWT)
 │       ├── errors/        AppError, erros de domínio e tradutores de erro
 │       ├── config/        env.ts (variáveis validadas com zod) e cors.ts (quem pode chamar a API pelo navegador)
@@ -63,7 +66,7 @@ Projeto em equipe do curso **Geração Tech**.
 │       ├── utils/         regras puras (testadas com jest)
 │       └── docs/          especificação do Swagger
 ├── frontend/              app React (Vite), Dockerfile (dev, build, prod com nginx), nginx.conf e vercel.json
-├── .github/workflows/     ci.yml (testes), deploy.yml (testes, depois Render e Vercel) e keep-alive.yml (ping na API)
+├── .github/workflows/     ci.yml (testes), deploy.yml (testes, depois Render e Vercel) e catalog-sync.yml (catálogo da busca, toda segunda)
 ├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento
 ├── docker-compose.prod.yml o que muda no modo produção local
 └── .env.example           variáveis de ambiente
@@ -94,6 +97,7 @@ O backend segue as camadas **routes → controllers → services → repositorie
 | Repository | `repositories/<Nome>Repository.ts` + `Prisma<Nome>Repository.ts` | o service conhece a interface, não o Prisma |
 | Chain of Responsibility | `src/errors/translators/` | o tratador de erros tenta cada tradutor em ordem; erro novo = tradutor novo, sem mexer no tratador |
 | Strategy | `PasswordHasher` (bcrypt) e `TokenSigner` (JWT) em `src/security/` | o `AuthService` não depende da biblioteca |
+| Plano B (fallback) | `src/cards/search/`: `LocalCatalogFinder` → `SmartCardFinder` | os dois implementam `CardFinder`. A busca vai ao banco; sem catálogo sincronizado no idioma, sem nome ou com filtro que o banco não tem, passa a vez para a busca na TCGdex. O `CardService` não sabe qual respondeu |
 
 Com `USE_MOCK=true`, o módulo de cartas troca a pilha da TCGdex pelo `MockCatalog`.
 
@@ -224,6 +228,19 @@ docker compose up -d --build
 docker compose exec tcg-backend npm run db:seed
 ```
 
+### Catálogo local da busca
+
+A busca de cartas por nome (`GET /cards?name=`) procura numa cópia resumida de todas as cartas da TCGdex guardada no Postgres (tabela `CatalogCard`, #78). Essa cópia é preenchida por um script, não pela API:
+
+```bash
+cd backend
+npm run catalog:sync
+```
+
+Sincroniza inglês e português (#157) e leva perto de 3 minutos: busca os ~220 sets em inglês (cerca de 24 mil cartas) e os ~126 em português (cerca de 14 mil), com uma pausa de 200 ms entre os sets para não sobrecarregar a TCGdex. Para um idioma só: `npm run catalog:sync -- pt` (aceita `en` e `pt`). Rodar de novo atualiza, não duplica. A TCGdex responde 502 e 503 em rajadas: o script segue com os outros sets e, no fim de cada idioma, tenta de novo os que falharam, em até três voltas (depois de 5, 15 e 30 s); a lista de sets de cada idioma ganha as mesmas voltas. Se um idioma falhar, o outro roda do mesmo jeito. O que ainda falhar é listado e o script termina com erro; basta rodar de novo.
+
+Sem o sync (banco novo), nada quebra: a busca usa a TCGdex, como antes. Depois do sync, a busca local já vale na próxima chamada, sem reiniciar a API.
+
 ### Ver o banco
 
 - Prisma Studio: `cd backend && npx prisma studio` (abre no navegador).
@@ -290,7 +307,7 @@ Como funcionam os testes de integração:
 - No `.env.test`, o limite de tentativas de login fica desligado (`AUTH_RATE_LIMIT=0`) e os logs ficam em silêncio (`LOG_LEVEL=silent`).
 - A RN-07 tem um teste próprio (`tradeRollback.int.test.ts`): ele força um erro no meio do aceite de uma troca e confere que quantidades, reservas e status ficaram iguais.
 
-O que a integração cobre (95 testes, um arquivo por área):
+O que a integração cobre (129 testes, um arquivo por área):
 
 | Arquivo | Casos |
 |---|---|
@@ -302,17 +319,40 @@ O que a integração cobre (95 testes, um arquivo por área):
 | `listings` | RN-05 (403, 422, soma dos anúncios abertos); pausar, fechar sem volta, bloqueio só do ADMIN; marketplace: `q`, `type`, `rarity`, filtros somados, `sort=name`, valor inválido (400 com `details`), `GET /listings/me` |
 | `offers` | RN-06: próprio anúncio (422), anúncio pausado (404), carta de outra pessoa (403), mais do que tem (422), segunda oferta (409), quem aceita e quem cancela (403), oferta finalizada não muda (422), aceita sem troca pode ser cancelada, fechar o anúncio cancela as ofertas; quem vê a oferta; carta em oferta não é apagada (409) |
 | `trades` | quem cria a troca (403), oferta não aceita (422), segunda troca (409); RN-08 (reserva dos dois lados, anúncio fecha, quantidade abaixo do reservado 422, apagar 409); RN-07 (as cartas trocam de dono) com RN-11 (a carta recebida sai da wishlist); troca finalizada não muda (409); recusar libera a reserva; cancelar; quem vê a troca (inclusive ADMIN → 403) |
-| `cards` | busca, busca esperta (`charizard base`, palavras ignoradas), ids recusados fora da lista, `limit` acima de 100 (400), detalhe com e sem login, carta inexistente (404), id fora da regra (400) |
+| `catalog` | catálogo local da busca (#78): com a tabela vazia a busca vai à TCGdex e não tolera erro de digitação; com a tabela preenchida pelas cartas do seed: `charzard` acha o Charizard sem chamar a TCGdex, `charizard base` põe o do Base Set primeiro, `pikachu` em duas páginas sem repetir, `flabebe` acha a Flabébé, palavras ignoradas, só o nome do set, filtro `set`, `sort=name&order=desc`, TCGdex fora do ar; salvar de novo não duplica |
+| `cards` | busca, busca esperta (`charizard base`, palavras ignoradas), ids recusados fora da lista, `limit` acima de 100 (400), detalhe com e sem login, carta inexistente (404), id fora da regra (400); filtros: `GET /cards/filters` (e 502 com a TCGdex fora), TCGdex instável (#145: 503 uma vez responde 200; 503 três vezes → 502 depois de 3 chamadas), `type` sem nome, mesmo nome com tipos diferentes (cache separado), nome + raridade + set, `category` com `sort=name&order=desc` e duas páginas, valor que não existe (400 com `details`) |
+| `pagination` | #77: sem parâmetro responde como antes; `limit`/`page` sem repetir item; `q`, `isPublic`, `type`, `finish`, `sort=recent`; `limit=500` (400 com `details`); wishlist `type=Fire` da misty; perfil público com `limit=1` sem itens privados; ofertas e trocas com `side` e sem `side`; `page`/`limit` sem `side` (400); `GET /listings/me` paginado |
 | `snapshot` | RN-09: com a TCGdex fora do ar, coleção, wishlist, perfil público e marketplace continuam respondendo com os dados da carta; o detalhe de uma carta já consultada sai da cópia guardada no banco |
 | `health` e `errors` | `/health/ready`, TCGdex fora do ar (502), JSON malformado (400), corpo acima de 100 KB (413), rota inexistente (404), id que não é UUID (400), `x-request-id` |
 
 O 504 (TCGdex demorando mais de 8 s) fica só nos testes de unidade do `TcgdexClient`, para a suíte não esperar 8 s. Como a IA ajudou a escrever esses testes, e o que ela errou, está em [`docs/ia.md`](docs/ia.md).
 
+### Cobertura
+
+Cobertura é a porcentagem do código que os testes executaram pelo menos uma vez. Ela não prova que o código está certo, mas mostra onde nenhum teste passa.
+
+```bash
+make coverage
+```
+
+`make coverage` sobe o banco de teste e roda `npm run test:coverage`: os testes de unidade e os de integração numa execução só, somando a cobertura dos dois. O relatório, arquivo por arquivo e linha por linha, fica em `backend/coverage/lcov-report/index.html`.
+
+Entram na conta os arquivos `.ts` de `backend/src`. Ficam de fora os testes, o client gerado do Prisma, o Swagger escrito à mão (`src/docs`), os mocks, os arquivos só de tipos e o `server.ts`, que só sobe o servidor.
+
+| Métrica | Só unidade | Unidade + integração | Mínimo exigido |
+|---|---|---|---|
+| Linhas | 86,1% | 97,8% | 95% |
+| Comandos | 85,0% | 96,3% | 94% |
+| Funções | 75,7% | 97,5% | 95% |
+| Ramos (if/else) | 79,1% | 88,1% | 86% |
+
+Números de 15/11/2026, medidos na CI, com 682 testes de unidade e 95 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. O front ainda não tem testes nem cobertura: isso entra com a #107.
+
 A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 
 | Job | O que roda |
 |---|---|
-| `backend` | sobe um PostgreSQL de teste; `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build`, `npm test`, `npm run test:integration` |
+| `backend` | sobe um PostgreSQL de teste; `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build` e `npm run test:coverage` (unidade + integração, com o mínimo de cobertura). Mostra a tabela de cobertura no resumo da execução e guarda o relatório completo como artefato `coverage-backend` |
 | `frontend` | `npm ci`, `npm run lint`, `npm run build` |
 
 Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow de deploy, antes de publicar (veja [Deploy](#deploy)).
@@ -321,7 +361,7 @@ Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow d
 
 | Peça | Onde | Como chega lá |
 |---|---|---|
-| Banco PostgreSQL | Neon | as migrations rodam sozinhas quando a API sobe; o seed roda uma vez, à mão |
+| Banco PostgreSQL | Neon | as migrations rodam sozinhas quando a API sobe; o seed roda uma vez, à mão; o catálogo da busca roda uma vez à mão depois do deploy e toda semana pelo GitHub Actions |
 | API | Render, com o Dockerfile de `backend/` (estágio `prod`) | o pipeline chama o deploy hook do Render |
 | Front | Vercel, pasta `frontend/` | o pipeline publica com a CLI da Vercel |
 
@@ -347,6 +387,11 @@ Configuração de produção no código:
 - `frontend/Dockerfile` tem o estágio `dev` (Vite), o `build` (gera `dist/`) e o `prod` (nginx com `frontend/nginx.conf`). A Vercel não usa Docker; o nginx serve para o modo produção local.
 - `frontend/vercel.json` manda qualquer caminho para o `index.html`, para o F5 em `/colecao` não dar 404, e desliga o deploy automático da Vercel na `main`, que passa a ser feito pelo pipeline.
 - A API aceita chamadas do navegador só dos sites em `CORS_ORIGIN` ou dos que batem com `CORS_ORIGIN_REGEX` (os previews da Vercel).
+
+Catálogo da busca em produção (#78):
+
+- Uma vez, depois do deploy que traz a tabela `CatalogCard`, da sua máquina: `cd backend && DATABASE_URL="<URL do Neon>" npm run catalog:sync`. Para trazer o português (#157) sem refazer o inglês: `npm run catalog:sync -- pt`. Como o seed, o script não roda dentro da imagem de produção, que não tem o `tsx`.
+- Depois, o workflow `.github/workflows/catalog-sync.yml` roda o mesmo script toda segunda às 06:00 UTC (e à mão, em Actions > Catalog sync > Run workflow, escolhendo a `main`). Ele usa o secret `DATABASE_URL` do environment `production`, com a URL do Neon. Sets novos saem poucas vezes por ano, então uma vez por semana basta; se o GitHub atrasar ou pular um agendamento, nada quebra, a busca só demora mais para ver o set novo.
 
 ## Logs e saúde da API
 
@@ -376,12 +421,58 @@ Duas rotas dizem se a API está bem:
 
 As duas ficam fora do log automático, porque o Render e o pipeline chamam o tempo todo. O preflight do CORS (`OPTIONS`, que o navegador manda antes de cada `POST`) também fica fora.
 
+## Traces
+
+Um trace é a linha do tempo de uma requisição: quanto tempo ela passou no Express, em cada consulta ao banco e na chamada à TCGdex. O log diz *que* uma rota demorou; o trace diz *onde*. A API usa o [OpenTelemetry](https://opentelemetry.io), o padrão aberto: o mesmo código manda os traces para o Jaeger local ou para qualquer serviço compatível, trocando só variáveis de ambiente.
+
+```bash
+make traces
+```
+
+`make traces` sobe o [Jaeger](https://www.jaegertracing.io) (perfil `observabilidade` do compose) e a API em modo watch mandando os traces para ele. A tela fica em http://localhost:16686: escolha o serviço `pokebox-backend` e a operação.
+
+| O que aparece | De onde vem |
+|---|---|
+| a requisição (`POST /trades/:id/accept`) e o handler da rota | instrumentação de HTTP e do Express |
+| cada operação do Prisma e cada SQL, com o texto da consulta | `@prisma/instrumentation` e instrumentação do `pg` |
+| a chamada à TCGdex (`GET`) | instrumentação do `fetch` (undici) |
+| `trade.accept`, em volta do aceite da troca | span manual (`withSpan`, em `src/lib/tracing.ts`) |
+
+Como funciona:
+
+- `src/instrumentation.ts` liga o OpenTelemetry e precisa carregar **antes** do Express e do `pg`, para conseguir "embrulhar" essas bibliotecas. Por isso ele entra com `node --import` (no `npm run dev`, no `npm start` e no `CMD` do Dockerfile), e não por um `import` no `server.ts`.
+- Sem `OTEL_EXPORTER_OTLP_ENDPOINT`, nada liga: os testes e quem não quer traces não são afetados.
+- O `/health` não gera trace (o monitor chama a cada 5 minutos), e os spans de middleware ficaram de fora para o trace mostrar só o que importa.
+- Com os traces ligados, cada linha de log ganha `trace_id` e `span_id`. Achou um erro no log? Copie o `trace_id` e cole na busca do Jaeger para ver a requisição inteira.
+
+**Roteiro para a apresentação:** com `make traces`, `misty` cria uma troca e `ash` aceita. No Jaeger, a operação `trade.accept` mostra a transação (`BEGIN` ... `COMMIT`), as travas `SELECT ... FOR UPDATE` da RN-08 em ordem e o tempo de cada consulta. Depois, abra um `GET /cards/:id` de uma carta nunca vista (span da TCGdex, centenas de ms) e o mesmo id de novo (sai do cache em memória, sem span da TCGdex).
+
+Na mão, sem o `make`: com o Jaeger de pé, rode a API com `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` (ou `http://jaeger:4318` com o backend no compose). Os traces vão em protobuf por HTTP (OTLP), formato que o Jaeger e o Grafana aceitam.
+
+### Traces da produção (Grafana Cloud)
+
+A API no Render manda os traces para o Grafana Cloud (plano gratuito, retenção curta). Para ver: no Grafana, **Explore**, fonte **Tempo**, e busque `{resource.service.name="pokebox-backend"}`, ou cole um `trace_id` copiado dos logs do Render.
+
+Configuração:
+
+1. No Grafana Cloud, **Connections → OpenTelemetry (OTLP)**: gera o endpoint e um token.
+2. No Render, serviço da API, **Environment**:
+
+| Variável | Valor |
+|---|---|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | o endpoint do Grafana (`https://otlp-gateway-prod-<região>.grafana.net/otlp`) |
+| `OTEL_EXPORTER_OTLP_HEADERS` | `Authorization=Basic <token>`. É segredo: só no painel do Render, nunca no Git |
+| `OTEL_SERVICE_NAME` | `pokebox-backend` |
+
+Sem essas variáveis, a API roda sem traces. Os traces saem em lotes a cada poucos segundos e, ao desligar, a API espera o último lote ser enviado.
+
 ## Performance e segurança
 
 ### O que já existia
 
 - Cache das cartas da TCGdex em camadas (padrão Decorator, em `backend/src/cards/catalog/`): memória (1 h, até 500 cartas), depois junção de pedidos iguais em andamento, depois a tabela `CardCache` no banco (24 h, usada também quando a TCGdex cai), e só então a chamada HTTP.
 - Cache em memória da busca de cartas (10 min) e da lista de sets (1 dia), e timeout de 8 s nas chamadas à TCGdex.
+- A TCGdex falha por alguns segundos com frequência (#145). Quando ela responde 502, 503 ou 504, ou a conexão cai, a API tenta de novo até 2 vezes (espera de 200 ms e 600 ms, sem passar dos 8 s do timeout); 404, outros erros e timeout não são repetidos. Cada nova tentativa aparece no log (`warn`) e como span próprio nos traces. Se mesmo assim ela não responder, a busca, a lista de sets, os filtros e as cartas de um set usam o último resultado guardado em memória, mesmo vencido.
 - `Cache-Control` nas cartas: a lista é `public, max-age=300`; o detalhe é `private`, porque traz os anúncios da carta e, com login, os dados da pessoa.
 - Paginação, busca e filtros no `GET /listings`.
 
@@ -440,13 +531,27 @@ O log de SQL do Postgres estava ligado nas duas rodadas dessa última tabela, o 
 - A compressão encolhe muito as respostas, mas custa CPU. Na mesma máquina, sem rede no meio, isso aparece como menos requisições por segundo na lista grande (de 15.794 para 11.120). Pela internet o gargalo é a rede, e mandar 2,8 KB em vez de 22,6 KB compensa. Na escala do projeto, as duas folgas sobram.
 - O helmet e a compressão custam de 2% a 15% de vazão nas rotas rápidas, diferença de microssegundos por requisição. É o preço dos cabeçalhos de segurança, e vale.
 
+### Busca no catálogo local (#78)
+
+A busca por nome passou a rodar no Postgres, numa tabela com o resumo das ~24 mil cartas, com as extensões `pg_trgm` (semelhança entre textos por trigramas, pedaços de 3 letras) e `unaccent` (tira acento). Trigrama no lugar do full-text search do Postgres (`tsvector`): o full-text é bom para frases e idiomas, mas não perdoa erro de digitação em nomes curtos como os das cartas. E no lugar de Elasticsearch ou Algolia: roda no banco que já temos, sem serviço novo, e funciona no plano grátis do Neon.
+
+Medido com `EXPLAIN ANALYZE` no banco local com o catálogo inteiro (23.912 cartas):
+
+| Consulta | Com o índice GIN | Sem índice |
+|---|---|---|
+| `charzard`, primeira página | 1,5 ms | 33,4 ms |
+| `pikachu`, segunda página | 2,0 ms | 26,7 ms |
+| a palavra `pipi` acha alguma carta? | 0,1 ms | 22,7 ms |
+
+Pela API, na máquina local: `GET /cards?name=charizard base` responde em 5 a 10 ms. A mesma busca de `pikachu` em `lang=pt`, que ainda vai à TCGdex, levou 2 s na primeira chamada (depois fica 10 min em memória). Detalhes do índice em [`backend/docs/db.md`](backend/docs/db.md#índice-de-trigramas-da-busca-78).
+
 ### Decisões que ficaram como estão
 
 - **O `requireAuth` consulta o banco a cada requisição.** Medido: o `GET /auth/admin-check` (JWT mais a busca do usuário pela chave) responde em 1,36 ms de média, contra 0,02 ms do `/health`. Confiar só no JWT economizaria essa consulta, mas uma conta desativada ou suspensa continuaria entrando até o token vencer (1 dia). Mantido: 1,3 ms é pouco para perder o bloqueio imediato.
 - **O cache em memória some quando o Render dorme ou reinicia.** O cache no banco (`CardCache`) segura, e a TCGdex não é chamada de novo à toa. Com mais de uma instância, cada uma teria a própria memória; o próximo passo seria um Redis.
 - **Loops com `await` dentro das transações de troca e oferta** (`TradeService`, `OfferService`, `lockInOrder` no `PrismaCollectionRepository`). São em sequência de propósito: as travas em ordem evitam deadlock (RN-08), e o tamanho é o número de cartas de uma troca. Não paralelizar.
 - **Páginas muito fundas no `GET /listings`** ainda custam: com `OFFSET 1000`, a consulta leva 5,5 ms, porque o banco percorre as 1.000 linhas antes. Paginação por cursor resolveria; não vale agora.
-- **Coleção, wishlist, ofertas e trocas sem paginação:** #77.
+- **Coleção, wishlist, ofertas e trocas:** paginação opcional desde a #77 (sem parâmetro, ainda devolvem a lista inteira, para o front migrar aos poucos na #147).
 
 ### Como repetir
 
@@ -482,6 +587,8 @@ Todas as respostas seguem o mesmo formato:
 
 `details` só aparece em erro de validação (400). Rotas com 🔒 exigem `Authorization: Bearer <token>`; com 🔓 o token é opcional (muda o que a pessoa enxerga).
 
+**Paginação opcional nas listas (#77).** `GET /collection`, `GET /wishlist`, `GET /users/:username/collection`, `GET /listings/me`, `GET /offers/me` e `GET /trades/me` respondem como sempre quando não recebem nenhum parâmetro novo: a lista inteira, no mesmo formato. Qualquer parâmetro novo (`page`, `limit`, um filtro, `sort` ou `side`) liga a paginação, mesmo sem `page` (aí vem a página 1). A resposta paginada é igual à do `GET /listings`: `{ "success": true, "data": { "items": [] }, "pagination": { "page": 1, "limit": 20, "hasNextPage": false } }`, sem total. `limit` padrão 20, máximo 100 (acima disso → **400** com `details`). Sem `sort`, a ordem é a de antes; o `id` desempata para nenhum item repetir ou sumir entre as páginas.
+
 ### Autenticação e conta
 
 | Rota | | O que faz |
@@ -497,24 +604,25 @@ Todas as respostas seguem o mesmo formato:
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /cards?name=&page=&limit=&lang=` | | busca cartas na TCGdex, com paginação. Entende nome de set e ignora palavras que não acham nada: `charizard base` traz os Charizard com o do Base Set primeiro, e `charizard base x pipi popo` ainda traz os Charizard. O resultado vem ordenado por relevância, cada carta traz `set: { id, name }` e `number`, e a resposta traz `search: { name, sets, ignored }` dizendo como a busca foi entendida. Erro de digitação (`charzard`) ainda não é tolerado. Cartas com id que o detalhe não aceita (fora de letras, números, ponto e hífen) ficam fora da lista: hoje são só as Unown "!" e "?" do set `exu`; por isso uma página pode vir com uma carta a menos |
+| `GET /cards?name=&page=&limit=&lang=&type=&rarity=&set=&category=&sort=&order=` | | busca cartas, com paginação. Entende nome de set e ignora palavras que não acham nada: `charizard base` traz os Charizard com o do Base Set primeiro, e `charizard base x pipi popo` ainda traz os Charizard. O resultado vem ordenado por relevância, cada carta traz `set: { id, name }` e `number`, e a resposta traz `search: { name, sets, ignored }` dizendo como a busca foi entendida. **Catálogo local (#78):** com o catálogo sincronizado (`npm run catalog:sync`), a busca por nome roda no nosso banco, sem chamar a TCGdex: tolera erro de digitação (`charzard`, `pikachuu`), ignora acento (`flabebe` acha `Flabébé`) e continua funcionando com a TCGdex fora do ar. Palavra curta pode achar um nome parecido (`popo` acha `Po Town`) em vez de ir para `ignored`. Sem nome, com filtro de `type`, `rarity` ou `category`, ou num idioma ainda não sincronizado (hoje `en` e `pt` são), a busca vai à TCGdex como antes. Cartas com id que o detalhe não aceita (fora de letras, números, ponto e hífen) ficam fora da lista: hoje são só as Unown "!" e "?" do set `exu`; por isso uma página pode vir com uma carta a menos. **Filtros (#75):** `type`, `rarity`, `set` (id do set) e `category` filtram pelo valor exato, com ou sem nome; a caixa não importa (`fire` vira `Fire`), e valor que não existe no idioma responde 400 com `details`. `sort=name` com `order=asc` ou `desc` ordena pelo nome no lugar da relevância |
+| `GET /cards/filters?lang=` | | opções dos filtros do catálogo no idioma pedido: `{ types, rarities, categories, sets: [{ id, name }] }`. Os valores vêm traduzidos pela TCGdex (em `pt`, `Fire` vira `Fogo`). Fica 1 dia em memória; com a TCGdex fora do ar usa a última lista guardada, e sem nenhuma guardada → 502 |
 | `GET /cards/:id` | 🔓 | detalhe da carta (ataques, variantes, preço de referência) e os anúncios ativos dela; com login, traz `user` (quantas você tem, se está na sua wishlist, se você tem anúncio ativo dela) |
 
 ### Coleção
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /collection` | 🔒 | minha coleção, com `available` (quantidade menos reservada) |
+| `GET /collection?q=&condition=&finish=&isPublic=&setId=&type=&sort=&page=&limit=` | 🔒 | minha coleção, com `available` (quantidade menos reservada), pelo nome da carta. `q` busca por palavras no nome da carta ou do set; `isPublic=false` traz só os privados; `sort` é `name` (padrão) ou `recent` (entrada mais nova primeiro). Paginação opcional |
 | `POST /collection` | 🔒 | adiciona carta: `cardId`, `quantity`, `finish`, `firstEdition`, `condition?`, `isPublic?`. Se a carta estava na sua wishlist, ela sai (RN-11) e a resposta traz `removedFromWishlist: true` |
 | `PATCH /collection/:id` | 🔒 | muda `quantity`, `condition` ou `isPublic`. A condição não muda enquanto o item está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**) |
 | `DELETE /collection/:id` | 🔒 | remove o item (não remove se tiver reserva ou se já foi anunciado; nesse caso, zere a quantidade) |
-| `GET /users/:username/collection` | | coleção pública de um colecionador |
+| `GET /users/:username/collection?q=&type=&page=&limit=` | | coleção pública de um colecionador (itens privados nunca aparecem, RN-10). Paginada, a resposta mantém `data: { user, items }` |
 
 ### Wishlist
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /wishlist` | 🔒 | minha wishlist, com `opportunities` em cada carta |
+| `GET /wishlist?q=&type=&rarity=&sort=&page=&limit=` | 🔒 | minha wishlist, com `opportunities` em cada carta (paginada, calculado só para os itens da página). Paginação opcional |
 | `POST /wishlist` | 🔒 | adiciona carta (`cardId`). Carta que você já tem na coleção → **409** (RN-12) |
 | `DELETE /wishlist/:id` | 🔒 | remove |
 
@@ -523,7 +631,7 @@ Todas as respostas seguem o mesmo formato:
 | Rota | | O que faz |
 |---|---|---|
 | `GET /listings?q=&cardId=&username=&condition=&finish=&firstEdition=&setId=&type=&rarity=&sort=&page=&limit=` | | anúncios ativos, com `hasNextPage`. `q` busca por palavras no nome da carta ou do set (`charizard base` acha o Charizard do Base Set). Os filtros se somam e não diferenciam maiúscula (`type=fire`, `rarity=rare`, `condition=near_mint`); `sort` é `recent` (padrão), `oldest` ou `name`. Valor inválido → **400** com `details` |
-| `GET /listings/me` | 🔒 | meus anúncios, em qualquer status |
+| `GET /listings/me?page=&limit=` | 🔒 | meus anúncios, em qualquer status, mais novos primeiro. Paginação opcional |
 | `GET /listings/:id` | 🔓 | detalhe; anúncio pausado, fechado ou bloqueado só aparece para o dono e para o ADMIN |
 | `POST /listings` | 🔒 | anuncia um item da minha coleção: `collectionItemId`, `quantity`, `description?` |
 | `PATCH /listings/:id` | 🔒 | muda `quantity`, `description` ou `status` (`ACTIVE`, `PAUSED`, `CLOSED`); ADMIN só bloqueia (`BLOCKED`) ou desbloqueia. Fechar ou bloquear cancela as ofertas abertas e as aceitas que ainda não viraram troca; diminuir cancela as aceitas que pedem mais do que a nova quantidade |
@@ -533,7 +641,7 @@ Todas as respostas seguem o mesmo formato:
 | Rota | | O que faz |
 |---|---|---|
 | `POST /listings/:id/offers` | 🔒 | faz uma oferta num anúncio: `quantity` (quantas cartas do anúncio quero), `message?` e `items` (de 1 a 20 cartas da minha coleção, cada uma com `collectionItemId` e `quantity`) |
-| `GET /offers/me?status=` | 🔒 | minhas ofertas: `sent` (que fiz) e `received` (nos meus anúncios), mais novas primeiro |
+| `GET /offers/me?status=&side=&page=&limit=` | 🔒 | minhas ofertas: `sent` (que fiz) e `received` (nos meus anúncios), mais novas primeiro. Com `side=sent` ou `side=received`, vem só aquele lado em `{ items }` paginado; `page`/`limit` sem `side` → **400**. `status` sozinho não pagina |
 | `GET /offers/:id` | 🔒 | detalhe; só quem fez a oferta e o dono do anúncio veem (outros → 404) |
 | `PATCH /offers/:id/status` | 🔒 | `{ status }`: o dono do anúncio aceita (`ACCEPTED`) ou recusa (`REJECTED`); quem fez a oferta cancela (`CANCELED`). Oferta aceita que ainda não virou troca também pode ser recusada ou cancelada |
 
@@ -544,7 +652,7 @@ A troca é um aperto de mão em dois passos: o dono do anúncio aceita a oferta 
 | Rota | | O que faz |
 |---|---|---|
 | `POST /trades` | 🔒 | `{ offerId }`: quem fez a oferta cria a troca a partir da oferta aceita. Reserva as cartas e ajusta os anúncios |
-| `GET /trades/me?status=` | 🔒 | minhas trocas: `sent` (fiz a oferta) e `received` (meus anúncios), mais novas primeiro |
+| `GET /trades/me?status=&side=&page=&limit=` | 🔒 | minhas trocas: `sent` (fiz a oferta) e `received` (meus anúncios), mais novas primeiro. `side` funciona como em `GET /offers/me` |
 | `GET /trades/:id` | 🔒 | detalhe; só as duas partes veem (outros, inclusive ADMIN → 403) |
 | `POST /trades/:id/accept` | 🔒 | o dono do anúncio conclui: as cartas trocam de dono, tudo ou nada |
 | `POST /trades/:id/reject` | 🔒 | o dono do anúncio recusa; a reserva é liberada |
@@ -593,7 +701,7 @@ Outras regras que já valem:
 - **Variante da carta:** cada item tem `finish` (`NORMAL`, `HOLO`, `REVERSE`) e `firstEdition`. Só aceita combinações que a carta realmente tem na TCGdex (senão **422**).
 - **Condição:** `MINT`, `NEAR_MINT`, `EXCELLENT`, `GOOD`, `LIGHT_PLAYED`, `PLAYED` ou `POOR`.
 - **Conta:** login de conta suspensa ou inativa → **403**. Excluir a conta só desativa (soft delete); o histórico fica.
-- **Cache das cartas:** o detalhe de uma carta é buscado na TCGdex só na primeira vez e guardado por 24h no banco (`CardCache`) e por 1h em memória. Se a TCGdex cair, a API usa a última cópia guardada; sem cópia guardada (ou na busca `GET /cards`, que guarda o resultado em memória por 10 min e a lista de sets por 1 dia; trocar de página não chama a TCGdex de novo), responde **502** (fora do ar) ou **504** (demorou mais de 8 s). O cache é gravado com o id oficial da carta, mesmo que a URL use outra caixa (`/cards/BASE1-4` grava e atualiza o preço de `base1-4`).
+- **Cache das cartas:** o detalhe de uma carta é buscado na TCGdex só na primeira vez e guardado por 24h no banco (`CardCache`) e por 1h em memória. Antes de desistir, a API tenta de novo até 2 vezes quando a TCGdex responde 502, 503 ou 504 ou a conexão falha. Se a TCGdex cair, a API usa a última cópia guardada. A busca `GET /cards` guarda o resultado em memória por 10 min e a lista de sets por 1 dia (trocar de página não chama a TCGdex de novo); depois desse prazo o resultado continua guardado e é usado se a TCGdex cair. Sem nenhuma cópia, responde **502** (fora do ar) ou **504** (demorou mais de 8 s), e o front mostra a mensagem com o botão **"Tentar de novo"** no catálogo e no detalhe da carta. O cache é gravado com o id oficial da carta, mesmo que a URL use outra caixa (`/cards/BASE1-4` grava e atualiza o preço de `base1-4`).
 - **Preço de referência:** cada carta guarda o preço de mercado da TCGdex (TCGplayer em USD ou Cardmarket em EUR), atualizado quando a carta é consultada de novo. É **só informativo**.
 - **Status do anúncio:** o dono alterna entre ativo e pausado e pode fechar; anúncio fechado não volta. Só o ADMIN bloqueia, e só ele desbloqueia (volta como pausado). Um item que já foi anunciado não pode mais ser apagado da coleção, porque o anúncio fica no histórico; para tirá-lo do perfil, zere a quantidade.
 - **Integridade no banco:** chaves estrangeiras, uniques e CHECKs em todas as tabelas. Lista completa em [`backend/docs/db.md`](backend/docs/db.md).
@@ -608,7 +716,7 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 
 ### Limitações conhecidas
 
-- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte leva cerca de 2 minutos (a imagem sobe e roda o `prisma migrate deploy` antes de atender). Para isso não acontecer durante a avaliação, o workflow `.github/workflows/keep-alive.yml` chama `GET /health` a cada 10 minutos (só roda na `main`; para desligar: Actions → Keep alive → Disable workflow). Não custa nada: Actions é livre em repositório público, um serviço ligado o mês todo cabe nas 750 h grátis do Render (não criar outro serviço grátis na mesma conta) e o `/health` não consulta o banco, então o Neon continua dormindo. O GitHub pode atrasar um agendamento, e aí a API dorme uma vez. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
+- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte leva cerca de 2 minutos (a imagem sobe e roda o `prisma migrate deploy` antes de atender). Para isso não acontecer durante a avaliação, um monitor externo gratuito (UptimeRobot) chama `GET /health` a cada 5 minutos e avisa por e-mail se a API cair. Antes isso era um workflow agendado no GitHub Actions, a cada 10 minutos; ele foi removido porque o GitHub atrasa e descarta agendamentos quando a fila está cheia, e na prática rodou 1 vez em 5 horas. Não custa nada: um serviço ligado o mês todo cabe nas 750 h grátis do Render (não criar outro serviço grátis na mesma conta) e o `/health` não consulta o banco, então o Neon continua dormindo. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
 - Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time. O login e o cadastro param depois de 20 tentativas sem sucesso para o mesmo e-mail em 15 minutos.
 
 - Não há prazo de validade para oferta aceita nem para troca aberta: uma oferta aceita que nunca vira troca segura as cartas oferecidas até alguém encerrá-la à mão (o dono recusa ou quem ofertou cancela).
@@ -625,6 +733,14 @@ cd frontend && npm install && npm run dev
 Abra `http://localhost:5173`, entre com um usuário do seed e use o menu: Cards (catálogo), Marketplace, Coleção, Wishlist, Anúncios, Propostas, Trocas e Meu perfil. Para mostrar uma troca, use duas janelas (uma normal e uma anônima), uma com o `ash` e outra com a `misty`. Os erros aparecem com a mensagem da API e o código HTTP, por exemplo "Você já tem uma oferta aberta neste anúncio (409)".
 
 As chamadas ficam em `frontend/src/api/` (axios com interceptores em `http.js`, uma função por rota).
+
+As páginas (`frontend/src/pages/`) só buscam os dados e montam a tela; cada bloco visual é um componente em `frontend/src/components/<Nome>/<Nome>.jsx`. Os reaproveitados entre páginas são `CabecalhoPagina`, `Paginacao`, `CartaMini`, `MiniaturaCarta`, `AbasNegociacao` e `GradeCartas`. A home busca 12 cartas em `GET /cards` e mostra `SkeletonCard` enquanto carrega. A seção `GridCartas` da home e o catálogo (`/catalogo`) reutilizam o `GradeCartas`, que concentra a grade e seu CSS (quatro colunas na home e três no catálogo, no desktop). O `CartaCard` lê diretamente o formato da API (`image.small`, `set.name`) e o das outras telas (`imageUrl`, `setName`), sem adaptador. Em telas acima de 600px, o detalhe (`GET /cards/:id`) é buscado somente ao passar o mouse ou focar a carta; o painel de tipo, raridade, set, número e artista só aparece depois que os dados chegam. Até 600px, esse detalhe não é solicitado pela grade, pois o painel fica oculto. Os tipos em inglês e em português usam as mesmas cores, e as imagens não podem ser arrastadas.
+
+**Catálogo e marketplace no mesmo modelo (#86, #87).** As duas telas têm o mesmo layout: cabeçalho, barra com a busca (pesquisa sozinha 400 ms depois de parar de digitar, ou na hora com Enter; trocar o idioma pesquisa na hora) e "Ordenar por", filtros à esquerda e grade de três colunas. Os componentes são os mesmos: `BarraBusca` (no catálogo, também com o idioma; ela mantém o foco enquanto a URL muda), `PainelFiltros` com `GrupoFiltro` (opções em lista; no desktop aplicam na hora, e até 1023px abrem numa janela com "Limpar filtros" e "Ver resultados", que fecha pelo X, tocando fora ou com Esc sem aplicar), `SelosFiltro` (filtros ativos removíveis, traduzidos: "Tipo: Fogo", "Expansão: Base", "@ash"; "Limpar tudo" com dois ou mais), `GradeCartas` com esqueletos enquanto carrega, esqueleto também nos grupos de filtro que dependem da API (os outros continuam usáveis) e o aviso com "Tentar de novo" quando a API está fora do ar. Tudo fica na URL (F5 e link compartilhado mantêm a busca), e mudar um filtro volta para a página 1. No celular, o que se digita no filtro entra no rascunho na hora, então "Ver resultados" nunca perde o texto. Os nomes dos tipos e categorias ficam em `utils/rotulos.js`.
+
+- **Catálogo (`/catalogo`):** filtros de categoria, tipo, raridade e expansão vindos de `GET /cards/filters` no idioma da busca; trocar o idioma limpa os filtros. Filtro da URL que não existe no idioma (`/catalogo?lang=pt&type=Fire`, expansão inventada) é ignorado em vez de virar erro 400: com filtro na URL, a busca espera as opções chegarem para conferir. Ordena por relevância ou nome (A–Z, Z–A); raridade, mais recentes e mais desejadas aparecem como "em breve".
+- **Marketplace (`/marketplace`):** busca pelo nome da carta ou do set (`charizard base`); com menos de 2 letras ou números a busca não vai para a API e a tela avisa. Filtros de condição, acabamento, 1ª edição, tipo, raridade e colecionador (o nome de usuário só filtra quando é válido), e ordenação por mais novos, mais antigos ou nome. Valor inválido na URL (`condition=NM`, `sort=price`) é ignorado em vez de virar erro 400; se as raridades não carregam, o painel mostra o aviso com "Tentar de novo". Vindo da wishlist ou do detalhe (`/marketplace?cardId=base1-4`), aparece o selo "Carta: Charizard (base1-4)". Cada anúncio usa o `CartaCard` (com o painel de tipo, raridade e set no hover, sem chamada extra) e, embaixo, o `CartaAnuncio` mostra variante, condição, quantidade, dono e preço de referência (TCGplayer ou Cardmarket, nunca preço de venda). Logado, a carta que está na sua wishlist ganha "Na sua wishlist" e o seu anúncio aparece como "Seu anúncio". O filtro "Só cartas da minha wishlist" vale só para a página atual, porque o backend não tem esse parâmetro; enquanto a wishlist carrega a tela mostra os esqueletos, e se ela falhar mostra o aviso com "Tentar de novo" em vez de uma lista sem filtro.
+- **Navegação:** o `ScrollAoTopo` leva ao topo ao abrir uma página nova, e guarda a posição de cada página: no Voltar do navegador ela volta para onde a pessoa estava, mesmo com a API lenta (reaplica a posição enquanto a lista carrega e para assim que a pessoa rola ou digita). O detalhe do anúncio só oferece "Tentar de novo" quando a API está fora do ar, não em 404. "Ver todas" da home leva ao `/catalogo`.
 
 ## Status do projeto
 

@@ -6,6 +6,7 @@ import {
   type AcceptedOffer,
   type LockedOffer,
   type NewOffer,
+  type OfferListOptions,
   type OfferRepository,
   type OfferWithDetails,
 } from './OfferRepository.js';
@@ -41,19 +42,23 @@ export class PrismaOfferRepository implements OfferRepository {
     });
   }
 
-  findSent(userId: string, status?: OfferStatus): Promise<OfferWithDetails[]> {
+  findSent(userId: string, { status, skip, take }: OfferListOptions = {}): Promise<OfferWithDetails[]> {
     return this.db.offer.findMany({
       where: { proposerId: userId, status },
       include: offerInclude,
       orderBy: [...newestFirst],
+      skip,
+      take,
     });
   }
 
-  findReceived(userId: string, status?: OfferStatus): Promise<OfferWithDetails[]> {
+  findReceived(userId: string, { status, skip, take }: OfferListOptions = {}): Promise<OfferWithDetails[]> {
     return this.db.offer.findMany({
       where: { listing: { collectionItem: { userId } }, status },
       include: offerInclude,
       orderBy: [...newestFirst],
+      skip,
+      take,
     });
   }
 

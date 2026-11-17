@@ -1,10 +1,12 @@
 import { NotFoundError } from '../errors/domainErrors.js';
+import { withSpan } from '../lib/tracing.js';
 import type { TradeStatus } from '../generated/prisma/index.js';
 import type { CollectionItemKey, CollectionRepository, LockedCollectionItem } from '../repositories/CollectionRepository.js';
 import type { OfferRepository } from '../repositories/OfferRepository.js';
 import type { LockedTrade, TradeRepository, TradeWithItems } from '../repositories/TradeRepository.js';
 import type { TradeUnitOfWork, UnitOfWorkFactory } from '../repositories/UnitOfWork.js';
 import { assertStillFulfillable } from '../utils/offerRules.js';
+import { toPage, toSkipTake, type ListSide, type Page, type PageParams } from '../utils/pagination.js';
 import {
   TRADE_ACTIONS,
   assertCanCreate,
@@ -119,8 +121,8 @@ export class TradeService {
 
   async listMine(userId: string, status?: TradeStatus): Promise<MyTrades> {
     const [sent, received] = await Promise.all([
-      this.deps.trades.findSent(userId, status),
-      this.deps.trades.findReceived(userId, status),
+      this.deps.trades.findSent(userId, { status }),
+      this.deps.trades.findReceived(userId, { status }),
     ]);
 
     return {
@@ -129,11 +131,26 @@ export class TradeService {
     };
   }
 
+  async listMinePage(userId: string, side: ListSide, status: TradeStatus | undefined, page: PageParams): Promise<Page<TradeView>> {
+    const options = { status, ...toSkipTake(page) };
+    const rows =
+      side === 'sent'
+        ? await this.deps.trades.findSent(userId, options)
+        : await this.deps.trades.findReceived(userId, options);
+    const { items, hasNextPage } = toPage(rows, page);
+
+    return { items: items.map((trade) => toTradeResponse(trade)), hasNextPage };
+  }
+
   async getById(userId: string, id: string): Promise<TradeView> {
     return toTradeResponse(await this.findTradeOf(userId, id));
   }
 
-  async accept(userId: string, id: string): Promise<TradeView> {
+  accept(userId: string, id: string): Promise<TradeView> {
+    return withSpan('trade.accept', { 'trade.id': id }, () => this.acceptTrade(userId, id));
+  }
+
+  private async acceptTrade(userId: string, id: string): Promise<TradeView> {
     const found = await this.findTradeOf(userId, id);
     const destinationIds = await this.deps.collection.findIdsByKeys(destinationKeys(found));
 

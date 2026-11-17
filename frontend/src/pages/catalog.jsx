@@ -1,94 +1,179 @@
-import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { searchCards } from "../api/cards";
+import { useSearchParams } from "react-router-dom";
+import { SearchX } from "lucide-react";
+import { getCardFilters, searchCards } from "../api/cards";
 import Aviso from "../components/Aviso/Aviso";
+import BarraBusca from "../components/BarraBusca/BarraBusca";
+import FiltrosCatalogo from "../components/FiltrosCatalogo/FiltrosCatalogo";
+import GradeCartas from "../components/GradeCartas/GradeCartas";
+import Paginacao from "../components/Paginacao/Paginacao";
+import SelosFiltro from "../components/SelosFiltro/SelosFiltro";
 import { useCarregar } from "../hooks/useCarregar";
-import s from "../styles/paginas.module.css";
-import ImagemCarta from "../components/ImagemCarta/ImagemCarta";
+import s from "../styles/vitrine.module.css";
+import { CATEGORIAS, TIPOS } from "../utils/rotulos";
 
-const IDIOMAS = { en: "Inglês", pt: "Português", es: "Espanhol", fr: "Francês", de: "Alemão", it: "Italiano", ja: "Japonês" };
+const CAMPOS_FILTRO = ["category", "type", "rarity", "set"];
+const VAZIOS = Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, ""]));
+
+function valorAceito(valor, aceitos = []) {
+  return aceitos.find((opcao) => opcao.toLowerCase() === valor.toLowerCase()) ?? "";
+}
+
+function filtrosValidos(filtros, opcoes) {
+  const aceitos = {
+    category: opcoes.categories,
+    type: opcoes.types,
+    rarity: opcoes.rarities,
+    set: opcoes.sets?.map((set) => set.id),
+  };
+  return Object.fromEntries(
+    CAMPOS_FILTRO.map((campo) => [campo, filtros[campo] ? valorAceito(filtros[campo], aceitos[campo]) : ""])
+  );
+}
+
+function rotuloDoSelo(campo, valor, opcoes) {
+  switch (campo) {
+    case "category":
+      return `Categoria: ${CATEGORIAS[valor] ?? valor}`;
+    case "type":
+      return `Tipo: ${TIPOS[valor] ?? valor}`;
+    case "rarity":
+      return `Raridade: ${valor}`;
+    case "set":
+      return `Expansão: ${opcoes?.sets.find((set) => set.id === valor)?.name ?? valor}`;
+    default:
+      return valor;
+  }
+}
 
 export default function CatalogPage() {
   const [params, setParams] = useSearchParams();
   const name = params.get("name") ?? "";
   const lang = params.get("lang") ?? "en";
-  const page = Number(params.get("page") ?? 1);
-  const [busca, setBusca] = useState(name);
-  const [idioma, setIdioma] = useState(lang);
-
-  const { dados, erro, carregando } = useCarregar(
-    () => searchCards({ name, lang, page, limit: 24 }),
-    `${name}|${lang}|${page}`
+  const paginaPedida = Number(params.get("page") ?? 1);
+  const page = Number.isInteger(paginaPedida) && paginaPedida > 0 ? paginaPedida : 1;
+  const filtrosPedidos = Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, params.get(campo) ?? ""]));
+  const opcoes = useCarregar(() => getCardFilters(lang), lang);
+  const esperandoOpcoes = Object.values(filtrosPedidos).some(Boolean) && opcoes.carregando;
+  const filtros = opcoes.dados ? filtrosValidos(filtrosPedidos, opcoes.dados) : filtrosPedidos;
+  const sort = params.get("sort") === "name" ? "name" : undefined;
+  const order = params.get("order") === "desc" ? "desc" : "asc";
+  const ordenacao = sort ? `name-${order}` : "relevance";
+  const busca = useCarregar(
+    async () => (esperandoOpcoes ? null : searchCards({ name, lang, page, limit: 24, ...filtros, sort, order })),
+    esperandoOpcoes ? "esperando" : JSON.stringify({ name, lang, page, ...filtros, sort, order })
   );
+  const { dados, erro, recarregar } = busca;
+  const carregando = busca.carregando || esperandoOpcoes;
 
-  function buscar(evento) {
-    evento.preventDefault();
-    setParams({ name: busca, lang: idioma, page: "1" });
+  function atualizar(mudancas, reiniciarPagina = true) {
+    const novos = new URLSearchParams(params);
+    for (const [campo, valor] of Object.entries(mudancas)) {
+      if (valor) novos.set(campo, String(valor));
+      else novos.delete(campo);
+    }
+    if (reiniciarPagina) novos.delete("page");
+    setParams(novos);
   }
 
-  function irPara(novaPagina) {
-    setParams({ name, lang, page: String(novaPagina) });
+  function buscar(nome, idioma) {
+    atualizar({ name: nome, lang: idioma, ...(idioma !== lang ? VAZIOS : {}) });
   }
+
+  function ordenar(valor) {
+    atualizar({ sort: valor === "relevance" ? "" : "name", order: valor === "name-desc" ? "desc" : "" });
+  }
+
+  function limparFiltros() {
+    atualizar(VAZIOS);
+  }
+
+  const selos = CAMPOS_FILTRO.filter((campo) => filtros[campo]).map((campo) => ({
+    campo,
+    rotulo: rotuloDoSelo(campo, filtros[campo], opcoes.dados),
+  }));
 
   return (
     <div className={s.pagina}>
-      <h1 className={s.titulo}>Catálogo</h1>
-      <p className={s.subtitulo}>Cartas da TCGdex. Abra uma carta para adicioná-la à coleção ou à wishlist.</p>
-
-      <form className={s.form} onSubmit={buscar}>
+      <header className={s.cabecalho}>
+        <span className={s.eyebrow}>Explore o universo Pokémon TCG</span>
+        <h1>Catálogo de cartas</h1>
+        <p>Encontre sua próxima carta, complete sua coleção e descubra novas possibilidades de troca.</p>
+      </header>
+      <div className={s.barra}>
+        <BarraBusca
+          rotulo="Buscar cartas"
+          placeholder="Nome da carta ou expansão…"
+          valor={name}
+          idioma={lang}
+          onBuscar={buscar}
+        />
         <label className={s.campo}>
-          Nome
-          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="ex.: pikachu" />
-        </label>
-        <label className={s.campo}>
-          Idioma
-          <select value={idioma} onChange={(e) => setIdioma(e.target.value)}>
-            {Object.entries(IDIOMAS).map(([codigo, rotulo]) => (
-              <option key={codigo} value={codigo}>
-                {rotulo}
-              </option>
-            ))}
+          Ordenar por
+          <select value={ordenacao} onChange={(e) => ordenar(e.target.value)}>
+            <option value="relevance">Relevância</option>
+            <option value="name-asc">Nome: A–Z</option>
+            <option value="name-desc">Nome: Z–A</option>
+            <option value="rarity" disabled>
+              Raridade — em breve
+            </option>
+            <option value="recent" disabled>
+              Mais recentes — em breve
+            </option>
+            <option value="wanted" disabled>
+              Mais desejadas — em breve
+            </option>
           </select>
         </label>
-        <button className={s.botao} type="submit">
-          Buscar
-        </button>
-      </form>
-
-      <Aviso erro={erro} />
-      {carregando && <p className={s.suave}>Carregando...</p>}
-
-      {dados && (
-        <div className={s.secao}>
-          {dados.items.length === 0 ? (
-            <p className={s.suave}>Nenhuma carta encontrada.</p>
-          ) : (
-            <div className={s.grade}>
-              {dados.items.map((carta) => (
-                <Link key={carta.id} to={`/cards/${carta.id}?lang=${lang}`} className={s.cartaMini}>
-                  <ImagemCarta src={carta.image?.small} alt={carta.name} />
-                  <strong>{carta.name}</strong>
-                  <span className={s.suave}>{carta.id}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          <div className={s.paginacao}>
-            <button className={s.botaoSecundario} disabled={page <= 1} onClick={() => irPara(page - 1)}>
-              Anterior
-            </button>
-            <span className={s.suave}>Página {page}</span>
-            <button
-              className={s.botaoSecundario}
-              disabled={!dados.pagination?.hasNextPage}
-              onClick={() => irPara(page + 1)}
-            >
-              Próxima
-            </button>
+      </div>
+      <div className={s.layout}>
+        <FiltrosCatalogo
+          opcoes={opcoes}
+          filtros={filtros}
+          onAlterar={(campo, valor) => atualizar({ [campo]: valor })}
+          onLimpar={limparFiltros}
+          onAplicar={atualizar}
+        />
+        <section className={s.resultados} aria-label="Resultados do catálogo">
+          <div className={s.resumo} role="status">
+            <p>
+              {name ? (
+                <>
+                  Resultados para <strong>“{name}”</strong>
+                </>
+              ) : (
+                "Todas as cartas"
+              )}
+            </p>
+            <span>{carregando ? "Buscando cartas…" : dados ? `${dados.items.length} cartas nesta página` : ""}</span>
           </div>
-        </div>
-      )}
+          <SelosFiltro selos={selos} onRemover={(campo) => atualizar({ [campo]: "" })} onLimpar={limparFiltros} />
+          <Aviso erro={erro} onTentarDeNovo={recarregar} />
+          {carregando && <GradeCartas carregando total={24} variante="catalogo" />}
+          {!carregando && dados && (
+            <>
+              {dados.items.length ? (
+                <GradeCartas cartas={dados.items} lang={lang} variante="catalogo" />
+              ) : (
+                <div className={s.vazio}>
+                  <SearchX size={32} aria-hidden="true" />
+                  <h2>Nenhuma carta encontrada</h2>
+                  <p>Tente outro nome ou ajuste os filtros para ampliar a busca.</p>
+                  {selos.length > 0 && (
+                    <button type="button" className={s.botao} onClick={limparFiltros}>
+                      Limpar filtros
+                    </button>
+                  )}
+                </div>
+              )}
+              <Paginacao
+                pagina={page}
+                temProxima={dados.pagination?.hasNextPage}
+                onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
+              />
+            </>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

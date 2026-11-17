@@ -1,4 +1,4 @@
-import type { CardDetail, CardSummary, SetSummary } from '../types.js';
+import type { CardDetail, CardFilterValues, CardSummary, SetSummary } from '../types.js';
 import type { CardCatalog, CardSearchQuery } from './CardCatalog.js';
 
 export class InFlightDedupCatalog implements CardCatalog {
@@ -30,5 +30,9 @@ export class InFlightDedupCatalog implements CardCatalog {
 
   listSetCards(setId: string, lang: string): Promise<CardSummary[]> {
     return this.inner.listSetCards(setId, lang);
+  }
+
+  listFilterValues(lang: string): Promise<CardFilterValues> {
+    return this.inner.listFilterValues(lang);
   }
 }

@@ -65,9 +65,34 @@ describe('WishlistService.list', () => {
   });
 
   it('wishlist vazia não consulta donos', async () => {
-    const { collection, service } = setup();
+    const { wishlist, collection, service } = setup();
 
     expect(await service.list(USER_ID)).toEqual([]);
+    expect(wishlist.findManyByUser).toHaveBeenCalledWith(USER_ID);
+    expect(collection.findOwnersOfCards).not.toHaveBeenCalled();
+  });
+});
+
+describe('WishlistService.listPage', () => {
+  it('pede skip/take com os filtros e calcula oportunidades só dos itens da página', async () => {
+    const { wishlist, collection, service } = setup();
+    const second = { ...savedItem, id: 'wish-2', cardId: 'base1-4', card: { ...storedCard, id: 'base1-4' } };
+    const extra = { ...savedItem, id: 'wish-3', cardId: 'base1-9', card: { ...storedCard, id: 'base1-9' } };
+    wishlist.findManyByUser.mockResolvedValue([savedItem, second, extra]);
+    collection.findOwnersOfCards.mockResolvedValue([{ cardId: 'base1-4', userId: 'ash' }]);
+
+    const result = await service.listPage(USER_ID, { type: 'Fire', sort: 'recent' }, { page: 1, limit: 2 });
+
+    expect(wishlist.findManyByUser).toHaveBeenCalledWith(USER_ID, { type: 'Fire', sort: 'recent', skip: 0, take: 3 });
+    expect(collection.findOwnersOfCards).toHaveBeenCalledWith(['base1-2', 'base1-4'], USER_ID);
+    expect(result.items.map((item) => item.opportunities)).toEqual([0, 1]);
+    expect(result.hasNextPage).toBe(true);
+  });
+
+  it('página vazia não consulta donos', async () => {
+    const { collection, service } = setup();
+
+    expect(await service.listPage(USER_ID, {}, { page: 5, limit: 20 })).toEqual({ items: [], hasNextPage: false });
     expect(collection.findOwnersOfCards).not.toHaveBeenCalled();
   });
 });

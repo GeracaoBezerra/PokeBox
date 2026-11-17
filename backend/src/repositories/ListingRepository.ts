@@ -2,6 +2,7 @@ import type { CardCondition, CardFinish, ListingStatus, Prisma } from '../genera
 import type { Db } from '../lib/prisma.js';
 import type { ListingCounts } from '../utils/collectionRules.js';
 import type { CardType, ListingSort } from '../utils/listingSearch.js';
+import type { PageWindow } from '../utils/pagination.js';
 
 export const listingInclude = {
   collectionItem: {
@@ -49,7 +50,7 @@ export interface ListingChanges {
 
 export interface ListingRepository {
   findActive(filters: ActiveListingFilters): Promise<ListingWithItem[]>;
-  findByOwner(userId: string): Promise<ListingWithItem[]>;
+  findByOwner(userId: string, window?: Partial<PageWindow>): Promise<ListingWithItem[]>;
   findById(id: string, db?: Db): Promise<ListingWithItem | null>;
   findOpenByItem(collectionItemId: string, db?: Db): Promise<OpenListing[]>;
   sumOpenByItem(collectionItemId: string, db?: Db, exceptId?: string): Promise<number>;

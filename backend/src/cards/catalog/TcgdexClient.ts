@@ -4,11 +4,13 @@ import { CardNotFoundError } from '../../errors/CardNotFoundError.js';
 import { TcgdexUnavailableError } from '../../errors/TcgdexUnavailableError.js';
 import type { Logger } from '../../lib/logger.js';
 import { MemoryCache } from '../../utils/memoryCache.js';
-import type { CardDetail, CardSummary, MarketPrice, SetInfo, SetSummary } from '../types.js';
+import { orStale } from '../orStale.js';
+import type { CardDetail, CardFilters, CardFilterValues, CardSummary, MarketPrice, SetInfo, SetSummary } from '../types.js';
 import type { CardCatalog, CardSearchQuery } from './CardCatalog.js';
 import {
   tcgdexCardBriefListSchema,
   tcgdexCardSchema,
+  tcgdexNameListSchema,
   tcgdexPricingSchema,
   tcgdexSetListSchema,
   tcgdexSetSchema,
@@ -25,9 +27,19 @@ export interface TcgdexClientOptions {
   fetch: FetchFn;
   logger?: Logger;
   setTtlMs?: number;
+  retryDelaysMs?: number[];
 }
 
 const ONE_DAY = 24 * 60 * 60 * 1000;
+const RETRY_DELAYS_MS = [200, 600];
+const RETRYABLE_STATUS = [502, 503, 504];
+
+const FILTER_PARAMS: [keyof CardFilters, string][] = [
+  ['type', 'types'],
+  ['rarity', 'rarity'],
+  ['set', 'set.id'],
+  ['category', 'category'],
+];
 
 function errorDetail(err: unknown): string | undefined {
   if (!(err instanceof Error)) return undefined;
@@ -41,6 +53,10 @@ function errorDetail(err: unknown): string | undefined {
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function toImage(base: string | undefined) {
@@ -133,15 +149,26 @@ export class TcgdexClient implements CardCatalog {
   private readonly setInfoMemory: MemoryCache<SetInfo>;
   private readonly setListMemory: MemoryCache<SetSummary[]>;
   private readonly setCardsMemory: MemoryCache<CardSummary[]>;
+  private readonly filterValuesMemory: MemoryCache<CardFilterValues>;
+  private readonly retryDelaysMs: number[];
 
-  constructor({ baseUrl, timeoutMs, fetch, logger = console, setTtlMs = ONE_DAY }: TcgdexClientOptions) {
+  constructor({
+    baseUrl,
+    timeoutMs,
+    fetch,
+    logger = console,
+    setTtlMs = ONE_DAY,
+    retryDelaysMs = RETRY_DELAYS_MS,
+  }: TcgdexClientOptions) {
     this.baseUrl = baseUrl;
     this.timeoutMs = timeoutMs;
     this.fetch = fetch;
     this.logger = logger;
+    this.retryDelaysMs = retryDelaysMs;
     this.setInfoMemory = new MemoryCache(setTtlMs);
     this.setListMemory = new MemoryCache(setTtlMs);
     this.setCardsMemory = new MemoryCache(setTtlMs);
+    this.filterValuesMemory = new MemoryCache(setTtlMs);
   }
 
   async getById(id: string, lang: string): Promise<CardDetail> {
@@ -151,12 +178,20 @@ export class TcgdexClient implements CardCatalog {
     return toCardDetail(card, setInfo);
   }
 
-  async search({ lang, name, page, limit }: CardSearchQuery): Promise<CardSummary[]> {
+  async search({ lang, name, page, limit, filters = {}, sort }: CardSearchQuery): Promise<CardSummary[]> {
     const params = new URLSearchParams({
       'pagination:page': String(page),
       'pagination:itemsPerPage': String(limit),
     });
     if (name) params.set('name', name);
+    for (const [filter, param] of FILTER_PARAMS) {
+      const value = filters[filter];
+      if (value) params.set(param, `eq:${value}`);
+    }
+    if (sort) {
+      params.set('sort:field', sort.field);
+      params.set('sort:order', sort.order.toUpperCase());
+    }
 
     const cards = await this.request(`/${lang}/cards?${params}`, tcgdexCardBriefListSchema);
     if (!cards) return [];
@@ -180,8 +215,12 @@ export class TcgdexClient implements CardCatalog {
       this.setListMemory.set(lang, list);
       return list;
     } catch (err) {
-      this.logger.warn({ err: errorMessage(err), lang }, 'falha ao buscar a lista de sets na TCGdex');
-      return [];
+      const stale = this.setListMemory.getStale(lang);
+      this.logger.warn(
+        { err: errorMessage(err), lang, stale: stale !== null },
+        'falha ao buscar a lista de sets na TCGdex',
+      );
+      return stale ?? [];
     }
   }
 
@@ -190,11 +229,30 @@ export class TcgdexClient implements CardCatalog {
     const fromMemory = this.setCardsMemory.get(key);
     if (fromMemory) return fromMemory;
 
-    const set = await this.request(`/${lang}/sets/${encodeURIComponent(setId)}`, tcgdexSetWithCardsSchema);
-    if (!set) return [];
-    const cards = set.cards.map(toCardSummary);
-    this.setCardsMemory.set(key, cards);
-    return cards;
+    return orStale(this.setCardsMemory, key, this.logger, async () => {
+      const set = await this.request(`/${lang}/sets/${encodeURIComponent(setId)}`, tcgdexSetWithCardsSchema);
+      if (!set) return [];
+      const cards = set.cards.map(toCardSummary);
+      this.setCardsMemory.set(key, cards);
+      return cards;
+    });
+  }
+
+  async listFilterValues(lang: string): Promise<CardFilterValues> {
+    const fromMemory = this.filterValuesMemory.get(lang);
+    if (fromMemory) return fromMemory;
+
+    return orStale(this.filterValuesMemory, lang, this.logger, async () => {
+      const [types, rarities, categories] = await Promise.all(
+        ['types', 'rarities', 'categories'].map((list) => this.request(`/${lang}/${list}`, tcgdexNameListSchema)),
+      );
+      if (!types || !rarities || !categories) {
+        return { types: types ?? [], rarities: rarities ?? [], categories: categories ?? [] };
+      }
+      const values = { types, rarities, categories };
+      this.filterValuesMemory.set(lang, values);
+      return values;
+    });
   }
 
   private async findSetInfo(setId: string, lang: string): Promise<SetInfo> {
@@ -210,18 +268,41 @@ export class TcgdexClient implements CardCatalog {
       return setInfo;
     } catch (err) {
       this.logger.warn({ err: errorMessage(err), setId, lang }, 'falha ao buscar o set na TCGdex');
-      return { series: null, releaseDate: null };
+      return this.setInfoMemory.getStale(key) ?? { series: null, releaseDate: null };
     }
   }
 
   private async request<S extends z.ZodType>(path: string, schema: S): Promise<z.output<S> | null> {
+    const deadline = Date.now() + this.timeoutMs;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.requestOnce(path, schema, deadline - Date.now());
+      } catch (err) {
+        const delay = this.retryDelaysMs[attempt];
+        const retryable = err instanceof TcgdexUnavailableError && err.retryable;
+        if (!retryable || delay === undefined || Date.now() + delay >= deadline) throw err;
+        this.logger.warn({ err: errorMessage(err), path, attempt: attempt + 1 }, 'TCGdex falhou, tentando de novo');
+        await wait(delay);
+      }
+    }
+  }
+
+  private async requestOnce<S extends z.ZodType>(
+    path: string,
+    schema: S,
+    timeoutMs: number,
+  ): Promise<z.output<S> | null> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const res = await this.fetch(`${this.baseUrl}${path}`, { signal: controller.signal });
       if (res.status === 404) return null;
-      if (!res.ok) throw new TcgdexUnavailableError(`TCGdex respondeu ${res.status}`);
+      if (!res.ok) {
+        throw new TcgdexUnavailableError(`TCGdex respondeu ${res.status}`, {
+          retryable: RETRYABLE_STATUS.includes(res.status),
+        });
+      }
       const parsed = schema.safeParse(await res.json());
       if (!parsed.success) {
         throw new TcgdexUnavailableError(`Resposta inesperada da TCGdex: ${parsed.error.message}`);
@@ -232,7 +313,7 @@ export class TcgdexClient implements CardCatalog {
       if ((err instanceof Error && err.name === 'AbortError') || controller.signal.aborted) {
         throw new TcgdexUnavailableError(`TCGdex não respondeu em ${this.timeoutMs} ms`, { timeout: true, cause: err });
       }
-      throw new TcgdexUnavailableError(`Falha ao chamar a TCGdex: ${errorDetail(err)}`, { cause: err });
+      throw new TcgdexUnavailableError(`Falha ao chamar a TCGdex: ${errorDetail(err)}`, { retryable: true, cause: err });
     } finally {
       clearTimeout(timer);
     }

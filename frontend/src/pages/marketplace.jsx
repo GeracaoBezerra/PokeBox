@@ -1,105 +1,223 @@
-import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { SearchX } from "lucide-react";
+import { getCardFilters } from "../api/cards";
 import { listListings } from "../api/listings";
+import { listWishlist } from "../api/wishlist";
+import { useSession } from "../auth/useSession";
 import Aviso from "../components/Aviso/Aviso";
+import BarraBusca from "../components/BarraBusca/BarraBusca";
+import CartaAnuncio from "../components/CartaAnuncio/CartaAnuncio";
+import FiltrosMarketplace from "../components/FiltrosMarketplace/FiltrosMarketplace";
+import GradeCartas, { ItemGrade } from "../components/GradeCartas/GradeCartas";
+import Paginacao from "../components/Paginacao/Paginacao";
+import SelosFiltro from "../components/SelosFiltro/SelosFiltro";
 import { useCarregar } from "../hooks/useCarregar";
-import s from "../styles/paginas.module.css";
-import { CONDICOES, variante } from "../utils/rotulos";
-import ImagemCarta from "../components/ImagemCarta/ImagemCarta";
+import s from "../styles/vitrine.module.css";
+import { temPalavra, usernameValido } from "../utils/filtrosMarketplace";
+import { ACABAMENTOS, CONDICOES, ORDENACOES, TIPOS } from "../utils/rotulos";
+
+const CAMPOS_FILTRO = ["cardId", "username", "condition", "finish", "firstEdition", "type", "rarity", "wishlist"];
+const CAMPOS_PAINEL = ["username", "condition", "finish", "firstEdition", "type", "rarity", "wishlist"];
+const VAZIOS = Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, ""]));
+
+const VALIDOS = { condition: CONDICOES, finish: ACABAMENTOS, firstEdition: { true: "", false: "" }, type: TIPOS };
+
+function valorValido(campo, valor) {
+  if (campo === "username") return usernameValido(valor);
+  return !VALIDOS[campo] || Object.hasOwn(VALIDOS[campo], valor);
+}
+
+function semVazios(filtros) {
+  return Object.fromEntries(Object.entries(filtros).filter(([, valor]) => valor));
+}
+
+function rotuloDoSelo(campo, valor, nomeDaCarta) {
+  switch (campo) {
+    case "cardId":
+      return nomeDaCarta ? `Carta: ${nomeDaCarta} (${valor})` : `Carta: ${valor}`;
+    case "username":
+      return `@${valor}`;
+    case "condition":
+      return `Condição: ${CONDICOES[valor] ?? valor}`;
+    case "finish":
+      return `Acabamento: ${ACABAMENTOS[valor] ?? valor}`;
+    case "firstEdition":
+      return valor === "true" ? "Só 1ª edição" : "Sem 1ª edição";
+    case "type":
+      return `Tipo: ${TIPOS[valor] ?? valor}`;
+    case "rarity":
+      return `Raridade: ${valor}`;
+    case "wishlist":
+      return "Só da minha wishlist";
+    default:
+      return valor;
+  }
+}
 
 export default function MarketplacePage() {
   const [params, setParams] = useSearchParams();
-  const cardId = params.get("cardId") ?? "";
-  const username = params.get("username") ?? "";
-  const page = Number(params.get("page") ?? 1);
-  const [filtros, setFiltros] = useState({ cardId, username });
+  const sessao = useSession();
+  const meuUsername = sessao?.user?.username;
 
-  const { dados, erro, carregando } = useCarregar(
-    () => listListings({ cardId, username, page, limit: 24 }),
-    `${cardId}|${username}|${page}`
+  const q = params.get("q") ?? "";
+  const sortPedido = params.get("sort") ?? "";
+  const sort = sortPedido !== "recent" && Object.hasOwn(ORDENACOES, sortPedido) ? sortPedido : "";
+  const paginaPedida = Number(params.get("page") ?? 1);
+  const page = Number.isInteger(paginaPedida) && paginaPedida > 0 ? paginaPedida : 1;
+  const filtros = Object.fromEntries(
+    CAMPOS_FILTRO.map((campo) => {
+      const valor = params.get(campo) ?? "";
+      return [campo, valorValido(campo, valor) ? valor : ""];
+    })
+  );
+  const buscaCurta = q !== "" && !temPalavra(q);
+  const filtrosApi = semVazios({
+    ...filtros,
+    wishlist: "",
+    q: buscaCurta ? "" : q,
+    sort,
+  });
+  const { dados, erro, carregando, recarregar } = useCarregar(
+    () => listListings({ ...filtrosApi, page, limit: 24 }),
+    JSON.stringify({ ...filtrosApi, page })
   );
 
-  function filtrar(evento) {
-    evento.preventDefault();
-    const novos = {};
-    if (filtros.cardId.trim()) novos.cardId = filtros.cardId.trim();
-    if (filtros.username.trim()) novos.username = filtros.username.trim().toLowerCase();
+  const raridades = useCarregar(async () => (await getCardFilters("en")).rarities ?? [], "en");
+  const wishlist = useCarregar(
+    async () => (meuUsername ? new Set((await listWishlist()).map((item) => item.cardId)) : null),
+    meuUsername ?? ""
+  );
+
+  function atualizar(mudancas, reiniciarPagina = true) {
+    const novos = new URLSearchParams(params);
+    for (const [campo, valor] of Object.entries(mudancas)) {
+      if (valor) novos.set(campo, String(valor));
+      else novos.delete(campo);
+    }
+    if (reiniciarPagina) novos.delete("page");
     setParams(novos);
   }
 
-  function irPara(novaPagina) {
-    const novos = { page: String(novaPagina) };
-    if (cardId) novos.cardId = cardId;
-    if (username) novos.username = username;
-    setParams(novos);
+  function limparFiltros() {
+    atualizar(VAZIOS);
   }
+
+  const idsWishlist = sessao ? wishlist.dados : null;
+  const querWishlist = filtros.wishlist === "1" && Boolean(sessao);
+  const esperandoWishlist = querWishlist && wishlist.carregando;
+  const erroWishlist = querWishlist ? wishlist.erro : null;
+  const soWishlist = querWishlist && Boolean(idsWishlist);
+  const mostrarCarregando = carregando || esperandoWishlist;
+  const nomeDaCarta = dados?.items.find((anuncio) => anuncio.card.id === filtros.cardId)?.card.name;
+  const selos = CAMPOS_FILTRO.filter((campo) => filtros[campo] && (campo !== "wishlist" || sessao)).map((campo) => ({
+    campo,
+    rotulo: rotuloDoSelo(campo, filtros[campo], nomeDaCarta),
+  }));
+  const anuncios = (dados?.items ?? []).filter((anuncio) => !soWishlist || idsWishlist.has(anuncio.card.id));
+  const painel = Object.fromEntries(CAMPOS_PAINEL.map((campo) => [campo, filtros[campo]]));
 
   return (
     <div className={s.pagina}>
-      <h1 className={s.titulo}>Marketplace</h1>
-      <p className={s.subtitulo}>Anúncios de troca ativos, mais novos primeiro.</p>
-
-      <form className={s.form} onSubmit={filtrar}>
+      <header className={s.cabecalho}>
+        <span className={s.eyebrow}>Trocas entre colecionadores</span>
+        <h1>Marketplace</h1>
+        <p>Encontre quem tem a carta que você procura e proponha uma troca.</p>
+      </header>
+      <div className={s.barra}>
+        <BarraBusca
+          rotulo="Buscar carta"
+          placeholder="ex.: charizard, ultra ball, charizard base"
+          valor={q}
+          onBuscar={(texto) => atualizar({ q: texto })}
+        />
         <label className={s.campo}>
-          Id da carta
-          <input
-            value={filtros.cardId}
-            onChange={(e) => setFiltros({ ...filtros, cardId: e.target.value })}
-            placeholder="ex.: base1-4"
-          />
+          Ordenar por
+          <select value={sort} onChange={(e) => atualizar({ sort: e.target.value })}>
+            <option value="">{ORDENACOES.recent}</option>
+            <option value="oldest">{ORDENACOES.oldest}</option>
+            <option value="name">{ORDENACOES.name}</option>
+          </select>
         </label>
-        <label className={s.campo}>
-          Colecionador
-          <input
-            value={filtros.username}
-            onChange={(e) => setFiltros({ ...filtros, username: e.target.value })}
-            placeholder="ex.: ash"
-          />
-        </label>
-        <button className={s.botao} type="submit">
-          Filtrar
-        </button>
-      </form>
-
-      <Aviso erro={erro} />
-      {carregando && !dados && <p className={s.suave}>Carregando...</p>}
-
-      {dados && (
-        <div className={s.secao}>
-          {dados.items.length === 0 ? (
-            <p className={s.suave}>Nenhum anúncio encontrado.</p>
-          ) : (
-            <div className={s.grade}>
-              {dados.items.map((anuncio) => (
-                <Link key={anuncio.id} to={`/marketplace/${anuncio.id}`} className={s.cartaMini}>
-                  <ImagemCarta src={anuncio.card.imageUrl} alt={anuncio.card.name} />
-                  <strong>{anuncio.card.name}</strong>
-                  <span className={s.suave}>
-                    {variante(anuncio.item)} · {CONDICOES[anuncio.item.condition]}
-                  </span>
-                  <span>
-                    {anuncio.quantity} disponível · @{anuncio.owner.username}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          <div className={s.paginacao}>
-            <button className={s.botaoSecundario} disabled={page <= 1} onClick={() => irPara(page - 1)}>
-              Anterior
-            </button>
-            <span className={s.suave}>Página {page}</span>
-            <button
-              className={s.botaoSecundario}
-              disabled={!dados.pagination?.hasNextPage}
-              onClick={() => irPara(page + 1)}
-            >
-              Próxima
-            </button>
+      </div>
+      <div className={s.layout}>
+        <FiltrosMarketplace
+          filtros={painel}
+          raridades={raridades}
+          logado={Boolean(sessao)}
+          onAlterar={(campo, valor) => atualizar({ [campo]: valor })}
+          onLimpar={limparFiltros}
+          onAplicar={atualizar}
+        />
+        <section className={s.resultados} aria-label="Anúncios do marketplace">
+          <div className={s.resumo} role="status">
+            <p>
+              {q && !buscaCurta ? (
+                <>
+                  Resultados para <strong>“{q}”</strong>
+                </>
+              ) : (
+                "Todos os anúncios"
+              )}
+            </p>
+            <span>
+              {mostrarCarregando
+                ? "Buscando anúncios…"
+                : dados && !erroWishlist
+                  ? `${anuncios.length} ${anuncios.length === 1 ? "anúncio" : "anúncios"} nesta página`
+                  : ""}
+            </span>
           </div>
-        </div>
-      )}
+          {buscaCurta && <p className={s.dica}>Digite pelo menos 2 letras ou números para buscar pelo nome.</p>}
+          <SelosFiltro selos={selos} onRemover={(campo) => atualizar({ [campo]: "" })} onLimpar={limparFiltros} />
+          <Aviso erro={erro} onTentarDeNovo={recarregar} />
+          {!erro && erroWishlist && (
+            <Aviso
+              erro={{ ...erroWishlist, message: `Não foi possível carregar sua wishlist. ${erroWishlist.message}` }}
+              onTentarDeNovo={wishlist.recarregar}
+            />
+          )}
+          {mostrarCarregando && <GradeCartas carregando total={24} variante="catalogo" />}
+          {!mostrarCarregando && !erroWishlist && dados && (
+            <>
+              {anuncios.length ? (
+                <GradeCartas variante="catalogo">
+                  {anuncios.map((anuncio) => (
+                    <ItemGrade key={anuncio.id}>
+                      <CartaAnuncio
+                        anuncio={anuncio}
+                        naWishlist={Boolean(idsWishlist?.has(anuncio.card.id))}
+                        seuAnuncio={anuncio.owner.username === meuUsername}
+                      />
+                    </ItemGrade>
+                  ))}
+                </GradeCartas>
+              ) : (
+                <div className={s.vazio}>
+                  <SearchX size={32} aria-hidden="true" />
+                  <h2>Nenhum anúncio encontrado</h2>
+                  <p>
+                    {soWishlist && dados.items.length > 0
+                      ? "Nenhuma carta da sua wishlist nesta página. Tente a próxima."
+                      : "Tente outro nome ou ajuste os filtros para ampliar a busca."}
+                  </p>
+                  {selos.length > 0 && (
+                    <button type="button" className={s.botao} onClick={limparFiltros}>
+                      Limpar filtros
+                    </button>
+                  )}
+                </div>
+              )}
+              {(dados.items.length > 0 || page > 1) && (
+                <Paginacao
+                  pagina={page}
+                  temProxima={dados.pagination?.hasNextPage}
+                  onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
+                />
+              )}
+            </>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

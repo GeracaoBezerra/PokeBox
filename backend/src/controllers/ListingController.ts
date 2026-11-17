@@ -4,12 +4,13 @@ import {
   createListingSchema,
   listingIdSchema,
   listListingsQuerySchema,
+  listMyListingsQuerySchema,
   updateListingSchema,
 } from '../schemas/listing.schema.js';
 import type { ListingService } from '../services/ListingService.js';
 import { currentUser } from '../utils/currentUser.js';
 
-export type ListingActions = Pick<ListingService, 'list' | 'listMine' | 'getById' | 'create' | 'update'>;
+export type ListingActions = Pick<ListingService, 'list' | 'listMine' | 'listMinePage' | 'getById' | 'create' | 'update'>;
 
 export class ListingController {
   constructor(private readonly listings: ListingActions) {}
@@ -26,9 +27,17 @@ export class ListingController {
   };
 
   listMine: RequestHandler = async (req, res) => {
-    const items = await this.listings.listMine(currentUser(req).id);
+    const userId = currentUser(req).id;
+    const { page } = listMyListingsQuerySchema.parse(req.query);
 
-    res.status(200).json({ success: true, data: { items } });
+    if (!page) {
+      const items = await this.listings.listMine(userId);
+      res.status(200).json({ success: true, data: { items } });
+      return;
+    }
+
+    const { items, hasNextPage } = await this.listings.listMinePage(userId, page);
+    res.status(200).json({ success: true, data: { items }, pagination: { ...page, hasNextPage } });
   };
 
   getById: RequestHandler = async (req, res) => {

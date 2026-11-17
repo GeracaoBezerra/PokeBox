@@ -16,6 +16,7 @@ function fakeCatalog(): jest.Mocked<CardCatalog> {
     search: jest.fn<CardCatalog['search']>(async () => []),
     listSets: jest.fn<CardCatalog['listSets']>(async () => []),
     listSetCards: jest.fn<CardCatalog['listSetCards']>(async () => []),
+    listFilterValues: jest.fn<CardCatalog['listFilterValues']>(async () => ({ types: [], rarities: [], categories: [] })),
   };
 }
 

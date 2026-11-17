@@ -1,6 +1,8 @@
 import {
   collectionItemIdSchema,
   createCollectionItemSchema,
+  listCollectionQuerySchema,
+  listPublicCollectionQuerySchema,
   updateCollectionItemSchema,
 } from './collection.schema.js';
 
@@ -63,5 +65,80 @@ describe('collectionItemIdSchema', () => {
 
   it('recusa id que não é uuid', () => {
     expect(collectionItemIdSchema.safeParse({ id: 'abc' }).success).toBe(false);
+  });
+});
+
+describe('listCollectionQuerySchema', () => {
+  it('sem parâmetros responde como antes (sem paginação)', () => {
+    expect(listCollectionQuerySchema.parse({})).toEqual({ filters: {}, page: null });
+  });
+
+  it('parâmetro desconhecido é ignorado e não pagina', () => {
+    expect(listCollectionQuerySchema.parse({ foo: 'bar' })).toEqual({ filters: {}, page: null });
+  });
+
+  it('aceita todos os filtros e converte os valores', () => {
+    expect(
+      listCollectionQuerySchema.parse({
+        q: ' charizard ',
+        condition: 'near_mint',
+        finish: 'holo',
+        isPublic: 'false',
+        setId: 'base1',
+        type: 'fire',
+        sort: 'recent',
+        page: '2',
+        limit: '5',
+      }),
+    ).toEqual({
+      filters: {
+        q: 'charizard',
+        condition: 'NEAR_MINT',
+        finish: 'HOLO',
+        isPublic: false,
+        setId: 'base1',
+        type: 'Fire',
+        sort: 'recent',
+      },
+      page: { page: 2, limit: 5 },
+    });
+  });
+
+  it('filtro sem page pagina na página 1 com 20 itens', () => {
+    expect(listCollectionQuerySchema.parse({ isPublic: 'true' }).page).toEqual({ page: 1, limit: 20 });
+  });
+
+  it.each([
+    { limit: '500' },
+    { limit: '0' },
+    { page: '0' },
+    { q: '!!!' },
+    { isPublic: 'sim' },
+    { sort: 'oldest' },
+    { condition: 'NOVA' },
+    { type: 'Fogo' },
+  ])('recusa %o', (query) => {
+    expect(listCollectionQuerySchema.safeParse(query).success).toBe(false);
+  });
+
+  it('limit acima de 100 explica o máximo', () => {
+    expect(listCollectionQuerySchema.safeParse({ limit: '500' }).error?.issues[0].message).toBe('limit máximo é 100');
+  });
+});
+
+describe('listPublicCollectionQuerySchema', () => {
+  it('sem parâmetros não pagina', () => {
+    expect(listPublicCollectionQuerySchema.parse({})).toEqual({ filters: {}, page: null });
+  });
+
+  it('aceita q e type', () => {
+    expect(listPublicCollectionQuerySchema.parse({ q: 'pika', type: 'lightning' })).toEqual({
+      filters: { q: 'pika', type: 'Lightning' },
+      page: { page: 1, limit: 20 },
+    });
+  });
+
+  it('ignora filtros que não são do perfil público', () => {
+    expect(listPublicCollectionQuerySchema.parse({ isPublic: 'false' })).toEqual({ filters: {}, page: null });
   });
 });
