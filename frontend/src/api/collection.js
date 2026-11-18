@@ -1,8 +1,14 @@
 import { http } from "./http";
+import { semVazios } from "./parametros";
 
-export async function listCollection() {
-  const body = await http.get("/collection");
-  return body.data.items;
+export async function listCollection(opcoes) {
+  if (!opcoes) {
+    const body = await http.get("/collection");
+    return body.data.items;
+  }
+  const { page = 1, limit = 20, ...filtros } = opcoes;
+  const body = await http.get("/collection", { params: { ...semVazios(filtros), page, limit } });
+  return { items: body.data.items, pagination: body.pagination };
 }
 
 export async function addToCollection(data) {
@@ -19,7 +25,13 @@ export async function removeCollectionItem(id) {
   await http.delete(`/collection/${id}`);
 }
 
-export async function getPublicCollection(username) {
-  const body = await http.get(`/users/${encodeURIComponent(username)}/collection`);
-  return body.data;
+export async function getPublicCollection(username, opcoes) {
+  const rota = `/users/${encodeURIComponent(username)}/collection`;
+  if (!opcoes) {
+    const body = await http.get(rota);
+    return body.data;
+  }
+  const { page = 1, limit = 20, ...filtros } = opcoes;
+  const body = await http.get(rota, { params: { ...semVazios(filtros), page, limit } });
+  return { user: body.data.user, items: body.data.items, pagination: body.pagination };
 }

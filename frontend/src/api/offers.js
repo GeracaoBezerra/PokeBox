@@ -1,13 +1,19 @@
 import { http } from "./http";
+import { semVazios } from "./parametros";
 
 export async function createOffer(listingId, data) {
   const body = await http.post(`/listings/${listingId}/offers`, data);
   return body.data.offer;
 }
 
-export async function listMyOffers(status) {
-  const body = await http.get("/offers/me", { params: { status: status || undefined } });
-  return body.data;
+export async function listMyOffers(opcoes) {
+  if (typeof opcoes !== "object" || opcoes === null) {
+    const body = await http.get("/offers/me", { params: { status: opcoes || undefined } });
+    return body.data;
+  }
+  const { side, status, page = 1, limit = 20 } = opcoes;
+  const body = await http.get("/offers/me", { params: semVazios({ side, status, page, limit }) });
+  return { items: body.data.items, pagination: body.pagination };
 }
 
 export async function getOffer(id) {
