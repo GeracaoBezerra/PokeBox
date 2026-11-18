@@ -749,12 +749,10 @@ As páginas (`frontend/src/pages/`) só buscam os dados e montam a tela; cada bl
 
 | Parte | Situação |
 |---|---|
-| Autenticação e autorização | ✅ backend e frontend (login, cadastro, logout) |
-| Coleção, perfil público, wishlist | ✅ backend · frontend a fazer |
-| Anúncios | ✅ backend · frontend a fazer |
-| Ofertas | ✅ backend · frontend a fazer |
-| Trocas | ✅ backend · frontend a fazer |
-| Frontend | 🟡 home, login e cadastro prontos; demais telas a fazer |
+| Backend | ✅ todas as rotas em produção (autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas e admin), com testes de unidade e de integração na CI |
+| Deploy | ✅ API no Render, banco no Neon e front na Vercel, com deploy automático a cada release |
+| Frontend | 🟡 todas as telas existem e conversam com a API (home, login, cadastro, catálogo, detalhe da carta, marketplace, detalhe do anúncio, coleção, wishlist, meus anúncios, propostas, trocas, perfil e perfil público); em andamento: acabamento das telas (header, modal de confirmação, links, carregamento, coleção, anúncios, wishlist e acessibilidade) |
+| Testes do front | 🔴 a fazer: Vitest (#179, #180) e E2E com Cypress (#181, #182) |
 
 Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).
 
