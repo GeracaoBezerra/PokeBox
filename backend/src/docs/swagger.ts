@@ -2234,6 +2234,7 @@ export const swaggerSpec = {
           finish: { type: "string", enum: cardFinishes, example: "NORMAL" },
           firstEdition: { type: "boolean", example: false },
           isPublic: { type: "boolean", default: true },
+          lang: { type: "string", enum: LANGS, default: "en", description: "Idioma em que a carta foi vista no catálogo" },
         },
       },
       UpdateCollectionItemRequest: {
@@ -2269,6 +2270,7 @@ export const swaggerSpec = {
         additionalProperties: false,
         properties: {
           cardId: { type: "string", description: "ID da carta na TCGdex", example: "sv01-001" },
+          lang: { type: "string", enum: LANGS, default: "en", description: "Idioma em que a carta foi vista no catálogo" },
         },
       },
       CardDetailsResponse: {

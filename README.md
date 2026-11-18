@@ -615,7 +615,7 @@ Todas as respostas seguem o mesmo formato:
 | Rota | | O que faz |
 |---|---|---|
 | `GET /collection?q=&condition=&finish=&isPublic=&setId=&type=&sort=&page=&limit=` | 🔒 | minha coleção, com `available` (quantidade menos reservada), pelo nome da carta. `q` busca por palavras no nome da carta ou do set; `isPublic=false` traz só os privados; `sort` é `name` (padrão) ou `recent` (entrada mais nova primeiro). Paginação opcional |
-| `POST /collection` | 🔒 | adiciona carta: `cardId`, `quantity`, `finish`, `firstEdition`, `condition?`, `isPublic?`. Se a carta estava na sua wishlist, ela sai (RN-11) e a resposta traz `removedFromWishlist: true` |
+| `POST /collection` | 🔒 | adiciona carta: `cardId`, `quantity`, `finish`, `firstEdition`, `condition?`, `isPublic?`, `lang?`. `lang` é o idioma em que a carta foi vista no catálogo (padrão `en`, aceita os mesmos idiomas de `GET /cards`, inclusive `pt-br`), para achar cartas que só existem em outro idioma (#163). A carta é buscada primeiro em inglês, para ficar gravada em inglês para todo mundo; o `lang` só é usado quando ela não existe em inglês (ex.: sets japoneses). Idioma fora da lista → 400. Se a carta estava na sua wishlist, ela sai (RN-11) e a resposta traz `removedFromWishlist: true` |
 | `PATCH /collection/:id` | 🔒 | muda `quantity`, `condition` ou `isPublic`. A condição não muda enquanto o item está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**) |
 | `DELETE /collection/:id` | 🔒 | remove o item (não remove se tiver reserva ou se já foi anunciado; nesse caso, zere a quantidade) |
 | `GET /users/:username/collection?q=&type=&page=&limit=` | | coleção pública de um colecionador (itens privados nunca aparecem, RN-10). Paginada, a resposta mantém `data: { user, items }` |
@@ -625,7 +625,7 @@ Todas as respostas seguem o mesmo formato:
 | Rota | | O que faz |
 |---|---|---|
 | `GET /wishlist?q=&type=&rarity=&sort=&page=&limit=` | 🔒 | minha wishlist, com `opportunities` em cada carta (paginada, calculado só para os itens da página). Paginação opcional |
-| `POST /wishlist` | 🔒 | adiciona carta (`cardId`). Carta que você já tem na coleção → **409** (RN-12) |
+| `POST /wishlist` | 🔒 | adiciona carta (`cardId`, `lang?` com padrão `en`, como em `POST /collection`). Carta que você já tem na coleção → **409** (RN-12) |
 | `DELETE /wishlist/:id` | 🔒 | remove |
 
 ### Anúncios de troca

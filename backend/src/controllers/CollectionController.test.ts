@@ -76,7 +76,7 @@ describe('CollectionController', () => {
 
     await controller.add(request({ body }), res as unknown as Response, next);
 
-    expect(collection.add).toHaveBeenCalledWith('u-ash', body);
+    expect(collection.add).toHaveBeenCalledWith('u-ash', { ...body, lang: 'en' });
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ success: true, data: { item, removedFromWishlist: true } });
   });
