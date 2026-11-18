@@ -1,5 +1,6 @@
 import request from 'supertest';
 
+import { PrismaCardCacheStore } from '../../src/cards/catalog/PrismaCardCacheStore.js';
 import { addItem, bearer, CHARIZARD, createListing, PROFESSOR_OAK } from './support/flows.js';
 import { registerUser, startTestApp, type TestApp } from './support/testApp.js';
 
@@ -102,4 +103,30 @@ describe('RN-09: snapshot local da carta', () => {
       await restarted.close();
     }
   });
+
+  test('leitura do detalhe guardado ignora a caixa, mas % e _ não funcionam como curinga (#192)', async () => {
+    await request(ctx.app).get(`/cards/${CHARIZARD}`).expect(200);
+    const store = new PrismaCardCacheStore(ctx.container.infra.prisma);
+
+    expect((await store.read('BASE1-4', 'en'))?.data.id).toBe(CHARIZARD);
+    expect(await store.read('%', 'en')).toBeNull();
+    expect(await store.read('base1_4', 'en')).toBeNull();
+    expect(await store.read('base1-%', 'en')).toBeNull();
+  });
+
+  test('POST /collection e /wishlist com % ou _ no cardId → 400 (#192)', async () => {
+    const user = await registerUser(ctx.app);
+
+    for (const cardId of ['%', 'base1_4']) {
+      const collection = await request(ctx.app)
+        .post('/collection')
+        .set(bearer(user))
+        .send({ cardId, quantity: 1, finish: 'HOLO', firstEdition: false });
+      const wishlist = await request(ctx.app).post('/wishlist').set(bearer(user)).send({ cardId });
+
+      expect(collection.status).toBe(400);
+      expect(wishlist.status).toBe(400);
+    }
+  });
 });
+

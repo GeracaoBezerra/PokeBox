@@ -2224,7 +2224,7 @@ export const swaggerSpec = {
         required: ["cardId", "quantity", "finish", "firstEdition"],
         additionalProperties: false,
         properties: {
-          cardId: { type: "string", description: "ID da carta na TCGdex", example: "sv01-001" },
+          cardId: { type: "string", pattern: "^[a-zA-Z0-9.\\-]+$", description: "ID da carta na TCGdex (letras, números, ponto e hífen)", example: "sv01-001" },
           quantity: { type: "integer", minimum: 1, example: 1 },
           condition: {
             type: "string",
@@ -2269,7 +2269,7 @@ export const swaggerSpec = {
         required: ["cardId"],
         additionalProperties: false,
         properties: {
-          cardId: { type: "string", description: "ID da carta na TCGdex", example: "sv01-001" },
+          cardId: { type: "string", pattern: "^[a-zA-Z0-9.\\-]+$", description: "ID da carta na TCGdex (letras, números, ponto e hífen)", example: "sv01-001" },
           lang: { type: "string", enum: LANGS, default: "en", description: "Idioma em que a carta foi vista no catálogo" },
         },
       },
