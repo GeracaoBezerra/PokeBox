@@ -64,6 +64,9 @@ export default function CatalogPage() {
   );
   const { dados, erro, recarregar } = busca;
   const carregando = busca.carregando || esperandoOpcoes;
+  const resumoBusca = dados?.search;
+  const setsReconhecidos = resumoBusca?.sets ?? [];
+  const buscaParcial = Boolean(resumoBusca?.ignored?.length && resumoBusca.name && dados.items.length);
 
   function atualizar(mudancas, reiniciarPagina = true) {
     const novos = new URLSearchParams(params);
@@ -136,16 +139,28 @@ export default function CatalogPage() {
         <section className={s.resultados} aria-label="Resultados do catálogo">
           <div className={s.resumo} role="status">
             <p>
-              {name ? (
+              {!name ? (
+                "Todas as cartas"
+              ) : resumoBusca && !resumoBusca.name && setsReconhecidos.length > 0 ? (
                 <>
-                  Resultados para <strong>“{name}”</strong>
+                  Cartas de <strong>{setsReconhecidos.join(", ")}</strong>
                 </>
               ) : (
-                "Todas as cartas"
+                <>
+                  Resultados para <strong>“{resumoBusca?.name ?? name}”</strong>
+                  {!buscaParcial && setsReconhecidos.length > 0 && ` em ${setsReconhecidos.join(", ")}`}
+                </>
               )}
             </p>
             <span>{carregando ? "Buscando cartas…" : dados ? `${dados.items.length} cartas nesta página` : ""}</span>
           </div>
+          {buscaParcial && (
+            <p className={s.dica} role="status">
+              Não achamos tudo que você digitou ({resumoBusca.ignored.join(", ")}). Mostrando resultados para{" "}
+              <strong>“{resumoBusca.name}”</strong>
+              {setsReconhecidos.length > 0 && ` em ${setsReconhecidos.join(", ")}`}.
+            </p>
+          )}
           <SelosFiltro selos={selos} onRemover={(campo) => atualizar({ [campo]: "" })} onLimpar={limparFiltros} />
           <Aviso erro={erro} onTentarDeNovo={recarregar} />
           {carregando && <GradeCartas carregando total={24} variante="catalogo" />}
@@ -156,8 +171,18 @@ export default function CatalogPage() {
               ) : (
                 <div className={s.vazio}>
                   <SearchX size={32} aria-hidden="true" />
-                  <h2>Nenhuma carta encontrada</h2>
+                  <h2>{name ? `Nenhuma carta encontrada para “${name}”` : "Nenhuma carta encontrada"}</h2>
                   <p>Tente outro nome ou ajuste os filtros para ampliar a busca.</p>
+                  {name && (
+                    <button type="button" className={s.botao} onClick={() => atualizar({ name: "" })}>
+                      Limpar busca
+                    </button>
+                  )}
+                  {page > 1 && (
+                    <button type="button" className={s.botao} onClick={() => atualizar({ page: "" }, false)}>
+                      Voltar para a primeira página
+                    </button>
+                  )}
                   {selos.length > 0 && (
                     <button type="button" className={s.botao} onClick={limparFiltros}>
                       Limpar filtros
@@ -165,11 +190,13 @@ export default function CatalogPage() {
                   )}
                 </div>
               )}
-              <Paginacao
-                pagina={page}
-                temProxima={dados.pagination?.hasNextPage}
-                onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
-              />
+              {dados.items.length > 0 && (
+                <Paginacao
+                  pagina={page}
+                  temProxima={dados.pagination?.hasNextPage}
+                  onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
+                />
+              )}
             </>
           )}
         </section>

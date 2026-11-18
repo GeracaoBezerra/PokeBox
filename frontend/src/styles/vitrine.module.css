@@ -22,6 +22,8 @@
 .resultados { min-width: 0; }
 .resumo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--esp-8); margin-bottom: var(--esp-24); font-size: var(--fs-sm); }
 .resumo strong { color: var(--acento); font-weight: var(--peso-semi); overflow-wrap: anywhere; }
+.dica { margin-bottom: var(--esp-24); padding: var(--esp-12) var(--esp-16); border-radius: var(--raio-botao); background: var(--superficie); color: var(--texto-suave); font-size: var(--fs-sm); }
+.dica strong { color: var(--acento); font-weight: var(--peso-semi); overflow-wrap: anywhere; }
 .resumo > span,
 .suave { color: var(--texto-suave); font-size: var(--fs-sm); }
 .chips { display: flex; flex-wrap: wrap; gap: var(--esp-8); margin-bottom: var(--esp-24); }

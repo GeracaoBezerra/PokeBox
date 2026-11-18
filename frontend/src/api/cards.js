@@ -6,7 +6,7 @@ export async function searchCards({ name, page = 1, limit = 20, lang = "en", typ
     type: type || undefined, rarity: rarity || undefined,
     set: set || undefined, category: category || undefined, sort, order,
   } });
-  return { items: body.data, pagination: body.pagination };
+  return { items: body.data, pagination: body.pagination, search: body.search ?? null };
 }
 
 export async function getCardFilters(lang = "en") {
