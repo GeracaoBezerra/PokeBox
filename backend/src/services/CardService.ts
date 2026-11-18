@@ -36,6 +36,10 @@ const CHECKED_FILTERS: [keyof CardFilters, keyof CardFilterValues][] = [
   ['category', 'categories'],
 ];
 
+function toNotFound(err: unknown): unknown {
+  return err instanceof CardNotFoundError ? new AppError(404, 'Carta não encontrada') : err;
+}
+
 export class CardService implements CardFetcher {
   constructor(
     private readonly catalog: CardCatalog,
@@ -78,10 +82,14 @@ export class CardService implements CardFetcher {
 
   async fetchCard(cardId: string, lang: Lang = 'en'): Promise<CardDetail> {
     try {
+      return await this.catalog.getById(cardId, 'en');
+    } catch (err) {
+      if (!(err instanceof CardNotFoundError) || lang === 'en') throw toNotFound(err);
+    }
+    try {
       return await this.catalog.getById(cardId, lang);
     } catch (err) {
-      if (err instanceof CardNotFoundError) throw new AppError(404, 'Carta não encontrada');
-      throw err;
+      throw toNotFound(err);
     }
   }
 

@@ -32,9 +32,10 @@ describe('createCollectionItemSchema', () => {
     expect(createCollectionItemSchema.safeParse({ ...validCreate, condition: 'NEW' }).success).toBe(false);
   });
 
-  it('sem lang usa inglês; aceita lang de um idioma do catálogo', () => {
+  it('sem lang usa inglês; aceita lang de um idioma do catálogo e ajusta pt-br como no GET', () => {
     expect(createCollectionItemSchema.parse(validCreate).lang).toBe('en');
     expect(createCollectionItemSchema.parse({ ...validCreate, lang: 'pt' }).lang).toBe('pt');
+    expect(createCollectionItemSchema.parse({ ...validCreate, lang: 'PT-BR' }).lang).toBe('pt');
   });
 
   it('recusa lang fora dos idiomas do catálogo', () => {

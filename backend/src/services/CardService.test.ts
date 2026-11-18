@@ -74,12 +74,39 @@ describe('CardService', () => {
     expect(catalog.getById).toHaveBeenCalledWith('base1-4', 'en');
   });
 
-  test('fetchCard busca no idioma pedido', async () => {
+  test('fetchCard com idioma tenta inglês antes, para a carta ficar gravada em inglês', async () => {
     const { service, catalog } = setup();
 
-    await service.fetchCard('sv2a-6', 'ja');
+    await service.fetchCard('sv03.5-025', 'pt');
 
-    expect(catalog.getById).toHaveBeenCalledWith('sv2a-6', 'ja');
+    expect(catalog.getById).toHaveBeenCalledTimes(1);
+    expect(catalog.getById).toHaveBeenCalledWith('sv03.5-025', 'en');
+  });
+
+  test('fetchCard usa o idioma pedido quando a carta não existe em inglês', async () => {
+    const { service, catalog } = setup();
+    catalog.getById.mockRejectedValueOnce(new CardNotFoundError('Carta SV2a-006 não encontrada'));
+
+    await service.fetchCard('SV2a-006', 'ja');
+
+    expect(catalog.getById).toHaveBeenNthCalledWith(1, 'SV2a-006', 'en');
+    expect(catalog.getById).toHaveBeenNthCalledWith(2, 'SV2a-006', 'ja');
+  });
+
+  test('fetchCard de carta que não existe em nenhum dos dois idiomas vira 404', async () => {
+    const { service, catalog } = setup();
+    catalog.getById.mockRejectedValue(new CardNotFoundError('x'));
+
+    await expect(service.fetchCard('x', 'ja')).rejects.toMatchObject({ statusCode: 404 });
+    expect(catalog.getById).toHaveBeenCalledTimes(2);
+  });
+
+  test('fetchCard não tenta outro idioma quando a TCGdex está fora', async () => {
+    const { service, catalog } = setup();
+    catalog.getById.mockRejectedValue(new TcgdexUnavailableError('fora'));
+
+    await expect(service.fetchCard('sv03.5-025', 'pt')).rejects.toBeInstanceOf(TcgdexUnavailableError);
+    expect(catalog.getById).toHaveBeenCalledTimes(1);
   });
 
   test('fetchCard de carta inexistente vira 404 Carta não encontrada', async () => {

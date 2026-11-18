@@ -5,9 +5,10 @@ describe('addWishlistItemSchema', () => {
     expect(addWishlistItemSchema.safeParse({ cardId: 'base1-4' }).success).toBe(true);
   });
 
-  it('sem lang usa inglês; aceita lang de um idioma do catálogo', () => {
+  it('sem lang usa inglês; aceita lang de um idioma do catálogo e ajusta pt-br como no GET', () => {
     expect(addWishlistItemSchema.parse({ cardId: 'base1-4' })).toEqual({ cardId: 'base1-4', lang: 'en' });
     expect(addWishlistItemSchema.parse({ cardId: 'base1-4', lang: 'ja' }).lang).toBe('ja');
+    expect(addWishlistItemSchema.parse({ cardId: 'base1-4', lang: 'PT-BR' }).lang).toBe('pt');
   });
 
   it('recusa lang fora dos idiomas do catálogo', () => {
