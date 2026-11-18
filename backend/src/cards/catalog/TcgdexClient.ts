@@ -113,9 +113,9 @@ function toCardDetail(card: TcgdexCard, setInfo: SetInfo): CardDetail {
     stage: card.stage ?? null,
     evolveFrom: card.evolveFrom ?? null,
     description: card.description ?? card.effect ?? null,
-    abilities: card.abilities ?? [],
+    abilities: (card.abilities ?? []).map((a) => ({ name: a.name ?? null, type: a.type, effect: a.effect ?? null })),
     attacks: (card.attacks ?? []).map((a) => ({
-      name: a.name,
+      name: a.name ?? null,
       cost: a.cost ?? [],
       damage: a.damage != null ? String(a.damage) : null,
       effect: a.effect ?? null,

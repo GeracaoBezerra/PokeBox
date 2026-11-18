@@ -1,9 +1,12 @@
+import { PrismaCardCacheStore } from '../src/cards/catalog/PrismaCardCacheStore.js';
 import { TcgdexClient } from '../src/cards/catalog/TcgdexClient.js';
 import type { CatalogEntry } from '../src/cards/search/CatalogSearchStore.js';
 import { PrismaCatalogSearchStore, type CatalogAttributes } from '../src/cards/search/PrismaCatalogSearchStore.js';
 import type { CardFilters, CardFilterValues, SetSummary } from '../src/cards/types.js';
 import { loadDatabaseEnv } from '../src/config/env.js';
+import { CardNotFoundError } from '../src/errors/CardNotFoundError.js';
 import { createPrismaClient } from '../src/lib/prisma.js';
+import { PrismaCardRepository } from '../src/repositories/PrismaCardRepository.js';
 
 const DEFAULT_LANGS = ['en', 'pt'];
 const BATCH_SIZE = 500;
@@ -14,11 +17,16 @@ const FILTER_LISTS: [keyof CardFilterValues, 'type' | 'rarity' | 'category'][] =
   ['categories', 'category'],
 ];
 const PAUSE_MS = 200;
+const DETAIL_WORKERS = 4;
+const PROGRESS_EVERY = 500;
+const REFRESH_DETAILS = '--refresh-details';
 const RETRY_PAUSES_MS = [5000, 15000, 30000];
 
 const env = loadDatabaseEnv();
 const prisma = createPrismaClient(env.DATABASE_URL);
 const store = new PrismaCatalogSearchStore(prisma);
+const cardCache = new PrismaCardCacheStore(prisma);
+const cards = new PrismaCardRepository(prisma);
 const tcgdex = new TcgdexClient({
   baseUrl: process.env.TCGDEX_BASE_URL || 'https://api.tcgdex.net/v2',
   timeoutMs: 15000,
@@ -132,7 +140,77 @@ async function syncFilters(lang: string): Promise<void> {
   console.log(`${lang}: tipo, raridade e categoria gravados em ${updated} cartas`);
 }
 
-async function syncLang(lang: string): Promise<string[]> {
+async function syncDetail(lang: string, id: string): Promise<void> {
+  const card = await tcgdex.getById(id, lang);
+  await cardCache.write(card.id, lang, card);
+  await cards.refreshPrice(card.id, card.marketPrice);
+}
+
+async function syncDetailBatch(lang: string, ids: string[], label: string) {
+  const failed: string[] = [];
+  const notFound: string[] = [];
+  const reasons = new Map<string, string>();
+  let next = 0;
+  let done = 0;
+
+  const worker = async () => {
+    while (next < ids.length) {
+      const id = ids[next++];
+      try {
+        await syncDetail(lang, id);
+      } catch (err) {
+        if (err instanceof CardNotFoundError) {
+          notFound.push(id);
+        } else {
+          failed.push(id);
+          reasons.set(id, errorMessage(err).split('\n')[0]);
+        }
+      }
+      done += 1;
+      if (done % PROGRESS_EVERY === 0 || done === ids.length) {
+        console.log(`[${lang} detalhes${label}] ${done}/${ids.length}`);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: DETAIL_WORKERS }, worker));
+
+  return { failed, notFound, reasons };
+}
+
+async function syncDetails(lang: string, refresh: boolean): Promise<string[]> {
+  const started = Date.now();
+  const ids = await store.cardIds(lang, { withoutDetail: !refresh });
+  if (ids.length === 0) {
+    console.log(`${lang}: o detalhe de todas as cartas já está guardado`);
+    return [];
+  }
+  console.log(`${lang}: buscando o detalhe de ${ids.length} cartas`);
+
+  let { failed, notFound, reasons } = await syncDetailBatch(lang, ids, '');
+  for (const [round, pause] of RETRY_PAUSES_MS.entries()) {
+    if (failed.length === 0) break;
+    console.log(`${lang}: ${failed.length} detalhes falharam; tentando de novo em ${pause / 1000} s`);
+    await wait(pause);
+    const retry = await syncDetailBatch(lang, failed, ` volta ${round + 2}`);
+    failed = retry.failed;
+    notFound = [...notFound, ...retry.notFound];
+    reasons = retry.reasons;
+  }
+
+  for (const id of failed.slice(0, 10)) {
+    console.error(`${lang}: detalhe de ${id} falhou (${reasons.get(id)})`);
+  }
+
+  if (notFound.length > 0) {
+    console.log(`${lang}: ${notFound.length} cartas sem detalhe na TCGdex (${notFound.slice(0, 10).join(', ')})`);
+  }
+  const seconds = ((Date.now() - started) / 1000).toFixed(1);
+  const saved = ids.length - failed.length - notFound.length;
+  console.log(`${lang}: detalhe de ${saved} cartas guardado em ${seconds} s`);
+  return failed.length > 0 ? [`${lang} (detalhe de ${failed.length} cartas)`] : [];
+}
+
+async function syncLang(lang: string, refreshDetails: boolean): Promise<string[]> {
   const started = Date.now();
   const sets = await listSets(lang);
   if (sets.length === 0) throw new Error(`A TCGdex não devolveu nenhum set em ${lang}; nada foi sincronizado`);
@@ -159,11 +237,15 @@ async function syncLang(lang: string): Promise<string[]> {
 
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
   console.log(`${lang}: ${sets.length - failed.length} sets e ${cardCount} cartas sincronizados em ${seconds} s`);
-  return [...failed.map((set) => `${lang}/${set.id}`), ...failedFilters];
+  const failedDetails = await syncDetails(lang, refreshDetails);
+  return [...failed.map((set) => `${lang}/${set.id}`), ...failedFilters, ...failedDetails];
 }
 
 async function main() {
-  const langs = process.argv.length > 2 ? process.argv.slice(2) : DEFAULT_LANGS;
+  const args = process.argv.slice(2);
+  const refreshDetails = args.includes(REFRESH_DETAILS);
+  const chosen = args.filter((arg) => arg !== REFRESH_DETAILS);
+  const langs = chosen.length > 0 ? chosen : DEFAULT_LANGS;
   const unknown = langs.filter((lang) => !DEFAULT_LANGS.includes(lang));
   if (unknown.length > 0) {
     throw new Error(`Idioma não suportado: ${unknown.join(', ')}. Use ${DEFAULT_LANGS.join(' ou ')}.`);
@@ -172,7 +254,7 @@ async function main() {
   const failed: string[] = [];
   for (const lang of langs) {
     try {
-      failed.push(...(await syncLang(lang)));
+      failed.push(...(await syncLang(lang, refreshDetails)));
     } catch (err) {
       console.error(`${lang}: ${errorMessage(err)}`);
       failed.push(`${lang} (lista de sets)`);
