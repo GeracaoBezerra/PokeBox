@@ -29,13 +29,13 @@ export const tcgdexCardSchema = z.object({
   effect: z.string().optional(),
   attacks: z
     .array(z.object({
-      name: z.string(),
+      name: z.string().optional(),
       cost: z.array(z.string()).optional(),
       effect: z.string().optional(),
       damage: z.union([z.string(), z.number()]).optional(),
     }))
     .optional(),
-  abilities: z.array(z.object({ name: z.string(), type: z.string(), effect: z.string() })).optional(),
+  abilities: z.array(z.object({ name: z.string().optional(), type: z.string(), effect: z.string().optional() })).optional(),
   weaknesses: z.array(typeValue).optional(),
   resistances: z.array(typeValue).optional(),
   retreat: z.number().optional(),

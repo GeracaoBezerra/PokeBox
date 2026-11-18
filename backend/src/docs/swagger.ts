@@ -846,7 +846,7 @@ export const swaggerSpec = {
         tags: ["Cards"],
         summary: "Detalhes de uma carta",
         description:
-          "Busca na memória (1h), depois no banco (24h) e por último na API TCGdex. Login opcional: com token, o bloco user traz quantas unidades você tem, se a carta está na sua wishlist e se você tem anúncio ACTIVE dela; sem token, user é null. Cache: com token, private, no-cache (o navegador confere a cada vez); sem token, private, max-age=60.",
+          "Busca na memória (1h), depois no banco e por último na API TCGdex. O banco responde sempre que tem a carta (em en e pt, todas depois do catalog:sync); passadas 24h, a cópia é atualizada pela TCGdex por trás, então o preço de referência pode ter até um dia. Login opcional: com token, o bloco user traz quantas unidades você tem, se a carta está na sua wishlist e se você tem anúncio ACTIVE dela; sem token, user é null. Cache: com token, private, no-cache (o navegador confere a cada vez); sem token, private, max-age=60.",
         security: [{}, { bearerAuth: [] }],
         parameters: [
           {
@@ -1880,9 +1880,9 @@ export const swaggerSpec = {
             items: {
               type: "object",
               properties: {
-                name: { type: "string" },
+                name: nullableString,
                 type: { type: "string" },
-                effect: { type: "string" },
+                effect: nullableString,
               },
             },
           },
@@ -1891,7 +1891,7 @@ export const swaggerSpec = {
             items: {
               type: "object",
               properties: {
-                name: { type: "string" },
+                name: nullableString,
                 cost: { type: "array", items: { type: "string" } },
                 damage: nullableString,
                 effect: nullableString,

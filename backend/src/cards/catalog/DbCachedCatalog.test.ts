@@ -74,25 +74,65 @@ describe('DbCachedCatalog', () => {
     expect(catalog.isStale(data)).toBe(false);
   });
 
-  test('dado vencido no banco busca de novo na TCGdex', async () => {
-    const { catalog, inner, store } = setup({ data: detail('base1-4', 'Velho'), updatedAt: new Date(NOW - ONE_DAY) });
+  test('dado vencido no banco responde na hora e atualiza por trás', async () => {
+    const old = detail('base1-4', 'Velho');
+    const { catalog, inner, store, prices } = setup({ data: old, updatedAt: new Date(NOW - ONE_DAY) });
 
     const card = await catalog.getById('base1-4', 'en');
 
-    expect(card.name).toBe('Charizard en');
-    expect(inner.getById).toHaveBeenCalledTimes(1);
-    expect(store.write).toHaveBeenCalledTimes(1);
+    expect(card).toBe(old);
+    expect(catalog.isStale(old)).toBe(true);
+    await catalog.whenRefreshed();
+    expect(inner.getById).toHaveBeenCalledWith('base1-4', 'en');
+    expect(store.write).toHaveBeenCalledWith('base1-4', 'en', expect.objectContaining({ name: 'Charizard en' }));
+    expect(prices.refreshPrice).toHaveBeenCalledTimes(1);
   });
 
-  test('TCGdex fora do ar com dado vencido no banco devolve o vencido', async () => {
+  test('pedido com outra caixa atualiza pelo id guardado', async () => {
+    const { catalog, inner } = setup({ data: detail('base1-4'), updatedAt: new Date(NOW - ONE_DAY) });
+
+    await catalog.getById('BASE1-4', 'pt');
+    await catalog.whenRefreshed();
+
+    expect(inner.getById).toHaveBeenCalledWith('base1-4', 'pt');
+  });
+
+  test('vários pedidos da mesma carta vencida atualizam uma vez só', async () => {
+    const { catalog, inner } = setup({ data: detail('base1-4'), updatedAt: new Date(NOW - ONE_DAY) });
+
+    await Promise.all([catalog.getById('base1-4', 'en'), catalog.getById('base1-4', 'en')]);
+    await catalog.getById('base1-4', 'en');
+    await catalog.whenRefreshed();
+
+    expect(inner.getById).toHaveBeenCalledTimes(1);
+  });
+
+  test('TCGdex fora do ar com dado vencido no banco devolve o vencido e só registra a falha', async () => {
     const data = detail('base1-4', 'Guardado');
-    const { catalog, inner, store, prices } = setup({ data, updatedAt: new Date(NOW - 3 * ONE_DAY) });
+    const { catalog, inner, store, prices, logger } = setup({ data, updatedAt: new Date(NOW - 3 * ONE_DAY) });
     inner.getById.mockRejectedValue(new TcgdexUnavailableError('TCGdex respondeu 503'));
 
     await expect(catalog.getById('base1-4', 'en')).resolves.toBe(data);
+    await catalog.whenRefreshed();
+
     expect(catalog.isStale(data)).toBe(true);
     expect(store.write).not.toHaveBeenCalled();
     expect(prices.refreshPrice).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      { err: 'TCGdex respondeu 503', cardId: 'base1-4', lang: 'en' },
+      'falha ao atualizar a carta guardada',
+    );
+  });
+
+  test('depois da atualização, um novo pedido pode atualizar de novo', async () => {
+    const { catalog, inner } = setup({ data: detail('base1-4'), updatedAt: new Date(NOW - ONE_DAY) });
+
+    await catalog.getById('base1-4', 'en');
+    await catalog.whenRefreshed();
+    await catalog.getById('base1-4', 'en');
+    await catalog.whenRefreshed();
+
+    expect(inner.getById).toHaveBeenCalledTimes(2);
   });
 
   test('TCGdex fora do ar sem nada no banco repassa o erro', async () => {

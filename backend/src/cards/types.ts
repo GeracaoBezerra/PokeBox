@@ -11,16 +11,16 @@ export type MarketPrice = {
 };
 
 export type CardAttack = {
-  name: string;
+  name: string | null;
   cost: string[];
   damage: string | null;
   effect: string | null;
 };
 
 export type CardAbility = {
-  name: string;
+  name: string | null;
   type: string;
-  effect: string;
+  effect: string | null;
 };
 
 export type TypeValue = {

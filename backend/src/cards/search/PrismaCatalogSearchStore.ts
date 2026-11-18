@@ -77,6 +77,15 @@ export class PrismaCatalogSearchStore implements CatalogSearchStore {
     return { types: valuesOf('type'), rarities: valuesOf('rarity'), categories: valuesOf('category') };
   }
 
+  async cardIds(lang: string, { withoutDetail }: { withoutDetail: boolean }): Promise<string[]> {
+    const missing = withoutDetail
+      ? Prisma.sql`AND NOT EXISTS (SELECT 1 FROM "CardCache" k WHERE k."cardId" = c.id AND k.lang = c.lang)`
+      : Prisma.empty;
+    const rows = await this.db.$queryRaw<{ id: string }[]>`
+      SELECT c.id FROM "CatalogCard" c WHERE c.lang = ${lang} ${missing} ORDER BY c."setId", c.id`;
+    return rows.map((row) => row.id);
+  }
+
   async matchingWords(lang: string, words: string[]): Promise<string[]> {
     const found = await Promise.all(
       words.map((word) =>

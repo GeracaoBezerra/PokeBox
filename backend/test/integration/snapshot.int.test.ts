@@ -1,6 +1,6 @@
 import request from 'supertest';
 
-import { addItem, bearer, CHARIZARD, createListing } from './support/flows.js';
+import { addItem, bearer, CHARIZARD, createListing, PROFESSOR_OAK } from './support/flows.js';
 import { registerUser, startTestApp, type TestApp } from './support/testApp.js';
 
 let ctx: TestApp;
@@ -57,6 +57,47 @@ describe('RN-09: snapshot local da carta', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.card).toMatchObject({ id: CHARIZARD, name: 'Charizard' });
+    } finally {
+      await restarted.close();
+    }
+  });
+
+  test('cópia vencida responde na hora e é atualizada por trás (#192)', async () => {
+    await request(ctx.app).get(`/cards/${CHARIZARD}`).expect(200);
+    const prisma = ctx.container.infra.prisma;
+    await prisma.$executeRaw`
+      UPDATE "CardCache" SET data = jsonb_set(data::jsonb, '{name}', '"Charizard guardado"'), "updatedAt" = '2026-01-01'
+      WHERE "cardId" = ${CHARIZARD} AND lang = 'en'`;
+    const storedName = async () => {
+      const row = await prisma.cardCache.findUniqueOrThrow({ where: { cardId_lang: { cardId: CHARIZARD, lang: 'en' } } });
+      return (row.data as { name: string }).name;
+    };
+
+    const restarted = await startTestApp();
+    try {
+      const res = await request(restarted.app).get(`/cards/${CHARIZARD.toUpperCase()}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.card).toMatchObject({ id: CHARIZARD, name: 'Charizard guardado' });
+      for (let attempt = 0; attempt < 50 && (await storedName()) !== 'Charizard'; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      expect(await storedName()).toBe('Charizard');
+    } finally {
+      await restarted.close();
+    }
+  });
+
+  test('carta com o detalhe guardado entra na coleção com a TCGdex fora (#192)', async () => {
+    await request(ctx.app).get(`/cards/${PROFESSOR_OAK}`).expect(200);
+
+    const restarted = await startTestApp();
+    restarted.tcgdex.failWith(503);
+    try {
+      const user = await registerUser(restarted.app);
+      const item = await addItem(restarted.app, user, { cardId: PROFESSOR_OAK, finish: 'NORMAL' });
+
+      expect(item.card).toMatchObject({ id: PROFESSOR_OAK });
     } finally {
       await restarted.close();
     }

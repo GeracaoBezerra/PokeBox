@@ -141,6 +141,25 @@ describe('TcgdexClient', () => {
     });
   });
 
+  it('detalhe com ataque e habilidade sem nome (tradução faltando) devolve nome nulo', async () => {
+    fetchMock.mockImplementation(async (url) =>
+      url.endsWith('/sets/bw7')
+        ? jsonResponse(200, { id: 'bw7', name: 'Fronteiras Cruzadas' })
+        : jsonResponse(200, {
+            ...tcgdexCard,
+            id: 'bw7-1',
+            set: { id: 'bw7', name: 'Fronteiras Cruzadas', cardCount: { official: 149, total: 153 } },
+            attacks: [{ cost: ['Planta'], damage: 10 }],
+            abilities: [{ type: 'Poke-BODY' }],
+          }),
+    );
+
+    const card = await client.getById('bw7-1', 'pt');
+
+    expect(card.attacks).toEqual([{ name: null, cost: ['Planta'], damage: '10', effect: null }]);
+    expect(card.abilities).toEqual([{ name: null, type: 'Poke-BODY', effect: null }]);
+  });
+
   it('detalhe com o set fora do ar devolve série e data nulas', async () => {
     fetchMock.mockImplementation(async (url) =>
       url.endsWith('/sets/base1') ? jsonResponse(503, { error: 'down' }) : jsonResponse(200, tcgdexCard),

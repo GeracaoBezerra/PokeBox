@@ -10,7 +10,9 @@ export class PrismaCardCacheStore implements CardCacheStore {
   constructor(private readonly db: Db) {}
 
   async read(cardId: string, lang: string): Promise<CachedCard | null> {
-    const row = await this.db.cardCache.findUnique({ where: { cardId_lang: { cardId, lang } } });
+    const row =
+      (await this.db.cardCache.findUnique({ where: { cardId_lang: { cardId, lang } } })) ??
+      (await this.db.cardCache.findFirst({ where: { lang, cardId: { equals: cardId, mode: 'insensitive' } } }));
     if (!row || !isCardDetail(row.data)) return null;
     return { data: row.data, updatedAt: row.updatedAt };
   }

@@ -81,11 +81,11 @@ export default function CardPage() {
               <div className={s.painel}>
                 <h3>Em jogo</h3>
                 {dados.card.abilities?.map((ability, index) => (
-                  <article className={s.ataque} key={`ability-${index}`}><span className={s.eyebrow}>{ability.type || "Habilidade"}</span><h4>{ability.name}</h4><p>{ability.effect}</p></article>
+                  <article className={s.ataque} key={`ability-${index}`}><span className={s.eyebrow}>{ability.type || "Habilidade"}</span><h4>{ability.name || "Nome não traduzido"}</h4>{ability.effect && <p>{ability.effect}</p>}</article>
                 ))}
                 {dados.card.attacks?.map((ataque, index) => (
                   <article className={s.ataque} key={`attack-${index}`}>
-                    <div className={s.ataqueTitulo}><h4>{ataque.name}</h4><span className="dados">{ataque.damage}</span></div>
+                    <div className={s.ataqueTitulo}><h4>{ataque.name || "Nome não traduzido"}</h4><span className="dados">{ataque.damage}</span></div>
                     {ataque.cost?.length > 0 && <p className={s.suave}>Energia: {ataque.cost.join(" · ")}</p>}
                     {ataque.effect && <p>{ataque.effect}</p>}
                   </article>
