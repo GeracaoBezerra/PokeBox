@@ -23,6 +23,16 @@ describe('createCollectionItemSchema', () => {
     expect(createCollectionItemSchema.safeParse(body).success).toBe(false);
   });
 
+  it.each(['%', 'base1_4', 'base1/4', ''])('recusa cardId "%s"', (cardId) => {
+    const result = createCollectionItemSchema.safeParse({ ...validCreate, cardId });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]).toMatchObject({ path: ['cardId'], message: 'ID de carta inválido' });
+  });
+
+  it('aceita cardId com ponto e tira os espaços', () => {
+    expect(createCollectionItemSchema.parse({ ...validCreate, cardId: ' sv03.5-001 ' }).cardId).toBe('sv03.5-001');
+  });
+
   it.each([0, -1, 1.5])('recusa quantity %s', (quantity) => {
     expect(createCollectionItemSchema.safeParse({ ...validCreate, quantity }).success).toBe(false);
   });

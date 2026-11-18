@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { CardCondition, CardFinish } from '../generated/prisma/index.js';
 import { cardLangSchema } from '../middlewares/validateCardParams.js';
+import { CARD_ID_PATTERN } from '../utils/cardId.js';
 import { toPageRequest } from '../utils/pagination.js';
 import {
   booleanFilter,
@@ -18,7 +19,7 @@ const condition = z.enum(CardCondition);
 
 export const createCollectionItemSchema = z
   .object({
-    cardId: z.string().trim().min(1),
+    cardId: z.string().trim().regex(CARD_ID_PATTERN, 'ID de carta inválido'),
     quantity: z.number().int().min(1),
     condition: condition.optional(),
     finish: z.enum(CardFinish),

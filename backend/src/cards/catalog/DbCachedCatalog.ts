@@ -26,6 +26,7 @@ export class DbCachedCatalog implements CardCatalog {
   private readonly logger: Logger;
   private readonly now: () => number;
   private readonly staleCards = new WeakSet<CardDetail>();
+  private readonly refreshing = new Map<string, Promise<void>>();
 
   constructor(
     private readonly inner: CardCatalog,
@@ -44,18 +45,40 @@ export class DbCachedCatalog implements CardCatalog {
 
   async getById(id: string, lang: string): Promise<CardDetail> {
     const cached = await this.readCache(id, lang);
-    if (cached && this.now() - cached.updatedAt.getTime() < this.ttlMs) return cached.data;
-
-    try {
+    if (!cached) {
       const card = await this.inner.getById(id, lang);
-      await this.writeCache(card.id, lang, card);
-      await this.refreshPrice(card);
+      await this.save(card, lang);
       return card;
-    } catch (err) {
-      if (!cached) throw err;
-      this.staleCards.add(cached.data);
-      return cached.data;
     }
+
+    if (this.now() - cached.updatedAt.getTime() >= this.ttlMs) {
+      this.staleCards.add(cached.data);
+      this.refreshInBackground(cached.data.id, lang);
+    }
+    return cached.data;
+  }
+
+  whenRefreshed(): Promise<void> {
+    return Promise.all(this.refreshing.values()).then(() => undefined);
+  }
+
+  private refreshInBackground(cardId: string, lang: string): void {
+    const key = `${lang}:${cardId}`;
+    if (this.refreshing.has(key)) return;
+
+    const refresh = this.inner
+      .getById(cardId, lang)
+      .then((card) => this.save(card, lang))
+      .catch((err: unknown) => {
+        this.logger.warn({ err: errorMessage(err), cardId, lang }, 'falha ao atualizar a carta guardada');
+      })
+      .finally(() => this.refreshing.delete(key));
+    this.refreshing.set(key, refresh);
+  }
+
+  private async save(card: CardDetail, lang: string): Promise<void> {
+    await this.writeCache(card.id, lang, card);
+    await this.refreshPrice(card);
   }
 
   search(query: CardSearchQuery): Promise<CardSummary[]> {

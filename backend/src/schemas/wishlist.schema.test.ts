@@ -21,7 +21,7 @@ describe('addWishlistItemSchema', () => {
     expect(addWishlistItemSchema.safeParse({}).success).toBe(false);
   });
 
-  it.each(['', '   '])('recusa cardId "%s"', (cardId) => {
+  it.each(['', '   ', '%', 'base1_4', 'base1/4'])('recusa cardId "%s"', (cardId) => {
     expect(addWishlistItemSchema.safeParse({ cardId }).success).toBe(false);
   });
 
