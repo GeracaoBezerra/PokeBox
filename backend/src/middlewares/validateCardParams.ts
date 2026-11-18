@@ -15,6 +15,8 @@ const cardParamsSchema = z.object({
 
 const langSchema = z.enum(LANGS, { message: 'Idioma inválido' });
 
+export const cardLangSchema = z.preprocess(normalizeLang, langSchema);
+
 const cardQuerySchema = z.object({
   lang: langSchema,
 });

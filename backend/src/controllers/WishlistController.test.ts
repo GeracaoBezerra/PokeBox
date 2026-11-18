@@ -60,7 +60,7 @@ describe('WishlistController', () => {
 
     await controller.add(request({ body: { cardId: ' base1-4 ' } }), res as unknown as Response, next);
 
-    expect(wishlist.add).toHaveBeenCalledWith('u-misty', { cardId: 'base1-4' });
+    expect(wishlist.add).toHaveBeenCalledWith('u-misty', { cardId: 'base1-4', lang: 'en' });
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ success: true, data: { item } });
   });

@@ -5,8 +5,8 @@ export async function listWishlist() {
   return body.data.items;
 }
 
-export async function addToWishlist(cardId) {
-  const body = await http.post("/wishlist", { cardId });
+export async function addToWishlist(cardId, lang) {
+  const body = await http.post("/wishlist", { cardId, lang });
   return body.data.item;
 }
 

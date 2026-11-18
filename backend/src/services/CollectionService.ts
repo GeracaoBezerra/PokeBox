@@ -78,13 +78,14 @@ export class CollectionService {
   async add(userId: string, input: CreateCollectionItemInput): Promise<AddedCollectionItem> {
     const { collection, wishlist, cards, cardStore, transactions } = this.deps;
 
-    const card = await cards.fetchCard(input.cardId);
+    const { lang, ...itemData } = input;
+    const card = await cards.fetchCard(input.cardId, lang);
     assertVariant(card.variants, input.finish, input.firstEdition);
 
     await cardStore.upsertCard(toCardRecord(card));
 
     const { item, removedFromWishlist } = await transactions.run(async (tx) => {
-      const item = await collection.addOrIncrement({ ...input, cardId: card.id, userId }, tx);
+      const item = await collection.addOrIncrement({ ...itemData, cardId: card.id, userId }, tx);
       const removedFromWishlist = await wishlist.removeByUserAndCard(userId, card.id, tx);
       return { item, removedFromWishlist };
     });

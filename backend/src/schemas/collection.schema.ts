@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { CardCondition, CardFinish } from '../generated/prisma/index.js';
+import { cardLangSchema } from '../middlewares/validateCardParams.js';
 import { toPageRequest } from '../utils/pagination.js';
 import {
   booleanFilter,
@@ -23,6 +24,7 @@ export const createCollectionItemSchema = z
     finish: z.enum(CardFinish),
     firstEdition: z.boolean(),
     isPublic: z.boolean().optional(),
+    lang: cardLangSchema,
   })
   .strict();
 

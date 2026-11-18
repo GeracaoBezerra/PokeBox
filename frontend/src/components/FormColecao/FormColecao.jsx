@@ -14,7 +14,7 @@ function acabamentosDisponiveis(variants = {}) {
   return lista.length ? lista : ["NORMAL", "HOLO", "REVERSE"];
 }
 
-export default function FormColecao({ card, onAdicionado }) {
+export default function FormColecao({ card, lang, onAdicionado }) {
   const acabamentos = acabamentosDisponiveis(card.variants);
   const [form, setForm] = useState({
     finish: acabamentos[0],
@@ -32,7 +32,7 @@ export default function FormColecao({ card, onAdicionado }) {
   async function enviar(evento) {
     evento.preventDefault();
     const { ok } = await executar(
-      () => addToCollection({ cardId: card.id, ...form, quantity: Number(form.quantity) }),
+      () => addToCollection({ cardId: card.id, ...form, quantity: Number(form.quantity), lang }),
       "Carta adicionada à coleção."
     );
     if (ok) onAdicionado();

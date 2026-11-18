@@ -49,10 +49,10 @@ export default function CardPage() {
               <a className={s.botaoSecundario} href="#anuncios-carta">Ver anúncios de troca ({dados.listings.length}) <ArrowDown size={16} aria-hidden="true" /></a>
               {dados.user ? (
                 <>
-                  <VoceEACarta key={id} card={dados.card} user={dados.user} onMudou={recarregar} atualizando={carregando} />
+                  <VoceEACarta key={id} card={dados.card} lang={lang} user={dados.user} onMudou={recarregar} atualizando={carregando} />
                   <details className={s.adicionar} key={`${id}|${lang}`}>
                     <summary>Adicionar à minha coleção <span aria-hidden="true">+</span></summary>
-                    <FormColecao card={dados.card} onAdicionado={recarregar} />
+                    <FormColecao card={dados.card} lang={lang} onAdicionado={recarregar} />
                   </details>
                 </>
               ) : (

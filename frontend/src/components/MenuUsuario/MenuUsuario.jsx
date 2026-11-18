@@ -50,18 +50,26 @@ export default function MenuUsuario() {
   }
 
   const user = session.user;
+  const primeiroNome = (user?.name ?? user?.username ?? "").split(" ")[0];
 
   return (
     <div className={styles.usuario} ref={containerRef}>
       <button
         ref={botaoRef}
         type="button"
-        className={styles.botao}
-        aria-label="Menu do usuário"
+        className={`${styles.botao} ${styles.botaoEntrar}`}
+        aria-label={
+          primeiroNome
+            ? `Olá, ${primeiroNome}. Menu do usuário`
+            : "Menu do usuário"
+        }
         aria-expanded={aberto}
         aria-controls="menu-usuario"
         onClick={() => setAberto(!aberto)}
       >
+        {primeiroNome && (
+          <span className={styles.textoEntrar}>Olá, {primeiroNome}</span>
+        )}
         <User size={20} aria-hidden="true" />
       </button>
 

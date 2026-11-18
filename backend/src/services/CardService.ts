@@ -10,6 +10,7 @@ import type {
 } from '../cards/types.js';
 import { AppError } from '../errors/AppError.js';
 import { CardNotFoundError } from '../errors/CardNotFoundError.js';
+import type { Lang } from '../middlewares/validateCardParams.js';
 import type { CollectionQuantityReader } from '../repositories/CollectionRepository.js';
 import type { WishlistLookup } from '../repositories/WishlistRepository.js';
 import { isValidCardId } from '../utils/cardId.js';
@@ -26,7 +27,7 @@ export interface UserCardReaders {
 }
 
 export interface CardFetcher {
-  fetchCard(cardId: string): Promise<CardDetail>;
+  fetchCard(cardId: string, lang?: Lang): Promise<CardDetail>;
 }
 
 const CHECKED_FILTERS: [keyof CardFilters, keyof CardFilterValues][] = [
@@ -34,6 +35,10 @@ const CHECKED_FILTERS: [keyof CardFilters, keyof CardFilterValues][] = [
   ['rarity', 'rarities'],
   ['category', 'categories'],
 ];
+
+function toNotFound(err: unknown): unknown {
+  return err instanceof CardNotFoundError ? new AppError(404, 'Carta não encontrada') : err;
+}
 
 export class CardService implements CardFetcher {
   constructor(
@@ -75,12 +80,16 @@ export class CardService implements CardFetcher {
     return resolved;
   }
 
-  async fetchCard(cardId: string): Promise<CardDetail> {
+  async fetchCard(cardId: string, lang: Lang = 'en'): Promise<CardDetail> {
     try {
       return await this.catalog.getById(cardId, 'en');
     } catch (err) {
-      if (err instanceof CardNotFoundError) throw new AppError(404, 'Carta não encontrada');
-      throw err;
+      if (!(err instanceof CardNotFoundError) || lang === 'en') throw toNotFound(err);
+    }
+    try {
+      return await this.catalog.getById(cardId, lang);
+    } catch (err) {
+      throw toNotFound(err);
     }
   }
 
