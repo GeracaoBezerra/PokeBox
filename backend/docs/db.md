@@ -95,7 +95,7 @@ Além dos índices que o Postgres cria para PK e `UNIQUE`:
 | `Listing` por `collectionItemId` | anúncios abertos de um item (RN-05, `GET /listings/me`) |
 | `Listing` por `(status, createdAt DESC, id)` (#112) | `GET /listings`: o banco lê os anúncios ativos já na ordem de "mais recentes" e para no fim da página, em vez de ordenar todos. Também atende filtro só por `status` |
 | `CatalogCard` por `setId` | cartas de um set reconhecido na busca (`charizard base`) |
-| `CatalogCard` por `(lang, rarity)` e `(lang, category)`, e GIN em `types` (#158) | busca e lista com filtro de raridade, categoria e tipo (`'Fire' = ANY(types)`) |
+| `CatalogCard` por `(lang, rarity)` e `(lang, category)`, e GIN em `types` (#158) | busca e lista com filtro de raridade, categoria e tipo (`types @> ARRAY['Fire']`, o operador que o GIN atende) |
 | `CatalogSet` por `(lang, position)` | lista de sets na ordem de lançamento |
 | `CatalogCard_nameNormalized_trgm_idx`: GIN com `gin_trgm_ops` em `nameNormalized` (#78) | busca tolerante a erro de digitação. Atende os operadores `<<%` (semelhança por palavra) e `LIKE '%texto%'` do `pg_trgm` |
 

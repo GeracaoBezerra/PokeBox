@@ -38,7 +38,7 @@ function matchClause({ words, setIds }: CatalogSearch): Prisma.Sql {
 
 function attributeClause({ type, rarity, category }: CatalogAttributeFilters = {}): Prisma.Sql {
   const conditions = [
-    type ? Prisma.sql`${type} = ANY(types)` : null,
+    type ? Prisma.sql`types @> ARRAY[${type}]::text[]` : null,
     rarity ? Prisma.sql`rarity = ${rarity}` : null,
     category ? Prisma.sql`category = ${category}` : null,
   ].filter((condition): condition is Prisma.Sql => condition !== null);
