@@ -32,6 +32,17 @@ describe('createCollectionItemSchema', () => {
     expect(createCollectionItemSchema.safeParse({ ...validCreate, condition: 'NEW' }).success).toBe(false);
   });
 
+  it('sem lang usa inglês; aceita lang de um idioma do catálogo', () => {
+    expect(createCollectionItemSchema.parse(validCreate).lang).toBe('en');
+    expect(createCollectionItemSchema.parse({ ...validCreate, lang: 'pt' }).lang).toBe('pt');
+  });
+
+  it('recusa lang fora dos idiomas do catálogo', () => {
+    const result = createCollectionItemSchema.safeParse({ ...validCreate, lang: 'xx' });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]).toMatchObject({ path: ['lang'], message: 'Idioma inválido' });
+  });
+
   it('recusa campo desconhecido', () => {
     const body = { ...validCreate, reservedQuantity: 3 };
     expect(createCollectionItemSchema.safeParse(body).success).toBe(false);

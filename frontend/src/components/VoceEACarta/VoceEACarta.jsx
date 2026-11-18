@@ -6,7 +6,7 @@ import { useAcao } from "../../hooks/useAcao";
 import s from "../../styles/detalheCarta.module.css";
 import Aviso from "../Aviso/Aviso";
 
-export default function VoceEACarta({ card, user, onMudou, atualizando = false }) {
+export default function VoceEACarta({ card, lang, user, onMudou, atualizando = false }) {
   const wishlist = useAcao();
   const [tomFeedback, setTomFeedback] = useState("sucesso");
   const ocupado = wishlist.ocupado || atualizando;
@@ -16,7 +16,7 @@ export default function VoceEACarta({ card, user, onMudou, atualizando = false }
     if (ocupado) return;
     const removendo = user.inWishlist;
     const { ok } = await wishlist.executar(async () => {
-      if (!user.inWishlist) return addToWishlist(card.id);
+      if (!user.inWishlist) return addToWishlist(card.id, lang);
       // A exclusão exige o id do item da wishlist, não o id da carta.
       const itens = await listWishlist();
       const item = itens.find((item) => item.cardId === card.id);

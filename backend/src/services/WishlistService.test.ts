@@ -102,7 +102,7 @@ describe('WishlistService.add (RN-12)', () => {
     const { collection, cardStore, wishlist, service } = setup();
     collection.sumQuantityByUserAndCard.mockResolvedValue(1);
 
-    await expect(service.add(USER_ID, { cardId: 'BASE1-2' })).rejects.toMatchObject({
+    await expect(service.add(USER_ID, { cardId: 'BASE1-2', lang: 'en' })).rejects.toMatchObject({
       statusCode: 409,
       message: 'Você já tem esta carta na sua coleção',
     });
@@ -118,16 +118,24 @@ describe('WishlistService.add (RN-12)', () => {
     const { collection, wishlist, service } = setup();
     collection.sumQuantityByUserAndCard.mockResolvedValue(sum);
 
-    await service.add(USER_ID, { cardId: 'base1-2' });
+    await service.add(USER_ID, { cardId: 'base1-2', lang: 'en' });
 
     expect(wishlist.create).toHaveBeenCalledWith({ userId: USER_ID, cardId: 'base1-2' });
+  });
+
+  it('busca a carta no idioma pedido', async () => {
+    const { cards, service } = setup();
+
+    await service.add(USER_ID, { cardId: 'sv2a-6', lang: 'ja' });
+
+    expect(cards.fetchCard).toHaveBeenCalledWith('sv2a-6', 'ja');
   });
 
   it('grava a carta antes do item e devolve com as oportunidades', async () => {
     const { cardStore, collection, wishlist, service } = setup();
     collection.findOwnersOfCards.mockResolvedValue([{ cardId: 'base1-2', userId: 'ash' }]);
 
-    const item = await service.add(USER_ID, { cardId: 'base1-2' });
+    const item = await service.add(USER_ID, { cardId: 'base1-2', lang: 'en' });
 
     expect(cardStore.upsertCard).toHaveBeenCalledWith(expect.objectContaining({ id: 'base1-2', setId: 'base1' }));
     expect(cardStore.upsertCard.mock.invocationCallOrder[0]).toBeLessThan(wishlist.create.mock.invocationCallOrder[0]);
@@ -144,7 +152,7 @@ describe('WishlistService.add (RN-12)', () => {
     const { wishlist, service } = setup();
     wishlist.create.mockRejectedValue(new ConflictError('Esta carta já está na sua wishlist'));
 
-    await expect(service.add(USER_ID, { cardId: 'base1-2' })).rejects.toMatchObject({
+    await expect(service.add(USER_ID, { cardId: 'base1-2', lang: 'en' })).rejects.toMatchObject({
       statusCode: 409,
       message: 'Esta carta já está na sua wishlist',
     });

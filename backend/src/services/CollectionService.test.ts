@@ -35,7 +35,10 @@ const input: CreateCollectionItemInput = {
   finish: 'HOLO',
   firstEdition: false,
   quantity: 1,
+  lang: 'en',
 };
+
+const { lang: _lang, ...itemInput } = input;
 
 const savedItem = {
   id: ITEM_ID,
@@ -151,6 +154,15 @@ describe('CollectionService.add (RN-01 e RN-11)', () => {
     expect(wishlist.removeByUserAndCard).toHaveBeenCalledWith(USER_ID, 'base1-4', tx);
   });
 
+  it('busca a carta no idioma pedido e não grava o idioma no item', async () => {
+    const { cards, collection, service } = setup();
+
+    await service.add(USER_ID, { ...input, lang: 'pt' });
+
+    expect(cards.fetchCard).toHaveBeenCalledWith('BASE1-4', 'pt');
+    expect(collection.addOrIncrement.mock.calls[0][0]).not.toHaveProperty('lang');
+  });
+
   it('carta que já existe soma a quantidade pelo addOrIncrement (RN-01)', async () => {
     const { collection, service } = setup();
     collection.addOrIncrement.mockResolvedValue({ ...savedItem, quantity: 3 });
@@ -158,7 +170,7 @@ describe('CollectionService.add (RN-01 e RN-11)', () => {
     const { item } = await service.add(USER_ID, { ...input, quantity: 2 });
 
     expect(collection.addOrIncrement).toHaveBeenCalledWith(
-      { ...input, quantity: 2, cardId: 'base1-4', userId: USER_ID },
+      { ...itemInput, quantity: 2, cardId: 'base1-4', userId: USER_ID },
       tx,
     );
     expect(item).toMatchObject({ quantity: 3, available: 3 });

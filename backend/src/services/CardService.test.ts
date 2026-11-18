@@ -66,12 +66,20 @@ describe('CardService', () => {
     expect(result.hasNextPage).toBe(true);
   });
 
-  test('fetchCard busca sempre em inglês', async () => {
+  test('fetchCard sem idioma busca em inglês', async () => {
     const { service, catalog } = setup();
 
     await service.fetchCard('base1-4');
 
     expect(catalog.getById).toHaveBeenCalledWith('base1-4', 'en');
+  });
+
+  test('fetchCard busca no idioma pedido', async () => {
+    const { service, catalog } = setup();
+
+    await service.fetchCard('sv2a-6', 'ja');
+
+    expect(catalog.getById).toHaveBeenCalledWith('sv2a-6', 'ja');
   });
 
   test('fetchCard de carta inexistente vira 404 Carta não encontrada', async () => {

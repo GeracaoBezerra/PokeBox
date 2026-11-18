@@ -39,7 +39,7 @@ export class WishlistService {
   }
 
   async add(userId: string, input: AddWishlistItemInput): Promise<WishlistItemView> {
-    const card = await this.cards.fetchCard(input.cardId);
+    const card = await this.cards.fetchCard(input.cardId, input.lang);
 
     const owned = await this.collection.sumQuantityByUserAndCard(userId, card.id);
     if (owned !== null && owned > 0) throw new ConflictError('Você já tem esta carta na sua coleção');

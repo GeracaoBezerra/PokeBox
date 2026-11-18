@@ -5,6 +5,17 @@ describe('addWishlistItemSchema', () => {
     expect(addWishlistItemSchema.safeParse({ cardId: 'base1-4' }).success).toBe(true);
   });
 
+  it('sem lang usa inglês; aceita lang de um idioma do catálogo', () => {
+    expect(addWishlistItemSchema.parse({ cardId: 'base1-4' })).toEqual({ cardId: 'base1-4', lang: 'en' });
+    expect(addWishlistItemSchema.parse({ cardId: 'base1-4', lang: 'ja' }).lang).toBe('ja');
+  });
+
+  it('recusa lang fora dos idiomas do catálogo', () => {
+    const result = addWishlistItemSchema.safeParse({ cardId: 'base1-4', lang: 'xx' });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]).toMatchObject({ path: ['lang'], message: 'Idioma inválido' });
+  });
+
   it('recusa corpo vazio', () => {
     expect(addWishlistItemSchema.safeParse({}).success).toBe(false);
   });
