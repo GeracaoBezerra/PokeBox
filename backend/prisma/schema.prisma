@@ -220,11 +220,35 @@ model CatalogCard {
   setId          String
   setName        String
   imageUrl       String?
+  types          String[] @default([])
+  rarity         String?
+  category       String?
   syncedAt       DateTime @default(now())
 
   @@id([id, lang])
   @@index([setId])
+  @@index([lang, category])
+  @@index([lang, rarity])
+  @@index([types], type: Gin)
   @@index([nameNormalized(ops: raw("gin_trgm_ops"))], type: Gin, map: "CatalogCard_nameNormalized_trgm_idx")
+}
+
+model CatalogSet {
+  id       String
+  lang     String
+  name     String
+  position Int
+
+  @@id([id, lang])
+  @@index([lang, position])
+}
+
+model CatalogFilterValue {
+  lang  String
+  kind  String
+  value String
+
+  @@id([lang, kind, value])
 }
 
 enum AccountStatus {

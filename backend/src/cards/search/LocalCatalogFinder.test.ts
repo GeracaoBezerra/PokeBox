@@ -38,6 +38,7 @@ const query = (overrides: Partial<CardListQuery> = {}): CardListQuery => ({
 beforeEach(() => {
   store = {
     listSets: jest.fn<CatalogSearchStore['listSets']>(async () => sets),
+    filterValues: jest.fn<CatalogSearchStore['filterValues']>(async () => null),
     matchingWords: jest.fn<CatalogSearchStore['matchingWords']>(async (_lang, words) =>
       words.filter((word) => ['charizard', 'charzard', 'pikachu', 'detective'].includes(word)),
     ),
@@ -170,16 +171,67 @@ describe('LocalCatalogFinder.find', () => {
   });
 
   test.each([
-    ['sem nome', query({ name: undefined })],
-    ['nome só com letras soltas', query({ name: 'a' })],
     ['filtro de tipo', query({ filters: { type: 'Fire' } })],
     ['filtro de raridade', query({ filters: { rarity: 'Rare' } })],
     ['filtro de categoria', query({ filters: { category: 'Pokemon' } })],
-  ])('%s: usa a busca da TCGdex (o catálogo local não tem esses dados)', async (_, input) => {
+  ])('%s antes do sync dos filtros: usa a busca da TCGdex', async (_, input) => {
     const result = await finder.find(input);
 
     expect(result).toBe(fromFallback);
     expect(store.listSets).not.toHaveBeenCalled();
+  });
+
+  test('filtros sincronizados: tipo, raridade e categoria vão para o banco', async () => {
+    store.filterValues.mockResolvedValue({ types: ['Fire'], rarities: ['Rare'], categories: ['Pokemon'] });
+
+    await finder.find(query({ filters: { type: 'Fire', rarity: 'Rare', category: 'Pokemon' } }));
+    await finder.find(query({ filters: { type: 'Fire' } }));
+
+    expect(fallback.find).not.toHaveBeenCalled();
+    expect(store.search).toHaveBeenCalledWith(
+      expect.objectContaining({ attributes: { type: 'Fire', rarity: 'Rare', category: 'Pokemon' } }),
+    );
+    expect(store.filterValues).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ['sem nome', query({ name: undefined })],
+    ['nome só com letras soltas', query({ name: 'a' })],
+  ])('%s: lista o catálogo local sem explicar a busca', async (_, input) => {
+    const result = await finder.find(input);
+
+    expect(fallback.find).not.toHaveBeenCalled();
+    expect(store.search).toHaveBeenCalledWith({
+      lang: 'en',
+      words: [],
+      phrase: '',
+      setIds: [],
+      onlySetId: undefined,
+      attributes: undefined,
+      offset: 0,
+      take: 3,
+      sort: undefined,
+    });
+    expect(result).toMatchObject({ hasNextPage: true, search: null });
+    expect(result.cards).toHaveLength(2);
+  });
+
+  test('sem nome com set e tipo: lista só o que bate', async () => {
+    store.filterValues.mockResolvedValue({ types: ['Fire'], rarities: [], categories: [] });
+
+    await finder.find(query({ name: undefined, page: 2, filters: { set: 'base1', type: 'Fire' } }));
+
+    expect(store.search).toHaveBeenCalledWith(
+      expect.objectContaining({ onlySetId: 'base1', attributes: { type: 'Fire' }, offset: 2 }),
+    );
+  });
+
+  test('sem nome e catálogo local vazio: usa a busca da TCGdex', async () => {
+    store.listSets.mockResolvedValue([]);
+
+    const result = await finder.find(query({ name: undefined }));
+
+    expect(result).toBe(fromFallback);
   });
 
   test('imagem ausente vira null nas duas URLs', async () => {
