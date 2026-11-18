@@ -1,12 +1,18 @@
 import { TcgdexClient } from '../src/cards/catalog/TcgdexClient.js';
 import type { CatalogEntry } from '../src/cards/search/CatalogSearchStore.js';
-import { PrismaCatalogSearchStore } from '../src/cards/search/PrismaCatalogSearchStore.js';
-import type { SetSummary } from '../src/cards/types.js';
+import { PrismaCatalogSearchStore, type CatalogAttributes } from '../src/cards/search/PrismaCatalogSearchStore.js';
+import type { CardFilters, CardFilterValues, SetSummary } from '../src/cards/types.js';
 import { loadDatabaseEnv } from '../src/config/env.js';
 import { createPrismaClient } from '../src/lib/prisma.js';
 
 const DEFAULT_LANGS = ['en', 'pt'];
 const BATCH_SIZE = 500;
+const ALL_CARDS = 100000;
+const FILTER_LISTS: [keyof CardFilterValues, 'type' | 'rarity' | 'category'][] = [
+  ['types', 'type'],
+  ['rarities', 'rarity'],
+  ['categories', 'category'],
+];
 const PAUSE_MS = 200;
 const RETRY_PAUSES_MS = [5000, 15000, 30000];
 
@@ -74,6 +80,58 @@ async function listSets(lang: string): Promise<SetSummary[]> {
   return sets;
 }
 
+async function withRetries<T>(label: string, load: () => Promise<T>): Promise<T> {
+  for (const pause of RETRY_PAUSES_MS) {
+    try {
+      return await load();
+    } catch (err) {
+      console.log(`${label}: falhou (${errorMessage(err)}); tentando de novo em ${pause / 1000} s`);
+      await wait(pause);
+    }
+  }
+  return load();
+}
+
+async function cardIdsWith(lang: string, filter: keyof CardFilters, value: string): Promise<string[]> {
+  const cards = await withRetries(`${lang} ${filter}=${value}`, () =>
+    tcgdex.search({ lang, page: 1, limit: ALL_CARDS, filters: { [filter]: value } }),
+  );
+  await wait(PAUSE_MS);
+  return cards.map((card) => card.id);
+}
+
+async function syncFilters(lang: string): Promise<void> {
+  const values = await withRetries(`${lang} filtros`, async () => {
+    const found = await tcgdex.listFilterValues(lang);
+    if (FILTER_LISTS.some(([list]) => found[list].length === 0)) throw new Error('lista de filtros incompleta');
+    return found;
+  });
+
+  const attributes = new Map<string, CatalogAttributes>();
+  const of = (id: string) => {
+    const known = attributes.get(id) ?? { id, types: [], rarity: null, category: null };
+    attributes.set(id, known);
+    return known;
+  };
+  for (const [list, filter] of FILTER_LISTS) {
+    for (const value of values[list]) {
+      for (const id of await cardIdsWith(lang, filter, value)) {
+        const card = of(id);
+        if (filter === 'type') card.types.push(value);
+        else card[filter] = value;
+      }
+    }
+  }
+
+  const cards = [...attributes.values()];
+  let updated = 0;
+  for (let start = 0; start < cards.length; start += BATCH_SIZE) {
+    updated += await store.saveAttributes(lang, cards.slice(start, start + BATCH_SIZE));
+  }
+  await store.saveFilterValues(lang, values);
+  console.log(`${lang}: tipo, raridade e categoria gravados em ${updated} cartas`);
+}
+
 async function syncLang(lang: string): Promise<string[]> {
   const started = Date.now();
   const sets = await listSets(lang);
@@ -90,9 +148,18 @@ async function syncLang(lang: string): Promise<string[]> {
     failed = retry.failed;
   }
 
+  await store.saveSets(lang, sets.map(({ id, name }) => ({ id, name })));
+  const failedFilters: string[] = [];
+  try {
+    await syncFilters(lang);
+  } catch (err) {
+    console.error(`${lang}: filtros não sincronizados (${errorMessage(err)})`);
+    failedFilters.push(`${lang} (filtros)`);
+  }
+
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
   console.log(`${lang}: ${sets.length - failed.length} sets e ${cardCount} cartas sincronizados em ${seconds} s`);
-  return failed.map((set) => `${lang}/${set.id}`);
+  return [...failed.map((set) => `${lang}/${set.id}`), ...failedFilters];
 }
 
 async function main() {

@@ -1,6 +1,7 @@
 import type { CardCatalog } from '../cards/catalog/CardCatalog.js';
 import { DbCachedCatalog } from '../cards/catalog/DbCachedCatalog.js';
 import { InFlightDedupCatalog } from '../cards/catalog/InFlightDedupCatalog.js';
+import { LocalFirstCatalog } from '../cards/catalog/LocalFirstCatalog.js';
 import { MemoryCachedCatalog } from '../cards/catalog/MemoryCachedCatalog.js';
 import { MockCatalog } from '../cards/catalog/MockCatalog.js';
 import { PrismaCardCacheStore } from '../cards/catalog/PrismaCardCacheStore.js';
@@ -45,13 +46,15 @@ function buildCatalog(infra: Infra, cardRepository: CardRepository): { catalog: 
     ttlMs: 24 * ONE_HOUR,
     logger: infra.logger,
   });
-  const catalog = new MemoryCachedCatalog(new InFlightDedupCatalog(dbCached), {
+  const memoryCached = new MemoryCachedCatalog(new InFlightDedupCatalog(dbCached), {
     detailTtlMs: ONE_HOUR,
     isCacheable: (card) => !dbCached.isStale(card),
   });
+  const store = new PrismaCatalogSearchStore(infra.prisma);
+  const catalog = new LocalFirstCatalog(memoryCached, store);
 
   const smartFinder = new SmartCardFinder(catalog, { ttlMs: TEN_MINUTES, logger: infra.logger });
-  const finder = new LocalCatalogFinder(new PrismaCatalogSearchStore(infra.prisma), smartFinder, {
+  const finder = new LocalCatalogFinder(store, smartFinder, {
     setsTtlMs: TEN_MINUTES,
   });
 

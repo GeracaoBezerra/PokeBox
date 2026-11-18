@@ -26,6 +26,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await ctx.container.infra.prisma.catalogCard.deleteMany();
+  await ctx.container.infra.prisma.catalogSet.deleteMany();
+  await ctx.container.infra.prisma.catalogFilterValue.deleteMany();
   await ctx.close();
 });
 
@@ -135,5 +137,70 @@ describe('GET /cards com o catálogo local preenchido (#78)', () => {
     } finally {
       ctx.tcgdex.failWith(null);
     }
+  });
+});
+
+describe('GET /cards e /cards/filters com os filtros sincronizados (#158)', () => {
+  const distinct = (values: (string | null)[]) =>
+    [...new Set(values.filter((value): value is string => value !== null))].sort();
+
+  beforeAll(async () => {
+    const cards = ctx.tcgdex.cards;
+    await store.saveSets('en', [
+      ...new Map(cards.map((card) => [card.setId, { id: card.setId, name: card.setName }])).values(),
+    ]);
+    await store.saveAttributes(
+      'en',
+      cards.map((card) => ({ id: card.id, types: card.types, rarity: card.rarity, category: card.category })),
+    );
+    await store.saveFilterValues('en', {
+      types: distinct(cards.flatMap((card) => card.types)),
+      rarities: distinct(cards.map((card) => card.rarity)),
+      categories: distinct(cards.map((card) => card.category)),
+    });
+    ctx.tcgdex.failWith(503);
+  });
+
+  afterAll(() => ctx.tcgdex.failWith(null));
+
+  test('painel de filtros responde pelo banco com a TCGdex fora', async () => {
+    const res = await request(ctx.app).get('/cards/filters');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.types).toContain('Fire');
+    expect(res.body.data.categories).toEqual(expect.arrayContaining(['Pokemon', 'Trainer']));
+    expect(res.body.data.sets).toContainEqual({ id: 'base1', name: 'Base Set' });
+  });
+
+  test('filtro de tipo sem nome responde pelo banco, e o tipo não diferencia maiúscula', async () => {
+    const res = await request(ctx.app).get('/cards').query({ type: 'fire', limit: 100 });
+
+    expect(res.status).toBe(200);
+    expect(ids(res)).toContain(CHARIZARD);
+    const fire = ctx.tcgdex.cards.filter((card) => card.types.includes('Fire')).map((card) => card.id);
+    expect(ids(res).every((id) => fire.includes(id))).toBe(true);
+  });
+
+  test('nome com filtro de categoria responde pelo banco', async () => {
+    const res = await request(ctx.app).get('/cards').query({ name: 'charizard', category: 'Trainer' });
+
+    expect(res.status).toBe(200);
+    expect(ids(res)).not.toContain(CHARIZARD);
+  });
+
+  test('lista sem nome e sem filtro pagina o catálogo local', async () => {
+    const first = await request(ctx.app).get('/cards').query({ limit: 5 });
+    const second = await request(ctx.app).get('/cards').query({ limit: 5, page: 2 });
+
+    expect(first.status).toBe(200);
+    expect(first.body.data).toHaveLength(5);
+    expect(first.body.pagination).toMatchObject({ hasNextPage: true });
+    expect(ids(second).filter((id) => ids(first).includes(id))).toEqual([]);
+  });
+
+  test('valor de filtro que não existe continua dando 400', async () => {
+    const res = await request(ctx.app).get('/cards').query({ type: 'Plasma' });
+
+    expect(res.status).toBe(400);
   });
 });

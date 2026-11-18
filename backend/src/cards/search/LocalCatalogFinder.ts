@@ -1,8 +1,8 @@
 import { matchSets, tokenize } from '../../utils/cardSearch.js';
 import { MemoryCache } from '../../utils/memoryCache.js';
-import type { CardListItem, CardListQuery, CardListResult } from '../types.js';
+import type { CardFilters, CardFilterValues, CardListItem, CardListQuery, CardListResult } from '../types.js';
 import type { CardFinder } from './CardFinder.js';
-import type { CatalogEntry, CatalogSearchStore, CatalogSet } from './CatalogSearchStore.js';
+import type { CatalogAttributeFilters, CatalogEntry, CatalogSearchStore, CatalogSet } from './CatalogSearchStore.js';
 
 export interface LocalCatalogFinderOptions {
   setsTtlMs: number;
@@ -22,8 +22,14 @@ function toCardListItem(entry: CatalogEntry): CardListItem {
   };
 }
 
+function attributesOf({ type, rarity, category }: CardFilters): CatalogAttributeFilters | undefined {
+  if (!type && !rarity && !category) return undefined;
+  return { type, rarity, category };
+}
+
 export class LocalCatalogFinder implements CardFinder {
   private readonly sets: MemoryCache<CatalogSet[]>;
+  private readonly filterValues: MemoryCache<CardFilterValues>;
 
   constructor(
     private readonly store: CatalogSearchStore,
@@ -31,15 +37,18 @@ export class LocalCatalogFinder implements CardFinder {
     { setsTtlMs }: LocalCatalogFinderOptions,
   ) {
     this.sets = new MemoryCache(setsTtlMs);
+    this.filterValues = new MemoryCache(setsTtlMs);
   }
 
   async find(query: CardListQuery): Promise<CardListResult> {
     const { lang, name, page, limit, filters = {}, sort } = query;
     const tokens = tokenize(name);
-    if (tokens.length === 0 || filters.type || filters.rarity || filters.category) return this.fallback.find(query);
+    const attributes = attributesOf(filters);
+    if (attributes && !(await this.hasFilterValues(lang))) return this.fallback.find(query);
 
     const sets = await this.listSets(lang);
     if (sets.length === 0) return this.fallback.find(query);
+    if (tokens.length === 0) return this.browse(query, attributes);
 
     const matched = matchSets(tokens, sets);
     const nameTokens = tokens.filter((token) => !matched.used.includes(token));
@@ -64,6 +73,7 @@ export class LocalCatalogFinder implements CardFinder {
       phrase: tokens.join(' '),
       setIds,
       onlySetId: filters.set,
+      attributes,
       offset: (page - 1) * limit,
       take: limit + 1,
       sort,
@@ -74,6 +84,29 @@ export class LocalCatalogFinder implements CardFinder {
       hasNextPage: found.length > limit,
       search,
     };
+  }
+
+  private async browse(query: CardListQuery, attributes?: CatalogAttributeFilters): Promise<CardListResult> {
+    const { lang, page, limit, filters = {}, sort } = query;
+    const found = await this.store.search({
+      lang,
+      words: [],
+      phrase: '',
+      setIds: [],
+      onlySetId: filters.set,
+      attributes,
+      offset: (page - 1) * limit,
+      take: limit + 1,
+      sort,
+    });
+    return { cards: found.slice(0, limit).map(toCardListItem), hasNextPage: found.length > limit, search: null };
+  }
+
+  private async hasFilterValues(lang: string): Promise<boolean> {
+    if (this.filterValues.get(lang)) return true;
+    const values = await this.store.filterValues(lang);
+    if (values) this.filterValues.set(lang, values);
+    return values !== null;
   }
 
   private async listSets(lang: string): Promise<CatalogSet[]> {
