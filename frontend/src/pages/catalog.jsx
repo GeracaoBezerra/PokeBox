@@ -2,14 +2,13 @@ import { Link, useSearchParams } from "react-router-dom";
 import { SearchX } from "lucide-react";
 import { getCardFilters, searchCards } from "../api/cards";
 import Aviso from "../components/Aviso/Aviso";
-import BarraBusca from "../components/BarraBusca/BarraBusca";
 import FiltrosCatalogo from "../components/FiltrosCatalogo/FiltrosCatalogo";
 import GradeCartas from "../components/GradeCartas/GradeCartas";
 import Paginacao from "../components/Paginacao/Paginacao";
 import SelosFiltro from "../components/SelosFiltro/SelosFiltro";
 import { useCarregar } from "../hooks/useCarregar";
 import s from "../styles/vitrine.module.css";
-import { IDIOMA_PADRAO, linkBuscaNaReserva } from "../utils/idioma";
+import { IDIOMAS, IDIOMA_PADRAO, linkBuscaNaReserva } from "../utils/idioma";
 import { CATEGORIAS, TIPOS } from "../utils/rotulos";
 
 const CAMPOS_FILTRO = ["category", "type", "rarity", "set"];
@@ -76,8 +75,8 @@ export default function CatalogPage() {
     setParams(novos);
   }
 
-  function buscar(nome, idioma) {
-    atualizar({ name: nome, lang: idioma, ...(idioma !== lang ? VAZIOS : {}) });
+  function trocarIdioma(idioma) {
+    atualizar({ ...VAZIOS, lang: idioma });
   }
 
   function ordenar(valor) {
@@ -107,13 +106,16 @@ export default function CatalogPage() {
         <p>Encontre sua próxima carta, complete sua coleção e descubra novas possibilidades de troca.</p>
       </header>
       <div className={s.barra}>
-        <BarraBusca
-          rotulo="Buscar cartas"
-          placeholder="Nome da carta ou expansão…"
-          valor={name}
-          idioma={lang}
-          onBuscar={buscar}
-        />
+        <label className={s.campo}>
+          Idioma
+          <select value={lang} onChange={(e) => trocarIdioma(e.target.value)}>
+            {Object.entries(IDIOMAS).map(([codigo, nome]) => (
+              <option key={codigo} value={codigo}>
+                {nome}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className={s.campo}>
           Ordenar por
           <select value={ordenacao} onChange={(e) => ordenar(e.target.value)}>

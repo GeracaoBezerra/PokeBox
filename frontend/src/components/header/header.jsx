@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Search,
   Menu,
   X,
   Heart,
@@ -12,22 +11,16 @@ import {
   Megaphone,
   Inbox,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Logo from "../Logo/Logo";
 import MenuUsuario from "../MenuUsuario/MenuUsuario";
+import BuscaGeral from "./BuscaGeral";
 import { usePendencias } from "../../hooks/usePendencias";
 import styles from "./header.module.css";
 
 export default function Header() {
   const [menuAberto, setMenuAberto] = useState(false);
-  const [busca, setBusca] = useState("");
-  const navigate = useNavigate();
   const pendencias = usePendencias();
-
-  function buscar(event) {
-    event.preventDefault();
-    navigate(`/catalogo?name=${encodeURIComponent(busca.trim())}`);
-  }
 
   function fecharMenu() {
     setMenuAberto(false);
@@ -46,23 +39,7 @@ export default function Header() {
             <Logo decorativa tamanho={44} />
           </Link>
 
-          {/* Busca para desktop */}
-          <form
-            className={`${styles.buscaContainer} ${styles.buscaDesktop}`}
-            role="search"
-            onSubmit={buscar}
-          >
-            <Search className={styles.iconeBusca} size={18} />
-
-            <input
-              type="search"
-              placeholder="Buscar cartas, sets ou colecionadores..."
-              value={busca}
-              onChange={(event) => setBusca(event.target.value)}
-              className={styles.inputBusca}
-              aria-label="Buscar cartas, sets ou colecionadores"
-            />
-          </form>
+          <BuscaGeral />
 
           <div className={styles.acoes}>
             <MenuUsuario />
@@ -79,24 +56,6 @@ export default function Header() {
             </button>
           </div>
         </div>
-
-        {/* Busca para dispositivos móveis */}
-        <form
-          className={`${styles.buscaContainer} ${styles.buscaMobile}`}
-          role="search"
-          onSubmit={buscar}
-        >
-          <Search className={styles.iconeBusca} size={18} />
-
-          <input
-            type="search"
-            placeholder="Buscar cartas ou sets..."
-            value={busca}
-            onChange={(event) => setBusca(event.target.value)}
-            className={styles.inputBusca}
-            aria-label="Buscar cartas ou sets"
-          />
-        </form>
 
         {/* Navegação */}
         <nav

@@ -69,6 +69,10 @@
   font-size: var(--fs-sm);
 }
 
+.inputBusca[aria-invalid="true"] {
+  border-color: var(--erro);
+}
+
 .inputBusca::placeholder {
   color: var(--texto-suave);
 }
@@ -80,8 +84,15 @@
     color-mix(in srgb, var(--acento) 30%, transparent);
 }
 
-.buscaMobile {
-  display: none;
+.buscaCampo {
+  position: relative;
+  display: block;
+}
+
+.buscaErro {
+  position: absolute;
+  top: 100%;
+  left: 0;
 }
 
 /* Perfil e botão do menu */
@@ -181,14 +192,18 @@
     padding: var(--esp-12) var(--esp-16);
   }
 
-  .buscaDesktop {
-    display: none;
+  .topo {
+    flex-wrap: wrap;
   }
 
-  .buscaMobile {
-    display: block;
+  .buscaContainer {
+    order: 1;
+    flex-basis: 100%;
     max-width: none;
-    width: 100%;
+  }
+
+  .buscaErro {
+    position: static;
   }
 
   .botaoMenu {

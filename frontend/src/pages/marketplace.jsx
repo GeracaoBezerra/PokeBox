@@ -5,7 +5,6 @@ import { listListings } from "../api/listings";
 import { listWishlist } from "../api/wishlist";
 import { useSession } from "../auth/useSession";
 import Aviso from "../components/Aviso/Aviso";
-import BarraBusca from "../components/BarraBusca/BarraBusca";
 import CartaAnuncio from "../components/CartaAnuncio/CartaAnuncio";
 import FiltrosMarketplace from "../components/FiltrosMarketplace/FiltrosMarketplace";
 import GradeCartas, { ItemGrade } from "../components/GradeCartas/GradeCartas";
@@ -124,12 +123,6 @@ export default function MarketplacePage() {
         <p>Encontre quem tem a carta que você procura e proponha uma troca.</p>
       </header>
       <div className={s.barra}>
-        <BarraBusca
-          rotulo="Buscar carta"
-          placeholder="ex.: charizard, ultra ball, charizard base"
-          valor={q}
-          onBuscar={(texto) => atualizar({ q: texto })}
-        />
         <label className={s.campo}>
           Ordenar por
           <select value={sort} onChange={(e) => atualizar({ sort: e.target.value })}>
