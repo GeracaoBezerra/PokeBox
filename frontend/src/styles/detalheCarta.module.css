@@ -270,6 +270,7 @@
 .botaoPerigo { composes: botaoSecundario; background: var(--erro-fundo); border-color: var(--erro); color: var(--erro); }
 .botaoPerigo:hover { background: color-mix(in srgb, var(--erro) 22%, var(--superficie)); }
 .ofertaCampos { display: grid; min-width: 0; gap: var(--esp-24); border: 0; margin: 0; padding: 0; }
+.semResultado { display: flex; align-items: center; gap: var(--esp-16); flex-wrap: wrap; }
 .cabecalhoSelecao,
 .rodapeOferta { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-16); flex-wrap: wrap; }
 .rodapeOferta { border-top: 1px solid var(--borda-suave); padding-top: var(--esp-24); }

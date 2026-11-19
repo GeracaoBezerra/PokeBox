@@ -1,41 +1,73 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { Send } from "lucide-react";
 import { listCollection } from "../../api/collection";
 import { errosPorCampo } from "../../api/mensagens";
 import { createOffer } from "../../api/offers";
 import { useAcao } from "../../hooks/useAcao";
-import { useCarregar } from "../../hooks/useCarregar";
+import { useListaPaginada } from "../../hooks/useListaPaginada";
 import s from "../../styles/detalheCarta.module.css";
+import { temPalavra } from "../../utils/filtrosMarketplace";
+import { LIMITE_CARTAS_OFERTA, filtrarPorNome, unirPorId } from "../../utils/oferta";
 import Aviso from "../Aviso/Aviso";
+import CampoBusca from "../CampoBusca/CampoBusca";
 import ErroCampo from "../ErroCampo/ErroCampo";
 import CartasOferecidas from "../CartasOferecidas/CartasOferecidas";
 import CarregandoCartas from "../CarregandoCartas/CarregandoCartas";
+import ResumoTroca from "../ResumoTroca/ResumoTroca";
+
+const disponivel = (item) => item.available > 0;
 
 export default function FormOferta({ anuncio }) {
-  const { dados: colecao, erro: erroColecao, carregando, recarregar } = useCarregar(listCollection);
+  const [busca, setBusca] = useState("");
+  const [termo, setTermo] = useState("");
+  const q = temPalavra(termo) ? termo : "";
+  const colecao = useListaPaginada((page) => listCollection({ page }));
+  const pesquisa = useListaPaginada((page) => (q ? listCollection({ q, page }) : Promise.resolve(null)), q);
   const [quantidade, setQuantidade] = useState(1);
   const [mensagem, setMensagem] = useState("");
   const [escolhidas, setEscolhidas] = useState({});
   const acao = useAcao();
   const id = useId();
   const erros = errosPorCampo(acao.erro?.details);
-  const disponiveis = (colecao ?? []).filter((item) => item.available > 0);
-  const total = Object.keys(escolhidas).length;
+  const buscando = busca.trim() !== "";
+  const daColecao = colecao.itens.filter(disponivel);
+  const visiveis = buscando ? unirPorId(filtrarPorNome(daColecao, busca), q ? pesquisa.itens.filter(disponivel) : []) : daColecao;
+  const lista = buscando && q ? pesquisa : colecao;
+  const esperandoBusca = buscando && temPalavra(busca.trim()) && (busca.trim() !== termo || pesquisa.carregando);
+  const listaEscolhidas = Object.values(escolhidas);
+  const quantidades = Object.fromEntries(listaEscolhidas.map(({ item, quantidade: qtd }) => [item.id, qtd]));
+  const total = listaEscolhidas.length;
+  const carregando = colecao.carregando;
+  const erroColecao = colecao.erro ?? pesquisa.erro;
+
+  useEffect(() => {
+    const espera = setTimeout(() => setTermo(busca.trim()), 300);
+    return () => clearTimeout(espera);
+  }, [busca]);
 
   function alternar(item, marcado) {
     setEscolhidas((atual) => {
       const novo = { ...atual };
-      if (marcado && Object.keys(novo).length < 20) novo[item.id] = 1;
+      if (marcado && Object.keys(novo).length < LIMITE_CARTAS_OFERTA) novo[item.id] = { item, quantidade: 1 };
       else if (!marcado) delete novo[item.id];
       return novo;
     });
   }
 
+  function mudarQuantidade(item, valor) {
+    setEscolhidas((atual) => (atual[item.id] ? { ...atual, [item.id]: { ...atual[item.id], quantidade: valor } } : atual));
+  }
+
+  function recarregar() {
+    colecao.recarregar();
+    pesquisa.recarregar();
+  }
+
   async function enviar(evento) {
     evento.preventDefault();
     if (acao.ocupado || acao.sucesso || carregando || total === 0) return;
-    const items = Object.entries(escolhidas).map(([collectionItemId, quantity]) => ({ collectionItemId, quantity: Number(quantity) }));
+    const items = listaEscolhidas.map(({ item, quantidade: qtd }) => ({ collectionItemId: item.id, quantity: Number(qtd) }));
     await acao.executar(() => createOffer(anuncio.id, {
       quantity: Number(quantidade),
       ...(mensagem.trim() ? { message: mensagem.trim() } : {}),
@@ -62,9 +94,13 @@ export default function FormOferta({ anuncio }) {
           <Aviso erro={erroColecao} />
           {erroColecao && <button type="button" className={s.botaoSecundario} onClick={recarregar}>Carregar coleção novamente</button>}
           {carregando && <CarregandoCartas total={4} formato="tabela" />}
-          {!carregando && colecao && disponiveis.length === 0 && <div className={s.vazio}><h3>Sua coleção ainda não tem cartas disponíveis</h3><p>Adicione cartas para montar sua primeira oferta.</p><Link className={s.botaoSecundario} to="/catalogo">Explorar catálogo</Link></div>}
-          {!carregando && disponiveis.length > 0 && <CartasOferecidas itens={disponiveis} escolhidas={escolhidas} onAlternar={alternar} onQuantidade={(item, valor) => setEscolhidas((atual) => ({ ...atual, [item.id]: valor }))} />}
-          <div className={s.rodapeOferta}><p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p><button className={s.botao} type="submit" disabled={carregando || Boolean(erroColecao) || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
+          {!carregando && !colecao.erro && !colecao.temMais && daColecao.length === 0 && <div className={s.vazio}><h3>Sua coleção ainda não tem cartas disponíveis</h3><p>Adicione cartas para montar sua primeira oferta.</p><Link className={s.botaoSecundario} to="/catalogo">Explorar catálogo</Link></div>}
+          {!carregando && (daColecao.length > 0 || colecao.temMais) && <CampoBusca rotulo="Buscar na sua coleção" placeholder="Nome da carta" valor={busca} onMudar={setBusca} imediato />}
+          {!carregando && buscando && !esperandoBusca && visiveis.length === 0 && <div className={s.semResultado}><p className={s.suave}>Nenhuma carta da sua coleção com esse nome.</p><button type="button" className={s.botaoSecundario} onClick={() => setBusca("")}>Limpar busca</button></div>}
+          {!carregando && visiveis.length > 0 && <CartasOferecidas itens={visiveis} escolhidas={quantidades} onAlternar={alternar} onQuantidade={mudarQuantidade} />}
+          {esperandoBusca && <p className={s.suave} role="status">Buscando na sua coleção…</p>}
+          {!carregando && !esperandoBusca && lista.temMais && <button type="button" className={s.botaoSecundario} disabled={lista.carregandoMais} onClick={lista.carregarMais}>{lista.carregandoMais ? "Carregando…" : "Carregar mais cartas"}</button>}
+          <div className={s.rodapeOferta}><ResumoTroca anuncio={anuncio} quantidade={quantidade} escolhidas={listaEscolhidas} /><p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p><button className={s.botao} type="submit" disabled={carregando || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
         </fieldset>
         <Aviso erro={acao.erro} campos={["quantity", "message"]} />
         {acao.sucesso && <Link className={s.link} to="/propostas">Acompanhar minha oferta</Link>}
