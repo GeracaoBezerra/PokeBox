@@ -13,7 +13,7 @@ const LANG = "en"; // a TCGdex não tem todos os sets em pt; en sempre existe
 // Seção "Cartas em destaque" da home: busca as cartas e usa a GradeCartas.
 export default function GridCartas() {
   // name: "" é igual ao que o catálogo envia quando não há busca
-  const { dados, erro, carregando } = useCarregar(
+  const { dados, erro, carregando, recarregar } = useCarregar(
     () => searchCards({ name: "", lang: LANG, page: 1, limit: TOTAL }),
     "grid-destaques",
   );
@@ -34,7 +34,7 @@ export default function GridCartas() {
           </Link>
         </header>
 
-        <Aviso erro={erro} />
+        <Aviso erro={erro} onTentarDeNovo={recarregar} />
 
         {!erro && (
           <GradeCartas cartas={cartas} lang={LANG} carregando={carregando} />

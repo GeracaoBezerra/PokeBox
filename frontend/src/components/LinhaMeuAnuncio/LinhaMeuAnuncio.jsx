@@ -73,10 +73,10 @@ export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
           )}
         </td>
       </tr>
-      {(acao.erro || acao.sucesso) && (
+      {acao.erro && (
         <tr>
           <td colSpan={6}>
-            <Aviso erro={acao.erro} sucesso={acao.sucesso} />
+            <Aviso erro={acao.erro} />
           </td>
         </tr>
       )}

@@ -32,7 +32,7 @@ export default function SwitchNegociationPage() {
         rotulosStatus={STATUS_TROCA}
       />
 
-      <Aviso erro={erro} />
+      <Aviso erro={erro} onTentarDeNovo={recarregar} />
       {carregando && <CarregandoCartas formato="negociacoes" total={4} />}
       {!carregando && dados && lista.length === 0 && <p className={s.suave}>Nenhuma troca aqui.</p>}
 

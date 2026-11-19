@@ -58,7 +58,7 @@ export default function ModeracaoAnuncio({ anuncio, onMudou, atualizando = false
         )}
       </div>
       {anuncio.status === "CLOSED" && <p className={s.suave}>Este anúncio já foi encerrado.</p>}
-      <Aviso erro={acao.erro} sucesso={acao.sucesso} />
+      <Aviso erro={acao.erro} />
     </section>
   );
 }

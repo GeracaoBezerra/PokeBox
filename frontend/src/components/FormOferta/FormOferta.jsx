@@ -56,7 +56,7 @@ export default function FormOferta({ anuncio }) {
           {!carregando && disponiveis.length > 0 && <CartasOferecidas itens={disponiveis} escolhidas={escolhidas} onAlternar={alternar} onQuantidade={(item, valor) => setEscolhidas((atual) => ({ ...atual, [item.id]: valor }))} />}
           <div className={s.rodapeOferta}><p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p><button className={s.botao} type="submit" disabled={carregando || Boolean(erroColecao) || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
         </fieldset>
-        <Aviso erro={acao.erro} sucesso={acao.sucesso} />
+        <Aviso erro={acao.erro} />
         {acao.sucesso && <Link className={s.link} to="/propostas">Acompanhar minha oferta</Link>}
       </form>
     </section>

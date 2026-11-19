@@ -11,13 +11,13 @@ import { CONDICOES, formatarData, variante } from "../utils/rotulos";
 export default function PublicPerfilPage() {
   const { username } = useParams();
   const navigate = useNavigate();
-  const { dados, erro, carregando } = useCarregar(() => getPublicCollection(username), username);
+  const { dados, erro, carregando, recarregar } = useCarregar(() => getPublicCollection(username), username);
 
   return (
     <div className={s.pagina}>
       <BuscaPerfil username={username} onBuscar={(busca) => navigate(`/u/${busca}`)} />
 
-      <Aviso erro={erro} />
+      <Aviso erro={erro} onTentarDeNovo={recarregar} />
       {carregando && <CarregandoCartas />}
 
       {!carregando && dados && (

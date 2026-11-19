@@ -33,7 +33,7 @@ export default function AcoesAnuncio({ anuncio, onMudou, acao: acaoDeFora }) {
     return (
       <>
         <p className={s.suave}>{FRASE_ENCERRADO[anuncio.status]}</p>
-        {!acaoDeFora && <Aviso erro={acao.erro} sucesso={acao.sucesso} />}
+        {!acaoDeFora && <Aviso erro={acao.erro} />}
       </>
     );
   }
@@ -55,7 +55,7 @@ export default function AcoesAnuncio({ anuncio, onMudou, acao: acaoDeFora }) {
           Fechar
         </button>
       </div>
-      {!acaoDeFora && <Aviso erro={acao.erro} sucesso={acao.sucesso} />}
+      {!acaoDeFora && <Aviso erro={acao.erro} />}
     </>
   );
 }

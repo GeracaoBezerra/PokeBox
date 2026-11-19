@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import ScrollAoTopo from './components/ScrollAoTopo/ScrollAoTopo.jsx'
 import ConfirmacaoProvider from './components/ConfirmacaoProvider/ConfirmacaoProvider.jsx'
+import ToastProvider from './components/ToastProvider/ToastProvider.jsx'
 import { AuthProvider } from './auth/authProvider.jsx'
 import { createAuthService } from './auth/createAuthService.js'
 import './styles/reset.css'
@@ -15,11 +16,13 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <ScrollAoTopo />
-      <AuthProvider service={authService}>
-        <ConfirmacaoProvider>
-          <App />
-        </ConfirmacaoProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider service={authService}>
+          <ConfirmacaoProvider>
+            <App />
+          </ConfirmacaoProvider>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   </StrictMode>,
 )

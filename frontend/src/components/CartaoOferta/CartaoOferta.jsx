@@ -144,7 +144,7 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, onMudou }) 
           </Link>
         )}
       </div>
-      <Aviso erro={acao.erro} sucesso={acao.sucesso} />
+      <Aviso erro={acao.erro} />
     </div>
   );
 }

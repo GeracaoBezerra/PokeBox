@@ -23,7 +23,7 @@ export default function FormColecao({ card, lang, onAdicionado }) {
     quantity: 1,
     isPublic: true,
   });
-  const { erro, sucesso, ocupado, executar } = useAcao();
+  const { erro, ocupado, executar } = useAcao();
 
   function alterar(campo, valor) {
     setForm((atual) => ({ ...atual, [campo]: valor }));
@@ -89,7 +89,7 @@ export default function FormColecao({ card, lang, onAdicionado }) {
       <button className={s.botao} type="submit" disabled={ocupado}>
         {ocupado ? "Adicionando…" : "Adicionar à coleção"}
       </button>
-      <Aviso erro={erro} sucesso={sucesso} />
+      <Aviso erro={erro} />
     </form>
   );
 }

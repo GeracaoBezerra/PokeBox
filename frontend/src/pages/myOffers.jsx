@@ -39,7 +39,7 @@ export default function MyOffersPage() {
         rotulosStatus={STATUS_NEGOCIACAO}
       />
 
-      <Aviso erro={erro} />
+      <Aviso erro={erro} onTentarDeNovo={recarregar} />
       {carregando && <CarregandoCartas formato="negociacoes" total={4} />}
       {!carregando && dados && lista.length === 0 && <p className={s.suave}>Nenhuma oferta aqui.</p>}
 

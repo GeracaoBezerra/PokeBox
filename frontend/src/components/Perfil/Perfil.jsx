@@ -132,7 +132,7 @@ function SecaoConta({ user }) {
           Desativar minha conta
         </button>
       </div>
-      <Aviso erro={acao.erro} sucesso={acao.sucesso} />
+      <Aviso erro={acao.erro} />
       <ConfirmModal
         aberto={confirmando}
         titulo="Desativar sua conta?"
@@ -181,7 +181,7 @@ export default function Perfil() {
     return ok;
   }
 
-  if (erro) return <Aviso erro={erro} />;
+  if (erro) return <Aviso erro={erro} onTentarDeNovo={recarregar} />;
   if (!dados) return null;
 
   return (
@@ -190,7 +190,7 @@ export default function Perfil() {
         <MenuPerfil secoes={SECOES} selecionada={secaoAtiva} onSelecionar={setSecaoAtiva} />
 
         <div className={styles.conteudo}>
-          <Aviso erro={salvar.erro} sucesso={salvar.sucesso} />
+          <Aviso erro={salvar.erro} />
 
           {secaoAtiva === "perfil" && (
             <SecaoEditavel

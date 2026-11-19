@@ -115,11 +115,11 @@ export default function LinhaColecao({ item, onMudou }) {
           </div>
         </td>
       </tr>
-      {(anunciando || acao.erro || acao.sucesso) && (
+      {(anunciando || acao.erro) && (
         <tr>
           <td colSpan={9}>
             {anunciando && <FormNovoAnuncio disponivel={item.available} ocupado={acao.ocupado} onCriar={anunciar} />}
-            <Aviso erro={acao.erro} sucesso={acao.sucesso} />
+            <Aviso erro={acao.erro} />
           </td>
         </tr>
       )}

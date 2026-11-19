@@ -37,7 +37,7 @@ http.interceptors.response.use(
       window.location.assign("/login");
     }
 
-    const message = data?.details?.[0]?.message || data?.error || "Erro inesperado.";
+    const message = data?.details?.[0]?.message || data?.error || "";
     return Promise.reject(new ApiError(status, message, data?.details));
   }
 );
