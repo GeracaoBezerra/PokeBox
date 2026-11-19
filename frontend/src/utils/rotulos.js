@@ -80,3 +80,8 @@ export function textoOfertasAguardando(quantidade) {
   if (quantidade === 1) return "1 oferta aguardando sua resposta";
   return `${quantidade} ofertas aguardando sua resposta`;
 }
+
+export function descreverCartas(itens) {
+  if (!itens?.length) return "nenhuma carta";
+  return itens.map((item) => `${item.quantity}× ${item.card.name}`).join(", ");
+}

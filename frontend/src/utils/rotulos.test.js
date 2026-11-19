@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   contarOfertasAguardando,
+  descreverCartas,
   formatarData,
   precoReferencia,
   textoOfertasAguardando,
@@ -76,5 +77,20 @@ describe("textoOfertasAguardando", () => {
 
   it("usa o plural para várias", () => {
     expect(textoOfertasAguardando(3)).toBe("3 ofertas aguardando sua resposta");
+  });
+});
+
+describe("descreverCartas", () => {
+  it("junta quantidade e nome de cada carta", () => {
+    const itens = [
+      { quantity: 2, card: { name: "Fire Energy" } },
+      { quantity: 1, card: { name: "Pikachu" } },
+    ];
+
+    expect(descreverCartas(itens)).toBe("2× Fire Energy, 1× Pikachu");
+  });
+
+  it("avisa quando a lista está vazia", () => {
+    expect(descreverCartas([])).toBe("nenhuma carta");
   });
 });
