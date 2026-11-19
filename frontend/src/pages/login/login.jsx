@@ -1,9 +1,10 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AuthLayout from "../../auth/authLayout";
 import LoginForm from "../../auth/loginForm";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <AuthLayout
@@ -12,7 +13,7 @@ export default function LoginPage() {
       footerLinkTo="/register"
       footerLinkLabel="Criar conta"
     >
-      <LoginForm onSuccess={() => navigate("/")} />
+      <LoginForm onSuccess={() => navigate(location.state?.de ?? "/", { replace: true })} />
     </AuthLayout>
   );
 }

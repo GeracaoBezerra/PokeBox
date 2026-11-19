@@ -18,6 +18,7 @@ export default function RegisterForm({ onSuccess }) {
           value={values.name}
           onChange={setField("name")}
           aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? "name-erro" : undefined}
         />
       </Field>
 
@@ -30,6 +31,7 @@ export default function RegisterForm({ onSuccess }) {
           value={values.username}
           onChange={setField("username")}
           aria-invalid={!!errors.username}
+          aria-describedby={errors.username ? "username-erro" : undefined}
         />
       </Field>
 
@@ -42,6 +44,7 @@ export default function RegisterForm({ onSuccess }) {
           value={values.email}
           onChange={setField("email")}
           aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? "email-erro" : undefined}
         />
       </Field>
 
@@ -55,6 +58,7 @@ export default function RegisterForm({ onSuccess }) {
             value={values.password}
             onChange={setField("password")}
             aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? "password-erro" : undefined}
           />
           <button
             type="button"
@@ -79,6 +83,7 @@ export default function RegisterForm({ onSuccess }) {
           value={values.confirmPassword}
           onChange={setField("confirmPassword")}
           aria-invalid={!!errors.confirmPassword}
+          aria-describedby={errors.confirmPassword ? "confirmPassword-erro" : undefined}
         />
       </Field>
 

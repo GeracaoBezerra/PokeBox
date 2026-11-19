@@ -1,15 +1,21 @@
 import axios from "axios";
 import { CONFIG } from "../config";
-import { LocalTokenStore } from "../auth/localTokenStore";
-import { LocalUserStore } from "../auth/localUserStore";
 
-const tokenStore = new LocalTokenStore();
-const userStore = new LocalUserStore();
+const ROTAS_DE_LOGIN = ["/auth/login", "/auth/register"];
+
+const NADA = () => {};
+
+let dependencias = { tokenStore: null, aoExpirarSessao: NADA, aoPerderToken: NADA };
+
+export function configurarHttp({ tokenStore, aoExpirarSessao = NADA, aoPerderToken = NADA }) {
+  dependencias = { tokenStore, aoExpirarSessao, aoPerderToken };
+}
 
 export const http = axios.create({ baseURL: CONFIG.apiBaseUrl });
 
 http.interceptors.request.use((config) => {
-  const token = tokenStore.get();
+  const token = dependencias.tokenStore?.get() ?? null;
+  config.tokenUsado = token;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -31,13 +37,15 @@ http.interceptors.response.use(
 
     const { status, data } = error.response;
 
-    if (status === 401 && tokenStore.get()) {
-      tokenStore.clear();
-      userStore.clear();
-      window.location.assign("/login");
+    const ehLogin = ROTAS_DE_LOGIN.includes(error.config?.url);
+    if (status === 401 && !ehLogin) {
+      const tokenUsado = error.config?.tokenUsado ?? null;
+      const tokenAtual = dependencias.tokenStore?.get() ?? null;
+      if (tokenUsado && tokenUsado === tokenAtual) dependencias.aoExpirarSessao();
+      else if (!tokenUsado && !tokenAtual) dependencias.aoPerderToken();
     }
 
-    const message = data?.details?.[0]?.message || data?.error || "Erro inesperado.";
+    const message = data?.details?.[0]?.message || data?.error || "";
     return Promise.reject(new ApiError(status, message, data?.details));
   }
 );

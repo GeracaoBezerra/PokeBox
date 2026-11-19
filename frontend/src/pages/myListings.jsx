@@ -18,7 +18,7 @@ export default function MyListingsPage() {
         anunciar, use a <Link className={s.link} to="/colecao">coleção</Link>.
       </CabecalhoPagina>
 
-      <Aviso erro={erro} />
+      <Aviso erro={erro} onTentarDeNovo={recarregar} />
       {carregando && <CarregandoCartas formato="tabela" total={6} />}
       {!carregando && anuncios && anuncios.length === 0 && <p className={s.suave}>Você ainda não anunciou nada.</p>}
       {!carregando && anuncios && anuncios.length > 0 && <TabelaMeusAnuncios anuncios={anuncios} onMudou={recarregar} />}

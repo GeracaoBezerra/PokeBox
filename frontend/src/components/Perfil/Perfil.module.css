@@ -60,3 +60,51 @@
   border: 1px solid var(--erro);
   color: var(--erro);
 }
+
+.perfilPublico {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--esp-12);
+  padding-top: var(--esp-16);
+  border-top: 1px solid var(--borda-suave);
+}
+
+.selo {
+  padding: var(--esp-4) var(--esp-12);
+  border-radius: var(--raio-pilula);
+  background: var(--info-fundo);
+  color: var(--info);
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-semi);
+}
+
+.link {
+  color: var(--acento);
+  font-size: var(--fs-sm);
+}
+
+.link:hover {
+  color: var(--acento-hover);
+}
+
+.confirmarUsuario {
+  display: grid;
+  gap: var(--esp-8);
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+}
+
+.confirmarUsuario strong {
+  color: var(--texto);
+}
+
+.confirmarUsuario input {
+  min-height: var(--altura-controle);
+  padding: 0 var(--esp-12);
+  background: var(--superficie-funda);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-botao);
+  color: var(--texto);
+  font: inherit;
+}

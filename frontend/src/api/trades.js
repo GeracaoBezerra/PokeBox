@@ -1,13 +1,19 @@
 import { http } from "./http";
+import { parametrosDaPagina } from "./parametros";
 
 export async function createTrade(offerId) {
   const body = await http.post("/trades", { offerId });
   return body.data.trade;
 }
 
-export async function listMyTrades(status) {
-  const body = await http.get("/trades/me", { params: { status: status || undefined } });
-  return body.data;
+export async function listMyTrades(opcoes) {
+  if (typeof opcoes !== "object" || opcoes === null) {
+    const body = await http.get("/trades/me", { params: { status: opcoes || undefined } });
+    return body.data;
+  }
+  const { side, status, page, limit } = opcoes;
+  const body = await http.get("/trades/me", { params: parametrosDaPagina({ side, status, page, limit }) });
+  return { items: body.data.items, pagination: body.pagination };
 }
 
 export async function getTrade(id) {
