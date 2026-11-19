@@ -10,6 +10,7 @@ export default function BlocoDados({
   valores,
   editando,
   onAlterar,
+  erros = {},
   focarPrimeiro = false, // põe o foco no 1º campo ao entrar na edição
 }) {
   const id = useId();
@@ -24,13 +25,15 @@ export default function BlocoDados({
         <div className={styles.formulario}>
           {campos.map((campo, indice) => {
             const idCampo = `${id}-${campo.chave}`;
+            const valor = valores[campo.chave] ?? "";
             const propsEntrada = {
               id: idCampo,
               className: styles.entrada,
-              value: valores[campo.chave] ?? "",
+              value: campo.mascara ? campo.mascara(valor) : valor,
               readOnly: campo.somenteLeitura,
               autoFocus: focarPrimeiro && indice === 0,
-              onChange: (evento) => onAlterar(campo.chave, evento.target.value),
+              onChange: (evento) =>
+                onAlterar(campo.chave, campo.mascara ? campo.mascara(evento.target.value) : evento.target.value),
             };
 
             return (
@@ -46,9 +49,25 @@ export default function BlocoDados({
 
                 {campo.tipo === "textarea" ? (
                   <textarea rows={3} {...propsEntrada} />
+                ) : campo.tipo === "select" ? (
+                  <select {...propsEntrada}>
+                    <option value="">Selecione</option>
+                    {campo.opcoes.map((opcao) => (
+                      <option key={opcao} value={opcao}>
+                        {opcao}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
-                  <input type={campo.tipo ?? "text"} required={campo.obrigatorio} {...propsEntrada} />
+                  <input
+                    type={campo.tipo ?? "text"}
+                    inputMode={campo.inputMode}
+                    required={campo.obrigatorio}
+                    {...propsEntrada}
+                  />
                 )}
+
+                {erros[campo.chave] && <p className={styles.erro}>{erros[campo.chave]}</p>}
               </div>
             );
           })}
@@ -62,7 +81,9 @@ export default function BlocoDados({
               <div key={campo.chave} className={styles.linha}>
                 <dt>{campo.rotulo}</dt>
                 <dd>
-                  {valor || <span className={styles.vazio}>Não informado</span>}
+                  {(campo.mascara && valor ? campo.mascara(valor) : valor) || (
+                    <span className={styles.vazio}>Não informado</span>
+                  )}
                 </dd>
               </div>
             );

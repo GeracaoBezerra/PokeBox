@@ -7,7 +7,7 @@ import PainelPerfil from "../PainelPerfil/PainelPerfil";
 // Minhas informações). Mostra os dados; ao clicar em Editar, os campos
 // viram inputs. Salvar entrega os valores novos para onSalvar(valores);
 // Cancelar descarta o que foi digitado.
-export default function SecaoEditavel({ titulo, blocos, valores, onSalvar }) {
+export default function SecaoEditavel({ titulo, blocos, valores, onSalvar, erros, onAlterar, onCancelar, children }) {
   const [editando, setEditando] = useState(false);
   const [rascunho, setRascunho] = useState(valores);
 
@@ -18,6 +18,7 @@ export default function SecaoEditavel({ titulo, blocos, valores, onSalvar }) {
 
   function cancelar() {
     setEditando(false);
+    onCancelar?.();
   }
 
   async function salvar(evento) {
@@ -28,6 +29,7 @@ export default function SecaoEditavel({ titulo, blocos, valores, onSalvar }) {
 
   function alterar(chave, valor) {
     setRascunho((atual) => ({ ...atual, [chave]: valor }));
+    onAlterar?.(chave, valor);
   }
 
   return (
@@ -46,9 +48,11 @@ export default function SecaoEditavel({ titulo, blocos, valores, onSalvar }) {
             valores={editando ? rascunho : valores}
             editando={editando}
             onAlterar={alterar}
+            erros={editando ? erros : undefined}
             focarPrimeiro={indice === 0}
           />
         ))}
+        {children}
       </PainelPerfil>
     </form>
   );

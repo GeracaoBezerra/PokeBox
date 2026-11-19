@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { adminCheck, deactivateMe, getMe, updateMe } from "../../api/auth";
 import { listMyTrades } from "../../api/trades";
 import { useAuthService } from "../../auth/useAuthService";
 import { useAcao } from "../../hooks/useAcao";
 import { useCarregar } from "../../hooks/useCarregar";
-import { useConfirmacao } from "../../hooks/useConfirmacao";
+import { mascararCep, mascararTelefone } from "../../utils/mascaras";
+import { UFS, montarMudancas, validarPerfil } from "../../utils/perfil";
 import Aviso from "../Aviso/Aviso";
+import ConfirmModal from "../ConfirmModal/ConfirmModal";
 import MenuPerfil from "../MenuPerfil/MenuPerfil";
 import PainelPerfil from "../PainelPerfil/PainelPerfil";
 import SecaoEditavel from "../SecaoEditavel/SecaoEditavel";
@@ -36,24 +38,22 @@ const BLOCOS_INFORMACOES = [
     titulo: "Informações pessoais",
     campos: [
       { chave: "email", rotulo: "Email", tipo: "email", somenteLeitura: true },
-      { chave: "phone", rotulo: "Celular (DDD + número, só dígitos)", tipo: "tel" },
+      { chave: "phone", rotulo: "Celular", tipo: "tel", mascara: mascararTelefone },
     ],
   },
   {
     titulo: "Informações de entrega",
     campos: [
-      { chave: "cep", rotulo: "CEP (8 dígitos)" },
+      { chave: "cep", rotulo: "CEP", inputMode: "numeric", mascara: mascararCep },
       { chave: "street", rotulo: "Rua" },
       { chave: "number", rotulo: "Número" },
       { chave: "complement", rotulo: "Complemento" },
       { chave: "neighborhood", rotulo: "Bairro" },
       { chave: "city", rotulo: "Cidade" },
-      { chave: "state", rotulo: "Estado (sigla)" },
+      { chave: "state", rotulo: "Estado", tipo: "select", opcoes: UFS },
     ],
   },
 ];
-
-const EDITAVEIS = ["name", "phone", "cep", "street", "number", "complement", "neighborhood", "city", "state"];
 
 const STATUS_TROCA = { PROPOSED: "pendente", ACCEPTED: "concluida", REJECTED: "recusada", CANCELED: "cancelada" };
 
@@ -95,24 +95,25 @@ function SecaoConta({ user }) {
   const authService = useAuthService();
   const navigate = useNavigate();
   const acao = useAcao();
-  const { pedir } = useConfirmacao();
+  const [confirmando, setConfirmando] = useState(false);
+  const [digitado, setDigitado] = useState("");
 
   async function testarAdmin() {
     await acao.executar(adminCheck, "Acesso de ADMIN confirmado pela API.");
   }
 
+  function fechar() {
+    setConfirmando(false);
+    setDigitado("");
+  }
+
   async function desativar() {
-    const confirmou = await pedir({
-      titulo: "Desativar sua conta?",
-      mensagem: "Você não vai conseguir entrar de novo, e seu perfil público some.",
-      textoConfirmar: "Desativar conta",
-      perigo: true,
-    });
-    if (!confirmou) return;
     const { ok } = await acao.executar(deactivateMe);
     if (ok) {
       authService.logout();
       navigate("/");
+    } else {
+      fechar();
     }
   }
 
@@ -127,11 +128,29 @@ function SecaoConta({ user }) {
             Testar acesso de ADMIN
           </button>
         )}
-        <button type="button" className={styles.botaoPerigo} onClick={desativar} disabled={acao.ocupado}>
+        <button type="button" className={styles.botaoPerigo} onClick={() => setConfirmando(true)} disabled={acao.ocupado}>
           Desativar minha conta
         </button>
       </div>
       <Aviso erro={acao.erro} sucesso={acao.sucesso} />
+      <ConfirmModal
+        aberto={confirmando}
+        titulo="Desativar sua conta?"
+        mensagem="Você não vai conseguir entrar de novo, e seu perfil público some."
+        textoConfirmar="Desativar conta"
+        perigo
+        ocupado={acao.ocupado}
+        confirmarDesativado={digitado !== user.username}
+        onConfirmar={desativar}
+        onCancelar={fechar}
+      >
+        <label className={styles.confirmarUsuario}>
+          <span>
+            Para confirmar, digite <strong>{user.username}</strong>
+          </span>
+          <input value={digitado} onChange={(e) => setDigitado(e.target.value)} autoComplete="off" spellCheck={false} />
+        </label>
+      </ConfirmModal>
     </PainelPerfil>
   );
 }
@@ -140,14 +159,22 @@ export default function Perfil() {
   const [secaoAtiva, setSecaoAtiva] = useState("perfil");
   const { dados, erro, recarregar } = useCarregar(carregarPerfil);
   const salvar = useAcao();
+  const [erros, setErros] = useState({});
+
+  function limparErro(chave) {
+    setErros((atuais) => {
+      if (!atuais[chave]) return atuais;
+      const restantes = { ...atuais };
+      delete restantes[chave];
+      return restantes;
+    });
+  }
 
   async function onSalvar(valores) {
-    const mudancas = {};
-    for (const chave of EDITAVEIS) {
-      const novo = (valores[chave] ?? "").trim();
-      const atual = dados.user[chave] ?? "";
-      if (novo !== atual) mudancas[chave] = novo === "" ? null : novo;
-    }
+    const encontrados = validarPerfil(valores);
+    setErros(encontrados);
+    if (Object.keys(encontrados).length > 0) return false;
+    const mudancas = montarMudancas(valores, dados.user);
     if (Object.keys(mudancas).length === 0) return true;
     const { ok } = await salvar.executar(() => updateMe(mudancas), "Dados salvos.");
     if (ok) recarregar();
@@ -166,7 +193,22 @@ export default function Perfil() {
           <Aviso erro={salvar.erro} sucesso={salvar.sucesso} />
 
           {secaoAtiva === "perfil" && (
-            <SecaoEditavel titulo="Meu perfil" blocos={BLOCOS_PERFIL} valores={dados.user} onSalvar={onSalvar} />
+            <SecaoEditavel
+              titulo="Meu perfil"
+              blocos={BLOCOS_PERFIL}
+              valores={dados.user}
+              onSalvar={onSalvar}
+              erros={erros}
+              onAlterar={limparErro}
+              onCancelar={() => setErros({})}
+            >
+              <div className={styles.perfilPublico}>
+                {dados.user.role === "ADMIN" && <span className={styles.selo}>Administrador</span>}
+                <Link className={styles.link} to={`/u/${dados.user.username}`}>
+                  Ver como os outros me veem
+                </Link>
+              </div>
+            </SecaoEditavel>
           )}
 
           {secaoAtiva === "trocas" && <HistoricoTrocas trocas={dados.trocas} />}
@@ -177,6 +219,9 @@ export default function Perfil() {
               blocos={BLOCOS_INFORMACOES}
               valores={dados.user}
               onSalvar={onSalvar}
+              erros={erros}
+              onAlterar={limparErro}
+              onCancelar={() => setErros({})}
             />
           )}
 

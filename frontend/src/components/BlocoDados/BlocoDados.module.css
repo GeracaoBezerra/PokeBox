@@ -100,6 +100,13 @@ textarea.entrada {
   cursor: not-allowed;
 }
 
+.erro {
+  margin-top: var(--esp-4);
+  color: var(--erro);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
 @media (max-width: 600px) {
   .formulario {
     grid-template-columns: minmax(0, 1fr);
