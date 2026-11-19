@@ -268,7 +268,7 @@
 .moderacao h3 { font-family: var(--fonte-titulo); font-weight: var(--peso-semi); }
 .botaoPerigo { composes: botaoSecundario; background: var(--erro-fundo); border-color: var(--erro); color: var(--erro); }
 .botaoPerigo:hover { background: color-mix(in srgb, var(--erro) 22%, var(--superficie)); }
-.ofertaCampos { display: grid; min-width: 0; gap: var(--esp-24); border: 0; margin: 0; padding: 0; }
+.ofertaCampos { display: flex; flex-direction: column; min-width: 0; gap: var(--esp-24); border: 0; margin: 0; padding: 0; }
 .cabecalhoSelecao,
 .rodapeOferta { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-16); flex-wrap: wrap; }
 .rodapeOferta { border-top: 1px solid var(--borda-suave); padding-top: var(--esp-24); }
@@ -311,6 +311,7 @@
   .cartaSelecaoInfo { gap: var(--esp-16); }
   .especificacoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rodapeOferta .botao { width: 100%; }
+  .resumoOferta { flex: 1 1 100%; }
 }
 
 @media (max-width: 1023px) {
