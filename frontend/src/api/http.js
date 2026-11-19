@@ -1,15 +1,18 @@
 import axios from "axios";
 import { CONFIG } from "../config";
-import { LocalTokenStore } from "../auth/localTokenStore";
-import { LocalUserStore } from "../auth/localUserStore";
 
-const tokenStore = new LocalTokenStore();
-const userStore = new LocalUserStore();
+const ROTAS_DE_LOGIN = ["/auth/login", "/auth/register"];
+
+let dependencias = { tokenStore: null, aoExpirarSessao: () => {} };
+
+export function configurarHttp({ tokenStore, aoExpirarSessao }) {
+  dependencias = { tokenStore, aoExpirarSessao };
+}
 
 export const http = axios.create({ baseURL: CONFIG.apiBaseUrl });
 
 http.interceptors.request.use((config) => {
-  const token = tokenStore.get();
+  const token = dependencias.tokenStore?.get();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -31,10 +34,9 @@ http.interceptors.response.use(
 
     const { status, data } = error.response;
 
-    if (status === 401 && tokenStore.get()) {
-      tokenStore.clear();
-      userStore.clear();
-      window.location.assign("/login");
+    const ehLogin = ROTAS_DE_LOGIN.includes(error.config?.url);
+    if (status === 401 && !ehLogin && dependencias.tokenStore?.get()) {
+      dependencias.aoExpirarSessao();
     }
 
     const message = data?.details?.[0]?.message || data?.error || "";
