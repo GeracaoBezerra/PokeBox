@@ -34,7 +34,7 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 | Banco | PostgreSQL 17 |
 | Frontend | React 19, Vite, React Router, axios |
 | Dados das cartas | API pública [TCGdex](https://tcgdex.dev), com cache no banco e uma cópia resumida de todas as cartas para a busca (`pg_trgm` + `unaccent`) |
-| Testes | Jest com ts-jest (backend), ESLint e build (frontend) |
+| Testes | Jest com ts-jest (backend), Vitest com jsdom, Testing Library e MSW (frontend) |
 | Documentação da API | Swagger em `/docs` |
 | Infra | Docker Compose (modo dev e modo produção), GitHub Actions (CI e deploy), Render (API), Neon (banco), Vercel (front) |
 
@@ -284,7 +284,7 @@ O `/docs` chama a API no mesmo endereço em que foi aberto, então funciona em q
 
 ## Testes
 
-São dois andares da pirâmide de testes, com comandos separados:
+No backend são dois andares da pirâmide de testes, com comandos separados (o front tem os dele, em [Testes do front](#testes-do-front)):
 
 | Tipo | Onde | O que testa | Precisa de banco |
 |---|---|---|---|
@@ -331,6 +331,32 @@ O que a integração cobre (138 testes, um arquivo por área):
 
 O 504 (TCGdex demorando mais de 8 s) fica só nos testes de unidade do `TcgdexClient`, para a suíte não esperar 8 s. Como a IA ajudou a escrever esses testes, e o que ela errou, está em [`docs/ia.md`](docs/ia.md).
 
+### Testes do front
+
+O front usa o **Vitest**, que aproveita a configuração do Vite (entende JSX, CSS Modules e `import.meta.env`). Os testes rodam no terminal, em segundos, sem navegador de verdade e sem backend:
+
+```bash
+cd frontend
+npm test
+```
+
+`npm test` roda uma vez e termina (é o que a CI usa). `npm run test:watch` fica rodando e repete os testes a cada arquivo salvo.
+
+| Andar | Onde | O que testa |
+|---|---|---|
+| Funções puras | `src/auth/validator.test.js`, `src/utils/*.test.js` | regras do login e do cadastro (`Validator` + `rules.js`), filtros do marketplace e rótulos (variante, data, preço de referência) |
+| Service com fakes | `src/auth/authService.test.js` | `AuthService` com gateway e stores de mentira passados no construtor: login certo, formulário inválido sem chamar a API, API recusando, cadastro, sessão já salva, logout e inscrição |
+| Componente | `src/components/Aviso/Aviso.test.jsx` | o componente renderizado com a Testing Library, procurado pelo papel e pelo texto, como a pessoa vê |
+
+Como está montado:
+
+- Cada teste fica ao lado do arquivo testado, com `.test.js` (ou `.test.jsx`) no nome, e importa `describe`, `it`, `expect` e `vi` do `vitest`.
+- O ambiente é o **jsdom**, um navegador de mentira dentro do Node, com `document`, `window` e `localStorage`.
+- `src/test/setup.js` roda antes dos testes: liga as verificações do jest-dom (`toBeInTheDocument()` e afins), limpa a tela e o `localStorage` depois de cada teste e liga o **MSW** (`src/test/server.js`), que intercepta as requisições HTTP. Por enquanto ele não tem respostas falsas e barra qualquer requisição que escape para a rede: o teste falha na hora em vez de depender da API.
+- O `npm run build` não leva os arquivos de teste para o `dist`.
+
+Testes de hooks, rotas e páginas com a API simulada e a cobertura do front entram com a #180.
+
 ### Cobertura
 
 Cobertura é a porcentagem do código que os testes executaram pelo menos uma vez. Ela não prova que o código está certo, mas mostra onde nenhum teste passa.
@@ -350,14 +376,14 @@ Entram na conta os arquivos `.ts` de `backend/src`. Ficam de fora os testes, o c
 | Funções | 75,7% | 97,5% | 95% |
 | Ramos (if/else) | 79,1% | 88,1% | 86% |
 
-Números de 15/11/2026, medidos na CI, com 682 testes de unidade e 95 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. O front ainda não tem testes nem cobertura: isso entra com a #107.
+Números de 15/11/2026, medidos na CI, com 682 testes de unidade e 95 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. A cobertura do front ainda não é medida: isso entra com a #180.
 
 A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 
 | Job | O que roda |
 |---|---|
 | `backend` | sobe um PostgreSQL de teste; `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build` e `npm run test:coverage` (unidade + integração, com o mínimo de cobertura). Mostra a tabela de cobertura no resumo da execução e guarda o relatório completo como artefato `coverage-backend` |
-| `frontend` | `npm ci`, `npm run lint`, `npm run build` |
+| `frontend` | `npm ci`, `npm run lint`, `npm test` (Vitest) e `npm run build` |
 
 Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow de deploy, antes de publicar (veja [Deploy](#deploy)).
 
