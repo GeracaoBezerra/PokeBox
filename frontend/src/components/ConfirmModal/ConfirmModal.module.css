@@ -1,0 +1,94 @@
+.modal {
+  width: min(420px, calc(100vw - 2 * var(--esp-16)));
+  max-width: none;
+  margin: auto;
+  padding: var(--esp-24);
+  background: var(--superficie);
+  color: var(--texto);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-painel);
+  box-shadow: var(--sombra-md);
+  font-family: var(--fonte-corpo);
+}
+
+.modal::backdrop {
+  background: var(--overlay);
+}
+
+.titulo {
+  margin: 0 0 var(--esp-12);
+  font-family: var(--fonte-titulo);
+  font-size: 1.25rem;
+  font-weight: var(--peso-semi);
+}
+
+.mensagem {
+  margin: 0;
+  color: var(--texto-suave);
+  line-height: 1.5;
+}
+
+.extra {
+  margin-top: var(--esp-16);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--esp-8);
+  margin-top: var(--esp-24);
+}
+
+.cancelar,
+.confirmar,
+.perigo {
+  min-height: var(--altura-controle);
+  padding: 0 var(--esp-16);
+  border: 1px solid transparent;
+  border-radius: var(--raio-botao);
+  font: inherit;
+  font-weight: var(--peso-semi);
+  cursor: pointer;
+}
+
+.cancelar {
+  background: transparent;
+  color: var(--texto);
+  border-color: var(--borda);
+}
+
+.cancelar:hover {
+  background: var(--superficie-hover);
+}
+
+.confirmar {
+  background: var(--acento);
+  color: var(--acento-texto);
+}
+
+.confirmar:hover {
+  background: var(--acento-hover);
+}
+
+.perigo {
+  background: var(--erro);
+  color: var(--acento-texto);
+}
+
+.perigo:hover {
+  background: color-mix(in srgb, var(--erro) 88%, white);
+}
+
+.cancelar:disabled,
+.confirmar:disabled,
+.perigo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .acoes > button {
+    flex: 1 1 auto;
+  }
+}

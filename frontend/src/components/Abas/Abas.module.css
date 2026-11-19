@@ -1,0 +1,14 @@
+.abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.abaAtiva {
+  composes: botao from "../../styles/paginas.module.css";
+}
+
+.aba {
+  composes: botaoSecundario from "../../styles/paginas.module.css";
+}
+

@@ -1,3 +1,5 @@
+import { errosPorCampo, mensagemAmigavel } from "../api/mensagens";
+
 export class AuthService {
   constructor(gateway, tokenStore, userStore, loginValidator, registerValidator) {
     this.gateway = gateway;
@@ -34,6 +36,12 @@ export class AuthService {
     this.listeners.forEach((listener) => listener());
   }
 
+  falha(erro) {
+    const errors = errosPorCampo(erro.details);
+    if (Object.keys(errors).length) return { ok: false, errors };
+    return { ok: false, message: mensagemAmigavel(erro) };
+  }
+
   async login(credentials) {
     const errors = this.loginValidator.validate(credentials);
     if (Object.keys(errors).length) return { ok: false, errors };
@@ -43,7 +51,7 @@ export class AuthService {
       this.startSession(token, user);
       return { ok: true, user };
     } catch (e) {
-      return { ok: false, message: e.message };
+      return this.falha(e);
     }
   }
 
@@ -61,7 +69,7 @@ export class AuthService {
       this.startSession(token, user);
       return { ok: true, user };
     } catch (e) {
-      return { ok: false, message: e.message };
+      return this.falha(e);
     }
   }
 }

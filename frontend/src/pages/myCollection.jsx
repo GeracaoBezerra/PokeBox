@@ -25,7 +25,7 @@ export default function MyCollectionPage() {
         </Link>
       </CabecalhoPagina>
 
-      <Aviso erro={erro} />
+      <Aviso erro={erro} onTentarDeNovo={recarregar} />
       {carregando && <CarregandoCartas formato="tabela" total={6} />}
       {!carregando && itens && itens.length === 0 && <p className={s.suave}>Sua coleção está vazia.</p>}
       {!carregando && itens && itens.length > 0 && <TabelaColecao itens={itens} onMudou={recarregar} />}
