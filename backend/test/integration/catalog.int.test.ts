@@ -147,6 +147,7 @@ describe('GET /cards e /cards/filters com os filtros sincronizados (#158)', () =
   beforeAll(async () => {
     const cards = ctx.tcgdex.cards;
     await store.saveSets('en', [
+      { id: 'vazio1', name: 'Coleção sem cartas' },
       ...new Map(cards.map((card) => [card.setId, { id: card.setId, name: card.setName }])).values(),
     ]);
     await store.saveAttributes(
@@ -170,6 +171,14 @@ describe('GET /cards e /cards/filters com os filtros sincronizados (#158)', () =
     expect(res.body.data.types).toContain('Fire');
     expect(res.body.data.categories).toEqual(expect.arrayContaining(['Pokemon', 'Trainer']));
     expect(res.body.data.sets).toContainEqual({ id: 'base1', name: 'Base Set' });
+  });
+
+  test('painel de filtros não lista coleção sem nenhuma carta no idioma (#196)', async () => {
+    const res = await request(ctx.app).get('/cards/filters');
+    const setIds: string[] = res.body.data.sets.map((set: { id: string }) => set.id);
+
+    expect(setIds).not.toContain('vazio1');
+    expect(setIds).toContain('base1');
   });
 
   test('filtro de tipo sem nome responde pelo banco, e o tipo não diferencia maiúscula', async () => {
