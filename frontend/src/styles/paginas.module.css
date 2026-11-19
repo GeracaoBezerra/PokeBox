@@ -173,6 +173,21 @@
   color: var(--texto);
 }
 
+.seloTroca {
+  align-self: flex-start;
+  padding: 2px var(--esp-8);
+  border-radius: var(--raio-pilula);
+  background: var(--acento);
+  color: var(--acento-texto);
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-semi);
+  text-decoration: none;
+}
+
+.seloTroca:hover {
+  background: var(--acento-hover);
+}
+
 .cartaMini > strong {
   margin-top: var(--esp-8);
   font-family: var(--fonte-titulo);

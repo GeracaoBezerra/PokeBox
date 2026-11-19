@@ -69,6 +69,7 @@
 @media (prefers-reduced-motion: reduce) { .modalFiltros[open] { animation: none; } }
 .vazio { display: grid; justify-items: center; gap: var(--esp-16); padding: var(--esp-48) var(--esp-24); border-radius: var(--raio-painel); background: var(--superficie); text-align: center; }
 .vazio > svg { color: var(--acento); }
+.vazio h1,
 .vazio h2 { font-family: var(--fonte-titulo); font-size: var(--fs-lg); }
 .vazio p { color: var(--texto-suave); font-size: var(--fs-sm); }
 
