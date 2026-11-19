@@ -73,7 +73,7 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
   }
 
   return (
-    <div className={s.cartaoNegociacao} data-pendente={souDonoDoAnuncio && emAndamento}>
+    <div className={s.cartaoNegociacao} data-pendente={souDonoDoAnuncio && emAndamento} data-cy="cartao-troca">
       <div className={s.acoes}>
         <span className={s.status}>{STATUS_TROCA[troca.status]}</span>
         <span className={s.suave}>

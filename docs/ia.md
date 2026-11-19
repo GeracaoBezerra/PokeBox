@@ -87,3 +87,18 @@ Cada correção da revisão do Eduardo ganhou teste (com MSW, `renderHook` ou fu
 | `cypress-io/github-action@v6` | a versão atual é a v7 | `@v7`, rodando no Chrome (o Electron está marcado como obsoleto no Cypress 16) |
 
 **O que ficou de fora:** comparar com `npx prisma migrate reset --force`. Ele apagaria o catálogo local de cartas, que leva uns 26 minutos para sincronizar; o `TRUNCATE` + seed ficou.
+
+## E2E dos fluxos principais (#182)
+
+**Ferramenta:** Claude Code (Claude Opus), no mesmo worktree da #181, numa branch empilhada sobre ela.
+
+**O que foi pedido:** escrever o E2E dos fluxos da #182 (coleção, wishlist, anúncio, troca com dois usuários e moderação do admin), conferindo os botões e textos nas telas depois do pacotão.
+
+**O que a IA fez:**
+
+- Leu cada componente citado na issue antes de escrever o teste e ajustou o que o pacotão mudou: o formulário da coleção fica dentro de um "Adicionar à minha coleção" que precisa ser aberto; o botão da wishlist na página da carta tem o nome acessível "Adicionar à wishlist" (o texto "Quero esta carta" fica escondido dos leitores de tela); aceitar, concluir e bloquear abrem o modal de confirmação, e o teste confirma dentro do modal; a busca do marketplace é a busca geral do topo; a oferta lista a coleção paginada, então o teste busca o Psyduck antes de marcar.
+- Leu o `id` do anúncio novo na resposta do `POST /listings` (`data.listing.id`, conferido no controller) com `cy.intercept`.
+- Acrescentou três `data-cy` (`item-wishlist`, `cartao-oferta`, `cartao-troca`), os mesmos que a issue sugeria, porque esses cartões não têm papel nem rótulo próprios.
+- Quebrou de propósito o texto do botão "Concluir troca" para ver o `troca.cy.js` falhar e salvar o print, e desfez.
+
+**O que a IA errou e foi corrigido:** a primeira versão fazia o reset no `before`, como a issue pede. Ao testar a falha de propósito, a IA conferiu que o Cypress não repete o `before` quando tenta o teste de novo, e uma segunda tentativa da troca começaria com o anúncio e a oferta da primeira no banco. Nos arquivos dos fluxos, o reset passou para o `beforeEach` (cada arquivo tem um ou dois testes, então o custo é pequeno).
