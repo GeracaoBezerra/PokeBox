@@ -24,7 +24,8 @@ export default function WishlistPage() {
         adicionar, abra a carta no <Link className={s.link} to="/catalogo">catálogo</Link>.
       </CabecalhoPagina>
 
-      <Aviso erro={erro || acao.erro} sucesso={acao.sucesso} />
+      <Aviso erro={erro} onTentarDeNovo={recarregar} />
+      <Aviso erro={acao.erro} />
       {carregando && <CarregandoCartas />}
       {!carregando && itens && itens.length === 0 && <p className={s.suave}>Sua wishlist está vazia.</p>}
 

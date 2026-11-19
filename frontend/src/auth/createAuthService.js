@@ -1,17 +1,12 @@
-import { CONFIG } from "../config";
 import { AuthService } from "./authService";
 import { Validator } from "./validator";
-import { LocalTokenStore } from "./localTokenStore";
 import { LocalUserStore } from "./localUserStore";
 import { loginRules, registerRules } from "./rules";
 import { HttpAuthGateway } from "./gateways/httpAuthGateway";
 
-export function createAuthService() {
-  const gateway = new HttpAuthGateway(CONFIG.apiBaseUrl);
-  const tokenStore = new LocalTokenStore();
-
+export function createAuthService({ http, tokenStore }) {
   return new AuthService(
-    gateway,
+    new HttpAuthGateway(http),
     tokenStore,
     new LocalUserStore(),
     new Validator(loginRules),

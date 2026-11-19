@@ -69,6 +69,10 @@
   font-size: var(--fs-sm);
 }
 
+.inputBusca[aria-invalid="true"] {
+  border-color: var(--erro);
+}
+
 .inputBusca::placeholder {
   color: var(--texto-suave);
 }
@@ -80,8 +84,15 @@
     color-mix(in srgb, var(--acento) 30%, transparent);
 }
 
-.buscaMobile {
-  display: none;
+.buscaCampo {
+  position: relative;
+  display: block;
+}
+
+.buscaErro {
+  position: absolute;
+  top: 100%;
+  left: 0;
 }
 
 /* Perfil e botão do menu */
@@ -159,6 +170,21 @@
   background-color: color-mix(in srgb, var(--acento) 10%, transparent);
 }
 
+.selo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background-color: var(--acento);
+  color: var(--acento-texto);
+  font-size: 0.75rem;
+  font-weight: var(--peso-medio);
+  line-height: 1;
+}
+
 /* Tablet e celular */
 
 @media (max-width: 768px) {
@@ -166,14 +192,18 @@
     padding: var(--esp-12) var(--esp-16);
   }
 
-  .buscaDesktop {
-    display: none;
+  .topo {
+    flex-wrap: wrap;
   }
 
-  .buscaMobile {
-    display: block;
+  .buscaContainer {
+    order: 1;
+    flex-basis: 100%;
     max-width: none;
-    width: 100%;
+  }
+
+  .buscaErro {
+    position: static;
   }
 
   .botaoMenu {

@@ -64,6 +64,10 @@
   width: 90px;
 }
 
+.campo [aria-invalid="true"] {
+  border-color: var(--erro);
+}
+
 .checkbox {
   display: flex;
   align-items: center;
@@ -157,7 +161,7 @@
 
 .gradeNegociacoes {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
   gap: 16px;
 }
 
@@ -167,6 +171,21 @@
   flex-direction: column;
   gap: var(--esp-8);
   color: var(--texto);
+}
+
+.seloTroca {
+  align-self: flex-start;
+  padding: 2px var(--esp-8);
+  border-radius: var(--raio-pilula);
+  background: var(--acento);
+  color: var(--acento-texto);
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-semi);
+  text-decoration: none;
+}
+
+.seloTroca:hover {
+  background: var(--acento-hover);
 }
 
 .cartaMini > strong {
@@ -266,6 +285,17 @@
   gap: 10px;
 }
 
+.cartaoNegociacao[data-pendente="true"] {
+  border-color: var(--acento);
+  box-shadow: inset 4px 0 0 var(--acento);
+}
+
+.proximoPasso {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+}
+
 .linhaCartas {
   display: flex;
   flex-wrap: wrap;
@@ -275,16 +305,10 @@
 
 .abas {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
   margin-bottom: 16px;
-}
-
-.abaAtiva {
-  composes: botao;
-}
-
-.aba {
-  composes: botaoSecundario;
 }
 
 .paginacao {

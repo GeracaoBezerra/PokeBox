@@ -1,32 +1,20 @@
+import { mensagemAmigavel } from "../../api/mensagens";
 import styles from "./Aviso.module.css";
 
-const FORA_DO_AR = [0, 502, 503, 504];
+const FORA_DO_AR = [0, 500, 502, 503, 504];
 
-export default function Aviso({ erro, sucesso, tom = "sucesso", onTentarDeNovo }) {
-  if (erro) {
-    const podeTentar = onTentarDeNovo && FORA_DO_AR.includes(erro.status);
-    return (
-      <div className={`${styles.aviso} ${styles.erro}`} role="alert">
-        <span>
-          {erro.message}
-          {erro.status ? <span className={styles.codigo}> ({erro.status})</span> : null}
-        </span>
-        {podeTentar && (
-          <button type="button" className={styles.tentar} onClick={onTentarDeNovo}>
-            Tentar de novo
-          </button>
-        )}
-      </div>
-    );
-  }
+export default function Aviso({ erro, campos, texto, onTentarDeNovo }) {
+  if (!erro) return null;
 
-  if (sucesso) {
-    return (
-      <p className={`${styles.aviso} ${tom === "remocao" ? styles.remocao : styles.sucesso}`} role="status">
-        {sucesso}
-      </p>
-    );
-  }
-
-  return null;
+  const podeTentar = onTentarDeNovo && FORA_DO_AR.includes(erro.status);
+  return (
+    <div className={styles.aviso} role="alert">
+      <span>{texto ?? mensagemAmigavel(erro, campos)}</span>
+      {podeTentar && (
+        <button type="button" className={styles.tentar} onClick={onTentarDeNovo}>
+          Tentar de novo
+        </button>
+      )}
+    </div>
+  );
 }

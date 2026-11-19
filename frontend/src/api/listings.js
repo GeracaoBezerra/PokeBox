@@ -1,14 +1,19 @@
 import { http } from "./http";
+import { parametrosDaPagina } from "./parametros";
 
-export async function listListings({ page = 1, limit = 20, ...filtros } = {}) {
-  const params = Object.fromEntries(Object.entries(filtros).filter(([, valor]) => valor !== "" && valor != null));
-  const body = await http.get("/listings", { params: { ...params, page, limit } });
+export async function listListings(opcoes = {}) {
+  const body = await http.get("/listings", { params: parametrosDaPagina(opcoes) });
   return { items: body.data.items, pagination: body.pagination };
 }
 
-export async function listMyListings() {
-  const body = await http.get("/listings/me");
-  return body.data.items;
+export async function listMyListings(opcoes) {
+  if (!opcoes) {
+    const body = await http.get("/listings/me");
+    return body.data.items;
+  }
+  const { page, limit } = opcoes;
+  const body = await http.get("/listings/me", { params: parametrosDaPagina({ page, limit }) });
+  return { items: body.data.items, pagination: body.pagination };
 }
 
 export async function getListing(id) {

@@ -4,6 +4,7 @@ import { updateListing } from "../../api/listings";
 import { useAcao } from "../../hooks/useAcao";
 import s from "../../styles/paginas.module.css";
 import { CONDICOES, STATUS_ANUNCIO, formatarData, variante } from "../../utils/rotulos";
+import AcoesAnuncio from "../AcoesAnuncio/AcoesAnuncio";
 import Aviso from "../Aviso/Aviso";
 import MiniaturaCarta from "../MiniaturaCarta/MiniaturaCarta";
 
@@ -23,13 +24,6 @@ export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
     if (Number(form.quantity) !== anuncio.quantity) dados.quantity = Number(form.quantity);
     if (form.description !== (anuncio.description ?? "")) dados.description = form.description;
     enviar(dados, "Anúncio atualizado.");
-  }
-
-  function fechar() {
-    if (!window.confirm("Fechar o anúncio? Não dá para reabrir, e as ofertas abertas e aceitas sem troca são canceladas.")) {
-      return;
-    }
-    enviar({ status: "CLOSED" }, "Anúncio fechado.");
   }
 
   return (
@@ -74,35 +68,15 @@ export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
               <button className={s.botao} onClick={salvar} disabled={!mudou || acao.ocupado}>
                 Salvar
               </button>
-              {anuncio.status === "ACTIVE" && (
-                <button
-                  className={s.botaoSecundario}
-                  disabled={acao.ocupado}
-                  onClick={() => enviar({ status: "PAUSED" }, "Anúncio pausado.")}
-                >
-                  Pausar
-                </button>
-              )}
-              {anuncio.status === "PAUSED" && (
-                <button
-                  className={s.botaoSecundario}
-                  disabled={acao.ocupado}
-                  onClick={() => enviar({ status: "ACTIVE" }, "Anúncio ativado.")}
-                >
-                  Ativar
-                </button>
-              )}
-              <button className={s.botaoPerigo} disabled={acao.ocupado} onClick={fechar}>
-                Fechar
-              </button>
+              <AcoesAnuncio anuncio={anuncio} onMudou={onMudou} acao={acao} />
             </div>
           )}
         </td>
       </tr>
-      {(acao.erro || acao.sucesso) && (
+      {acao.erro && (
         <tr>
           <td colSpan={6}>
-            <Aviso erro={acao.erro} sucesso={acao.sucesso} />
+            <Aviso erro={acao.erro} />
           </td>
         </tr>
       )}
