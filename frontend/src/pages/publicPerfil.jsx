@@ -10,7 +10,7 @@ import Paginacao from "../components/Paginacao/Paginacao";
 import { useCarregar } from "../hooks/useCarregar";
 import s from "../styles/paginas.module.css";
 import v from "../styles/vitrine.module.css";
-import { anuncioPorItem, filtrosDoPerfil, textoAnunciosAtivos } from "../utils/perfilPublico";
+import { LIMITE_BUSCA, anuncioPorItem, filtrosDoPerfil, textoAnunciosAtivos, tipoDeErroDoPerfil } from "../utils/perfilPublico";
 import { CONDICOES, TIPOS, formatarData, variante } from "../utils/rotulos";
 
 const POR_PAGINA = 24;
@@ -18,7 +18,7 @@ const POR_PAGINA = 24;
 export default function PublicPerfilPage() {
   const { username } = useParams();
   const [params, setParams] = useSearchParams();
-  const { q, type, page, buscaCurta, qApi } = filtrosDoPerfil(params);
+  const { q, type, page, buscaCurta, buscaLonga, qApi } = filtrosDoPerfil(params);
   const { dados, erro, carregando, recarregar } = useCarregar(
     () => getPublicCollection(username, { q: qApi, type, page, limit: POR_PAGINA }),
     JSON.stringify({ username, q: qApi, type, page })
@@ -28,7 +28,8 @@ export default function PublicPerfilPage() {
   const porItem = anuncioPorItem(anuncios);
   const textoAnuncios = textoAnunciosAtivos(anuncios.length, listaAnuncios.dados?.pagination?.hasNextPage);
   const temFiltro = Boolean(q || type);
-  const naoEncontrado = erro && (erro.status === 404 || erro.status === 400);
+  const tipoDeErro = tipoDeErroDoPerfil(username, erro);
+  const erroDeFiltro = tipoDeErro === "filtro";
 
   function atualizar(mudancas, reiniciarPagina = true) {
     const novos = new URLSearchParams(params);
@@ -40,7 +41,7 @@ export default function PublicPerfilPage() {
     setParams(novos);
   }
 
-  if (naoEncontrado) {
+  if (tipoDeErro === "naoEncontrado") {
     return (
       <div className={s.pagina}>
         <div className={v.vazio}>
@@ -57,7 +58,7 @@ export default function PublicPerfilPage() {
 
   return (
     <div className={s.pagina}>
-      <Aviso erro={erro} onTentarDeNovo={recarregar} />
+      {!erroDeFiltro && <Aviso erro={erro} onTentarDeNovo={recarregar} />}
 
       {dados?.user?.username === username && (
         <header>
@@ -76,7 +77,7 @@ export default function PublicPerfilPage() {
         </header>
       )}
 
-      {!erro && (
+      {(!erro || erroDeFiltro) && (
         <div className={v.barra}>
           <BarraBusca
             rotulo="Buscar na coleção"
@@ -98,6 +99,17 @@ export default function PublicPerfilPage() {
         </div>
       )}
       {buscaCurta && <p className={v.dica}>Digite pelo menos 2 letras ou números para buscar pelo nome.</p>}
+      {buscaLonga && <p className={v.dica}>A busca aceita até {LIMITE_BUSCA} caracteres. Encurte o texto para buscar pelo nome.</p>}
+      {erroDeFiltro && (
+        <div className={v.vazio} role="alert">
+          <SearchX size={32} aria-hidden="true" />
+          <h2>Filtro inválido</h2>
+          <p>A busca ou o tipo escolhido não foram aceitos. Ajuste a busca ou limpe os filtros.</p>
+          <button type="button" className={v.botao} onClick={() => atualizar({ q: "", type: "" })}>
+            Limpar filtros
+          </button>
+        </div>
+      )}
 
       {carregando && <CarregandoCartas />}
 
