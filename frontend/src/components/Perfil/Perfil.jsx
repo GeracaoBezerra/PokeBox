@@ -8,13 +8,14 @@ import { useAuthService } from "../../auth/useAuthService";
 import { useAcao } from "../../hooks/useAcao";
 import { useCarregar } from "../../hooks/useCarregar";
 import { mascararCep, mascararTelefone } from "../../utils/mascaras";
+import { resumirTrocas } from "../../utils/negociacao";
 import { CAMPOS_EDITAVEIS, UFS, montarMudancas, validarPerfil } from "../../utils/perfil";
 import Aviso from "../Aviso/Aviso";
 import ConfirmModal from "../ConfirmModal/ConfirmModal";
 import MenuPerfil from "../MenuPerfil/MenuPerfil";
 import PainelPerfil from "../PainelPerfil/PainelPerfil";
+import ResumoTrocas from "../ResumoTrocas/ResumoTrocas";
 import SecaoEditavel from "../SecaoEditavel/SecaoEditavel";
-import HistoricoTrocas from "../HistoricoTrocas/HistoricoTrocas";
 import styles from "./Perfil.module.css";
 
 const SECOES = [
@@ -56,40 +57,9 @@ const BLOCOS_INFORMACOES = [
   },
 ];
 
-const STATUS_TROCA = { PROPOSED: "pendente", ACCEPTED: "concluida", REJECTED: "recusada", CANCELED: "cancelada" };
-
-function paraCartaTroca(item) {
-  return {
-    id: item.card.id,
-    nome: item.card.name,
-    set: item.card.setName,
-    numero: item.card.number,
-    src: item.card.imageUrl,
-    quantidade: item.quantity,
-  };
-}
-
-function paraTroca(troca, username) {
-  const souQuemOfertou = troca.proposer.username === username;
-  const parceiro = souQuemOfertou ? troca.recipient : troca.proposer;
-  return {
-    id: troca.id,
-    status: STATUS_TROCA[troca.status],
-    parceiro: parceiro.username,
-    propostaPor: souQuemOfertou ? "voce" : "parceiro",
-    propostaEm: troca.createdAt,
-    respondidaEm: troca.completedAt,
-    ofereceu: troca.items.filter((item) => item.from === username).map(paraCartaTroca),
-    recebeu: troca.items.filter((item) => item.to === username).map(paraCartaTroca),
-  };
-}
-
 async function carregarPerfil() {
   const [user, trocas] = await Promise.all([getMe(), listMyTrades()]);
-  const todas = [...trocas.sent, ...trocas.received]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .map((troca) => paraTroca(troca, user.username));
-  return { user, trocas: todas };
+  return { user, trocas: resumirTrocas(trocas) };
 }
 
 function SecaoConta({ user }) {
@@ -213,7 +183,7 @@ export default function Perfil() {
             </SecaoEditavel>
           )}
 
-          {secaoAtiva === "trocas" && <HistoricoTrocas trocas={dados.trocas} />}
+          {secaoAtiva === "trocas" && <ResumoTrocas resumo={dados.trocas} />}
 
           {secaoAtiva === "informacoes" && (
             <SecaoEditavel
