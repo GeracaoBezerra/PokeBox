@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export function useListaPaginada(buscar, chave = "") {
   const buscarRef = useRef(buscar);
   const [alvo, setAlvo] = useState({ chave, pagina: 1, versao: 0 });
-  const [estado, setEstado] = useState({ chave: null, pagina: 0, versao: -1, itens: [], temMais: false, erro: null });
+  const [estado, setEstado] = useState({ chave: null, pagina: 0, versao: -1, ultimaCarregada: 0, itens: [], temMais: false, erro: null });
 
   if (alvo.chave !== chave) setAlvo({ chave, pagina: 1, versao: alvo.versao });
 
@@ -20,6 +20,7 @@ export function useListaPaginada(buscar, chave = "") {
         if (!ativo) return;
         setEstado((atual) => ({
           ...marca,
+          ultimaCarregada: alvo.pagina,
           itens: alvo.pagina === 1 ? resposta?.items ?? [] : [...atual.itens, ...(resposta?.items ?? [])],
           temMais: Boolean(resposta?.pagination?.hasNextPage),
           erro: null,
@@ -27,7 +28,13 @@ export function useListaPaginada(buscar, chave = "") {
       })
       .catch((erro) => {
         if (!ativo) return;
-        setEstado((atual) => ({ ...marca, itens: alvo.pagina === 1 ? [] : atual.itens, temMais: atual.temMais, erro }));
+        setEstado((atual) => ({
+          ...marca,
+          ultimaCarregada: alvo.pagina === 1 ? 0 : atual.ultimaCarregada,
+          itens: alvo.pagina === 1 ? [] : atual.itens,
+          temMais: atual.temMais,
+          erro,
+        }));
       });
     return () => {
       ativo = false;
@@ -35,7 +42,7 @@ export function useListaPaginada(buscar, chave = "") {
   }, [alvo]);
 
   const pronto = estado.chave === alvo.chave && estado.pagina === alvo.pagina && estado.versao === alvo.versao;
-  const proximaPagina = estado.pagina + 1;
+  const proximaPagina = estado.ultimaCarregada + 1;
   const carregarMais = useCallback(() => setAlvo((atual) => ({ ...atual, pagina: proximaPagina })), [proximaPagina]);
   const recarregar = useCallback(() => setAlvo((atual) => ({ chave: atual.chave, pagina: 1, versao: atual.versao + 1 })), []);
 
