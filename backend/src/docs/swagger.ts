@@ -1419,7 +1419,7 @@ export const swaggerSpec = {
       get: {
         tags: ["Offers"],
         summary: "Ofertas feitas e recebidas pelo usuário autenticado",
-        description: "sent: ofertas que o usuário fez. received: ofertas nos anúncios dele. Mais recentes primeiro. Sem side, page nem limit, responde { sent, received } inteiros como antes; status sozinho não pagina.",
+        description: "sent: ofertas que o usuário fez. received: ofertas nos anúncios dele. Mais recentes primeiro; em received sem status, as PROPOSED vêm antes das outras, inclusive entre páginas. Sem side, page nem limit, responde { sent, received } inteiros como antes; status sozinho não pagina.",
         security: [{ bearerAuth: [] }],
         parameters: [
           {
@@ -1511,7 +1511,7 @@ export const swaggerSpec = {
       get: {
         tags: ["Trades"],
         summary: "Trocas do usuário autenticado",
-        description: "sent: trocas em que o usuário fez a oferta. received: trocas dos anúncios dele. Mais recentes primeiro. Sem side, page nem limit, responde { sent, received } inteiros como antes; status sozinho não pagina.",
+        description: "sent: trocas em que o usuário fez a oferta. received: trocas dos anúncios dele. Mais recentes primeiro; em received sem status, as PROPOSED vêm antes das outras, inclusive entre páginas. Sem side, page nem limit, responde { sent, received } inteiros como antes; status sozinho não pagina.",
         security: [{ bearerAuth: [] }],
         parameters: [
           {
