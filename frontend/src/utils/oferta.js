@@ -21,6 +21,11 @@ export function unirPorId(...listas) {
   });
 }
 
+export function cartasDaBusca(daColecao, daPesquisa, busca) {
+  if (!busca.trim()) return daColecao;
+  return unirPorId(filtrarPorNome(daColecao, busca), filtrarPorNome(daPesquisa, busca));
+}
+
 export function descreverCartaOferta(card, item, quantidade) {
   return `${quantidade}× ${card.name} (${variante(item)}, ${CONDICOES[item.condition] ?? item.condition})`;
 }

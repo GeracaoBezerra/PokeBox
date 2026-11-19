@@ -8,7 +8,7 @@ import { useAcao } from "../../hooks/useAcao";
 import { useListaPaginada } from "../../hooks/useListaPaginada";
 import s from "../../styles/detalheCarta.module.css";
 import { temPalavra } from "../../utils/filtrosMarketplace";
-import { LIMITE_CARTAS_OFERTA, filtrarPorNome, unirPorId } from "../../utils/oferta";
+import { LIMITE_CARTAS_OFERTA, cartasDaBusca } from "../../utils/oferta";
 import Aviso from "../Aviso/Aviso";
 import CampoBusca from "../CampoBusca/CampoBusca";
 import ErroCampo from "../ErroCampo/ErroCampo";
@@ -32,7 +32,7 @@ export default function FormOferta({ anuncio }) {
   const erros = errosPorCampo(acao.erro?.details);
   const buscando = busca.trim() !== "";
   const daColecao = colecao.itens.filter(disponivel);
-  const visiveis = buscando ? unirPorId(filtrarPorNome(daColecao, busca), q ? pesquisa.itens.filter(disponivel) : []) : daColecao;
+  const visiveis = cartasDaBusca(daColecao, q ? pesquisa.itens.filter(disponivel) : [], busca);
   const lista = buscando && q ? pesquisa : colecao;
   const esperandoBusca = buscando && temPalavra(busca.trim()) && (busca.trim() !== termo || pesquisa.carregando);
   const listaEscolhidas = Object.values(escolhidas);

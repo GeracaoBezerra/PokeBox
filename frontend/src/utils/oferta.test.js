@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filtrarPorNome, normalizar, textoVoceDa, textoVoceRecebe, unirPorId } from "./oferta";
+import { cartasDaBusca, filtrarPorNome, normalizar, textoVoceDa, textoVoceRecebe, unirPorId } from "./oferta";
 
 const item = (id, name, extra = {}) => ({ id, card: { name }, finish: "NORMAL", firstEdition: false, condition: "GOOD", ...extra });
 
@@ -32,6 +32,23 @@ describe("filtrarPorNome", () => {
 describe("unirPorId", () => {
   it("junta as listas sem repetir o mesmo item", () => {
     expect(unirPorId([item("1", "A"), item("2", "B")], [item("2", "B"), item("3", "C")]).map((i) => i.id)).toEqual(["1", "2", "3"]);
+  });
+});
+
+describe("cartasDaBusca", () => {
+  const carregadas = [item("1", "Fire Energy"), item("2", "Charmander")];
+
+  it("sem busca, mostra a coleção carregada", () => {
+    expect(cartasDaBusca(carregadas, [item("9", "Outra")], " ")).toBe(carregadas);
+  });
+
+  it("descarta o que a API achou só pelo nome da expansão", () => {
+    const daApi = [item("3", "Pikachu", { card: { name: "Pikachu", setName: "FireRed & LeafGreen" } }), item("4", "Fire Crystal")];
+    expect(cartasDaBusca(carregadas, daApi, "fire").map((i) => i.id)).toEqual(["1", "4"]);
+  });
+
+  it("não repete a carta que veio da coleção carregada e da API", () => {
+    expect(cartasDaBusca(carregadas, [item("1", "Fire Energy")], "fire").map((i) => i.id)).toEqual(["1"]);
   });
 });
 
