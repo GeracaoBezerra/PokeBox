@@ -1,13 +1,13 @@
 import s from "../../styles/paginas.module.css";
 
-const ABAS = { received: "Recebidas", sent: "Enviadas" };
+const ABAS = { recebidas: "Recebidas", enviadas: "Enviadas" };
 
-export default function AbasNegociacao({ aba, onAba, dados, status, onStatus, rotulosStatus }) {
+export default function AbasNegociacao({ aba, onAba, status, onStatus, rotulosStatus }) {
   return (
     <div className={s.abas}>
       {Object.entries(ABAS).map(([valor, rotulo]) => (
         <button key={valor} className={aba === valor ? s.abaAtiva : s.aba} onClick={() => onAba(valor)}>
-          {rotulo} {dados ? `(${dados[valor].length})` : ""}
+          {rotulo}
         </button>
       ))}
       <label className={s.campo}>
