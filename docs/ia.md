@@ -60,7 +60,7 @@ Nenhuma dessas diferenças era bug da API. Em todos os casos, o teste foi corrig
 | Se a wishlist ou a coleção falhassem, o catálogo liberava "Quero" e "Tenho" com listas vazias | revisão do Eduardo | as duas consultas viraram independentes (`Promise.allSettled`), com aviso e "Tentar de novo", mantendo o último estado conhecido |
 | Fechar um anúncio não atualizava o selo de pendências | revisão do Eduardo | o `AcoesAnuncio` avisa o selo depois de fechar |
 
-Cada correção da revisão do Eduardo ganhou um teste que falha sem ela (com MSW, `renderHook` ou função pura).
+Cada correção da revisão do Eduardo ganhou teste (com MSW, `renderHook` ou função pura). Na maioria, o teste falha com o código antigo; no achado 7 (Quero e Tenho), o hook e a função são novos, então não há versão antiga para comparar.
 
 **O que ficou de fora:** cobertura e testes do resto dos hooks e páginas (#180) e os testes E2E (#181, #182). A ordem "pendentes primeiro" da #170 vale só dentro da página atual, porque a API não ordena por status.
 
