@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { SearchX } from "lucide-react";
 import { getCardFilters, searchCards } from "../api/cards";
 import Aviso from "../components/Aviso/Aviso";
@@ -9,6 +9,7 @@ import Paginacao from "../components/Paginacao/Paginacao";
 import SelosFiltro from "../components/SelosFiltro/SelosFiltro";
 import { useCarregar } from "../hooks/useCarregar";
 import s from "../styles/vitrine.module.css";
+import { IDIOMA_PADRAO, linkBuscaNaReserva } from "../utils/idioma";
 import { CATEGORIAS, TIPOS } from "../utils/rotulos";
 
 const CAMPOS_FILTRO = ["category", "type", "rarity", "set"];
@@ -48,7 +49,7 @@ function rotuloDoSelo(campo, valor, opcoes) {
 export default function CatalogPage() {
   const [params, setParams] = useSearchParams();
   const name = params.get("name") ?? "";
-  const lang = params.get("lang") ?? "en";
+  const lang = params.get("lang") ?? IDIOMA_PADRAO;
   const paginaPedida = Number(params.get("page") ?? 1);
   const page = Number.isInteger(paginaPedida) && paginaPedida > 0 ? paginaPedida : 1;
   const filtrosPedidos = Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, params.get(campo) ?? ""]));
@@ -86,6 +87,12 @@ export default function CatalogPage() {
   function limparFiltros() {
     atualizar(VAZIOS);
   }
+
+  const atalhoIngles = lang === IDIOMA_PADRAO && name ? (
+    <p className={s.reserva}>
+      Não achou? As coleções antigas só existem em inglês. <Link to={linkBuscaNaReserva(name)}>Procurar em inglês</Link>
+    </p>
+  ) : null;
 
   const selos = CAMPOS_FILTRO.filter((campo) => filtros[campo]).map((campo) => ({
     campo,
@@ -158,6 +165,7 @@ export default function CatalogPage() {
                   <SearchX size={32} aria-hidden="true" />
                   <h2>Nenhuma carta encontrada</h2>
                   <p>Tente outro nome ou ajuste os filtros para ampliar a busca.</p>
+                  {atalhoIngles}
                   {selos.length > 0 && (
                     <button type="button" className={s.botao} onClick={limparFiltros}>
                       Limpar filtros
@@ -170,6 +178,7 @@ export default function CatalogPage() {
                 temProxima={dados.pagination?.hasNextPage}
                 onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
               />
+              {dados.items.length > 0 && atalhoIngles}
             </>
           )}
         </section>

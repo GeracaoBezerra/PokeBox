@@ -9,20 +9,23 @@ import FormColecao from "../components/FormColecao/FormColecao";
 import PalcoCarta from "../components/PalcoCarta/PalcoCarta";
 import VoceEACarta from "../components/VoceEACarta/VoceEACarta";
 import { useCarregar } from "../hooks/useCarregar";
+import { IDIOMA_PADRAO, buscarComReserva } from "../utils/idioma";
 import s from "../styles/detalheCarta.module.css";
 
 export default function CardPage() {
   const { id } = useParams();
   const [params] = useSearchParams();
-  const lang = params.get("lang") ?? "en";
+  const langPedido = params.get("lang") ?? "";
   const session = useSession();
-  const chave = `${id}|${lang}|${!!session}`;
-  const { dados, erro, carregando, recarregar } = useCarregar(async () => ({
-    ...await getCard(id, lang),
+  const chave = `${id}|${langPedido}|${!!session}`;
+  const { dados: resposta, erro, carregando, recarregar } = useCarregar(async () => ({
+    ...await buscarComReserva((idioma) => getCard(id, idioma), langPedido),
     chave,
   }), chave);
+  const atual = resposta?.chave === chave;
+  const dados = resposta?.dados;
+  const lang = (atual && resposta.lang) || langPedido || IDIOMA_PADRAO;
   const catalogo = `/catalogo?lang=${encodeURIComponent(lang)}`;
-  const atual = dados?.chave === chave;
 
   return (
     <div className={s.pagina}>
@@ -45,6 +48,7 @@ export default function CardPage() {
           <div className={s.hero}>
             <PalcoCarta key={`${id}|${lang}`} card={dados.card} />
             <div className={s.resumo}>
+              {resposta.reserva && <p className={s.avisoIdioma} role="status">Esta carta não tem versão em português; mostrando em inglês.</p>}
               <DadosCarta card={dados.card} />
               <a className={s.botaoSecundario} href="#anuncios-carta">Ver anúncios de troca ({dados.listings.length}) <ArrowDown size={16} aria-hidden="true" /></a>
               {dados.user ? (

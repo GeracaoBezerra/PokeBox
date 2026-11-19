@@ -129,6 +129,7 @@
 
 .numero { font-family: var(--fonte-dados); font-size: var(--fs-sm); color: var(--texto-suave); }
 .suave { color: var(--texto-suave); font-size: var(--fs-sm); }
+.avisoIdioma { padding: var(--esp-8) var(--esp-12); border-left: 3px solid var(--acento); border-radius: var(--raio-botao); background: var(--superficie); color: var(--texto-suave); font-size: var(--fs-sm); }
 .preco { padding: var(--esp-24) 0; border-block: 1px solid var(--borda-suave); }
 .preco strong { display: block; margin: var(--esp-4) 0; font-family: var(--fonte-dados); font-size: var(--fs-xl); font-weight: var(--peso-medio); }
 .preco p { color: var(--texto-suave); font-size: var(--fs-xs); }

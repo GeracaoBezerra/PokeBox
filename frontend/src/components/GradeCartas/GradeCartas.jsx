@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getCard } from "../../api/cards";
 import CartaCard from "../CartaCard/CartaCard";
 import SkeletonCard from "../SkeletonCard/SkeletonCard";
+import { IDIOMA_PADRAO } from "../../utils/idioma";
 import styles from "./GradeCartas.module.css";
 
 // Busca o detalhe apenas quando a carta recebe hover ou foco, em telas com
@@ -51,7 +52,7 @@ export function ItemGrade({ children }) {
 export default function GradeCartas({
   children,
   cartas = [],
-  lang = "en",
+  lang = IDIOMA_PADRAO,
   carregando = false,
   total = 12,
   variante = "padrao",

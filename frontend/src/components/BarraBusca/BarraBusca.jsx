@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import s from "../../styles/vitrine.module.css";
-
-const IDIOMAS = { en: "Inglês", pt: "Português", es: "Espanhol", fr: "Francês", de: "Alemão", it: "Italiano", ja: "Japonês" };
+import { IDIOMAS } from "../../utils/idioma";
 
 export default function BarraBusca({ rotulo, placeholder, valor, idioma, onBuscar }) {
   const [texto, setTexto] = useState(valor);
