@@ -26,6 +26,24 @@ export function cartasDaBusca(daColecao, daPesquisa, busca) {
   return unirPorId(filtrarPorNome(daColecao, busca), filtrarPorNome(daPesquisa, busca));
 }
 
+export function quantidadeValida(quantidade, disponivel) {
+  const texto = String(quantidade ?? "").trim();
+  if (!/^\d+$/.test(texto)) return false;
+  const numero = Number(texto);
+  return numero >= 1 && numero <= disponivel;
+}
+
+export function quantidadesInvalidas(escolhidas) {
+  return escolhidas.filter(({ item, quantidade }) => !quantidadeValida(quantidade, item.available)).map(({ item }) => item);
+}
+
+export function textoQuantidadesInvalidas(itens) {
+  if (itens.length === 0) return "";
+  const cartas = itens.map((item) => `${item.card.name} (de 1 a ${item.available})`);
+  const lista = cartas.length === 1 ? cartas[0] : `${cartas.slice(0, -1).join(", ")} e ${cartas.at(-1)}`;
+  return `Corrija a quantidade oferecida de ${lista} antes de enviar.`;
+}
+
 export function descreverCartaOferta(card, item, quantidade) {
   return `${quantidade}× ${card.name} (${variante(item)}, ${CONDICOES[item.condition] ?? item.condition})`;
 }

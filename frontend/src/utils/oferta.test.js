@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cartasDaBusca, filtrarPorNome, normalizar, textoVoceDa, textoVoceRecebe, unirPorId } from "./oferta";
+import { cartasDaBusca, filtrarPorNome, normalizar, quantidadeValida, quantidadesInvalidas, textoQuantidadesInvalidas, textoVoceDa, textoVoceRecebe, unirPorId } from "./oferta";
 
 const item = (id, name, extra = {}) => ({ id, card: { name }, finish: "NORMAL", firstEdition: false, condition: "GOOD", ...extra });
 
@@ -49,6 +49,34 @@ describe("cartasDaBusca", () => {
 
   it("não repete a carta que veio da coleção carregada e da API", () => {
     expect(cartasDaBusca(carregadas, [item("1", "Fire Energy")], "fire").map((i) => i.id)).toEqual(["1"]);
+  });
+});
+
+describe("quantidades oferecidas", () => {
+  it("aceita de 1 até o disponível, como texto ou número", () => {
+    expect(quantidadeValida("1", 3)).toBe(true);
+    expect(quantidadeValida(3, 3)).toBe(true);
+  });
+
+  it.each([[""], ["0"], ["4"], ["1.5"], ["-1"], ["abc"], [undefined]])("recusa %j com 3 disponíveis", (valor) => {
+    expect(quantidadeValida(valor, 3)).toBe(false);
+  });
+
+  it("aponta todas as cartas marcadas com quantidade inválida, mesmo as que saíram da busca", () => {
+    const escolhidas = [
+      { item: item("1", "Fire Energy", { available: 3 }), quantidade: "" },
+      { item: item("2", "Pikachu", { available: 1 }), quantidade: 1 },
+      { item: item("3", "Magikarp", { available: 2 }), quantidade: "5" },
+    ];
+    expect(quantidadesInvalidas(escolhidas).map((i) => i.id)).toEqual(["1", "3"]);
+  });
+
+  it("monta o aviso com o nome e o limite de cada carta", () => {
+    const um = [item("1", "Fire Energy", { available: 3 })];
+    const dois = [...um, item("3", "Magikarp", { available: 2 })];
+    expect(textoQuantidadesInvalidas([])).toBe("");
+    expect(textoQuantidadesInvalidas(um)).toBe("Corrija a quantidade oferecida de Fire Energy (de 1 a 3) antes de enviar.");
+    expect(textoQuantidadesInvalidas(dois)).toBe("Corrija a quantidade oferecida de Fire Energy (de 1 a 3) e Magikarp (de 1 a 2) antes de enviar.");
   });
 });
 

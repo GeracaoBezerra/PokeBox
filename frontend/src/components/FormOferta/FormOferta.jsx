@@ -8,7 +8,7 @@ import { useAcao } from "../../hooks/useAcao";
 import { useListaPaginada } from "../../hooks/useListaPaginada";
 import s from "../../styles/detalheCarta.module.css";
 import { temPalavra } from "../../utils/filtrosMarketplace";
-import { LIMITE_CARTAS_OFERTA, cartasDaBusca } from "../../utils/oferta";
+import { LIMITE_CARTAS_OFERTA, cartasDaBusca, quantidadesInvalidas, textoQuantidadesInvalidas } from "../../utils/oferta";
 import Aviso from "../Aviso/Aviso";
 import CampoBusca from "../CampoBusca/CampoBusca";
 import ErroCampo from "../ErroCampo/ErroCampo";
@@ -27,6 +27,7 @@ export default function FormOferta({ anuncio }) {
   const [quantidade, setQuantidade] = useState(1);
   const [mensagem, setMensagem] = useState("");
   const [escolhidas, setEscolhidas] = useState({});
+  const [conferirQuantidades, setConferirQuantidades] = useState(false);
   const acao = useAcao();
   const id = useId();
   const erros = errosPorCampo(acao.erro?.details);
@@ -38,6 +39,8 @@ export default function FormOferta({ anuncio }) {
   const listaEscolhidas = Object.values(escolhidas);
   const quantidades = Object.fromEntries(listaEscolhidas.map(({ item, quantidade: qtd }) => [item.id, qtd]));
   const total = listaEscolhidas.length;
+  const invalidas = quantidadesInvalidas(listaEscolhidas);
+  const avisoQuantidades = conferirQuantidades ? textoQuantidadesInvalidas(invalidas) : "";
   const carregando = colecao.carregando;
   const erroColecao = colecao.erro ?? pesquisa.erro;
 
@@ -67,6 +70,10 @@ export default function FormOferta({ anuncio }) {
   async function enviar(evento) {
     evento.preventDefault();
     if (acao.ocupado || acao.sucesso || carregando || total === 0) return;
+    if (invalidas.length > 0) {
+      setConferirQuantidades(true);
+      return;
+    }
     const items = listaEscolhidas.map(({ item, quantidade: qtd }) => ({ collectionItemId: item.id, quantity: Number(qtd) }));
     await acao.executar(() => createOffer(anuncio.id, {
       quantity: Number(quantidade),
@@ -100,7 +107,7 @@ export default function FormOferta({ anuncio }) {
           {!carregando && visiveis.length > 0 && <CartasOferecidas itens={visiveis} escolhidas={quantidades} onAlternar={alternar} onQuantidade={mudarQuantidade} />}
           {esperandoBusca && <p className={s.suave} role="status">Buscando na sua coleção…</p>}
           {!carregando && !esperandoBusca && lista.temMais && <button type="button" className={s.botaoSecundario} disabled={lista.carregandoMais} onClick={lista.carregarMais}>{lista.carregandoMais ? "Carregando…" : "Carregar mais cartas"}</button>}
-          <div className={s.rodapeOferta}><ResumoTroca anuncio={anuncio} quantidade={quantidade} escolhidas={listaEscolhidas} /><p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p><button className={s.botao} type="submit" disabled={carregando || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
+          <div className={s.rodapeOferta}><ResumoTroca anuncio={anuncio} quantidade={quantidade} escolhidas={listaEscolhidas} aviso={avisoQuantidades} /><p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p><button className={s.botao} type="submit" disabled={carregando || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
         </fieldset>
         <Aviso erro={acao.erro} campos={["quantity", "message"]} />
         {acao.sucesso && <Link className={s.link} to="/propostas">Acompanhar minha oferta</Link>}

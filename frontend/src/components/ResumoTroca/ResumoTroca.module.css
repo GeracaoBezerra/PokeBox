@@ -17,3 +17,8 @@
   margin: 0;
   font-size: var(--fs-md);
 }
+
+.aviso {
+  color: var(--erro);
+  font-weight: 600;
+}
