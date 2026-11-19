@@ -347,19 +347,37 @@ npm test
 | Funções puras | `src/auth/validator.test.js`, `src/utils/*.test.js`, `src/api/mensagens.test.js`, `src/api/parametros.test.js` | parâmetros de página e filtros das listas (`semVazios`, `parametrosDaPagina`), busca sem acento, filtro do nome no resultado da API, conferência das quantidades oferecidas e textos do resumo da troca na oferta (`utils/oferta.js`), mensagem amigável de cada erro da API e erros por campo (`errosPorCampo`), regras do login e do cadastro (`Validator` + `rules.js`), filtros do marketplace, aba, status e página de Propostas e Trocas lidos da URL, pendentes primeiro e resumo das trocas do perfil (`utils/negociacao.js`) e rótulos (variante, data, preço de referência, contagem de ofertas aguardando, resumo das cartas de uma troca, frase de próximo passo de cada oferta e troca), máscaras de telefone e CEP e validação do perfil |
 | Service com fakes | `src/auth/authService.test.js`, `src/auth/gateways/httpAuthGateway.test.js` | `AuthService` com gateway e stores de mentira passados no construtor: login certo, formulário inválido sem chamar a API, API recusando (com mensagem amigável ou erro por campo), cadastro, sessão já salva, logout e inscrição; o `HttpAuthGateway` com um `http` de mentira manda só os campos da API |
 | HTTP com a API simulada | `src/api/http.test.js`, `src/api/listas.test.js` | o `http` com respostas falsas do MSW: token no header, `ApiError` com status e `details`, 401 com o token salvo chama `aoExpirarSessao`, 401 do login e 401 sem token não chamam, 401 atrasado de um token antigo não derruba a sessão nova, 401 sem token com sessão na tela chama `aoPerderToken`; as funções de lista sem parâmetro devolvem o formato antigo e com opções mandam `page`, `limit` e só os filtros preenchidos |
-| Hook | `src/hooks/useListaPaginada.test.js`, `src/hooks/useMinhasCartas.test.js` | o hook rodando sozinho com o `renderHook` da Testing Library: o "carregar mais" junta as páginas, uma página que falha não é pulada (o próximo clique repete a mesma) e trocar a busca volta para a página 1; a wishlist e a coleção do catálogo com o MSW: falha na primeira vez não vira lista vazia, falha num recarregamento mantém o último estado conhecido |
+| Hook | `src/hooks/useCarregar.test.js`, `src/hooks/useAcao.test.jsx`, `src/hooks/usePendencias.test.jsx`, `src/hooks/useListaPaginada.test.js`, `src/hooks/useMinhasCartas.test.js` | o hook rodando sozinho com o `renderHook` da Testing Library: o `useCarregar` (usado por quase todas as páginas) começa carregando, entrega os dados ou o erro, volta a carregar no `recarregar()` e na troca de chave, esconde o erro antigo enquanto recarrega e ignora a resposta atrasada de uma chave antiga; o `useAcao` devolve `{ ok, resultado }` ou `{ ok: false, erro }`, fica `ocupado` enquanto a ação roda e mostra o toast só quando dá certo; o `usePendencias` (selo do topo, com o MSW) não chama a API sem login, conta só as ofertas e trocas recebidas aguardando resposta, conta de novo no aviso de mudança e ao trocar de conta, volta a zero no logout e, ao trocar de página, só conta de novo depois de 1 minuto; o "carregar mais" junta as páginas, uma página que falha não é pulada (o próximo clique repete a mesma) e trocar a busca volta para a página 1; a wishlist e a coleção do catálogo com o MSW: falha na primeira vez não vira lista vazia, falha num recarregamento mantém o último estado conhecido |
+| Rota privada | `src/components/RotaPrivada/RotaPrivada.test.jsx` | com o `MemoryRouter` (roteador que guarda a URL na memória): sem sessão, vai para o login guardando a página de origem com os filtros da URL em `state.de`; com sessão, mostra a página; se a sessão acaba com a página aberta, vai para o login |
 | Formulário com a API simulada | `src/components/FormOferta/FormOferta.test.jsx` | o "Monte sua oferta" inteiro com a coleção vinda do MSW: uma carta marcada com a quantidade apagada e escondida pela busca bloqueia o envio e aparece no aviso; a busca "fire" não mostra a carta que a API achou só pelo nome da expansão |
-| Página com a API simulada | `src/pages/publicPerfil.test.jsx` | o perfil público com a coleção vinda do MSW: busca longa demais na URL não vai para a API e o perfil aparece; 400 de filtro mostra "Filtro inválido" com o campo de busca; 404 e username inválido mostram "Colecionador não encontrado" |
+| Página com a API simulada | `src/pages/wishlist.test.jsx`, `src/pages/publicPerfil.test.jsx` | a wishlist (`/procuro`) inteira com o MSW e os mesmos providers do app (`renderWithProviders`): lista vazia, itens com expansão, oportunidades e link para os anúncios, remover chama o `DELETE`, mostra o toast e recarrega a lista, remoção que falha mostra o erro e não recarrega, API fora do ar mostra o aviso e o "Tentar de novo" carrega a lista; o perfil público com a coleção vinda do MSW: busca longa demais na URL não vai para a API e o perfil aparece; 400 de filtro mostra "Filtro inválido" com o campo de busca; 404 e username inválido mostram "Colecionador não encontrado" |
 | Componente | `src/components/Aviso/Aviso.test.jsx`, `src/components/AcoesAnuncio/AcoesAnuncio.test.jsx`, `src/components/header/BuscaGeral.test.jsx`, `src/components/ConfirmModal/ConfirmModal.test.jsx`, `src/components/ConfirmacaoProvider/ConfirmacaoProvider.test.jsx`, `src/components/ToastProvider/ToastProvider.test.jsx`, `src/components/ErroCampo/ErroCampo.test.jsx`, `src/components/SessaoExpirada/SessaoExpirada.test.jsx`, `src/components/Abas/Abas.test.jsx` | o componente renderizado com a Testing Library, procurado pelo papel e pelo texto, como a pessoa vê; o modal de confirmação abre com o texto certo, confirmar devolve `true`, cancelar e Esc devolvem `false`; o toast aparece na região viva certa, some sozinho, fecha no X, e o `useAcao` dispara o toast de sucesso; a mensagem do `ErroCampo` vira a descrição acessível do campo; o aviso de sessão expirada mostra o toast e leva ao login guardando a página de origem; as `Abas` têm os papéis ARIA, o Tab para só na aba ativa e as setas, Home e End trocam de aba; a busca do topo descarta o rascunho ao trocar de página e só pesquisa sozinha na página de resultados; fechar um anúncio (com o PATCH no MSW) avisa o selo de pendências e pausar não |
 
 Como está montado:
 
 - Cada teste fica ao lado do arquivo testado, com `.test.js` (ou `.test.jsx`) no nome, e importa `describe`, `it`, `expect` e `vi` do `vitest`.
 - O ambiente é o **jsdom**, um navegador de mentira dentro do Node, com `document`, `window` e `localStorage`.
-- `src/test/setup.js` roda antes dos testes: completa o `<dialog>` do jsdom (que não tem `showModal()` nem `close()`) com o mínimo para o modal funcionar, liga as verificações do jest-dom (`toBeInTheDocument()` e afins), limpa a tela e o `localStorage` depois de cada teste e liga o **MSW** (`src/test/server.js`), que intercepta as requisições HTTP. Cada teste coloca as respostas falsas de que precisa com `server.use(...)` (veja `src/api/http.test.js`), e qualquer requisição sem resposta combinada é barrada: o teste falha na hora em vez de depender da API.
+- `src/test/setup.js` roda antes dos testes: completa o `<dialog>` do jsdom (que não tem `showModal()` nem `close()`) com o mínimo para o modal funcionar, cria um `window.matchMedia` falso (o jsdom não tem, e componentes como `GradeCartas`, `PainelFiltros` e `CartaInterativa` usam), liga as verificações do jest-dom (`toBeInTheDocument()` e afins), limpa a tela e o `localStorage` depois de cada teste e liga o **MSW** (`src/test/server.js`), que intercepta as requisições HTTP. Cada teste coloca as respostas falsas de que precisa com `server.use(...)` (veja `src/api/http.test.js`), e qualquer requisição sem resposta combinada é barrada: o teste falha na hora em vez de depender da API.
+- `src/test/renderWithProviders.jsx` renderiza um componente dentro do que o `main.jsx` monta (roteador, toast, sessão e confirmação), com o `MemoryRouter` no lugar do `BrowserRouter`. O teste escolhe a URL inicial (`rota`) e a sessão (`service`). `src/test/sessaoFalsa.js` cria uma sessão de mentira com `criarSessaoFalsa()` (Ash logado) ou `criarSessaoFalsa(null)` (sem login), com `entrar()` e `logout()` para trocar a sessão no meio do teste.
 - O `npm run build` não leva os arquivos de teste para o `dist`.
 
-Os demais hooks, as rotas, as páginas com a API simulada e a cobertura do front entram com a #180.
+#### Cobertura do front
+
+```bash
+cd frontend
+npm run test:coverage
+```
+
+Roda os mesmos testes do `npm test` medindo a cobertura com o `@vitest/coverage-v8`. A tabela aparece no terminal, e o relatório arquivo por arquivo, com as linhas cobertas em verde, fica em `frontend/coverage/index.html`. Entram na conta os `.js` e `.jsx` de `frontend/src`; ficam de fora os testes, a pasta `src/test` e o `main.jsx`, que só monta o app.
+
+| Métrica | Medido | Mínimo exigido |
+|---|---|---|
+| Linhas | 42,7% | 40% |
+| Comandos | 43,0% | 41% |
+| Funções | 37,7% | 35% |
+| Ramos (if/else) | 38,0% | 35% |
+
+Números de 19/11/2026, com 266 testes. O mínimo segue a mesma regra do backend: o valor medido menos uns 2 pontos, arredondado para baixo, para uma mudança pequena não quebrar a CI. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
 
 ### Cobertura
 
@@ -380,14 +398,14 @@ Entram na conta os arquivos `.ts` de `backend/src`. Ficam de fora os testes, o c
 | Funções | 75,7% | 97,5% | 95% |
 | Ramos (if/else) | 79,1% | 88,1% | 86% |
 
-Números de 15/11/2026, medidos na CI, com 682 testes de unidade e 95 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. A cobertura do front ainda não é medida: isso entra com a #180.
+Números de 15/11/2026, medidos na CI, com 682 testes de unidade e 95 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. A cobertura do front tem a tabela dela em [Cobertura do front](#cobertura-do-front).
 
 A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 
 | Job | O que roda |
 |---|---|
 | `backend` | sobe um PostgreSQL de teste; `npm ci`, `npx prisma generate`, `npm run typecheck`, `npm run build` e `npm run test:coverage` (unidade + integração, com o mínimo de cobertura). Mostra a tabela de cobertura no resumo da execução e guarda o relatório completo como artefato `coverage-backend` |
-| `frontend` | `npm ci`, `npm run lint`, `npm test` (Vitest) e `npm run build` |
+| `frontend` | `npm ci`, `npm run lint`, `npm run test:coverage` (Vitest, com o mínimo de cobertura) e `npm run build`. Mostra a tabela de cobertura no resumo da execução e guarda o relatório completo como artefato `coverage-frontend` |
 
 Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow de deploy, antes de publicar (veja [Deploy](#deploy)).
 
@@ -801,7 +819,7 @@ As páginas (`frontend/src/pages/`) só buscam os dados e montam a tela; cada bl
 | Backend | ✅ todas as rotas em produção (autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas e admin), com testes de unidade e de integração na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, com deploy automático a cada release |
 | Frontend | 🟡 todas as telas existem e conversam com a API (home, login, cadastro, catálogo, detalhe da carta, marketplace, detalhe do anúncio, coleção, wishlist, meus anúncios, propostas, trocas, perfil e perfil público); o pacotão da PR #195 trouxe modal de confirmação, toasts e mensagens amigáveis, erro embaixo do campo, sessão expirada sem recarregar, listas paginadas com filtros na URL, abas acessíveis, selo de pendências, oferta com busca e resumo, busca geral no topo, Quero e Tenho no catálogo, português como idioma padrão e perfil público com busca; em andamento: o resto do acabamento das telas |
-| Testes do front | 🟡 feito: Vitest (#179), com 238 testes rodando na CI (funções puras, `AuthService`, `http` com MSW, componentes, hooks e algumas telas); a fazer: cobertura e o resto dos hooks e páginas (#180) e E2E com Cypress (#181, #182) |
+| Testes do front | 🟡 feito: Vitest (#179), com 266 testes rodando na CI (funções puras, `AuthService`, `http` com MSW, componentes, hooks, rota privada e páginas com a API simulada) e cobertura com mínimo na CI (#180); a fazer: E2E com Cypress (#181, #182) |
 
 Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).
 
