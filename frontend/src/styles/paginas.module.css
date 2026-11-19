@@ -279,16 +279,10 @@
 
 .abas {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
   margin-bottom: 16px;
-}
-
-.abaAtiva {
-  composes: botao;
-}
-
-.aba {
-  composes: botaoSecundario;
 }
 
 .paginacao {

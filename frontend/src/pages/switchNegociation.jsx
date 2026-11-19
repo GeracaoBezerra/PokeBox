@@ -4,11 +4,14 @@ import AbasNegociacao from "../components/AbasNegociacao/AbasNegociacao";
 import Aviso from "../components/Aviso/Aviso";
 import CabecalhoPagina from "../components/CabecalhoPagina/CabecalhoPagina";
 import CartaoTroca from "../components/CartaoTroca/CartaoTroca";
+import { idDaAba } from "../components/Abas/idDaAba";
 import Paginacao from "../components/Paginacao/Paginacao";
 import { useCarregar } from "../hooks/useCarregar";
 import { useFiltrosNegociacao } from "../hooks/useFiltrosNegociacao";
 import s from "../styles/paginas.module.css";
 import { STATUS_TROCA } from "../utils/rotulos";
+
+const PAINEL = "painel-trocas";
 
 export default function SwitchNegociationPage() {
   const { aba, side, status, page, atualizar } = useFiltrosNegociacao(STATUS_TROCA);
@@ -28,6 +31,8 @@ export default function SwitchNegociationPage() {
       </CabecalhoPagina>
 
       <AbasNegociacao
+        rotulo="Trocas"
+        idPainel={PAINEL}
         aba={aba}
         onAba={(valor) => atualizar({ aba: valor })}
         status={status}
@@ -35,19 +40,21 @@ export default function SwitchNegociationPage() {
         rotulosStatus={STATUS_TROCA}
       />
 
-      <Aviso erro={erro} onTentarDeNovo={recarregar} />
-      {carregando && <CarregandoCartas formato="negociacoes" total={4} />}
-      {vazia && <p className={s.suave}>{page > 1 ? "Nenhuma troca nesta página." : "Nenhuma troca aqui."}</p>}
+      <div role="tabpanel" id={PAINEL} aria-labelledby={idDaAba(PAINEL, aba)}>
+        <Aviso erro={erro} onTentarDeNovo={recarregar} />
+        {carregando && <CarregandoCartas formato="negociacoes" total={4} />}
+        {vazia && <p className={s.suave}>{page > 1 ? "Nenhuma troca nesta página." : "Nenhuma troca aqui."}</p>}
 
-      <div className={s.gradeNegociacoes}>
-        {lista.map((troca) => (
-          <CartaoTroca key={troca.id} troca={troca} souDonoDoAnuncio={aba === "recebidas"} onMudou={recarregar} />
-        ))}
+        <div className={s.gradeNegociacoes}>
+          {lista.map((troca) => (
+            <CartaoTroca key={troca.id} troca={troca} souDonoDoAnuncio={aba === "recebidas"} onMudou={recarregar} />
+          ))}
+        </div>
+
+        {dados && !carregando && (lista.length > 0 || page > 1) && (
+          <Paginacao pagina={page} temProxima={dados.pagination?.hasNextPage} onIrPara={(nova) => atualizar({ page: nova }, false)} />
+        )}
       </div>
-
-      {dados && !carregando && (lista.length > 0 || page > 1) && (
-        <Paginacao pagina={page} temProxima={dados.pagination?.hasNextPage} onIrPara={(nova) => atualizar({ page: nova }, false)} />
-      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ export function useFiltrosNegociacao(statusValidos) {
   const filtros = lerFiltrosNegociacao(params, statusValidos);
 
   function atualizar(mudancas, reiniciarPagina = true) {
-    setParams((atuais) => mudarFiltros(atuais, mudancas, reiniciarPagina));
+    setParams((atuais) => mudarFiltros(atuais, mudancas, reiniciarPagina), { replace: reiniciarPagina });
   }
 
   return { ...filtros, atualizar };
