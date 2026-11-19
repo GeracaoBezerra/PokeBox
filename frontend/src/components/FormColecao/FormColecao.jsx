@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { addToCollection } from "../../api/collection";
+import { errosPorCampo } from "../../api/mensagens";
 import { useAcao } from "../../hooks/useAcao";
 import s from "../../styles/detalheCarta.module.css";
 import { CONDICOES, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
+import ErroCampo from "../ErroCampo/ErroCampo";
 
 const ACABAMENTO_DA_VARIANTE = { normal: "NORMAL", holo: "HOLO", reverse: "REVERSE" };
 
@@ -24,6 +26,8 @@ export default function FormColecao({ card, lang, onAdicionado }) {
     isPublic: true,
   });
   const { erro, ocupado, executar } = useAcao();
+  const idErroQuantidade = useId();
+  const erroQuantidade = errosPorCampo(erro?.details).quantity;
 
   function alterar(campo, valor) {
     setForm((atual) => ({ ...atual, [campo]: valor }));
@@ -62,16 +66,21 @@ export default function FormColecao({ card, lang, onAdicionado }) {
             ))}
           </select>
         </label>
-        <label className={s.campo}>
-          Quantidade
-          <input
-            type="number"
-            min="1"
-            required
-            value={form.quantity}
-            onChange={(e) => alterar("quantity", e.target.value)}
-          />
-        </label>
+        <div>
+          <label className={s.campo}>
+            Quantidade
+            <input
+              type="number"
+              min="1"
+              required
+              value={form.quantity}
+              aria-invalid={Boolean(erroQuantidade)}
+              aria-describedby={erroQuantidade ? idErroQuantidade : undefined}
+              onChange={(e) => alterar("quantity", e.target.value)}
+            />
+          </label>
+          <ErroCampo id={idErroQuantidade} mensagem={erroQuantidade} />
+        </div>
         <label className={s.checkbox}>
           <input
             type="checkbox"
@@ -89,7 +98,7 @@ export default function FormColecao({ card, lang, onAdicionado }) {
       <button className={s.botao} type="submit" disabled={ocupado}>
         {ocupado ? "Adicionando…" : "Adicionar à coleção"}
       </button>
-      <Aviso erro={erro} />
+      <Aviso erro={erro} campos={["quantity"]} />
     </form>
   );
 }

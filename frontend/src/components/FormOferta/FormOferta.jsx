@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Link } from "react-router-dom";
 import { Send } from "lucide-react";
 import { listCollection } from "../../api/collection";
+import { errosPorCampo } from "../../api/mensagens";
 import { createOffer } from "../../api/offers";
 import { useAcao } from "../../hooks/useAcao";
 import { useCarregar } from "../../hooks/useCarregar";
 import s from "../../styles/detalheCarta.module.css";
 import Aviso from "../Aviso/Aviso";
+import ErroCampo from "../ErroCampo/ErroCampo";
 import CartasOferecidas from "../CartasOferecidas/CartasOferecidas";
 import CarregandoCartas from "../CarregandoCartas/CarregandoCartas";
 
@@ -16,6 +18,8 @@ export default function FormOferta({ anuncio }) {
   const [mensagem, setMensagem] = useState("");
   const [escolhidas, setEscolhidas] = useState({});
   const acao = useAcao();
+  const id = useId();
+  const erros = errosPorCampo(acao.erro?.details);
   const disponiveis = (colecao ?? []).filter((item) => item.available > 0);
   const total = Object.keys(escolhidas).length;
 
@@ -45,8 +49,14 @@ export default function FormOferta({ anuncio }) {
       <form className={s.painel} onSubmit={enviar}>
         <fieldset className={s.ofertaCampos} disabled={acao.ocupado || Boolean(acao.sucesso)}>
           <div className={s.campos}>
-            <label className={s.campo}>Quantas cópias você quer receber<input type="number" min="1" max={anuncio.quantity} required value={quantidade} onChange={(e) => setQuantidade(e.target.value)} /></label>
-            <label className={s.campo}>Mensagem para o colecionador (opcional)<input maxLength={500} placeholder="Conte um pouco sobre sua proposta…" value={mensagem} onChange={(e) => setMensagem(e.target.value)} /></label>
+            <div>
+              <label className={s.campo}>Quantas cópias você quer receber<input type="number" min="1" max={anuncio.quantity} required value={quantidade} aria-invalid={Boolean(erros.quantity)} aria-describedby={erros.quantity ? `${id}-quantidade` : undefined} onChange={(e) => setQuantidade(e.target.value)} /></label>
+              <ErroCampo id={`${id}-quantidade`} mensagem={erros.quantity} />
+            </div>
+            <div>
+              <label className={s.campo}>Mensagem para o colecionador (opcional)<input maxLength={500} placeholder="Conte um pouco sobre sua proposta…" value={mensagem} aria-invalid={Boolean(erros.message)} aria-describedby={erros.message ? `${id}-mensagem` : undefined} onChange={(e) => setMensagem(e.target.value)} /></label>
+              <ErroCampo id={`${id}-mensagem`} mensagem={erros.message} />
+            </div>
           </div>
           <div className={s.cabecalhoSelecao}><h3>O que você oferece</h3><span className={s.suave}>{total}/20 cartas selecionadas</span></div>
           <Aviso erro={erroColecao} />
@@ -56,7 +66,7 @@ export default function FormOferta({ anuncio }) {
           {!carregando && disponiveis.length > 0 && <CartasOferecidas itens={disponiveis} escolhidas={escolhidas} onAlternar={alternar} onQuantidade={(item, valor) => setEscolhidas((atual) => ({ ...atual, [item.id]: valor }))} />}
           <div className={s.rodapeOferta}><p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p><button className={s.botao} type="submit" disabled={carregando || Boolean(erroColecao) || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
         </fieldset>
-        <Aviso erro={acao.erro} />
+        <Aviso erro={acao.erro} campos={["quantity", "message"]} />
         {acao.sucesso && <Link className={s.link} to="/propostas">Acompanhar minha oferta</Link>}
       </form>
     </section>

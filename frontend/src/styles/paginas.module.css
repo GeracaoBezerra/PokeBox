@@ -64,6 +64,10 @@
   width: 90px;
 }
 
+.campo [aria-invalid="true"] {
+  border-color: var(--erro);
+}
+
 .checkbox {
   display: flex;
   align-items: center;

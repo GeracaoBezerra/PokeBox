@@ -1,0 +1,7 @@
+.erro {
+  display: block;
+  margin-top: var(--esp-4);
+  color: var(--erro);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}

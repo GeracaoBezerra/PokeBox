@@ -20,7 +20,7 @@ export function useAcao() {
       return { ok: true, resultado };
     } catch (e) {
       setErro(e);
-      return { ok: false };
+      return { ok: false, erro: e };
     } finally {
       setOcupado(false);
     }

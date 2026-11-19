@@ -83,6 +83,56 @@ describe("AuthService", () => {
     expect(service.getSession()).toBeNull();
   });
 
+  it("traduz a falta de conexão no login", async () => {
+    const gateway = { login: vi.fn().mockRejectedValue({ status: 0, message: "Não foi possível conectar ao servidor." }) };
+    const { service } = criarService({ gateway });
+
+    const resultado = await service.login({ email: "ash@pokebox.dev", password: "qualquer" });
+
+    expect(resultado).toEqual({
+      ok: false,
+      message: "Não conseguimos falar com o servidor. Confira sua internet e tente de novo.",
+    });
+  });
+
+  it("devolve os erros por campo quando a API recusa o cadastro com details", async () => {
+    const gateway = {
+      register: vi.fn().mockRejectedValue({
+        status: 400,
+        message: "Username só com letras, números e _",
+        details: [{ field: "username", message: "Username só com letras, números e _" }],
+      }),
+    };
+    const { service } = criarService({ gateway });
+
+    const resultado = await service.register({
+      name: "Ash Ketchum",
+      username: "ash_ketchum",
+      email: "ash@pokebox.dev",
+      password: "senha-forte",
+      confirmPassword: "senha-forte",
+    });
+
+    expect(resultado).toEqual({ ok: false, errors: { username: "Username só com letras, números e _" } });
+  });
+
+  it("e-mail ou username repetido continua como mensagem geral", async () => {
+    const gateway = {
+      register: vi.fn().mockRejectedValue({ status: 409, message: "E-mail ou username já cadastrado" }),
+    };
+    const { service } = criarService({ gateway });
+
+    const resultado = await service.register({
+      name: "Ash Ketchum",
+      username: "ash",
+      email: "ash@pokebox.dev",
+      password: "senha-forte",
+      confirmPassword: "senha-forte",
+    });
+
+    expect(resultado).toEqual({ ok: false, message: "E-mail ou username já cadastrado" });
+  });
+
   it("cria sessão e manda só os campos da API quando o cadastro é válido", async () => {
     const gateway = { register: vi.fn().mockResolvedValue({ token: "token-novo", user: ash }) };
     const { service, tokenStore } = criarService({ gateway });

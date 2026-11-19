@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { adminCheck, deactivateMe, getMe, updateMe } from "../../api/auth";
+import { errosPorCampo } from "../../api/mensagens";
 import { listMyTrades } from "../../api/trades";
 import { useAuthService } from "../../auth/useAuthService";
 import { useAcao } from "../../hooks/useAcao";
 import { useCarregar } from "../../hooks/useCarregar";
 import { mascararCep, mascararTelefone } from "../../utils/mascaras";
-import { UFS, montarMudancas, validarPerfil } from "../../utils/perfil";
+import { CAMPOS_EDITAVEIS, UFS, montarMudancas, validarPerfil } from "../../utils/perfil";
 import Aviso from "../Aviso/Aviso";
 import ConfirmModal from "../ConfirmModal/ConfirmModal";
 import MenuPerfil from "../MenuPerfil/MenuPerfil";
@@ -176,8 +177,9 @@ export default function Perfil() {
     if (Object.keys(encontrados).length > 0) return false;
     const mudancas = montarMudancas(valores, dados.user);
     if (Object.keys(mudancas).length === 0) return true;
-    const { ok } = await salvar.executar(() => updateMe(mudancas), "Dados salvos.");
+    const { ok, erro: erroApi } = await salvar.executar(() => updateMe(mudancas), "Dados salvos.");
     if (ok) recarregar();
+    else setErros(errosPorCampo(erroApi?.details));
     return ok;
   }
 
@@ -190,7 +192,7 @@ export default function Perfil() {
         <MenuPerfil secoes={SECOES} selecionada={secaoAtiva} onSelecionar={setSecaoAtiva} />
 
         <div className={styles.conteudo}>
-          <Aviso erro={salvar.erro} />
+          <Aviso erro={salvar.erro} campos={CAMPOS_EDITAVEIS} />
 
           {secaoAtiva === "perfil" && (
             <SecaoEditavel

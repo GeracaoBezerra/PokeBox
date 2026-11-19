@@ -1,5 +1,6 @@
 import { useId } from "react";
 
+import ErroCampo from "../ErroCampo/ErroCampo";
 import styles from "./BlocoDados.module.css";
 
 // Um grupo de campos com título (ex.: "Informações pessoais").
@@ -26,8 +27,12 @@ export default function BlocoDados({
           {campos.map((campo, indice) => {
             const idCampo = `${id}-${campo.chave}`;
             const valor = valores[campo.chave] ?? "";
+            const erro = erros?.[campo.chave];
+            const idErro = `${idCampo}-erro`;
             const propsEntrada = {
               id: idCampo,
+              "aria-invalid": Boolean(erro),
+              "aria-describedby": erro ? idErro : undefined,
               className: styles.entrada,
               value: campo.mascara ? campo.mascara(valor) : valor,
               readOnly: campo.somenteLeitura,
@@ -67,7 +72,7 @@ export default function BlocoDados({
                   />
                 )}
 
-                {erros[campo.chave] && <p className={styles.erro}>{erros[campo.chave]}</p>}
+                <ErroCampo id={idErro} mensagem={erro} />
               </div>
             );
           })}

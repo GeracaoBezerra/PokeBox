@@ -215,6 +215,7 @@
 .campo { display: flex; flex-direction: column; gap: var(--esp-8); color: var(--texto-suave); font-size: var(--fs-sm); }
 .campo input,
 .campo select { width: 100%; min-width: 0; min-height: var(--altura-controle); padding: var(--esp-8) var(--esp-12); background: var(--superficie-funda); border: 1px solid var(--borda); border-radius: var(--raio-botao); color: var(--texto); font: inherit; }
+.campo [aria-invalid="true"] { border-color: var(--erro); }
 .checkbox { display: flex; align-items: center; gap: var(--esp-8); min-height: var(--alvo-min); font-size: var(--fs-sm); color: var(--texto-suave); }
 .checkbox input { accent-color: var(--acento); width: var(--esp-16); height: var(--esp-16); }
 
