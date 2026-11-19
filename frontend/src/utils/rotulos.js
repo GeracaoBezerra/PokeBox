@@ -85,3 +85,20 @@ export function descreverCartas(itens) {
   if (!itens?.length) return "nenhuma carta";
   return itens.map((item) => `${item.quantity}× ${item.card.name}`).join(", ");
 }
+
+export function proximoPassoOferta({ status, recebida, virouTroca, dono, proponente }) {
+  if (virouTroca) return "Acompanhe em Trocas.";
+  if (status === "PROPOSED") return recebida ? "Aceite ou recuse esta oferta." : `Aguardando @${dono} responder.`;
+  if (status === "ACCEPTED") {
+    return recebida ? `Aguardando @${proponente} criar a troca.` : "Aceita. Agora crie a troca para reservar as cartas.";
+  }
+  return "Encerrada.";
+}
+
+export function proximoPassoTroca({ status, souDonoDoAnuncio, parceiro }) {
+  if (status === "PROPOSED") {
+    return souDonoDoAnuncio ? "Confira as cartas e conclua ou recuse." : `Aguardando @${parceiro} concluir.`;
+  }
+  if (status === "ACCEPTED") return "As cartas já mudaram de dono.";
+  return "As cartas reservadas voltaram a ficar disponíveis.";
+}

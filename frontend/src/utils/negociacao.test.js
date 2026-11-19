@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lerFiltrosNegociacao, mudarFiltros } from "./negociacao";
+import { lerFiltrosNegociacao, mudarFiltros, pendentesPrimeiro } from "./negociacao";
 import { STATUS_NEGOCIACAO } from "./rotulos";
 
 const ler = (busca) => lerFiltrosNegociacao(new URLSearchParams(busca), STATUS_NEGOCIACAO);
@@ -50,5 +50,24 @@ describe("mudarFiltros", () => {
     const atuais = new URLSearchParams("page=2");
     mudarFiltros(atuais, { aba: "enviadas" });
     expect(atuais.toString()).toBe("page=2");
+  });
+});
+
+describe("pendentesPrimeiro", () => {
+  it("põe as aguardando resposta na frente e mantém a ordem das demais", () => {
+    const lista = [
+      { id: 1, status: "ACCEPTED" },
+      { id: 2, status: "PROPOSED" },
+      { id: 3, status: "REJECTED" },
+      { id: 4, status: "PROPOSED" },
+      { id: 5, status: "CANCELED" },
+    ];
+    expect(pendentesPrimeiro(lista).map((item) => item.id)).toEqual([2, 4, 1, 3, 5]);
+  });
+
+  it("não altera a lista original", () => {
+    const lista = [{ status: "ACCEPTED" }, { status: "PROPOSED" }];
+    pendentesPrimeiro(lista);
+    expect(lista[0].status).toBe("ACCEPTED");
   });
 });

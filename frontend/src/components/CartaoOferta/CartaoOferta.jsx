@@ -2,9 +2,10 @@ import { Link } from "react-router-dom";
 import { updateOfferStatus } from "../../api/offers";
 import { createTrade } from "../../api/trades";
 import { useAcao } from "../../hooks/useAcao";
+import { avisarQuePendenciasMudaram } from "../../hooks/usePendencias";
 import { useConfirmacao } from "../../hooks/useConfirmacao";
 import s from "../../styles/paginas.module.css";
-import { CONDICOES, STATUS_NEGOCIACAO, formatarData, variante } from "../../utils/rotulos";
+import { CONDICOES, STATUS_NEGOCIACAO, formatarData, proximoPassoOferta, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
 import MiniaturaCarta from "../MiniaturaCarta/MiniaturaCarta";
 
@@ -17,7 +18,9 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, onMudou }) 
 
   async function responder(status, mensagem) {
     const { ok } = await acao.executar(() => updateOfferStatus(oferta.id, status), mensagem);
-    if (ok) onMudou();
+    if (!ok) return;
+    avisarQuePendenciasMudaram();
+    onMudou();
   }
 
   async function confirmarEResponder(pedido, status, mensagem) {
@@ -68,17 +71,28 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, onMudou }) 
       () => createTrade(oferta.id),
       "Troca criada: as cartas dos dois lados estão reservadas. Veja em Trocas."
     );
-    if (ok) onMudou();
+    if (!ok) return;
+    avisarQuePendenciasMudaram();
+    onMudou();
   }
 
   return (
-    <div className={s.cartaoNegociacao}>
+    <div className={s.cartaoNegociacao} data-pendente={recebida && aberta}>
       <div className={s.acoes}>
         <span className={s.status}>{virouTroca ? "Virou troca" : STATUS_NEGOCIACAO[oferta.status]}</span>
         <span className={s.suave}>
           {recebida ? `De @${oferta.proposer.username}` : `Para @${listing.owner.username}`} · {formatarData(oferta.createdAt)}
         </span>
       </div>
+      <p className={s.proximoPasso}>
+        {proximoPassoOferta({
+          status: oferta.status,
+          recebida,
+          virouTroca,
+          dono: listing.owner.username,
+          proponente: oferta.proposer.username,
+        })}
+      </p>
 
       <div className={s.linhaCartas}>
         <div>

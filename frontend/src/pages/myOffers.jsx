@@ -7,10 +7,17 @@ import CabecalhoPagina from "../components/CabecalhoPagina/CabecalhoPagina";
 import CartaoOferta from "../components/CartaoOferta/CartaoOferta";
 import { idDaAba } from "../components/Abas/idDaAba";
 import Paginacao from "../components/Paginacao/Paginacao";
+import { Link } from "react-router-dom";
 import { useCarregar } from "../hooks/useCarregar";
 import { useFiltrosNegociacao } from "../hooks/useFiltrosNegociacao";
 import s from "../styles/paginas.module.css";
+import { pendentesPrimeiro } from "../utils/negociacao";
 import { STATUS_NEGOCIACAO } from "../utils/rotulos";
+
+const VAZIO = {
+  recebidas: { texto: "Nenhuma oferta recebida. Seus anúncios aparecem no marketplace.", para: "/anuncios", link: "Ver meus anúncios" },
+  enviadas: { texto: "Você ainda não fez ofertas.", para: "/marketplace", link: "Explorar o marketplace" },
+};
 
 const PAINEL = "painel-propostas";
 
@@ -29,6 +36,7 @@ export default function MyOffersPage() {
 
   const lista = carregando ? [] : dados?.items ?? [];
   const vazia = !carregando && dados && lista.length === 0;
+  const ordenada = aba === "recebidas" ? pendentesPrimeiro(lista) : lista;
 
   return (
     <div className={s.pagina}>
@@ -50,10 +58,26 @@ export default function MyOffersPage() {
       <div role="tabpanel" id={PAINEL} aria-labelledby={idDaAba(PAINEL, aba)}>
         <Aviso erro={erro} onTentarDeNovo={recarregar} />
         {carregando && <CarregandoCartas formato="negociacoes" total={4} />}
-        {vazia && <p className={s.suave}>{page > 1 ? "Nenhuma oferta nesta página." : "Nenhuma oferta aqui."}</p>}
+        {vazia && page > 1 && <p className={s.suave}>Nenhuma oferta nesta página.</p>}
+        {vazia && page === 1 && status && (
+          <div className={s.acoes}>
+            <p className={s.suave}>Nada com este status.</p>
+            <button type="button" className={s.botaoSecundario} onClick={() => atualizar({ status: "" })}>
+              Ver todos os status
+            </button>
+          </div>
+        )}
+        {vazia && page === 1 && !status && (
+          <div className={s.acoes}>
+            <p className={s.suave}>{VAZIO[aba].texto}</p>
+            <Link className={s.link} to={VAZIO[aba].para}>
+              {VAZIO[aba].link}
+            </Link>
+          </div>
+        )}
 
         <div className={s.gradeNegociacoes}>
-          {lista.map((oferta) => (
+          {ordenada.map((oferta) => (
             <CartaoOferta
               key={oferta.id}
               oferta={oferta}

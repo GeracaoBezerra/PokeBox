@@ -6,10 +6,25 @@ import CabecalhoPagina from "../components/CabecalhoPagina/CabecalhoPagina";
 import CartaoTroca from "../components/CartaoTroca/CartaoTroca";
 import { idDaAba } from "../components/Abas/idDaAba";
 import Paginacao from "../components/Paginacao/Paginacao";
+import { Link } from "react-router-dom";
 import { useCarregar } from "../hooks/useCarregar";
 import { useFiltrosNegociacao } from "../hooks/useFiltrosNegociacao";
 import s from "../styles/paginas.module.css";
+import { pendentesPrimeiro } from "../utils/negociacao";
 import { STATUS_TROCA } from "../utils/rotulos";
+
+const VAZIO = {
+  recebidas: {
+    texto: "Nenhuma troca recebida. Elas aparecem quando alguém cria a troca a partir de uma oferta que você aceitou.",
+    para: "/propostas",
+    link: "Ver propostas",
+  },
+  enviadas: {
+    texto: "Você ainda não criou trocas. Crie a partir de uma oferta aceita.",
+    para: "/propostas?aba=enviadas",
+    link: "Ver propostas enviadas",
+  },
+};
 
 const PAINEL = "painel-trocas";
 
@@ -22,6 +37,7 @@ export default function SwitchNegociationPage() {
 
   const lista = carregando ? [] : dados?.items ?? [];
   const vazia = !carregando && dados && lista.length === 0;
+  const ordenada = aba === "recebidas" ? pendentesPrimeiro(lista) : lista;
 
   return (
     <div className={s.pagina}>
@@ -43,10 +59,26 @@ export default function SwitchNegociationPage() {
       <div role="tabpanel" id={PAINEL} aria-labelledby={idDaAba(PAINEL, aba)}>
         <Aviso erro={erro} onTentarDeNovo={recarregar} />
         {carregando && <CarregandoCartas formato="negociacoes" total={4} />}
-        {vazia && <p className={s.suave}>{page > 1 ? "Nenhuma troca nesta página." : "Nenhuma troca aqui."}</p>}
+        {vazia && page > 1 && <p className={s.suave}>Nenhuma troca nesta página.</p>}
+        {vazia && page === 1 && status && (
+          <div className={s.acoes}>
+            <p className={s.suave}>Nada com este status.</p>
+            <button type="button" className={s.botaoSecundario} onClick={() => atualizar({ status: "" })}>
+              Ver todos os status
+            </button>
+          </div>
+        )}
+        {vazia && page === 1 && !status && (
+          <div className={s.acoes}>
+            <p className={s.suave}>{VAZIO[aba].texto}</p>
+            <Link className={s.link} to={VAZIO[aba].para}>
+              {VAZIO[aba].link}
+            </Link>
+          </div>
+        )}
 
         <div className={s.gradeNegociacoes}>
-          {lista.map((troca) => (
+          {ordenada.map((troca) => (
             <CartaoTroca key={troca.id} troca={troca} souDonoDoAnuncio={aba === "recebidas"} onMudou={recarregar} />
           ))}
         </div>

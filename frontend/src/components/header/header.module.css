@@ -159,6 +159,21 @@
   background-color: color-mix(in srgb, var(--acento) 10%, transparent);
 }
 
+.selo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background-color: var(--acento);
+  color: var(--acento-texto);
+  font-size: 0.75rem;
+  font-weight: var(--peso-medio);
+  line-height: 1;
+}
+
 /* Tablet e celular */
 
 @media (max-width: 768px) {

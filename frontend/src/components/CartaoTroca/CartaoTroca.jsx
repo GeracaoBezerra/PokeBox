@@ -1,8 +1,9 @@
 import { acceptTrade, cancelTrade, rejectTrade } from "../../api/trades";
 import { useAcao } from "../../hooks/useAcao";
 import { useConfirmacao } from "../../hooks/useConfirmacao";
+import { avisarQuePendenciasMudaram } from "../../hooks/usePendencias";
 import s from "../../styles/paginas.module.css";
-import { CONDICOES, STATUS_TROCA, descreverCartas, formatarData, variante } from "../../utils/rotulos";
+import { CONDICOES, STATUS_TROCA, descreverCartas, formatarData, proximoPassoTroca, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
 import MiniaturaCarta from "../MiniaturaCarta/MiniaturaCarta";
 
@@ -34,7 +35,9 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
 
   async function agir(fn, mensagem) {
     const { ok } = await acao.executar(() => fn(troca.id), mensagem);
-    if (ok) onMudou();
+    if (!ok) return;
+    avisarQuePendenciasMudaram();
+    onMudou();
   }
 
   async function concluir() {
@@ -70,7 +73,7 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
   }
 
   return (
-    <div className={s.cartaoNegociacao}>
+    <div className={s.cartaoNegociacao} data-pendente={souDonoDoAnuncio && emAndamento}>
       <div className={s.acoes}>
         <span className={s.status}>{STATUS_TROCA[troca.status]}</span>
         <span className={s.suave}>
@@ -78,6 +81,9 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
           {troca.completedAt && ` · finalizada em ${formatarData(troca.completedAt)}`}
         </span>
       </div>
+      <p className={s.proximoPasso}>
+        {proximoPassoTroca({ status: troca.status, souDonoDoAnuncio, parceiro: parceiro.username })}
+      </p>
 
       <div className={s.linhaCartas}>
         <Lado titulo="Você dá" itens={dou} />
@@ -105,16 +111,13 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
           </>
         )}
         {!souDonoDoAnuncio && emAndamento && (
-          <>
-            <button
-              className={s.botaoPerigo}
-              disabled={acao.ocupado}
-              onClick={cancelar}
-            >
-              Cancelar troca
-            </button>
-            <span className={s.suave}>Aguardando @{parceiro.username} concluir.</span>
-          </>
+          <button
+            className={s.botaoPerigo}
+            disabled={acao.ocupado}
+            onClick={cancelar}
+          >
+            Cancelar troca
+          </button>
         )}
       </div>
       <Aviso erro={acao.erro} />

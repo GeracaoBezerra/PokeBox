@@ -19,3 +19,7 @@ export function mudarFiltros(params, mudancas, reiniciarPagina = true) {
   if (reiniciarPagina) novos.delete("page");
   return novos;
 }
+
+export function pendentesPrimeiro(lista) {
+  return [...lista].sort((a, b) => (b.status === "PROPOSED") - (a.status === "PROPOSED"));
+}
