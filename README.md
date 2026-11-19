@@ -800,8 +800,8 @@ As páginas (`frontend/src/pages/`) só buscam os dados e montam a tela; cada bl
 |---|---|
 | Backend | ✅ todas as rotas em produção (autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas e admin), com testes de unidade e de integração na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, com deploy automático a cada release |
-| Frontend | 🟡 todas as telas existem e conversam com a API (home, login, cadastro, catálogo, detalhe da carta, marketplace, detalhe do anúncio, coleção, wishlist, meus anúncios, propostas, trocas, perfil e perfil público); em andamento: acabamento das telas (header, links, carregamento, coleção, anúncios, wishlist e acessibilidade) |
-| Testes do front | 🔴 a fazer: Vitest (#179, #180) e E2E com Cypress (#181, #182) |
+| Frontend | 🟡 todas as telas existem e conversam com a API (home, login, cadastro, catálogo, detalhe da carta, marketplace, detalhe do anúncio, coleção, wishlist, meus anúncios, propostas, trocas, perfil e perfil público); o pacotão da PR #195 trouxe modal de confirmação, toasts e mensagens amigáveis, erro embaixo do campo, sessão expirada sem recarregar, listas paginadas com filtros na URL, abas acessíveis, selo de pendências, oferta com busca e resumo, busca geral no topo, Quero e Tenho no catálogo, português como idioma padrão e perfil público com busca; em andamento: o resto do acabamento das telas |
+| Testes do front | 🟡 feito: Vitest (#179), com 238 testes rodando na CI (funções puras, `AuthService`, `http` com MSW, componentes, hooks e algumas telas); a fazer: cobertura e o resto dos hooks e páginas (#180) e E2E com Cypress (#181, #182) |
 
 Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).
 
