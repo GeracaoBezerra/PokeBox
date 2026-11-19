@@ -18,6 +18,7 @@ export default function FormOferta({ anuncio }) {
   const acao = useAcao();
   const disponiveis = (colecao ?? []).filter((item) => item.available > 0);
   const total = Object.keys(escolhidas).length;
+  const rotuloTotal = total === 0 ? "Nenhuma carta selecionada" : total === 1 ? "1 carta selecionada" : `${total} cartas selecionadas`;
 
   function alternar(item, marcado) {
     setEscolhidas((atual) => {
@@ -39,7 +40,7 @@ export default function FormOferta({ anuncio }) {
     }), "Oferta enviada! Acompanhe a resposta em Propostas.");
   }
 
-  return (
+    return (
     <section className={s.secao} id="fazer-oferta" aria-labelledby="titulo-oferta">
       <header className={s.cabecalho}><span className={s.eyebrow}>Sua próxima troca</span><h2 id="titulo-oferta">Monte sua oferta</h2><p className={s.suave}>Diga o que você quer receber e escolha o que oferece em troca.</p></header>
       <form className={s.painel} onSubmit={enviar}>
@@ -49,12 +50,13 @@ export default function FormOferta({ anuncio }) {
             <label className={s.campo}>Mensagem para o colecionador (opcional)<input maxLength={500} placeholder="Conte um pouco sobre sua proposta…" value={mensagem} onChange={(e) => setMensagem(e.target.value)} /></label>
           </div>
           <div className={s.cabecalhoSelecao}><h3>O que você oferece</h3><span className={s.suave}>{total}/20 cartas selecionadas</span></div>
+          <p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p>
           <Aviso erro={erroColecao} />
           {erroColecao && <button type="button" className={s.botaoSecundario} onClick={recarregar}>Carregar coleção novamente</button>}
           {carregando && <CarregandoCartas total={4} formato="tabela" />}
           {!carregando && colecao && disponiveis.length === 0 && <div className={s.vazio}><h3>Sua coleção ainda não tem cartas disponíveis</h3><p>Adicione cartas para montar sua primeira oferta.</p><Link className={s.botaoSecundario} to="/catalogo">Explorar catálogo</Link></div>}
           {!carregando && disponiveis.length > 0 && <CartasOferecidas itens={disponiveis} escolhidas={escolhidas} onAlternar={alternar} onQuantidade={(item, valor) => setEscolhidas((atual) => ({ ...atual, [item.id]: valor }))} />}
-          <div className={s.rodapeOferta}><p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p><button className={s.botao} type="submit" disabled={carregando || Boolean(erroColecao) || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
+          <div className={s.rodapeOferta}><span className={s.resumoOferta} aria-live="polite">{rotuloTotal}</span><button className={s.botao} type="submit" disabled={carregando || Boolean(erroColecao) || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
         </fieldset>
         <Aviso erro={acao.erro} sucesso={acao.sucesso} />
         {acao.sucesso && <Link className={s.link} to="/propostas">Acompanhar minha oferta</Link>}
