@@ -36,4 +36,11 @@ describe("AcoesRapidas", () => {
 
     expect(screen.getByRole("button", { name: "Quero Pikachu" })).toBeDisabled();
   });
+
+  it("bloqueado desabilita os dois botões", () => {
+    render(<AcoesRapidas nome="Pikachu" bloqueado onQuero={() => {}} onTenho={() => {}} />);
+
+    expect(screen.getByRole("button", { name: "Quero Pikachu" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Tenho Pikachu: adicionar à coleção" })).toBeDisabled();
+  });
 });

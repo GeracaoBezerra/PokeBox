@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { indexarMinhasCartas } from "./minhasCartas";
+import { indexarMinhasCartas, juntarMinhasCartas } from "./minhasCartas";
 
 describe("indexarMinhasCartas", () => {
   it("liga cada carta da wishlist ao id do item e junta as cartas da coleção", () => {
@@ -17,5 +17,24 @@ describe("indexarMinhasCartas", () => {
     const { naWishlist, tenho } = indexarMinhasCartas();
     expect(naWishlist.size).toBe(0);
     expect(tenho.size).toBe(0);
+  });
+});
+
+describe("juntarMinhasCartas", () => {
+  const ok = (value) => ({ status: "fulfilled", value });
+  const falhou = (reason) => ({ status: "rejected", reason });
+  const erro = { status: 503 };
+
+  it("com as duas consultas certas, guarda as duas listas e não tem erro", () => {
+    expect(juntarMinhasCartas(null, [ok(["w"]), ok(["c"])])).toEqual({ wishlist: ["w"], colecao: ["c"], erro: null });
+  });
+
+  it("se uma falha na primeira vez, guarda a que deu certo e deixa a outra desconhecida", () => {
+    expect(juntarMinhasCartas(null, [falhou(erro), ok(["c"])])).toEqual({ wishlist: null, colecao: ["c"], erro });
+  });
+
+  it("se uma falha depois, mantém o último estado conhecido dela e atualiza a outra", () => {
+    const anterior = { wishlist: ["w-antiga"], colecao: ["c-antiga"] };
+    expect(juntarMinhasCartas(anterior, [falhou(erro), ok(["c-nova"])])).toEqual({ wishlist: ["w-antiga"], colecao: ["c-nova"], erro });
   });
 });

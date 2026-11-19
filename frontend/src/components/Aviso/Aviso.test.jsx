@@ -37,4 +37,13 @@ describe("Aviso", () => {
 
     expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
   });
+
+  it("usa o texto da tela no lugar da mensagem padrão, mantendo o Tentar de novo", async () => {
+    const tentar = vi.fn();
+    render(<Aviso erro={{ status: 503 }} texto="Não conseguimos carregar sua wishlist." onTentarDeNovo={tentar} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Não conseguimos carregar sua wishlist.");
+    await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+    expect(tentar).toHaveBeenCalledTimes(1);
+  });
 });

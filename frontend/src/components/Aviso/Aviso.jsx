@@ -3,13 +3,13 @@ import styles from "./Aviso.module.css";
 
 const FORA_DO_AR = [0, 500, 502, 503, 504];
 
-export default function Aviso({ erro, campos, onTentarDeNovo }) {
+export default function Aviso({ erro, campos, texto, onTentarDeNovo }) {
   if (!erro) return null;
 
   const podeTentar = onTentarDeNovo && FORA_DO_AR.includes(erro.status);
   return (
     <div className={styles.aviso} role="alert">
-      <span>{mensagemAmigavel(erro, campos)}</span>
+      <span>{texto ?? mensagemAmigavel(erro, campos)}</span>
       {podeTentar && (
         <button type="button" className={styles.tentar} onClick={onTentarDeNovo}>
           Tentar de novo
