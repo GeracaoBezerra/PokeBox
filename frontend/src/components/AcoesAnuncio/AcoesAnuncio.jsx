@@ -1,6 +1,7 @@
 import { updateListing } from "../../api/listings";
 import { useAcao } from "../../hooks/useAcao";
 import { useConfirmacao } from "../../hooks/useConfirmacao";
+import { avisarQuePendenciasMudaram } from "../../hooks/usePendencias";
 import s from "../../styles/paginas.module.css";
 import Aviso from "../Aviso/Aviso";
 
@@ -16,7 +17,9 @@ export default function AcoesAnuncio({ anuncio, onMudou, acao: acaoDeFora }) {
 
   async function mudar(status, mensagem) {
     const { ok } = await acao.executar(() => updateListing(anuncio.id, { status }), mensagem);
-    if (ok) onMudou();
+    if (!ok) return;
+    if (status === "CLOSED") avisarQuePendenciasMudaram();
+    onMudou();
   }
 
   async function fechar() {
