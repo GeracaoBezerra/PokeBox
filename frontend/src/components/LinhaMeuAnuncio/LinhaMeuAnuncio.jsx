@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { updateListing } from "../../api/listings";
 import { useAcao } from "../../hooks/useAcao";
+import { useConfirmacao } from "../../hooks/useConfirmacao";
 import s from "../../styles/paginas.module.css";
 import { CONDICOES, STATUS_ANUNCIO, formatarData, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
@@ -10,6 +11,7 @@ import MiniaturaCarta from "../MiniaturaCarta/MiniaturaCarta";
 export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
   const [form, setForm] = useState({ quantity: anuncio.quantity, description: anuncio.description ?? "" });
   const acao = useAcao();
+  const { pedir } = useConfirmacao();
   const aberto = anuncio.status === "ACTIVE" || anuncio.status === "PAUSED";
   const mudou = Number(form.quantity) !== anuncio.quantity || form.description !== (anuncio.description ?? "");
 
@@ -25,10 +27,14 @@ export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
     enviar(dados, "Anúncio atualizado.");
   }
 
-  function fechar() {
-    if (!window.confirm("Fechar o anúncio? Não dá para reabrir, e as ofertas abertas e aceitas sem troca são canceladas.")) {
-      return;
-    }
+  async function fechar() {
+    const confirmou = await pedir({
+      titulo: "Fechar anúncio?",
+      mensagem: "Não dá para reabrir. Ofertas abertas e aceitas sem troca serão canceladas.",
+      textoConfirmar: "Fechar anúncio",
+      perigo: true,
+    });
+    if (!confirmou) return;
     enviar({ status: "CLOSED" }, "Anúncio fechado.");
   }
 

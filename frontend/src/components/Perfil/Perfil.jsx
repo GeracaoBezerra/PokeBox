@@ -6,6 +6,7 @@ import { listMyTrades } from "../../api/trades";
 import { useAuthService } from "../../auth/useAuthService";
 import { useAcao } from "../../hooks/useAcao";
 import { useCarregar } from "../../hooks/useCarregar";
+import { useConfirmacao } from "../../hooks/useConfirmacao";
 import Aviso from "../Aviso/Aviso";
 import MenuPerfil from "../MenuPerfil/MenuPerfil";
 import PainelPerfil from "../PainelPerfil/PainelPerfil";
@@ -94,13 +95,20 @@ function SecaoConta({ user }) {
   const authService = useAuthService();
   const navigate = useNavigate();
   const acao = useAcao();
+  const { pedir } = useConfirmacao();
 
   async function testarAdmin() {
     await acao.executar(adminCheck, "Acesso de ADMIN confirmado pela API.");
   }
 
   async function desativar() {
-    if (!window.confirm("Desativar a conta? Você será desconectado e não conseguirá entrar de novo.")) return;
+    const confirmou = await pedir({
+      titulo: "Desativar sua conta?",
+      mensagem: "Você não vai conseguir entrar de novo, e seu perfil público some.",
+      textoConfirmar: "Desativar conta",
+      perigo: true,
+    });
+    if (!confirmou) return;
     const { ok } = await acao.executar(deactivateMe);
     if (ok) {
       authService.logout();

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { removeCollectionItem, updateCollectionItem } from "../../api/collection";
 import { createListing } from "../../api/listings";
 import { useAcao } from "../../hooks/useAcao";
+import { useConfirmacao } from "../../hooks/useConfirmacao";
 import s from "../../styles/paginas.module.css";
 import { CONDICOES, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
@@ -17,6 +18,7 @@ export default function LinhaColecao({ item, onMudou }) {
   });
   const [anunciando, setAnunciando] = useState(false);
   const acao = useAcao();
+  const { pedir } = useConfirmacao();
 
   const mudou =
     Number(form.quantity) !== item.quantity || form.condition !== item.condition || form.isPublic !== item.isPublic;
@@ -31,7 +33,13 @@ export default function LinhaColecao({ item, onMudou }) {
   }
 
   async function apagar() {
-    if (!window.confirm(`Apagar ${item.card.name} da coleção?`)) return;
+    const confirmou = await pedir({
+      titulo: "Apagar carta da coleção?",
+      mensagem: `${item.card.name} sai da sua coleção. Não dá para desfazer.`,
+      textoConfirmar: "Apagar",
+      perigo: true,
+    });
+    if (!confirmou) return;
     const { ok } = await acao.executar(() => removeCollectionItem(item.id));
     if (ok) onMudou();
   }
