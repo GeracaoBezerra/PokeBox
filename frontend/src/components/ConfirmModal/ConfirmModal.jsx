@@ -54,14 +54,16 @@ export default function ConfirmModal({
         <button ref={cancelarRef} type="button" className={styles.cancelar} onClick={onCancelar} disabled={ocupado}>
           {textoCancelar}
         </button>
-        <button
-          type="button"
-          className={perigo ? styles.perigo : styles.confirmar}
-          onClick={onConfirmar}
-          disabled={ocupado || confirmarDesativado}
-        >
-          {ocupado ? "Aguarde..." : textoConfirmar}
-        </button>
+        {onConfirmar && (
+          <button
+            type="button"
+            className={perigo ? styles.perigo : styles.confirmar}
+            onClick={onConfirmar}
+            disabled={ocupado || confirmarDesativado}
+          >
+            {ocupado ? "Aguarde..." : textoConfirmar}
+          </button>
+        )}
       </div>
     </dialog>
   );

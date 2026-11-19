@@ -1,14 +1,25 @@
-import { Link, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SearchX } from "lucide-react";
-import { getCardFilters, searchCards } from "../api/cards";
+import { getCard, getCardFilters, searchCards } from "../api/cards";
+import { listCollection } from "../api/collection";
+import { mensagemAmigavel } from "../api/mensagens";
+import { addToWishlist, listWishlist, removeFromWishlist } from "../api/wishlist";
+import { useSession } from "../auth/useSession";
+import AcoesRapidas from "../components/AcoesRapidas/AcoesRapidas";
 import Aviso from "../components/Aviso/Aviso";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import FormColecao from "../components/FormColecao/FormColecao";
 import FiltrosCatalogo from "../components/FiltrosCatalogo/FiltrosCatalogo";
 import GradeCartas from "../components/GradeCartas/GradeCartas";
 import Paginacao from "../components/Paginacao/Paginacao";
 import SelosFiltro from "../components/SelosFiltro/SelosFiltro";
+import { useAcao } from "../hooks/useAcao";
 import { useCarregar } from "../hooks/useCarregar";
+import { useToast } from "../hooks/useToast";
 import s from "../styles/vitrine.module.css";
 import { IDIOMAS, IDIOMA_PADRAO, linkBuscaNaReserva } from "../utils/idioma";
+import { indexarMinhasCartas } from "../utils/minhasCartas";
 import { CATEGORIAS, TIPOS } from "../utils/rotulos";
 
 const CAMPOS_FILTRO = ["category", "type", "rarity", "set"];
@@ -45,6 +56,45 @@ function rotuloDoSelo(campo, valor, opcoes) {
   }
 }
 
+function AcoesDaCarta({ carta, lang, minhas, atualizando, onPrecisaLogin, onTenho, onMudou }) {
+  const toast = useToast();
+  const { ocupado, executar } = useAcao();
+  const itemWishlist = minhas?.naWishlist.get(carta.id);
+
+  async function alternarWishlist() {
+    if (!minhas) {
+      onPrecisaLogin();
+      return;
+    }
+    const tirar = Boolean(itemWishlist);
+    const { ok, erro } = await executar(
+      () => (tirar ? removeFromWishlist(itemWishlist) : addToWishlist(carta.id, lang)),
+      tirar ? `${carta.name} saiu da wishlist.` : `${carta.name} entrou na wishlist.`,
+      { tipo: tirar ? "info" : "sucesso" }
+    );
+    if (ok) onMudou();
+    else toast.erro(mensagemAmigavel(erro));
+  }
+
+  return (
+    <AcoesRapidas
+      nome={carta.name}
+      naWishlist={Boolean(itemWishlist)}
+      tenho={Boolean(minhas?.tenho.has(carta.id))}
+      ocupado={ocupado || atualizando}
+      onQuero={alternarWishlist}
+      onTenho={() => (minhas ? onTenho(carta) : onPrecisaLogin())}
+    />
+  );
+}
+
+function AdicionarNaColecao({ carta, lang, onAdicionado }) {
+  const detalhe = useCarregar(() => getCard(carta.id, lang), `${carta.id}|${lang}`);
+  if (detalhe.carregando) return <p role="status">Carregando…</p>;
+  if (detalhe.erro) return <Aviso erro={detalhe.erro} onTentarDeNovo={detalhe.recarregar} />;
+  return <FormColecao key={carta.id} card={detalhe.dados.card} lang={lang} onAdicionado={onAdicionado} />;
+}
+
 export default function CatalogPage() {
   const [params, setParams] = useSearchParams();
   const name = params.get("name") ?? "";
@@ -64,6 +114,38 @@ export default function CatalogPage() {
   );
   const { dados, erro, recarregar } = busca;
   const carregando = busca.carregando || esperandoOpcoes;
+  const session = useSession();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [cartaTenho, setCartaTenho] = useState(null);
+  const minhasCartas = useCarregar(
+    async () => (session ? Promise.all([listWishlist(), listCollection()]) : null),
+    session ? `logado|${session.user?.id ?? ""}` : "anonimo"
+  );
+  const minhas = session && minhasCartas.dados ? indexarMinhasCartas(...minhasCartas.dados) : null;
+
+  function pedirLogin() {
+    navigate("/login", { state: { de: location.pathname + location.search } });
+  }
+
+  function acoesDaCarta(carta) {
+    return (
+      <AcoesDaCarta
+        carta={carta}
+        lang={lang}
+        minhas={session ? minhas ?? indexarMinhasCartas() : null}
+        atualizando={Boolean(session) && minhasCartas.carregando}
+        onPrecisaLogin={pedirLogin}
+        onTenho={setCartaTenho}
+        onMudou={minhasCartas.recarregar}
+      />
+    );
+  }
+
+  function adicionouNaColecao() {
+    setCartaTenho(null);
+    minhasCartas.recarregar();
+  }
 
   function atualizar(mudancas, reiniciarPagina = true) {
     const novos = new URLSearchParams(params);
@@ -161,7 +243,7 @@ export default function CatalogPage() {
           {!carregando && dados && (
             <>
               {dados.items.length ? (
-                <GradeCartas cartas={dados.items} lang={lang} variante="catalogo" />
+                <GradeCartas cartas={dados.items} lang={lang} variante="catalogo" acoes={acoesDaCarta} />
               ) : (
                 <div className={s.vazio}>
                   <SearchX size={32} aria-hidden="true" />
@@ -185,6 +267,14 @@ export default function CatalogPage() {
           )}
         </section>
       </div>
+      <ConfirmModal
+        aberto={Boolean(cartaTenho)}
+        titulo={cartaTenho ? `Adicionar ${cartaTenho.name} à coleção` : ""}
+        textoCancelar="Fechar"
+        onCancelar={() => setCartaTenho(null)}
+      >
+        {cartaTenho && <AdicionarNaColecao carta={cartaTenho} lang={lang} onAdicionado={adicionouNaColecao} />}
+      </ConfirmModal>
     </div>
   );
 }

@@ -68,4 +68,12 @@ describe("ConfirmModal", () => {
     expect(screen.getByRole("button", { name: "Aguarde..." })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
   });
+
+  it("sem onConfirmar, mostra só o botão de fechar e o conteúdo", () => {
+    renderizar({ onConfirmar: undefined, mensagem: undefined, textoCancelar: "Fechar", children: <form aria-label="Adicionar" /> });
+
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Fechar" })).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Adicionar" })).toBeInTheDocument();
+  });
 });
