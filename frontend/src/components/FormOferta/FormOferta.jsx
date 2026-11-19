@@ -90,7 +90,7 @@ export default function FormOferta({ anuncio }) {
               <ErroCampo id={`${id}-mensagem`} mensagem={erros.message} />
             </div>
           </div>
-          <div className={s.cabecalhoSelecao}><h3>O que você oferece</h3><span className={s.suave}>{total}/20 cartas selecionadas</span></div>
+          <div className={s.cabecalhoSelecao}><h3>O que você oferece</h3><span className={s.suave}>{total}/{LIMITE_CARTAS_OFERTA} cartas selecionadas</span></div>
           <Aviso erro={erroColecao} />
           {erroColecao && <button type="button" className={s.botaoSecundario} onClick={recarregar}>Carregar coleção novamente</button>}
           {carregando && <CarregandoCartas total={4} formato="tabela" />}
