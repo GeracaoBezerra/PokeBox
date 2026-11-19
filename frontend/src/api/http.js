@@ -3,16 +3,19 @@ import { CONFIG } from "../config";
 
 const ROTAS_DE_LOGIN = ["/auth/login", "/auth/register"];
 
-let dependencias = { tokenStore: null, aoExpirarSessao: () => {} };
+const NADA = () => {};
 
-export function configurarHttp({ tokenStore, aoExpirarSessao }) {
-  dependencias = { tokenStore, aoExpirarSessao };
+let dependencias = { tokenStore: null, aoExpirarSessao: NADA, aoPerderToken: NADA };
+
+export function configurarHttp({ tokenStore, aoExpirarSessao = NADA, aoPerderToken = NADA }) {
+  dependencias = { tokenStore, aoExpirarSessao, aoPerderToken };
 }
 
 export const http = axios.create({ baseURL: CONFIG.apiBaseUrl });
 
 http.interceptors.request.use((config) => {
-  const token = dependencias.tokenStore?.get();
+  const token = dependencias.tokenStore?.get() ?? null;
+  config.tokenUsado = token;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -35,8 +38,11 @@ http.interceptors.response.use(
     const { status, data } = error.response;
 
     const ehLogin = ROTAS_DE_LOGIN.includes(error.config?.url);
-    if (status === 401 && !ehLogin && dependencias.tokenStore?.get()) {
-      dependencias.aoExpirarSessao();
+    if (status === 401 && !ehLogin) {
+      const tokenUsado = error.config?.tokenUsado ?? null;
+      const tokenAtual = dependencias.tokenStore?.get() ?? null;
+      if (tokenUsado && tokenUsado === tokenAtual) dependencias.aoExpirarSessao();
+      else if (!tokenUsado && !tokenAtual) dependencias.aoPerderToken();
     }
 
     const message = data?.details?.[0]?.message || data?.error || "";

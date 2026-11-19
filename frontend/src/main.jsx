@@ -23,6 +23,9 @@ configurarHttp({
     authService.logout()
     avisarSessaoExpirada()
   },
+  aoPerderToken: () => {
+    if (authService.getSession()) authService.logout()
+  },
 })
 
 createRoot(document.getElementById('root')).render(

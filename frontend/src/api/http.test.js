@@ -14,6 +14,11 @@ function configurar(token) {
 
 afterEach(() => configurarHttp({ tokenStore: null, aoExpirarSessao: () => {} }));
 
+function tokenTrocavel(inicial) {
+  const store = { atual: inicial, get: () => store.atual };
+  return store;
+}
+
 describe("http", () => {
   it("manda o token do tokenStore no header e devolve o corpo", async () => {
     configurar("token-falso");
@@ -77,6 +82,64 @@ describe("http", () => {
 
     await http.get("/collection").catch(() => {});
 
+    expect(aoExpirarSessao).not.toHaveBeenCalled();
+  });
+
+  it("um 401 atrasado de um token antigo não encerra a sessão nova", async () => {
+    const tokenStore = tokenTrocavel("token-a");
+    const aoExpirarSessao = vi.fn();
+    configurarHttp({ tokenStore, aoExpirarSessao });
+    let responder;
+    const chegou = new Promise((resolve) => (responder = resolve));
+    server.use(
+      rota.get(url("/collection"), async () => {
+        await chegou;
+        return HttpResponse.json({ success: false, error: "Token inválido" }, { status: 401 });
+      })
+    );
+
+    const requisicao = http.get("/collection").catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    tokenStore.atual = "token-b";
+    responder();
+    await requisicao;
+
+    expect(aoExpirarSessao).not.toHaveBeenCalled();
+  });
+
+  it("sem token salvo, um 401 com sessão ainda aberta na tela encerra só a sessão local", async () => {
+    const aoPerderToken = vi.fn();
+    const aoExpirarSessao = vi.fn();
+    configurarHttp({ tokenStore: { get: () => null }, aoExpirarSessao, aoPerderToken });
+    server.use(rota.get(url("/collection"), () => HttpResponse.json({ success: false, error: "Token ausente" }, { status: 401 })));
+
+    await http.get("/collection").catch(() => {});
+
+    expect(aoPerderToken).toHaveBeenCalledTimes(1);
+    expect(aoExpirarSessao).not.toHaveBeenCalled();
+  });
+
+  it("um 401 de requisição sem token não derruba quem entrou enquanto ela voltava", async () => {
+    const tokenStore = tokenTrocavel(null);
+    const aoPerderToken = vi.fn();
+    const aoExpirarSessao = vi.fn();
+    configurarHttp({ tokenStore, aoExpirarSessao, aoPerderToken });
+    let responder;
+    const chegou = new Promise((resolve) => (responder = resolve));
+    server.use(
+      rota.get(url("/collection"), async () => {
+        await chegou;
+        return HttpResponse.json({ success: false, error: "Token ausente" }, { status: 401 });
+      })
+    );
+
+    const requisicao = http.get("/collection").catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    tokenStore.atual = "token-novo";
+    responder();
+    await requisicao;
+
+    expect(aoPerderToken).not.toHaveBeenCalled();
     expect(aoExpirarSessao).not.toHaveBeenCalled();
   });
 });
