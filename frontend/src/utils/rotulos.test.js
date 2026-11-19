@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { formatarData, precoReferencia, variante } from "./rotulos";
+import {
+  contarOfertasAguardando,
+  formatarData,
+  precoReferencia,
+  textoOfertasAguardando,
+  variante,
+} from "./rotulos";
 
 describe("variante", () => {
   it("junta acabamento e primeira edição", () => {
@@ -44,5 +50,31 @@ describe("precoReferencia", () => {
     const texto = precoReferencia({ marketPrice: "10", marketPriceCurrency: "BRL", marketPriceSource: "tcgplayer" });
     expect(texto).toMatch(/R\$\s?10,00/);
     expect(texto).toContain("referência TCGplayer");
+  });
+});
+
+describe("contarOfertasAguardando", () => {
+  it("conta só as ofertas do anúncio pedido", () => {
+    const recebidas = [{ listing: { id: "a1" } }, { listing: { id: "a2" } }, { listing: { id: "a1" } }];
+
+    expect(contarOfertasAguardando(recebidas, "a1")).toBe(2);
+  });
+
+  it("devolve zero sem lista", () => {
+    expect(contarOfertasAguardando(undefined, "a1")).toBe(0);
+  });
+});
+
+describe("textoOfertasAguardando", () => {
+  it("avisa quando não há nenhuma", () => {
+    expect(textoOfertasAguardando(0)).toBe("Nenhuma oferta aguardando resposta");
+  });
+
+  it("usa o singular para uma", () => {
+    expect(textoOfertasAguardando(1)).toBe("1 oferta aguardando sua resposta");
+  });
+
+  it("usa o plural para várias", () => {
+    expect(textoOfertasAguardando(3)).toBe("3 ofertas aguardando sua resposta");
   });
 });

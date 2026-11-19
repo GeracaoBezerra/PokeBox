@@ -70,3 +70,13 @@ export function precoReferencia({ marketPrice, marketPriceCurrency, marketPriceS
   const valor = Number(marketPrice).toLocaleString("pt-BR", { style: "currency", currency: marketPriceCurrency });
   return `${valor} · referência ${marketPriceSource === "cardmarket" ? "Cardmarket" : "TCGplayer"}`;
 }
+
+export function contarOfertasAguardando(recebidas, anuncioId) {
+  return (recebidas ?? []).filter((oferta) => oferta.listing?.id === anuncioId).length;
+}
+
+export function textoOfertasAguardando(quantidade) {
+  if (quantidade === 0) return "Nenhuma oferta aguardando resposta";
+  if (quantidade === 1) return "1 oferta aguardando sua resposta";
+  return `${quantidade} ofertas aguardando sua resposta`;
+}

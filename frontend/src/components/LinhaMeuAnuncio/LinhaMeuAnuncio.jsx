@@ -2,16 +2,15 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { updateListing } from "../../api/listings";
 import { useAcao } from "../../hooks/useAcao";
-import { useConfirmacao } from "../../hooks/useConfirmacao";
 import s from "../../styles/paginas.module.css";
 import { CONDICOES, STATUS_ANUNCIO, formatarData, variante } from "../../utils/rotulos";
+import AcoesAnuncio from "../AcoesAnuncio/AcoesAnuncio";
 import Aviso from "../Aviso/Aviso";
 import MiniaturaCarta from "../MiniaturaCarta/MiniaturaCarta";
 
 export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
   const [form, setForm] = useState({ quantity: anuncio.quantity, description: anuncio.description ?? "" });
   const acao = useAcao();
-  const { pedir } = useConfirmacao();
   const aberto = anuncio.status === "ACTIVE" || anuncio.status === "PAUSED";
   const mudou = Number(form.quantity) !== anuncio.quantity || form.description !== (anuncio.description ?? "");
 
@@ -25,17 +24,6 @@ export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
     if (Number(form.quantity) !== anuncio.quantity) dados.quantity = Number(form.quantity);
     if (form.description !== (anuncio.description ?? "")) dados.description = form.description;
     enviar(dados, "Anúncio atualizado.");
-  }
-
-  async function fechar() {
-    const confirmou = await pedir({
-      titulo: "Fechar anúncio?",
-      mensagem: "Não dá para reabrir. Ofertas abertas e aceitas sem troca serão canceladas.",
-      textoConfirmar: "Fechar anúncio",
-      perigo: true,
-    });
-    if (!confirmou) return;
-    enviar({ status: "CLOSED" }, "Anúncio fechado.");
   }
 
   return (
@@ -80,27 +68,7 @@ export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
               <button className={s.botao} onClick={salvar} disabled={!mudou || acao.ocupado}>
                 Salvar
               </button>
-              {anuncio.status === "ACTIVE" && (
-                <button
-                  className={s.botaoSecundario}
-                  disabled={acao.ocupado}
-                  onClick={() => enviar({ status: "PAUSED" }, "Anúncio pausado.")}
-                >
-                  Pausar
-                </button>
-              )}
-              {anuncio.status === "PAUSED" && (
-                <button
-                  className={s.botaoSecundario}
-                  disabled={acao.ocupado}
-                  onClick={() => enviar({ status: "ACTIVE" }, "Anúncio ativado.")}
-                >
-                  Ativar
-                </button>
-              )}
-              <button className={s.botaoPerigo} disabled={acao.ocupado} onClick={fechar}>
-                Fechar
-              </button>
+              <AcoesAnuncio anuncio={anuncio} onMudou={onMudou} acao={acao} />
             </div>
           )}
         </td>
