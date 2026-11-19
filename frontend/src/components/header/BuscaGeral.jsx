@@ -12,7 +12,7 @@ export default function BuscaGeral() {
   const contexto = contextoDaBusca(pathname);
   const valor = termoDaUrl(pathname, search);
   const [texto, setTexto] = useState(valor);
-  const [valorAnterior, setValorAnterior] = useState(valor);
+  const [anterior, setAnterior] = useState({ valor, pathname });
   const [erro, setErro] = useState("");
   const localRef = useRef({ pathname, search });
 
@@ -20,9 +20,10 @@ export default function BuscaGeral() {
     localRef.current = { pathname, search };
   });
 
-  if (valor !== valorAnterior) {
-    setValorAnterior(valor);
-    if (valor !== texto.trim()) setTexto(valor);
+  if (valor !== anterior.valor || pathname !== anterior.pathname) {
+    const trocouDePagina = pathname !== anterior.pathname;
+    setAnterior({ valor, pathname });
+    if (trocouDePagina || valor !== texto.trim()) setTexto(valor);
     setErro("");
   }
 
