@@ -12,6 +12,8 @@ export interface CatalogEntry {
   setId: string;
   setName: string;
   imageUrl: string | null;
+  wishlistCount?: number | null;
+  tradeCount?: number | null;
 }
 
 export interface CatalogAttributeFilters {

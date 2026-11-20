@@ -3,7 +3,7 @@ import request from 'supertest';
 import type { CatalogEntry } from '../../src/cards/search/CatalogSearchStore.js';
 import { PrismaCatalogSearchStore } from '../../src/cards/search/PrismaCatalogSearchStore.js';
 import { CHARIZARD } from './support/flows.js';
-import { startTestApp, type TestApp } from './support/testApp.js';
+import { startTestApp, uniqueName, type TestApp } from './support/testApp.js';
 
 let ctx: TestApp;
 let store: PrismaCatalogSearchStore;
@@ -32,6 +32,14 @@ afterAll(async () => {
 });
 
 describe('GET /cards com o catálogo local vazio', () => {
+  test.each(['recent', 'wanted', 'traded'])('ranking %s não consulta a TCGdex', async (sort) => {
+    const callsBefore = ctx.tcgdex.calls();
+    const res = await request(ctx.app).get('/cards').query({ lang: 'pt', sort });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+    expect(res.body.pagination.hasNextPage).toBe(false);
+    expect(ctx.tcgdex.calls()).toBe(callsBefore);
+  });
   test('busca pela TCGdex (fase 1) e não tolera erro de digitação', async () => {
     const found = await request(ctx.app).get('/cards').query({ name: 'charizard' });
     const typo = await request(ctx.app).get('/cards').query({ name: 'charzard' });
@@ -211,5 +219,118 @@ describe('GET /cards e /cards/filters com os filtros sincronizados (#158)', () =
     const res = await request(ctx.app).get('/cards').query({ type: 'Plasma' });
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe('GET /cards com rankings da home (#92)', () => {
+  const firstId = 'rank92-1';
+  const secondId = 'rank92-2';
+  let userIds: string[] = [];
+  const tradeIds: string[] = [];
+
+  beforeAll(async () => {
+    const db = ctx.container.infra.prisma;
+    const currentSets = await store.listSets('en');
+    await store.saveSets('en', [
+      ...currentSets,
+      { id: 'rank-old', name: 'Ranking Old' },
+      { id: 'rank-new', name: 'Ranking New' },
+    ]);
+    await store.save('en', [
+      { id: firstId, localId: '1', name: 'Ranking Alpha', setId: 'rank-old', setName: 'Ranking Old', imageUrl: null },
+      { id: secondId, localId: '2', name: 'Ranking Beta', setId: 'rank-new', setName: 'Ranking New', imageUrl: null },
+    ]);
+    await db.card.createMany({
+      data: [
+        { id: firstId, name: 'Ranking Alpha', setId: 'rank-old', setName: 'Ranking Old', number: '1' },
+        { id: secondId, name: 'Ranking Beta', setId: 'rank-new', setName: 'Ranking New', number: '2' },
+      ],
+      skipDuplicates: true,
+    });
+    const users = await Promise.all(
+      [1, 2, 3].map((index) => {
+        const username = uniqueName(`rank${index}`);
+        return db.user.create({
+          data: {
+            username,
+            name: `Ranking ${index}`,
+            email: `${username}@teste.dev`,
+            phone: `8599999000${index}`,
+            passwordHash: 'teste',
+            accountStatus: index === 3 ? 'INACTIVE' : 'ACTIVE',
+            emailVerified: true,
+          },
+        });
+      }),
+    );
+    userIds = users.map((user) => user.id);
+    await db.wishlistItem.createMany({
+      data: [
+        { userId: users[0].id, cardId: firstId },
+        { userId: users[1].id, cardId: firstId },
+        { userId: users[0].id, cardId: secondId },
+        { userId: users[2].id, cardId: secondId },
+      ],
+    });
+    const trade = await db.trade.create({
+      data: {
+        proposerId: users[0].id,
+        recipientId: users[1].id,
+        status: 'ACCEPTED',
+        completedAt: new Date(),
+        items: {
+          create: [
+            { cardId: firstId, condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 3, fromUserId: users[0].id, toUserId: users[1].id },
+            { cardId: secondId, condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 1, fromUserId: users[1].id, toUserId: users[0].id },
+          ],
+        },
+      },
+    });
+    tradeIds.push(trade.id);
+    const proposed = await db.trade.create({
+      data: {
+        proposerId: users[0].id,
+        recipientId: users[1].id,
+        status: 'PROPOSED',
+        items: {
+          create: {
+            cardId: secondId, condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 10,
+            fromUserId: users[0].id, toUserId: users[1].id,
+          },
+        },
+      },
+    });
+    tradeIds.push(proposed.id);
+  });
+
+  afterAll(async () => {
+    const db = ctx.container.infra.prisma;
+    await db.trade.deleteMany({ where: { id: { in: tradeIds } } });
+    await db.wishlistItem.deleteMany({ where: { userId: { in: userIds } } });
+    await db.card.deleteMany({ where: { id: { in: [firstId, secondId] } } });
+    await db.user.deleteMany({ where: { id: { in: userIds } } });
+  });
+
+  test('mais desejadas agrega contas ativas antes de paginar', async () => {
+    const res = await request(ctx.app).get('/cards').query({ name: 'Ranking', sort: 'wanted', limit: 2 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data[0]).toMatchObject({ id: firstId, wishlistCount: 2 });
+    expect(res.body.data[1]).toMatchObject({ id: secondId, wishlistCount: 1 });
+  });
+
+  test('mais trocadas soma somente unidades de trocas concluídas', async () => {
+    const res = await request(ctx.app).get('/cards').query({ name: 'Ranking', sort: 'traded', order: 'desc', limit: 2 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data[0]).toMatchObject({ id: firstId, tradeCount: 3 });
+    expect(res.body.data[1]).toMatchObject({ id: secondId, tradeCount: 1 });
+  });
+
+  test('mais recentes segue a ordem de lançamento sincronizada dos sets', async () => {
+    const res = await request(ctx.app).get('/cards').query({ name: 'Ranking', sort: 'recent', order: 'desc', limit: 1 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data[0].id).toBe(secondId);
   });
 });
