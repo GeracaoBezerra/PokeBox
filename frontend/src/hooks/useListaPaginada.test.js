@@ -50,4 +50,31 @@ describe("useListaPaginada", () => {
     await waitFor(() => expect(result.current.itens).toEqual([{ id: "p1" }]));
     expect(buscar.mock.calls.at(-1)).toEqual([1]);
   });
+
+  it("atualizarCarregadas busca de novo todas as páginas abertas sem duplicar e mantém os itens enquanto busca", async () => {
+    let versao = "a";
+    const buscar = vi.fn((n) => Promise.resolve({ items: [{ id: `p${n}${versao}` }], pagination: { hasNextPage: true } }));
+    const { result } = renderHook(() => useListaPaginada(buscar));
+
+    await waitFor(() => expect(result.current.itens).toEqual([{ id: "p1a" }]));
+    act(() => result.current.carregarMais());
+    await waitFor(() => expect(result.current.itens).toHaveLength(2));
+    versao = "b";
+    act(() => result.current.atualizarCarregadas());
+    expect(result.current.itens).toEqual([{ id: "p1a" }, { id: "p2a" }]);
+    await waitFor(() => expect(result.current.itens).toEqual([{ id: "p1b" }, { id: "p2b" }]));
+    expect(buscar.mock.calls.map(([n]) => n)).toEqual([1, 2, 1, 2]);
+  });
+
+  it("tentarDeNovo repete a busca que falhou", async () => {
+    const falha = new Error("fora do ar");
+    const buscar = vi.fn().mockRejectedValueOnce(falha).mockResolvedValue(pagina(1, false));
+    const { result } = renderHook(() => useListaPaginada(buscar));
+
+    await waitFor(() => expect(result.current.erro).toBe(falha));
+    expect(result.current.itens).toEqual([]);
+    act(() => result.current.tentarDeNovo());
+    await waitFor(() => expect(result.current.itens).toEqual([{ id: "p1" }]));
+    expect(result.current.erro).toBeNull();
+  });
 });
