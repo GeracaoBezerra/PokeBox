@@ -44,7 +44,7 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 ```
 .
 ├── backend/
-│   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json)
+│   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json e catalog-pt.json)
 │   ├── docs/db.md         modelo de dados, constraints, migrations e seed
 │   ├── docs/guia-backend  guia do backend e das regras de negócio (.md e .pdf)
 │   ├── scripts/           seed-cards.ts (regera as cartas do seed), seed-if-empty.ts (seed só com o banco vazio, usado pelo Compose), sync-catalog.ts (catálogo da busca), clean-dist.mjs e copy-generated.mjs (build)
@@ -272,11 +272,11 @@ As senhas não ficam no repositório: vêm do `.env`. `SEED_ADMIN_PASSWORD` é a
 
 O seed cria 87 cartas reais (todas com imagem), 111 itens de coleção, que viram 121 depois das trocas concluídas (alguns privados, com quantidade maior que 1 e variantes holo, reverse e 1ª edição), 44 itens de wishlist (vários com cartas que outros têm), 30 anúncios (19 ativos na vitrine com datas espalhadas, 2 pausados, 1 bloqueado, os outros fechados), 15 ofertas (5 em aberto, 6 aceitas, 2 recusadas, 2 canceladas) e 5 trocas (4 concluídas e 1 aberta, com as cartas reservadas). Ofertas e trocas são criadas pelos mesmos services da API, então reservas e quantidades seguem as regras (RN-07 e RN-08).
 
-Para a home e os rankings (#92), o seed também grava um mini catálogo `en` com as mesmas 87 cartas e já deixa um ranking claro: Umbreon VMAX em 7 wishlists, Charizard (Base Set) em 6, Charizard ex em 5 e Blastoise em 4 (a wishlist do `lance`, desativado, não conta). Até rodar `npm run catalog:sync`, os filtros e a busca em inglês mostram só essas 87 cartas, e em português (o idioma padrão do front) os rankings do catálogo vêm vazios. A seção "Mais desejadas" da home não some: quando o ranking em português vem vazio, ela mostra o mesmo ranking em inglês (inglês de reserva, como na #185), com as cartas e o "Ver todas" abrindo em `lang=en`. Erro na busca em português não dispara a reserva: aparece o aviso de sempre.
+Para a home e os rankings (#92), o seed também grava um mini catálogo nos dois idiomas, como o `catalog:sync`: em `en` as 87 cartas e em `pt` as 62 que existem em português na TCGdex (as coleções a partir de Black & White; as de Base Set a Diamond & Pearl só existem em inglês), com nomes, sets e filtros em português (`backend/prisma/seed-data/catalog-pt.json`). O ranking já sai claro: Umbreon VMAX em 7 wishlists, Charizard (Base Set) em 6, Charizard ex em 5 e Blastoise em 4 (a wishlist do `lance`, desativado, não conta); em português, sem as cartas antigas, fica Umbreon VMAX (7), Charizard ex (5) e Sylveon VMAX (2). Até rodar `npm run catalog:sync`, os filtros e a busca mostram só essas cartas. A seção "Mais desejadas" da home continua com o inglês de reserva (como na #185): se o ranking em português vier vazio, ela mostra o mesmo ranking em inglês, com as cartas e o "Ver todas" abrindo em `lang=en`. Erro na busca em português não dispara a reserva: aparece o aviso de sempre.
 
 Rodar o seed de novo volta as ofertas em aberto do exemplo (como a da misty, que oferece o Mew holo pelo Charizard do ash) para `PROPOSED`, a não ser que já tenham virado troca (aí o seed avisa; para recomeçar, `npx prisma migrate reset`, que apaga o banco local). As trocas e as ofertas finalizadas do exemplo não são refeitas. Detalhes em [`backend/docs/db.md`](backend/docs/db.md#seed).
 
-O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, porque as cartas ficam em `backend/prisma/seed-data/cards.json`.
+O seed **pode rodar várias vezes** sem duplicar nada e funciona sem internet, porque as cartas ficam em `backend/prisma/seed-data/cards.json` (e o catálogo em português em `catalog-pt.json`).
 
 ### Testar rápido no Swagger
 
