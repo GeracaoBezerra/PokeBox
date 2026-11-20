@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { listMyOffers } from "../api/offers";
 import { listMyTrades } from "../api/trades";
@@ -7,7 +8,7 @@ import CabecalhoPagina from "../components/CabecalhoPagina/CabecalhoPagina";
 import CartaoOferta from "../components/CartaoOferta/CartaoOferta";
 import { idDaAba } from "../components/Abas/idDaAba";
 import Paginacao from "../components/Paginacao/Paginacao";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCarregar } from "../hooks/useCarregar";
 import { useFiltrosNegociacao } from "../hooks/useFiltrosNegociacao";
 import s from "../styles/paginas.module.css";
@@ -27,7 +28,14 @@ async function carregarPropostas(side, status, page) {
 }
 
 export default function MyOffersPage() {
-  const aviso = useLocation().state?.aviso;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [aviso] = useState(() => location.state?.aviso);
+  const avisoNoHistorico = Boolean(location.state?.aviso);
+
+  useEffect(() => {
+    if (avisoNoHistorico) navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null });
+  }, [avisoNoHistorico, location.pathname, location.search, navigate]);
   const { aba, side, status, page, atualizar } = useFiltrosNegociacao(STATUS_NEGOCIACAO);
   const { dados, erro, carregando, recarregar } = useCarregar(
     () => carregarPropostas(side, status, page),
