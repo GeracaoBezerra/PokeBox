@@ -47,7 +47,7 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 │   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json)
 │   ├── docs/db.md         modelo de dados, constraints, migrations e seed
 │   ├── docs/guia-backend  guia do backend e das regras de negócio (.md e .pdf)
-│   ├── scripts/           seed-cards.ts (regera as cartas do seed), sync-catalog.ts (catálogo da busca), clean-dist.mjs e copy-generated.mjs (build)
+│   ├── scripts/           seed-cards.ts (regera as cartas do seed), seed-if-empty.ts (seed só com o banco vazio, usado pelo Compose), sync-catalog.ts (catálogo da busca), clean-dist.mjs e copy-generated.mjs (build)
 │   ├── Dockerfile         estágios dev e prod da API
 │   └── src/
 │       ├── server.ts      sobe a API: valida o env, monta o container e o app
@@ -148,7 +148,7 @@ Use `localhost` nas URLs: dentro do Docker o `docker-compose.yml` troca o host p
 docker compose up -d --build
 ```
 
-Antes de subir, preencha `SEED_ADMIN_PASSWORD` e `SEED_DEMO_PASSWORD` no `.env`. No Compose local, o backend espera o PostgreSQL ficar saudável, aplica as migrations e roda o seed antes de iniciar a API. O seed roda a cada inicialização do backend e reaplica as senhas dos usuários de demonstração definidas no `.env`.
+No Compose local, o backend espera o PostgreSQL ficar saudável, aplica as migrations e, **só se o banco estiver vazio** (nenhum usuário), roda o seed antes de iniciar a API (`npm run db:seed-if-empty`). Na primeira subida, então, preencha antes `SEED_ADMIN_PASSWORD` e `SEED_DEMO_PASSWORD` no `.env`: sem elas o seed para, diz o que falta e o backend não sobe. Nas subidas seguintes o log mostra `Seed pulado: o banco já tem N usuário(s)` e nada é mexido, então os testes feitos à mão (uma oferta aceita, um anúncio fechado) continuam lá e o backend sobe mesmo sem as senhas no `.env`. Para rodar o seed de novo, à mão: `make seed` (ou `cd backend && npm run db:seed`).
 
 | Serviço | Endereço |
 |---|---|
@@ -202,7 +202,7 @@ make prod-up
 
 Por baixo, o `make prod-up` roda `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait`. O segundo arquivo só troca o que muda em produção: o estágio dos Dockerfiles (`prod`), a porta do front (8080) e o `VITE_API_URL`, que o Vite grava no JavaScript na hora do build. Os containers têm o mesmo nome dos de desenvolvimento, então um modo substitui o outro. O banco é o mesmo, e os dados continuam. Para voltar: `make prod-down` e `docker compose up -d --build`.
 
-O seed não roda dentro da imagem de produção, porque ela não tem o `tsx`. Se o banco estiver vazio, rode da sua máquina: `cd backend && npm run db:seed`.
+O seed não roda dentro da imagem de produção, porque ela não tem o `tsx`: no modo produção o backend usa o comando da própria imagem (só migrations e API; o `docker-compose.prod.yml` desliga o comando com seed do compose de desenvolvimento). Se o banco estiver vazio, rode da sua máquina: `make seed`.
 
 ### Depois de puxar a develop
 
@@ -217,7 +217,7 @@ npx prisma generate
 npm run db:seed
 ```
 
-No Docker: `docker compose up -d --build tcg-backend` e rode o seed de novo.
+No Docker: `docker compose up -d --build tcg-backend` (aplica as migrations) e, se quiser os dados novos do seed, `make seed`. Com o banco já populado, a subida não roda o seed sozinha.
 
 ### Começar o banco do zero
 
@@ -226,8 +226,9 @@ Apaga **todos** os dados locais:
 ```bash
 docker compose down -v
 docker compose up -d --build
-docker compose exec tcg-backend npm run db:seed
 ```
+
+Com o banco vazio, o backend roda o seed sozinho na subida.
 
 ### Catálogo local da busca
 

@@ -144,7 +144,7 @@ cd backend
 npm run db:seed
 ```
 
-No Compose local, o backend também roda o seed a cada subida, depois das migrations (`docker-compose.yml`). Idempotente: pode rodar várias vezes. Depois da migration `add_card_details_and_variants`, recrie o banco local (apague o volume, suba de novo e rode as migrations) antes do seed, porque a chave da coleção mudou.
+No Compose local, o backend roda o seed sozinho só quando o banco está vazio (nenhum `User`), depois das migrations (`npm run db:seed-if-empty` no `docker-compose.yml`, lógica em `src/lib/seedIfEmpty.ts`). Com o banco populado, a subida pula o seed e não mexe nos dados; para rodar de novo, `make seed` ou `npm run db:seed`. Em produção (Render e `make prod-up`) o seed nunca roda sozinho. Idempotente: pode rodar várias vezes. Depois da migration `add_card_details_and_variants`, recrie o banco local (apague o volume, suba de novo e rode as migrations) antes do seed, porque a chave da coleção mudou.
 
 Cria:
 
