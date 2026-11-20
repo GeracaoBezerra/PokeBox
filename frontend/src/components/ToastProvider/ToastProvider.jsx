@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import { ToastContext } from "../../context/toastContext";
 import styles from "./ToastProvider.module.css";
 
-const DURACAO = { sucesso: 4000, info: 4000, erro: 8000 };
+const DURACAO = { sucesso: 4000, info: 4000, aviso: 4000, erro: 8000 };
 
 export default function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
@@ -35,6 +35,7 @@ export default function ToastProvider({ children }) {
     () => ({
       sucesso: (mensagem, opcoes) => mostrar("sucesso", mensagem, opcoes),
       info: (mensagem, opcoes) => mostrar("info", mensagem, opcoes),
+      aviso: (mensagem, opcoes) => mostrar("aviso", mensagem, opcoes),
       erro: (mensagem, opcoes) => mostrar("erro", mensagem, opcoes),
       fechar,
     }),
@@ -71,7 +72,7 @@ export default function ToastProvider({ children }) {
       {children}
       <div className={styles.pilha}>
         <div className={styles.regiao} role="status" aria-live="polite">
-          {lista(["sucesso", "info"])}
+          {lista(["sucesso", "info", "aviso"])}
         </div>
         <div className={styles.regiao} role="alert">
           {lista(["erro"])}

@@ -51,6 +51,7 @@ export function ItemGrade({ children }) {
 }
 
 export default function GradeCartas({
+  ref,
   children,
   cartas = [],
   lang = IDIOMA_PADRAO,
@@ -60,7 +61,7 @@ export default function GradeCartas({
   acoes,
 }) {
   return (
-    <ul className={`${styles.grade} ${variante === "catalogo" ? styles.catalogo : ""}`} role="list" aria-busy={carregando}>
+    <ul ref={ref} className={`${styles.grade} ${variante === "catalogo" ? styles.catalogo : ""}`} role="list" aria-busy={carregando}>
       {carregando
         ? // Esqueleto com a mesma proporção da carta: a altura da seção
           // não muda quando os dados chegam (evita o rodapé "pular")

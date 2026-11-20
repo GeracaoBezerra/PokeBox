@@ -174,6 +174,7 @@ describe('toOfferResponse', () => {
   const card = { id: 'base1-4', name: 'Charizard', marketPrice: '312.50' };
   const offer = {
     id: 'offer-1',
+    trade: null,
     listingId: 'listing-1',
     proposerId: PROPOSER_ID,
     quantity: 1,
@@ -226,6 +227,11 @@ describe('toOfferResponse', () => {
   };
 
   const response = toOfferResponse(offer);
+
+  it('informa se já existe uma troca vinculada à oferta', () => {
+    expect(response.hasTrade).toBe(false);
+    expect(toOfferResponse({ ...offer, trade: { id: 'trade-1' } }).hasTrade).toBe(true);
+  });
 
   it('monta a oferta com proponente, anúncio e itens', () => {
     expect(response).toMatchObject({
