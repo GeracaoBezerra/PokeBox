@@ -48,9 +48,10 @@ function Linha({ rotulo, children }) {
 //
 // lang: idioma da carta, vai na URL do detalhe (/cards/:id?lang=pt).
 // link: use só se o destino for outro.
+// estadoLink: state repassado ao Link (ex.: { deMarketplace: true }).
 // painel: passe false para esconder o painel (por exemplo, enquanto os dados
 // completos da carta ainda não chegaram).
-export default function CartaCard({ carta, lang, link, painel = true, acoes }) {
+export default function CartaCard({ carta, lang, link, estadoLink, painel = true, acoes }) {
   const { id, name: nome, rarity: raridade, illustrator: artista, types } = carta;
 
   const src = carta.image?.small ?? carta.imageUrl ?? null;
@@ -74,7 +75,7 @@ export default function CartaCard({ carta, lang, link, painel = true, acoes }) {
     // Sem tipo, usa o "incolor" (cinza neutro) para o painel manter fundo e borda
     <div className={styles.carta} data-tipo={tipoInfo?.chave ?? "incolor"}>
       <div className={styles.palco}>
-        <Link to={destino} className={styles.link}>
+        <Link to={destino} state={estadoLink} className={styles.link}>
           <ImagemCarta
             className={styles.imagem}
             src={src}

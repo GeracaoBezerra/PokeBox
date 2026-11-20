@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Inbox, Send } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { listMyOffers } from "../api/offers";
 import AbasNegociacao from "../components/AbasNegociacao/AbasNegociacao";
 import Aviso from "../components/Aviso/Aviso";
@@ -120,6 +120,14 @@ function ListaPropostas({ filtros, painel }) {
 }
 
 export default function MyOffersPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [aviso] = useState(() => location.state?.aviso);
+  const avisoNoHistorico = Boolean(location.state?.aviso);
+
+  useEffect(() => {
+    if (avisoNoHistorico) navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null });
+  }, [avisoNoHistorico, location.pathname, location.search, navigate]);
   const filtros = useFiltrosNegociacao(STATUS_NEGOCIACAO);
   const { aba, side, status, page, atualizar } = filtros;
   const painel = useRef(null);
@@ -129,6 +137,8 @@ export default function MyOffersPage() {
       <CabecalhoPagina titulo="Propostas">
         Acompanhe as ofertas de cartas que você recebeu e enviou.
       </CabecalhoPagina>
+
+      <Aviso sucesso={aviso} />
 
       <div className={s.filtros}>
         <AbasNegociacao
