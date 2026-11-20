@@ -10,6 +10,7 @@ import type { ListingOfferHandlers } from '../routes/listing.routes.js';
 import { createOfferRoutes } from '../routes/offer.routes.js';
 import { createTradeRoutes } from '../routes/trade.routes.js';
 import { OfferService } from '../services/OfferService.js';
+import { TradeOpener } from '../services/TradeOpener.js';
 import { TradeService } from '../services/TradeService.js';
 import type { AppModule, Infra } from './types.js';
 
@@ -20,9 +21,10 @@ export interface TradingModule extends AppModule {
 export function buildTradingModule(infra: Infra): TradingModule {
   const offers = new PrismaOfferRepository(infra.prisma);
   const unitOfWork = new PrismaUnitOfWorkFactory(new PrismaTransactionRunner(infra.prisma));
+  const opener = new TradeOpener();
 
   const offerController = new OfferController(
-    new OfferService({ listings: new PrismaListingRepository(infra.prisma), offers, unitOfWork }),
+    new OfferService({ listings: new PrismaListingRepository(infra.prisma), offers, unitOfWork, opener }),
   );
   const tradeController = new TradeController(
     new TradeService({
@@ -30,6 +32,7 @@ export function buildTradingModule(infra: Infra): TradingModule {
       trades: new PrismaTradeRepository(infra.prisma),
       collection: new PrismaCollectionRepository(infra.prisma),
       unitOfWork,
+      opener,
     }),
   );
 

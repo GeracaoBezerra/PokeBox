@@ -1,32 +1,33 @@
 import { NotFoundError } from '../errors/domainErrors.js';
 import { withSpan } from '../lib/tracing.js';
 import type { TradeStatus } from '../generated/prisma/index.js';
-import type { CollectionItemKey, CollectionRepository, LockedCollectionItem } from '../repositories/CollectionRepository.js';
+import type { CollectionItemKey, CollectionRepository } from '../repositories/CollectionRepository.js';
 import type { OfferRepository } from '../repositories/OfferRepository.js';
 import type { LockedTrade, TradeRepository, TradeWithItems } from '../repositories/TradeRepository.js';
 import type { TradeUnitOfWork, UnitOfWorkFactory } from '../repositories/UnitOfWork.js';
-import { assertStillFulfillable } from '../utils/offerRules.js';
 import { toPage, toSkipTake, type ListSide, type Page, type PageParams } from '../utils/pagination.js';
 import {
   TRADE_ACTIONS,
+  assertCanConfirm,
   assertCanCreate,
   assertCanView,
   assertOfferTradable,
   assertStillTradable,
   assertTradeAction,
-  buildTradeItems,
-  nextListingState,
+  closesAfterTrade,
+  returnedListingState,
   toTradeResponse,
-  trimListings,
   type TradeAction,
   type TradeResponse,
 } from '../utils/tradeRules.js';
+import type { TradeOpener } from './TradeOpener.js';
 
 export interface TradeServiceDeps {
   offers: Pick<OfferRepository, 'findById'>;
   trades: Pick<TradeRepository, 'findById' | 'findSent' | 'findReceived'>;
   collection: Pick<CollectionRepository, 'findIdsByKeys'>;
   unitOfWork: UnitOfWorkFactory;
+  opener: Pick<TradeOpener, 'open'>;
 }
 
 export type TradeView = TradeResponse<TradeWithItems['items'][number]['card']>;
@@ -38,7 +39,6 @@ export interface MyTrades {
 
 const OFFER_NOT_FOUND = 'Oferta não encontrada';
 const TRADE_NOT_FOUND = 'Troca não encontrada';
-const ITEM_NOT_FOUND = 'Item da coleção não encontrado';
 
 function originIds(trade: TradeWithItems): string[] {
   return trade.items.flatMap((item) => (item.collectionItemId ? [item.collectionItemId] : []));
@@ -52,12 +52,6 @@ function destinationKeys(trade: TradeWithItems): CollectionItemKey[] {
     finish,
     firstEdition,
   }));
-}
-
-function lockedOrFail(locked: Map<string, LockedCollectionItem | null>, id: string): LockedCollectionItem {
-  const item = locked.get(id);
-  if (!item) throw new NotFoundError(ITEM_NOT_FOUND);
-  return item;
 }
 
 export class TradeService {
@@ -83,37 +77,8 @@ export class TradeService {
         hasTrade: Boolean(await uow.trades.findByOfferId(offerId)),
         listing,
       });
-      assertStillFulfillable({
-        offerQuantity: offer.quantity,
-        listing,
-        offeredItems: offer.items.map((item) => ({
-          item: lockedOrFail(locked, item.collectionItemId),
-          requested: item.quantity,
-        })),
-      });
 
-      const items = buildTradeItems({ offer, listing });
-      const created = await uow.trades.create({
-        proposerId: offer.proposerId,
-        recipientId: listing.collectionItem.userId,
-        offerId,
-        items,
-      });
-
-      for (const { collectionItemId, quantity } of items) {
-        await uow.collection.reserve(collectionItemId, quantity);
-      }
-
-      await uow.listingChanges.apply(listing, nextListingState({ listing, taken: offer.quantity }));
-
-      for (const { collectionItem, quantity } of offer.items) {
-        const item = lockedOrFail(locked, collectionItem.id);
-        await this.trimProposerListings(uow, { ...item, reservedQuantity: item.reservedQuantity + quantity });
-      }
-
-      await uow.offers.deleteItems(offerId);
-
-      return created;
+      return this.deps.opener.open(uow, { offer, listing, locked });
     });
 
     return toTradeResponse(trade);
@@ -147,16 +112,17 @@ export class TradeService {
   }
 
   accept(userId: string, id: string): Promise<TradeView> {
-    return withSpan('trade.accept', { 'trade.id': id }, () => this.acceptTrade(userId, id));
+    return withSpan('trade.accept', { 'trade.id': id }, () => this.confirmTrade(userId, id));
   }
 
-  private async acceptTrade(userId: string, id: string): Promise<TradeView> {
+  private async confirmTrade(userId: string, id: string): Promise<TradeView> {
     const found = await this.findTradeOf(userId, id);
     const destinationIds = await this.deps.collection.findIdsByKeys(destinationKeys(found));
 
     const trade = await this.deps.unitOfWork.run(async (uow) => {
       const locked = await uow.lockItemsInOrder([...originIds(found), ...destinationIds]);
-      assertTradeAction({ trade: await this.lockTrade(uow, id), userId, action: 'accept' });
+      const { role, completes } = assertCanConfirm({ trade: await this.lockTrade(uow, id), userId });
+      if (!completes) return uow.trades.confirm(id, role, false);
 
       const transfers = found.items.map((tradeItem) => {
         const check = { item: tradeItem.collectionItemId ? locked.get(tradeItem.collectionItemId) : null, tradeItem };
@@ -178,7 +144,9 @@ export class TradeService {
         await uow.wishlist.removeByUserAndCard(tradeItem.toUserId, tradeItem.cardId);
       }
 
-      return uow.trades.updateStatus(id, TRADE_ACTIONS.accept.status);
+      const completed = await uow.trades.confirm(id, role, true);
+      await this.closeTradedListings(uow, id);
+      return completed;
     });
 
     return toTradeResponse(trade);
@@ -192,7 +160,7 @@ export class TradeService {
     return this.undo(userId, id, 'cancel');
   }
 
-  private async undo(userId: string, id: string, action: Exclude<TradeAction, 'accept'>): Promise<TradeView> {
+  private async undo(userId: string, id: string, action: TradeAction): Promise<TradeView> {
     const found = await this.findTradeOf(userId, id);
 
     const trade = await this.deps.unitOfWork.run(async (uow) => {
@@ -205,10 +173,34 @@ export class TradeService {
         }
       }
 
-      return uow.trades.updateStatus(id, TRADE_ACTIONS[action].status);
+      const undone = await uow.trades.updateStatus(id, TRADE_ACTIONS[action].status);
+      await this.returnHeldQuantities(uow, id);
+      return undone;
     });
 
     return toTradeResponse(trade);
+  }
+
+  private async returnHeldQuantities(uow: TradeUnitOfWork, tradeId: string): Promise<void> {
+    for (const hold of await uow.trades.findHolds(tradeId)) {
+      const listing = await uow.listings.findById(hold.listingId);
+      if (!listing) continue;
+
+      const change = returnedListingState({ listing, quantity: hold.quantity });
+      if (change) await uow.listingChanges.apply(listing, change);
+    }
+  }
+
+  private async closeTradedListings(uow: TradeUnitOfWork, tradeId: string): Promise<void> {
+    for (const hold of await uow.trades.findHolds(tradeId)) {
+      const listing = await uow.listings.findById(hold.listingId);
+      if (!listing) continue;
+
+      const otherOpenHolds = await uow.trades.countOpenHolds(listing.id);
+      if (closesAfterTrade({ listing, otherOpenHolds })) {
+        await uow.listingChanges.apply(listing, { status: 'CLOSED' }, undefined, 'LISTING_TRADED');
+      }
+    }
   }
 
   private async findTradeOf(userId: string, id: string): Promise<TradeWithItems> {
@@ -222,15 +214,5 @@ export class TradeService {
     const locked = await uow.trades.lockById(id);
     if (!locked) throw new NotFoundError(TRADE_NOT_FOUND);
     return locked;
-  }
-
-  private async trimProposerListings(uow: TradeUnitOfWork, item: LockedCollectionItem): Promise<void> {
-    const listings = await uow.listings.findOpenByItem(item.id);
-    const changes = trimListings({ listings, available: item.quantity - item.reservedQuantity });
-
-    for (const { id, ...change } of changes) {
-      const current = listings.find((listing) => listing.id === id);
-      if (current) await uow.listingChanges.apply(current, change);
-    }
   }
 }

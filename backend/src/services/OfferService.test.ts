@@ -12,6 +12,7 @@ import type {
 } from '../repositories/UnitOfWork.js';
 import type { CreateOfferInput } from '../schemas/offer.schema.js';
 import { OfferService, type OfferReader } from './OfferService.js';
+import type { TradeOpener } from './TradeOpener.js';
 
 const OWNER_ID = 'owner-id';
 const PROPOSER_ID = 'proposer-id';
@@ -73,16 +74,23 @@ function setup() {
     findOpenByProposerAndListing: jest.fn<UnitOffers['findOpenByProposerAndListing']>(async () => null),
     updateStatus: jest.fn<UnitOffers['updateStatus']>(async (_id, status) => offerFrom(status)),
     deleteItems: jest.fn<UnitOffers['deleteItems']>(async () => undefined),
+    cancelOpenOfUser: jest.fn<UnitOffers['cancelOpenOfUser']>(async () => 0),
   };
   const listings = {
     findById: jest.fn<UnitListings['findById']>(async () => listing),
     findOpenByItem: jest.fn<UnitListings['findOpenByItem']>(async () => []),
+    closeOpenByOwner: jest.fn<UnitListings['closeOpenByOwner']>(async () => 0),
   };
   const trades = {
     create: jest.fn<UnitTrades['create']>(),
     findByOfferId: jest.fn<UnitTrades['findByOfferId']>(async () => null),
     lockById: jest.fn<UnitTrades['lockById']>(async () => null),
     updateStatus: jest.fn<UnitTrades['updateStatus']>(),
+    confirm: jest.fn<UnitTrades['confirm']>(),
+    addHolds: jest.fn<UnitTrades['addHolds']>(),
+    findHolds: jest.fn<UnitTrades['findHolds']>(async () => []),
+    countOpenHolds: jest.fn<UnitTrades['countOpenHolds']>(async () => 0),
+    hasOpenFor: jest.fn<UnitTrades['hasOpenFor']>(async () => false),
   };
   const lockItemsInOrder = jest.fn<TradeUnitOfWork['lockItemsInOrder']>(
     async (ids) =>
@@ -104,6 +112,7 @@ function setup() {
     offers,
     trades,
     wishlist: { removeByUserAndCard: jest.fn<TradeUnitOfWork['wishlist']['removeByUserAndCard']>() },
+    users: { deactivate: jest.fn<TradeUnitOfWork['users']['deactivate']>() },
     listingChanges: { apply: jest.fn<TradeUnitOfWork['listingChanges']['apply']>() },
     lockItemsInOrder,
   };
@@ -113,35 +122,29 @@ function setup() {
     findReceived: jest.fn<OfferReader['findReceived']>(async () => []),
   };
   const unitOfWork = new FakeUnitOfWorkFactory(uow);
-  const service = new OfferService({ listings, offers: readers, unitOfWork });
+  const opener = { open: jest.fn<TradeOpener['open']>(async () => ({ id: 'trade-id' }) as Awaited<ReturnType<TradeOpener['open']>>) };
+  const service = new OfferService({ listings, offers: readers, unitOfWork, opener });
 
-  return { service, offers, listings, trades, lockItemsInOrder, unitOfWork, readers };
+  return { service, offers, listings, trades, lockItemsInOrder, unitOfWork, readers, opener, uow };
 }
 
-describe('changeStatus em oferta aceita', () => {
+const proposed = { ...accepted, status: 'PROPOSED' as const };
+
+describe('changeStatus em oferta aberta', () => {
   it.each([
-    ['proponente cancela', PROPOSER_ID, 'CANCELED'],
-    ['dono recusa', OWNER_ID, 'REJECTED'],
-  ] as const)('%s quando ainda não virou troca: solta as cartas e muda o status', async (_, userId, nextStatus) => {
-    const { service, offers, trades, unitOfWork } = setup();
+    ['proponente cancela', PROPOSER_ID, 'CANCELED', 'PROPOSER'],
+    ['dono recusa', OWNER_ID, 'REJECTED', null],
+  ] as const)('%s: solta as cartas, muda o status e grava o motivo', async (_, userId, nextStatus, reason) => {
+    const { service, offers, unitOfWork, opener } = setup();
+    offers.lockById.mockResolvedValue(proposed);
 
     const result = await service.changeStatus(userId, OFFER_ID, nextStatus);
 
     expect(unitOfWork.runs).toBe(1);
-    expect(trades.findByOfferId).toHaveBeenCalledWith(OFFER_ID);
     expect(offers.deleteItems).toHaveBeenCalledWith(OFFER_ID);
-    expect(offers.updateStatus).toHaveBeenCalledWith(OFFER_ID, nextStatus);
+    expect(offers.updateStatus).toHaveBeenCalledWith(OFFER_ID, nextStatus, undefined, reason);
+    expect(opener.open).not.toHaveBeenCalled();
     expect(result.status).toBe(nextStatus);
-  });
-
-  it('oferta que já virou troca dá 409 e nada é escrito', async () => {
-    const { service, offers, trades } = setup();
-    trades.findByOfferId.mockResolvedValue({ id: 'trade-id' });
-
-    await expect(service.changeStatus(PROPOSER_ID, OFFER_ID, 'CANCELED')).rejects.toMatchObject({ statusCode: 409 });
-
-    expect(offers.deleteItems).not.toHaveBeenCalled();
-    expect(offers.updateStatus).not.toHaveBeenCalled();
   });
 
   it('oferta que não existe dá 404 sem abrir a transação', async () => {
@@ -153,25 +156,50 @@ describe('changeStatus em oferta aceita', () => {
   });
 });
 
-describe('changeStatus para ACCEPTED (RN-08)', () => {
-  it('trava o item do anúncio e os oferecidos antes de aceitar', async () => {
-    const { service, offers, lockItemsInOrder } = setup();
-    offers.lockById.mockResolvedValue({ ...accepted, status: 'PROPOSED' });
+describe('changeStatus em oferta aceita', () => {
+  it.each([
+    ['proponente cancela', PROPOSER_ID, 'CANCELED'],
+    ['dono recusa', OWNER_ID, 'REJECTED'],
+  ] as const)('%s: 409 e nada é escrito', async (_, userId, nextStatus) => {
+    const { service, offers } = setup();
+
+    await expect(service.changeStatus(userId, OFFER_ID, nextStatus)).rejects.toMatchObject({ statusCode: 409 });
+
+    expect(offers.deleteItems).not.toHaveBeenCalled();
+    expect(offers.updateStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe('changeStatus para ACCEPTED cria a troca (RN-08)', () => {
+  it('trava as cartas, aceita e abre a troca na mesma unidade de trabalho', async () => {
+    const { service, offers, lockItemsInOrder, opener, uow, unitOfWork } = setup();
+    offers.lockById.mockResolvedValue(proposed);
 
     await service.changeStatus(OWNER_ID, OFFER_ID, 'ACCEPTED');
 
+    expect(unitOfWork.runs).toBe(1);
     expect(lockItemsInOrder).toHaveBeenCalledWith(['item-owner']);
     expect(offers.deleteItems).not.toHaveBeenCalled();
     expect(offers.updateStatus).toHaveBeenCalledWith(OFFER_ID, 'ACCEPTED');
+    expect(opener.open).toHaveBeenCalledWith(uow, expect.objectContaining({ listing }));
   });
 
-  it('anúncio pausado não aceita oferta: 422', async () => {
-    const { service, offers, listings } = setup();
-    offers.lockById.mockResolvedValue({ ...accepted, status: 'PROPOSED' });
-    listings.findById.mockResolvedValue({ ...listing, status: 'PAUSED' });
+  it('se a troca não pode nascer, o erro sobe (a transação desfaz o aceite)', async () => {
+    const { service, offers, opener } = setup();
+    offers.lockById.mockResolvedValue(proposed);
+    opener.open.mockRejectedValue(Object.assign(new Error('indisponível'), { statusCode: 422 }));
+
+    await expect(service.changeStatus(OWNER_ID, OFFER_ID, 'ACCEPTED')).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  it.each(['PAUSED', 'IN_TRADE'] as const)('anúncio %s não aceita oferta: 422', async (status) => {
+    const { service, offers, listings, opener } = setup();
+    offers.lockById.mockResolvedValue(proposed);
+    listings.findById.mockResolvedValue({ ...listing, status });
 
     await expect(service.changeStatus(OWNER_ID, OFFER_ID, 'ACCEPTED')).rejects.toMatchObject({ statusCode: 422 });
     expect(offers.updateStatus).not.toHaveBeenCalled();
+    expect(opener.open).not.toHaveBeenCalled();
   });
 });
 
@@ -208,6 +236,14 @@ describe('create', () => {
 
     await expect(service.create(proposer, LISTING_ID, theirs)).rejects.toMatchObject({ statusCode: 403 });
     expect(offers.create).not.toHaveBeenCalled();
+  });
+
+  it('anúncio em troca não recebe oferta: 422', async () => {
+    const { service, listings, unitOfWork } = setup();
+    listings.findById.mockResolvedValueOnce({ ...listing, status: 'IN_TRADE', quantity: 0 });
+
+    await expect(service.create(proposer, LISTING_ID, input)).rejects.toMatchObject({ statusCode: 422 });
+    expect(unitOfWork.runs).toBe(0);
   });
 
   it('anúncio que não aparece para quem oferta dá 404 sem abrir a transação', async () => {

@@ -1,7 +1,7 @@
 import type { Prisma, TradeStatus } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
 import type { PageWindow } from '../utils/pagination.js';
-import type { NewTradeItem } from '../utils/tradeRules.js';
+import type { ListingHold, NewTradeItem, TradeRole } from '../utils/tradeRules.js';
 
 const party = { select: { username: true, name: true } } as const;
 
@@ -25,6 +25,8 @@ export interface LockedTrade {
   status: TradeStatus;
   proposerId: string;
   recipientId: string;
+  proposerConfirmedAt: Date | null;
+  recipientConfirmedAt: Date | null;
 }
 
 export interface NewTrade {
@@ -46,4 +48,9 @@ export interface TradeRepository {
   findSent(userId: string, options?: TradeListOptions): Promise<TradeWithItems[]>;
   findReceived(userId: string, options?: TradeListOptions): Promise<TradeWithItems[]>;
   updateStatus(id: string, status: TradeStatus, db?: Db): Promise<TradeWithItems>;
+  confirm(id: string, role: TradeRole, completes: boolean, db?: Db): Promise<TradeWithItems>;
+  addHolds(tradeId: string, holds: ListingHold[], db?: Db): Promise<void>;
+  findHolds(tradeId: string, db?: Db): Promise<ListingHold[]>;
+  countOpenHolds(listingId: string, db?: Db): Promise<number>;
+  hasOpenFor(userId: string, db?: Db): Promise<boolean>;
 }

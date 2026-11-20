@@ -1,12 +1,14 @@
 import {
-  acceptedOffersToCancel,
+  assertCanConfirm,
   assertCanCreate,
   assertCanView,
   assertOfferTradable,
   assertStillTradable,
   assertTradeAction,
   buildTradeItems,
+  closesAfterTrade,
   nextListingState,
+  returnedListingState,
   toTradeResponse,
   trimListings,
 } from './tradeRules.js';
@@ -83,19 +85,17 @@ describe('assertTradeAction', () => {
   const trade = { proposerId: PROPOSER_ID, recipientId: OWNER_ID, status: 'PROPOSED' as TradeStatus };
 
   it.each<[TradeAction, string]>([
-    ['accept', OWNER_ID],
     ['reject', OWNER_ID],
     ['cancel', PROPOSER_ID],
   ])('%s pela parte certa passa', (action, userId) => {
     expect(() => assertTradeAction({ trade, userId, action })).not.toThrow();
   });
 
-  it.each<TradeAction>(['accept', 'reject', 'cancel'])('%s por quem não faz parte dá 403', (action) => {
+  it.each<TradeAction>(['reject', 'cancel'])('%s por quem não faz parte dá 403', (action) => {
     expect(statusOf(() => assertTradeAction({ trade, userId: OTHER_ID, action }))).toBe(403);
   });
 
   it.each<[TradeAction, string]>([
-    ['accept', PROPOSER_ID],
     ['reject', PROPOSER_ID],
     ['cancel', OWNER_ID],
   ])('%s pelo papel errado dá 403', (action, userId) => {
@@ -103,9 +103,50 @@ describe('assertTradeAction', () => {
   });
 
   it.each<TradeStatus>(['ACCEPTED', 'REJECTED', 'CANCELED'])('troca %s dá 409', (status) => {
-    expect(statusOf(() => assertTradeAction({ trade: { ...trade, status }, userId: OWNER_ID, action: 'accept' }))).toBe(
+    expect(statusOf(() => assertTradeAction({ trade: { ...trade, status }, userId: OWNER_ID, action: 'reject' }))).toBe(
       409,
     );
+  });
+});
+
+describe('assertCanConfirm', () => {
+  const trade = {
+    proposerId: PROPOSER_ID,
+    recipientId: OWNER_ID,
+    status: 'PROPOSED' as TradeStatus,
+    proposerConfirmedAt: null as Date | null,
+    recipientConfirmedAt: null as Date | null,
+  };
+  const earlier = new Date('2026-11-20T10:00:00Z');
+
+  it.each([
+    [OWNER_ID, 'recipient'],
+    [PROPOSER_ID, 'proposer'],
+  ])('as duas partes confirmam (%s); a primeira não conclui', (userId, role) => {
+    expect(assertCanConfirm({ trade, userId })).toEqual({ role, completes: false });
+  });
+
+  it('a segunda confirmação conclui', () => {
+    expect(assertCanConfirm({ trade: { ...trade, proposerConfirmedAt: earlier }, userId: OWNER_ID })).toEqual({
+      role: 'recipient',
+      completes: true,
+    });
+    expect(assertCanConfirm({ trade: { ...trade, recipientConfirmedAt: earlier }, userId: PROPOSER_ID })).toEqual({
+      role: 'proposer',
+      completes: true,
+    });
+  });
+
+  it('confirmar de novo dá 409', () => {
+    expect(statusOf(() => assertCanConfirm({ trade: { ...trade, recipientConfirmedAt: earlier }, userId: OWNER_ID }))).toBe(409);
+  });
+
+  it('quem não faz parte dá 403', () => {
+    expect(statusOf(() => assertCanConfirm({ trade, userId: OTHER_ID }))).toBe(403);
+  });
+
+  it.each<TradeStatus>(['ACCEPTED', 'REJECTED', 'CANCELED'])('troca %s dá 409', (status) => {
+    expect(statusOf(() => assertCanConfirm({ trade: { ...trade, status }, userId: OWNER_ID }))).toBe(409);
   });
 });
 
@@ -149,77 +190,78 @@ describe('nextListingState', () => {
     expect(nextListingState({ listing: { quantity: 3 }, taken: 1 })).toEqual({ quantity: 2 });
   });
 
-  it('fecha o anúncio quando não sobra nada, sem mexer na quantidade', () => {
-    expect(nextListingState({ listing: { quantity: 2 }, taken: 2 })).toEqual({ status: 'CLOSED' });
-  });
-});
-
-describe('acceptedOffersToCancel', () => {
-  const offers = [
-    { id: 'pede-1', quantity: 1 },
-    { id: 'pede-2', quantity: 2 },
-  ];
-
-  it('anúncio fechado cancela todas as ofertas aceitas sem troca', () => {
-    expect(acceptedOffersToCancel({ offers, change: { status: 'CLOSED' } })).toEqual(['pede-1', 'pede-2']);
-  });
-
-  it('anúncio que diminuiu cancela só as que pedem mais do que sobrou', () => {
-    expect(acceptedOffersToCancel({ offers, change: { quantity: 1 } })).toEqual(['pede-2']);
-  });
-
-  it('não cancela nada quando todas ainda cabem', () => {
-    expect(acceptedOffersToCancel({ offers, change: { quantity: 2 } })).toEqual([]);
-  });
-
-  it('sem ofertas aceitas, nada a cancelar', () => {
-    expect(acceptedOffersToCancel({ offers: [], change: { status: 'CLOSED' } })).toEqual([]);
-  });
-
-  it('anúncio bloqueado cancela todas as ofertas aceitas sem troca', () => {
-    expect(acceptedOffersToCancel({ offers, change: { status: 'BLOCKED' } })).toEqual(['pede-1', 'pede-2']);
-  });
-
-  it('compara cada oferta com a nova quantidade, sem somar as aceitas', () => {
-    const tres = [...offers, { id: 'pede-3', quantity: 3 }];
-    expect(acceptedOffersToCancel({ offers: tres, change: { status: 'ACTIVE', quantity: 2 } })).toEqual(['pede-3']);
-  });
-
-  it('pausar sem diminuir não cancela nada', () => {
-    expect(acceptedOffersToCancel({ offers, change: { status: 'PAUSED', quantity: 2 } })).toEqual([]);
-  });
-
-  it('sem status e sem quantidade, nada a cancelar', () => {
-    expect(acceptedOffersToCancel({ offers, change: {} })).toEqual([]);
+  it('em 0 vira Em troca', () => {
+    expect(nextListingState({ listing: { quantity: 2 }, taken: 2 })).toEqual({ quantity: 0, status: 'IN_TRADE' });
   });
 });
 
 describe('trimListings', () => {
   const listings = [
-    { id: 'novo', quantity: 2 },
-    { id: 'velho', quantity: 3 },
+    { id: 'novo', quantity: 2, status: 'ACTIVE' as ListingStatus },
+    { id: 'velho', quantity: 3, status: 'ACTIVE' as ListingStatus },
   ];
 
   it('não muda nada quando o anunciado cabe no disponível', () => {
     expect(trimListings({ listings, available: 5 })).toEqual([]);
   });
 
-  it('reduz o anúncio mais novo primeiro', () => {
-    expect(trimListings({ listings, available: 4 })).toEqual([{ id: 'novo', quantity: 1 }]);
+  it('reduz o anúncio mais novo primeiro e diz quanto tirou', () => {
+    expect(trimListings({ listings, available: 4 })).toEqual([{ id: 'novo', quantity: 1, taken: 1 }]);
   });
 
-  it('fecha o mais novo e reduz o seguinte quando precisa', () => {
+  it('esvazia o mais novo (Em troca) e reduz o seguinte quando precisa', () => {
     expect(trimListings({ listings, available: 2 })).toEqual([
-      { id: 'novo', status: 'CLOSED' },
-      { id: 'velho', quantity: 2 },
+      { id: 'novo', quantity: 0, status: 'IN_TRADE', taken: 2 },
+      { id: 'velho', quantity: 2, taken: 1 },
     ]);
   });
 
-  it('fecha todos quando não sobra nada disponível', () => {
+  it('esvazia todos quando não sobra nada disponível', () => {
     expect(trimListings({ listings, available: 0 })).toEqual([
-      { id: 'novo', status: 'CLOSED' },
-      { id: 'velho', status: 'CLOSED' },
+      { id: 'novo', quantity: 0, status: 'IN_TRADE', taken: 2 },
+      { id: 'velho', quantity: 0, status: 'IN_TRADE', taken: 3 },
     ]);
+  });
+
+  it('pausado que chega a 0 continua pausado', () => {
+    const paused = [{ id: 'pausado', quantity: 1, status: 'PAUSED' as ListingStatus }];
+    expect(trimListings({ listings: paused, available: 0 })).toEqual([{ id: 'pausado', quantity: 0, taken: 1 }]);
+  });
+
+  it('pula anúncio que já está em 0', () => {
+    const withEmpty = [{ id: 'vazio', quantity: 0, status: 'IN_TRADE' as ListingStatus }, ...listings];
+    expect(trimListings({ listings: withEmpty, available: 4 })).toEqual([{ id: 'novo', quantity: 1, taken: 1 }]);
+  });
+});
+
+describe('returnedListingState', () => {
+  it('Em troca recebe a quantidade e volta a ativo', () => {
+    expect(returnedListingState({ listing: { status: 'IN_TRADE', quantity: 0 }, quantity: 2 })).toEqual({
+      quantity: 2,
+      status: 'ACTIVE',
+    });
+  });
+
+  it.each<ListingStatus>(['ACTIVE', 'PAUSED'])('%s recebe a quantidade e mantém a situação', (status) => {
+    expect(returnedListingState({ listing: { status, quantity: 1 }, quantity: 2 })).toEqual({ quantity: 3 });
+  });
+
+  it.each<ListingStatus>(['CLOSED', 'BLOCKED'])('%s não reabre', (status) => {
+    expect(returnedListingState({ listing: { status, quantity: 0 }, quantity: 2 })).toBeNull();
+  });
+});
+
+describe('closesAfterTrade', () => {
+  it('Em troca sem outra troca aberta fecha', () => {
+    expect(closesAfterTrade({ listing: { status: 'IN_TRADE' }, otherOpenHolds: 0 })).toBe(true);
+  });
+
+  it('Em troca com outra troca aberta continua', () => {
+    expect(closesAfterTrade({ listing: { status: 'IN_TRADE' }, otherOpenHolds: 1 })).toBe(false);
+  });
+
+  it.each<ListingStatus>(['ACTIVE', 'PAUSED', 'CLOSED'])('%s não muda', (status) => {
+    expect(closesAfterTrade({ listing: { status }, otherOpenHolds: 0 })).toBe(false);
   });
 });
 
@@ -229,6 +271,8 @@ describe('toTradeResponse', () => {
     status: 'PROPOSED' as TradeStatus,
     createdAt: new Date('2026-11-08T12:00:00Z'),
     completedAt: null,
+    proposerConfirmedAt: new Date('2026-11-09T12:00:00Z'),
+    recipientConfirmedAt: null,
     offerId: 'offer-id',
     proposerId: PROPOSER_ID,
     recipientId: OWNER_ID,
@@ -257,6 +301,8 @@ describe('toTradeResponse', () => {
       status: 'PROPOSED',
       createdAt: trade.createdAt,
       completedAt: null,
+      proposerConfirmedAt: trade.proposerConfirmedAt,
+      recipientConfirmedAt: null,
       offerId: 'offer-id',
       proposer: { username: 'misty', name: 'Misty' },
       recipient: { username: 'ash', name: 'Ash Ketchum' },

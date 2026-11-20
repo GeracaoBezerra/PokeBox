@@ -1,10 +1,9 @@
 import { AppError } from '../errors/AppError.js';
-import type { CardCondition, CardFinish, ListingStatus, OfferStatus } from '../generated/prisma/index.js';
+import type { CardCondition, CardFinish, ListingStatus, OfferCancelReason, OfferStatus } from '../generated/prisma/index.js';
 import { toCardResponse } from './cardRecord.js';
 import { toListingResponse, type ListingResponse, type ListingSource } from './listingRules.js';
 
 const RESPONSES_BY_OWNER: readonly OfferStatus[] = ['ACCEPTED', 'REJECTED'];
-const ENDS_ACCEPTED: readonly OfferStatus[] = ['REJECTED', 'CANCELED'];
 
 type PricedCard = { marketPrice: unknown };
 
@@ -34,7 +33,12 @@ export interface StatusChangeCheck {
   nextStatus: OfferStatus;
   isProposer: boolean;
   isListingOwner: boolean;
-  hasTrade?: boolean;
+}
+
+export interface HoldCheck {
+  status: OfferStatus;
+  quantity: number;
+  listing: { status: ListingStatus; quantity: number };
 }
 
 export interface OfferedItemCheck {
@@ -52,6 +56,7 @@ export interface OfferSource<C extends PricedCard = PricedCard> {
   id: string;
   trade: { id: string } | null;
   status: OfferStatus;
+  cancelReason: OfferCancelReason | null;
   quantity: number;
   message: string | null;
   createdAt: Date;
@@ -75,8 +80,10 @@ export interface OfferItemResponse<C extends PricedCard = PricedCard> {
 
 export interface OfferResponse<C extends PricedCard = PricedCard> {
   id: string;
-  hasTrade: boolean;
+  tradeId: string | null;
   status: OfferStatus;
+  cancelReason: OfferCancelReason | null;
+  onHold: boolean;
   quantity: number;
   message: string | null;
   createdAt: Date;
@@ -107,7 +114,7 @@ export function assertOfferItem({ item, proposerId, requested }: OfferItemCheck)
   }
 }
 
-export function assertStatusChange({ offer, nextStatus, isProposer, isListingOwner, hasTrade }: StatusChangeCheck): void {
+export function assertStatusChange({ offer, nextStatus, isProposer, isListingOwner }: StatusChangeCheck): void {
   if (!isProposer && !isListingOwner) {
     throw new AppError(403, 'Esta oferta é de outros usuários');
   }
@@ -122,15 +129,25 @@ export function assertStatusChange({ offer, nextStatus, isProposer, isListingOwn
 
   if (offer.status === 'PROPOSED') return;
 
-  if (offer.status === 'ACCEPTED' && ENDS_ACCEPTED.includes(nextStatus)) {
-    if (hasTrade) throw new AppError(409, 'Esta oferta já virou troca');
-    return;
+  if (offer.status === 'ACCEPTED') {
+    throw new AppError(409, 'Oferta aceita já virou troca e não muda mais. Para desistir, recuse ou cancele a troca');
   }
 
   throw new AppError(422, `Oferta já finalizada (${offer.status}) não pode mudar de status`);
 }
 
+export function isOnHold({ status, quantity, listing }: HoldCheck): boolean {
+  return status === 'PROPOSED' && (listing.status === 'IN_TRADE' || quantity > listing.quantity);
+}
+
 export function assertListingActive(listing: { status: ListingStatus }): void {
+  if (listing.status === 'IN_TRADE') {
+    throw new AppError(
+      422,
+      'Este anúncio está em troca com outra pessoa. A oferta fica em espera: volta a valer se a troca for desfeita e é cancelada se o anúncio fechar',
+    );
+  }
+
   if (listing.status !== 'ACTIVE') {
     throw new AppError(422, 'Só dá para aceitar oferta de anúncio ativo');
   }
@@ -140,7 +157,7 @@ export function assertStillFulfillable({ offerQuantity, listing, offeredItems }:
   if (offerQuantity > listing.quantity) {
     throw new AppError(
       422,
-      `O anúncio agora tem só ${listing.quantity} unidade(s) e a oferta pede ${offerQuantity}. Aumente o anúncio ou encerre a oferta (quem ofertou cancela, o dono recusa)`,
+      `O anúncio agora tem só ${listing.quantity} unidade(s) e a oferta pede ${offerQuantity}, então ela fica em espera. Aumente o anúncio ou encerre a oferta (quem ofertou cancela, o dono recusa)`,
     );
   }
 
@@ -158,8 +175,10 @@ export function assertStillFulfillable({ offerQuantity, listing, offeredItems }:
 export function toOfferResponse<C extends PricedCard>(offer: OfferSource<C>): OfferResponse<C> {
   return {
     id: offer.id,
-    hasTrade: Boolean(offer.trade),
+    tradeId: offer.trade?.id ?? null,
     status: offer.status,
+    cancelReason: offer.cancelReason,
+    onHold: isOnHold(offer),
     quantity: offer.quantity,
     message: offer.message,
     createdAt: offer.createdAt,

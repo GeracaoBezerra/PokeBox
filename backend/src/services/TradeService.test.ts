@@ -13,6 +13,7 @@ import type {
   UnitOfWorkFactory,
   UnitTrades,
 } from '../repositories/UnitOfWork.js';
+import { TradeOpener } from './TradeOpener.js';
 import { TradeService, type TradeServiceDeps } from './TradeService.js';
 
 const OWNER_ID = 'owner-id';
@@ -69,10 +70,14 @@ const trade = {
   offerId: OFFER_ID,
   createdAt: new Date(),
   completedAt: null,
+  proposerConfirmedAt: null,
+  recipientConfirmedAt: null,
   proposer: { username: 'misty', name: 'Misty' },
   recipient: { username: 'ash', name: 'Ash' },
   items: [tradeItem('item-owner', OWNER_ID, PROPOSER_ID), tradeItem('item-proposer', PROPOSER_ID, OWNER_ID)],
 } as unknown as TradeWithItems;
+
+const confirmedByProposer = { ...trade, proposerConfirmedAt: new Date('2026-11-20T10:00:00Z') } as TradeWithItems;
 
 const listing = {
   id: 'listing-id',
@@ -122,8 +127,17 @@ function setup() {
   const trades = {
     create: jest.fn<UnitTrades['create']>(async () => trade),
     findByOfferId: jest.fn<UnitTrades['findByOfferId']>(async () => null),
-    lockById: jest.fn<UnitTrades['lockById']>(async () => trade),
+    lockById: jest.fn<UnitTrades['lockById']>(async () => confirmedByProposer),
     updateStatus: jest.fn<UnitTrades['updateStatus']>(async (_id, status) => ({ ...trade, status })),
+    confirm: jest.fn<UnitTrades['confirm']>(async (_id, role, completes) => ({
+      ...trade,
+      status: completes ? 'ACCEPTED' : 'PROPOSED',
+      ...(role === 'recipient' ? { recipientConfirmedAt: new Date() } : { proposerConfirmedAt: new Date() }),
+    })),
+    addHolds: jest.fn<UnitTrades['addHolds']>(async () => undefined),
+    findHolds: jest.fn<UnitTrades['findHolds']>(async () => [{ listingId: 'listing-id', quantity: 1 }]),
+    countOpenHolds: jest.fn<UnitTrades['countOpenHolds']>(async () => 0),
+    hasOpenFor: jest.fn<UnitTrades['hasOpenFor']>(async () => false),
   };
   const offers = {
     create: jest.fn<UnitOffers['create']>(),
@@ -137,10 +151,12 @@ function setup() {
     findOpenByProposerAndListing: jest.fn<UnitOffers['findOpenByProposerAndListing']>(),
     updateStatus: jest.fn<UnitOffers['updateStatus']>(),
     deleteItems: jest.fn<UnitOffers['deleteItems']>(async () => undefined),
+    cancelOpenOfUser: jest.fn<UnitOffers['cancelOpenOfUser']>(async () => 0),
   };
   const listings = {
     findById: jest.fn<UnitListings['findById']>(async () => listing),
     findOpenByItem: jest.fn<UnitListings['findOpenByItem']>(async (): Promise<OpenListing[]> => []),
+    closeOpenByOwner: jest.fn<UnitListings['closeOpenByOwner']>(async () => 0),
   };
   const listingChanges = { apply: jest.fn<UnitListingChanges['apply']>(async () => listing) };
   const wishlist = { removeByUserAndCard: jest.fn<TradeUnitOfWork['wishlist']['removeByUserAndCard']>(async () => true) };
@@ -154,10 +170,11 @@ function setup() {
     offers,
     trades,
     wishlist,
+    users: { deactivate: jest.fn<TradeUnitOfWork['users']['deactivate']>() },
     listingChanges,
     lockItemsInOrder,
   });
-  const readers: Omit<TradeServiceDeps, 'unitOfWork'> = {
+  const readers: Omit<TradeServiceDeps, 'unitOfWork' | 'opener'> = {
     offers: { findById: offers.findById },
     trades: {
       findById: jest.fn<TradeServiceDeps['trades']['findById']>(async () => trade),
@@ -166,12 +183,48 @@ function setup() {
     },
     collection: { findIdsByKeys: jest.fn<TradeServiceDeps['collection']['findIdsByKeys']>(async () => []) },
   };
-  const service = new TradeService({ ...readers, unitOfWork });
+  const service = new TradeService({ ...readers, unitOfWork, opener: new TradeOpener() });
 
   return { service, collection, trades, offers, listings, listingChanges, wishlist, lockItemsInOrder, readers, unitOfWork };
 }
 
-describe('accept (RN-07)', () => {
+describe('accept: confirmar o recebimento', () => {
+  it.each([
+    ['dono', OWNER_ID, 'recipient'],
+    ['quem ofertou', PROPOSER_ID, 'proposer'],
+  ] as const)('primeira confirmação (%s) só grava a data, sem mexer nas coleções', async (_, userId, role) => {
+    const { service, trades, collection } = setup();
+    trades.lockById.mockResolvedValue(trade);
+
+    const result = await service.accept(userId, TRADE_ID);
+
+    expect(trades.confirm).toHaveBeenCalledWith(TRADE_ID, role, false);
+    expect(collection.transferOut).not.toHaveBeenCalled();
+    expect(result.status).toBe('PROPOSED');
+  });
+
+  it('confirmar de novo dá 409', async () => {
+    const { service, trades } = setup();
+
+    await expect(service.accept(PROPOSER_ID, TRADE_ID)).rejects.toMatchObject({ statusCode: 409 });
+    expect(trades.confirm).not.toHaveBeenCalled();
+  });
+
+  it('troca finalizada dá 409', async () => {
+    const { service, trades } = setup();
+    trades.lockById.mockResolvedValue({ ...trade, status: 'CANCELED' });
+
+    await expect(service.accept(OWNER_ID, TRADE_ID)).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('quem não é parte dá 403', async () => {
+    const { service } = setup();
+
+    await expect(service.accept('outro', TRADE_ID)).rejects.toMatchObject({ statusCode: 403 });
+  });
+});
+
+describe('accept: segunda confirmação conclui (RN-07)', () => {
   it('erro no meio da transferência é propagado e a troca não vira ACCEPTED', async () => {
     const { service, collection, trades } = setup();
     collection.transferOut.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('falha forçada'));
@@ -179,7 +232,7 @@ describe('accept (RN-07)', () => {
     await expect(service.accept(OWNER_ID, TRADE_ID)).rejects.toThrow('falha forçada');
 
     expect(collection.transferOut).toHaveBeenCalledTimes(2);
-    expect(trades.updateStatus).not.toHaveBeenCalled();
+    expect(trades.confirm).not.toHaveBeenCalled();
   });
 
   it('revalida antes de mexer em qualquer item: item sem reserva dá 422 e nada é escrito', async () => {
@@ -196,7 +249,7 @@ describe('accept (RN-07)', () => {
     expect(collection.transferOut).not.toHaveBeenCalled();
     expect(collection.addOrIncrement).not.toHaveBeenCalled();
     expect(wishlist.removeByUserAndCard).not.toHaveBeenCalled();
-    expect(trades.updateStatus).not.toHaveBeenCalled();
+    expect(trades.confirm).not.toHaveBeenCalled();
   });
 
   it('caminho feliz: tira de quem entrega, soma em quem recebe e conclui', async () => {
@@ -210,8 +263,36 @@ describe('accept (RN-07)', () => {
     expect(collection.addOrIncrement).toHaveBeenCalledWith(
       expect.objectContaining({ userId: PROPOSER_ID, cardId: 'base1-4', quantity: 1, isPublic: true }),
     );
-    expect(trades.updateStatus).toHaveBeenCalledWith(TRADE_ID, 'ACCEPTED');
+    expect(trades.confirm).toHaveBeenCalledWith(TRADE_ID, 'recipient', true);
     expect(result.status).toBe('ACCEPTED');
+  });
+
+  it('fecha o anúncio Em troca sem outra troca aberta e cancela as ofertas em espera com o motivo trocado', async () => {
+    const { service, listings, listingChanges } = setup();
+    const inTrade = { ...listing, status: 'IN_TRADE', quantity: 0 } as ListingWithItem;
+    listings.findById.mockResolvedValue(inTrade);
+
+    await service.accept(OWNER_ID, TRADE_ID);
+
+    expect(listingChanges.apply).toHaveBeenCalledWith(inTrade, { status: 'CLOSED' }, undefined, 'LISTING_TRADED');
+  });
+
+  it('anúncio Em troca com outra troca aberta continua Em troca', async () => {
+    const { service, listings, listingChanges, trades } = setup();
+    listings.findById.mockResolvedValue({ ...listing, status: 'IN_TRADE', quantity: 0 } as ListingWithItem);
+    trades.countOpenHolds.mockResolvedValue(1);
+
+    await service.accept(OWNER_ID, TRADE_ID);
+
+    expect(listingChanges.apply).not.toHaveBeenCalled();
+  });
+
+  it('anúncio que ainda tem unidades fica como está', async () => {
+    const { service, listingChanges } = setup();
+
+    await service.accept(OWNER_ID, TRADE_ID);
+
+    expect(listingChanges.apply).not.toHaveBeenCalled();
   });
 
   it('trava também os itens de quem recebe que já existem, junto com os de quem entrega', async () => {
@@ -237,11 +318,14 @@ describe('accept (RN-07)', () => {
     expect(wishlist.removeByUserAndCard).toHaveBeenCalledWith(OWNER_ID, 'base1-4');
   });
 
-  it('quem fez a oferta não pode aceitar: 403 antes de escrever', async () => {
-    const { service, collection } = setup();
+  it('quem ofertou também pode dar a segunda confirmação', async () => {
+    const { service, trades } = setup();
+    trades.lockById.mockResolvedValue({ ...trade, recipientConfirmedAt: new Date() } as TradeWithItems);
 
-    await expect(service.accept(PROPOSER_ID, TRADE_ID)).rejects.toMatchObject({ statusCode: 403 });
-    expect(collection.transferOut).not.toHaveBeenCalled();
+    const result = await service.accept(PROPOSER_ID, TRADE_ID);
+
+    expect(trades.confirm).toHaveBeenCalledWith(TRADE_ID, 'proposer', true);
+    expect(result.status).toBe('ACCEPTED');
   });
 });
 
@@ -256,6 +340,44 @@ describe('reject e cancel liberam a reserva (RN-08)', () => {
     expect(collection.release).toHaveBeenCalledWith('item-proposer', 1);
     expect(trades.updateStatus).toHaveBeenCalledWith(TRADE_ID, 'REJECTED');
     expect(result.status).toBe('REJECTED');
+  });
+
+  it('devolve a quantidade guardada ao anúncio; Em troca volta a ativo', async () => {
+    const { service, listings, listingChanges } = setup();
+    const inTrade = { ...listing, status: 'IN_TRADE', quantity: 0 } as ListingWithItem;
+    listings.findById.mockResolvedValue(inTrade);
+
+    await service.cancel(PROPOSER_ID, TRADE_ID);
+
+    expect(listingChanges.apply).toHaveBeenCalledWith(inTrade, { quantity: 1, status: 'ACTIVE' });
+  });
+
+  it('anúncio pausado recebe a quantidade e continua pausado', async () => {
+    const { service, listings, listingChanges } = setup();
+    const paused = { ...listing, status: 'PAUSED', quantity: 0 } as ListingWithItem;
+    listings.findById.mockResolvedValue(paused);
+
+    await service.reject(OWNER_ID, TRADE_ID);
+
+    expect(listingChanges.apply).toHaveBeenCalledWith(paused, { quantity: 1 });
+  });
+
+  it.each(['CLOSED', 'BLOCKED'] as const)('anúncio %s no meio-tempo não reabre', async (status) => {
+    const { service, listings, listingChanges } = setup();
+    listings.findById.mockResolvedValue({ ...listing, status } as ListingWithItem);
+
+    await service.reject(OWNER_ID, TRADE_ID);
+
+    expect(listingChanges.apply).not.toHaveBeenCalled();
+  });
+
+  it('desistir vale mesmo depois de ter confirmado', async () => {
+    const { service, trades } = setup();
+
+    const result = await service.cancel(PROPOSER_ID, TRADE_ID);
+
+    expect(trades.updateStatus).toHaveBeenCalledWith(TRADE_ID, 'CANCELED');
+    expect(result.status).toBe('CANCELED');
   });
 
   it('dono não pode cancelar: 403 e nada é liberado', async () => {
@@ -282,11 +404,23 @@ describe('create (RN-08)', () => {
     expect(collection.reserve).toHaveBeenCalledWith('item-owner', 1);
     expect(collection.reserve).toHaveBeenCalledWith('item-proposer', 1);
     expect(listingChanges.apply).toHaveBeenCalledWith(listing, { quantity: 1 });
+    expect(trades.addHolds).toHaveBeenCalledWith(TRADE_ID, [{ listingId: 'listing-id', quantity: 1 }]);
     expect(offers.deleteItems).toHaveBeenCalledWith(OFFER_ID);
   });
 
-  it('corta os anúncios de quem ofertou que passaram do disponível', async () => {
+  it('anúncio que chega a 0 vira Em troca', async () => {
     const { service, listings, listingChanges, lockItemsInOrder } = setup();
+    lockItemsInOrder.mockImplementation(async (ids) => free(ids));
+    const single = { ...listing, quantity: 1 } as ListingWithItem;
+    listings.findById.mockResolvedValue(single);
+
+    await service.create(PROPOSER_ID, OFFER_ID);
+
+    expect(listingChanges.apply).toHaveBeenCalledWith(single, { quantity: 0, status: 'IN_TRADE' });
+  });
+
+  it('corta os anúncios de quem ofertou que passaram do disponível', async () => {
+    const { service, listings, listingChanges, lockItemsInOrder, trades } = setup();
     lockItemsInOrder.mockImplementation(async (ids) => free(ids));
     const proposerListing: OpenListing = { id: 'anuncio-misty', quantity: 1, status: 'ACTIVE' };
     listings.findOpenByItem.mockResolvedValueOnce([proposerListing]);
@@ -294,7 +428,11 @@ describe('create (RN-08)', () => {
     await service.create(PROPOSER_ID, OFFER_ID);
 
     expect(listings.findOpenByItem).toHaveBeenCalledWith('item-proposer');
-    expect(listingChanges.apply).toHaveBeenCalledWith(proposerListing, { status: 'CLOSED' });
+    expect(listingChanges.apply).toHaveBeenCalledWith(proposerListing, { quantity: 0, status: 'IN_TRADE' });
+    expect(trades.addHolds).toHaveBeenCalledWith(TRADE_ID, [
+      { listingId: 'listing-id', quantity: 1 },
+      { listingId: 'anuncio-misty', quantity: 1 },
+    ]);
   });
 
   it('oferta que já virou troca dá 409 e nada é reservado', async () => {
