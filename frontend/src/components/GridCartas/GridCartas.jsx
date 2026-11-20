@@ -5,20 +5,30 @@ import { searchCards } from "../../api/cards";
 import { useCarregar } from "../../hooks/useCarregar";
 import Aviso from "../Aviso/Aviso";
 import GradeCartas from "../GradeCartas/GradeCartas";
-import { IDIOMA_PADRAO } from "../../utils/idioma";
+import { IDIOMA_PADRAO, IDIOMA_RESERVA } from "../../utils/idioma";
 import styles from "./GridCartas.module.css";
 
 const TOTAL = 8;
 
-// Seção "Cartas em destaque" da home: busca as cartas e usa a GradeCartas.
-export default function GridCartas() {
-  // name: "" é igual ao que o catálogo envia quando não há busca
-  const { dados, erro, carregando, recarregar } = useCarregar(
-    () => searchCards({ name: "", lang: IDIOMA_PADRAO, page: 1, limit: TOTAL, sort: "wanted", order: "desc" }),
-    "grid-mais-desejadas",
-  );
+async function maisDesejadas(lang) {
+  const { items } = await searchCards({ name: "", lang, page: 1, limit: TOTAL, sort: "wanted", order: "desc" });
+  return { cartas: items.filter((carta) => carta.wishlistCount > 0), lang };
+}
 
-  const cartas = (dados?.items ?? []).filter((carta) => carta.wishlistCount > 0);
+async function maisDesejadasComReserva() {
+  const emPortugues = await maisDesejadas(IDIOMA_PADRAO);
+  if (emPortugues.cartas.length > 0) return emPortugues;
+  return maisDesejadas(IDIOMA_RESERVA);
+}
+
+export default function GridCartas() {
+  const { dados, erro, carregando, recarregar } = useCarregar(maisDesejadasComReserva, "grid-mais-desejadas");
+
+  const cartas = dados?.cartas ?? [];
+  const lang = dados?.lang ?? IDIOMA_PADRAO;
+  const verTodas = lang === IDIOMA_PADRAO
+    ? "/catalogo?sort=wanted&order=desc"
+    : `/catalogo?sort=wanted&order=desc&lang=${lang}`;
 
   if (!carregando && !erro && cartas.length === 0) return null;
 
@@ -30,7 +40,7 @@ export default function GridCartas() {
             Mais desejadas
           </h2>
 
-          <Link to="/catalogo?sort=wanted&order=desc" className={styles.verTodas}>
+          <Link to={verTodas} className={styles.verTodas}>
             Ver todas
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
@@ -39,7 +49,7 @@ export default function GridCartas() {
         <Aviso erro={erro} onTentarDeNovo={recarregar} />
 
         {!erro && (
-          <GradeCartas cartas={cartas} lang={IDIOMA_PADRAO} carregando={carregando} total={TOTAL} />
+          <GradeCartas cartas={cartas} lang={lang} carregando={carregando} total={TOTAL} />
         )}
       </div>
     </section>
