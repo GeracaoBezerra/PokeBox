@@ -70,7 +70,7 @@
 .vazio { display: grid; justify-items: center; gap: var(--esp-16); padding: var(--esp-48) var(--esp-24); border-radius: var(--raio-painel); background: var(--superficie); text-align: center; }
 .vazio > svg { color: var(--acento); }
 .vazio h1,
-.vazio h2 { font-family: var(--fonte-titulo); font-size: var(--fs-lg); }
+.vazio h2 { font-family: var(--fonte-titulo); font-size: var(--fs-lg); overflow-wrap: anywhere; }
 .vazio p { color: var(--texto-suave); font-size: var(--fs-sm); }
 .dicaBusca { margin-bottom: var(--esp-24); padding: var(--esp-12) var(--esp-16); border-radius: var(--raio-botao); background: var(--superficie); color: var(--texto-suave); font-size: var(--fs-sm); line-height: var(--lh-sm); overflow-wrap: anywhere; }
 .dicaBusca strong { color: var(--texto); font-weight: var(--peso-semi); }
