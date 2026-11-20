@@ -64,6 +64,28 @@ Cada correção da revisão do Eduardo ganhou teste (com MSW, `renderHook` ou fu
 
 **O que ficou de fora:** cobertura e testes do resto dos hooks e páginas (#180) e os testes E2E (#181, #182). A ordem "pendentes primeiro" da #170 vale só dentro da página atual, porque a API não ordena por status.
 
+## Testes de hooks, rota privada, página e cobertura do front (#180)
+
+**Ferramenta:** Claude Code (Claude Opus), rodando no repositório, com acesso ao código e ao terminal. Não usou banco nem API: tudo roda com o MSW.
+
+**O que foi pedido:** fazer o que a #180 pede e o pacotão (PR #195) ainda não tinha feito, sem repetir testes que já existiam: `matchMedia` falso, `renderWithProviders`, testes do `useCarregar`, do `useAcao`, do `usePendencias` e da `RotaPrivada`, a página da wishlist inteira com o MSW e a cobertura com mínimo na CI, no mesmo formato do backend (#109).
+
+**O que a IA fez:**
+
+- Escreveu 28 testes novos (de 238 para 266) em 5 arquivos, e o `renderWithProviders` com os mesmos providers e a mesma ordem do `main.jsx` (incluindo o `ToastProvider`, que entrou com a #176 depois que a issue foi escrita). A `criarSessaoFalsa` ficou num `.js` separado, para o ESLint não reclamar de um `.jsx` que exporta função que não é componente.
+- Ligou o `@vitest/coverage-v8` (mesma versão do Vitest), mediu a cobertura e pôs o mínimo em medido menos uns 2 pontos, como o backend. Na CI, o job `frontend` mostra a tabela no resumo da execução (com um script igual ao do backend) e guarda o relatório como artefato `coverage-frontend`. A pasta `coverage` entrou no `globalIgnores` do ESLint, senão o `npm run lint` tentaria analisar os `.js` do relatório.
+
+**O que a IA errou e foi corrigido rodando os testes:**
+
+| Erro | Como apareceu | Como foi corrigido |
+|---|---|---|
+| Teste do `useAcao` com JSX (o `wrapper` do toast) num arquivo `.js` | o Vite não compilou o arquivo | renomeado para `.test.jsx` |
+| Procurou o aviso de erro da página pelo papel `alert` | o toast também tem uma região `alert` (vazia), e a busca achou duas | o teste procura o texto do aviso |
+| Procurou o item da wishlist pelo nome "Pikachu" | o nome aparece duas vezes (no card e embaixo dele) | o teste procura "Base · 58" |
+
+**Como conferimos que os testes testam algo:** trocamos de propósito, um de cada vez, `"/login"` por `"/entrar"` na `RotaPrivada` (3 testes falharam), tiramos o `recarregar()` depois de remover na wishlist (1 falhou), tiramos a regra que esconde o erro antigo durante o recarregamento no `useCarregar` (1 falhou) e zeramos o intervalo de 1 minuto do `usePendencias` (2 falharam). Com o código de volta, todos passaram. Também rodamos a cobertura com um mínimo de 99% de linhas para ver o comando terminar com erro.
+
+**O que ficou de fora:** testes das outras páginas. A issue pede uma página com o MSW para mostrar o padrão, e o pacotão já tinha o perfil público e o formulário de oferta.
 
 ## E2E com Cypress (#181)
 

@@ -1,5 +1,6 @@
 import type { OfferStatus } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
+import { pendingFirst } from '../utils/pendingFirst.js';
 import type { OfferCounts } from '../utils/collectionRules.js';
 import {
   offerInclude,
@@ -53,13 +54,24 @@ export class PrismaOfferRepository implements OfferRepository {
   }
 
   findReceived(userId: string, { status, skip, take }: OfferListOptions = {}): Promise<OfferWithDetails[]> {
-    return this.db.offer.findMany({
-      where: { listing: { collectionItem: { userId } }, status },
-      include: offerInclude,
-      orderBy: [...newestFirst],
-      skip,
-      take,
-    });
+    const where = { listing: { collectionItem: { userId } } };
+    if (status) {
+      return this.db.offer.findMany({ where: { ...where, status }, include: offerInclude, orderBy: [...newestFirst], skip, take });
+    }
+
+    return pendingFirst(
+      {
+        find: (pending, window) =>
+          this.db.offer.findMany({
+            where: { ...where, status: pending ? 'PROPOSED' : { not: 'PROPOSED' } },
+            include: offerInclude,
+            orderBy: [...newestFirst],
+            ...window,
+          }),
+        countPending: () => this.db.offer.count({ where: { ...where, status: 'PROPOSED' } }),
+      },
+      { skip, take },
+    );
   }
 
   async countByItem(collectionItemId: string, db: Db = this.db): Promise<OfferCounts> {
