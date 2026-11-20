@@ -8,6 +8,9 @@ export default function CartaInterativa({ card }) {
   const [carregada, setCarregada] = useState(false);
   const [falhou, setFalhou] = useState(false);
   const src = card.image?.large ?? card.image?.small ?? card.imageUrl;
+  const set = card.set?.name ?? card.setName;
+  const numero = card.number ?? card.localId;
+  const alt = [card.name, set, numero ? `Nº ${numero}` : null].filter(Boolean).join(", ");
 
   function mover(event) {
     if (!carregada || event.pointerType !== "mouse" ||
@@ -29,7 +32,7 @@ export default function CartaInterativa({ card }) {
     delete alvo.dataset.ativa;
   }
 
-  if (!src || falhou) return <div className={styles.area}><ImagemCarta className={styles.imagem} alt={card.name} /></div>;
+  if (!src || falhou) return <div className={styles.area}><ImagemCarta className={styles.imagem} alt={alt} /></div>;
 
   return (
     <div className={styles.area} onPointerMove={mover} onPointerLeave={restaurar} onPointerCancel={restaurar}>
@@ -39,7 +42,7 @@ export default function CartaInterativa({ card }) {
           className={styles.imagem}
           data-carregada={carregada}
           src={src}
-          alt={card.name}
+          alt={alt}
           width="630"
           height="880"
           decoding="async"

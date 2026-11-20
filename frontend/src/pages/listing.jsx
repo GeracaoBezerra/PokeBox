@@ -105,7 +105,7 @@ export default function ListingPage() {
               ) : (
                 <div className={s.convite}><h2>Anúncio indisponível para ofertas</h2><p>Você pode explorar outras cartas na comunidade.</p><Link className={s.link} to="/marketplace">Ver outros anúncios</Link></div>
               )}
-              <Link className={s.link} to={`/cards/${anuncio.card.id}`}>Conhecer todos os detalhes da carta <ArrowUpRight size={16} aria-hidden="true" /></Link>
+              <Link className={s.link} to={`/cards/${encodeURIComponent(anuncio.card.id)}`}>Conhecer todos os detalhes da carta <ArrowUpRight size={16} aria-hidden="true" /></Link>
               {souAdmin && !souDono && <ModeracaoAnuncio key={id} anuncio={anuncio} onMudou={recarregar} atualizando={carregando} />}
             </div>
           </div>
