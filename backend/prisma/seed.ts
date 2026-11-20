@@ -267,8 +267,6 @@ const wishlist: SeedWishlistItem[] = [
   { username: 'lance', cardId: 'swsh7-215' },
   { username: 'lance', cardId: 'neo1-9' },
   { username: 'lance', cardId: 'sv03.5-199' },
-  // Rankings intencionais para a home e o catálogo (#92). A conta inativa
-  // de lance continua no seed para comprovar que ela não entra na contagem.
   { username: 'admin', cardId: 'swsh7-215' },
   { username: 'ash', cardId: 'swsh7-215' },
   { username: 'misty', cardId: 'swsh7-215' },
@@ -505,7 +503,6 @@ function validateSeedData(cards: SeedCard[]) {
     if (!cardsById.has(cardId)) throw new Error(`Wishlist de ${username}: carta ${cardId} não está em seed-data/cards.json`);
     if (owned.has(`${username}:${cardId}`)) throw new Error(`Wishlist de ${username}: ${cardId} já está na coleção (RN-12)`);
   }
-
 }
 
 async function seedUsers() {
