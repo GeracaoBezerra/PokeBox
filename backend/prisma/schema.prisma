@@ -118,23 +118,25 @@ model Listing {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  collectionItem CollectionItem @relation(fields: [collectionItemId], references: [id])
+  collectionItem CollectionItem     @relation(fields: [collectionItemId], references: [id])
   offers         Offer[]
+  tradeHolds     TradeListingHold[]
 
   @@index([collectionItemId])
   @@index([status, createdAt(sort: Desc), id])
 }
 
 model Offer {
-  id          String      @id @default(uuid())
-  listingId   String
-  proposerId  String
-  quantity    Int
-  message     String?
-  status      OfferStatus @default(PROPOSED)
-  respondedAt DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id           String             @id @default(uuid())
+  listingId    String
+  proposerId   String
+  quantity     Int
+  message      String?
+  status       OfferStatus        @default(PROPOSED)
+  cancelReason OfferCancelReason?
+  respondedAt  DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   listing  Listing     @relation(fields: [listingId], references: [id])
   proposer User        @relation("OfferProposer", fields: [proposerId], references: [id])
@@ -159,19 +161,22 @@ model OfferItem {
 }
 
 model Trade {
-  id          String      @id @default(uuid())
-  proposerId  String
-  recipientId String
-  offerId     String?     @unique
-  status      TradeStatus @default(PROPOSED)
-  completedAt DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id                   String      @id @default(uuid())
+  proposerId           String
+  recipientId          String
+  offerId              String?     @unique
+  status               TradeStatus @default(PROPOSED)
+  proposerConfirmedAt  DateTime?
+  recipientConfirmedAt DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
-  proposer  User        @relation("TradeProposer", fields: [proposerId], references: [id])
-  recipient User        @relation("TradeRecipient", fields: [recipientId], references: [id])
-  offer     Offer?      @relation(fields: [offerId], references: [id])
+  proposer  User               @relation("TradeProposer", fields: [proposerId], references: [id])
+  recipient User               @relation("TradeRecipient", fields: [recipientId], references: [id])
+  offer     Offer?             @relation(fields: [offerId], references: [id])
   items     TradeItem[]
+  holds     TradeListingHold[]
 
   @@index([proposerId])
   @@index([recipientId])
@@ -198,6 +203,20 @@ model TradeItem {
   @@index([tradeId])
   @@index([cardId])
   @@index([collectionItemId])
+}
+
+model TradeListingHold {
+  id        String   @id @default(uuid())
+  tradeId   String
+  listingId String
+  quantity  Int
+  createdAt DateTime @default(now())
+
+  trade   Trade   @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id])
+
+  @@unique([tradeId, listingId])
+  @@index([listingId])
 }
 
 model CardCache {
@@ -283,6 +302,7 @@ enum CardFinish {
 enum ListingStatus {
   ACTIVE
   PAUSED
+  IN_TRADE
   CLOSED
   BLOCKED
 }
@@ -292,6 +312,14 @@ enum OfferStatus {
   ACCEPTED
   REJECTED
   CANCELED
+}
+
+enum OfferCancelReason {
+  PROPOSER
+  LISTING_CLOSED
+  LISTING_BLOCKED
+  LISTING_TRADED
+  ACCOUNT_DEACTIVATED
 }
 
 enum TradeStatus {
