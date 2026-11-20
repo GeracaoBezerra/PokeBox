@@ -72,6 +72,9 @@
 .vazio h1,
 .vazio h2 { font-family: var(--fonte-titulo); font-size: var(--fs-lg); }
 .vazio p { color: var(--texto-suave); font-size: var(--fs-sm); }
+.dicaBusca { margin-bottom: var(--esp-24); padding: var(--esp-12) var(--esp-16); border-radius: var(--raio-botao); background: var(--superficie); color: var(--texto-suave); font-size: var(--fs-sm); line-height: var(--lh-sm); overflow-wrap: anywhere; }
+.dicaBusca strong { color: var(--texto); font-weight: var(--peso-semi); }
+.vazio .acoesVazio { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--esp-12); }
 
 @media (min-width: 1024px) and (max-width: 1199px) {
   .layout { grid-template-columns: 240px minmax(0, 1fr); gap: var(--esp-32); }
