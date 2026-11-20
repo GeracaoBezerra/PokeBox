@@ -24,6 +24,8 @@ describe('cardListQuerySchema', () => {
 
   test.each(['recent', 'wanted', 'traded'])('aceita a ordenação %s', (sort) => {
     expect(parse({ sort, order: 'desc' }).data).toMatchObject({ sort, order: 'desc' });
+    expect(parse({ sort }).data).toMatchObject({ sort, order: 'desc' });
+    expect(parse({ sort, order: 'asc' }).data).toMatchObject({ sort, order: 'asc' });
   });
 
   test('aceita nomes com acento de outros idiomas', () => {

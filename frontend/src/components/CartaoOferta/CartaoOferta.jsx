@@ -2,20 +2,68 @@ import { Link } from "react-router-dom";
 import { updateOfferStatus } from "../../api/offers";
 import { createTrade } from "../../api/trades";
 import { useAcao } from "../../hooks/useAcao";
+import { avisarQuePendenciasMudaram } from "../../hooks/usePendencias";
+import { useConfirmacao } from "../../hooks/useConfirmacao";
 import s from "../../styles/paginas.module.css";
-import { CONDICOES, STATUS_NEGOCIACAO, formatarData, variante } from "../../utils/rotulos";
+import { CONDICOES, STATUS_NEGOCIACAO, formatarData, proximoPassoOferta, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
 import MiniaturaCarta from "../MiniaturaCarta/MiniaturaCarta";
 
 export default function CartaoOferta({ oferta, recebida, virouTroca, onMudou }) {
   const acao = useAcao();
+  const { pedir } = useConfirmacao();
   const { listing } = oferta;
   const aberta = oferta.status === "PROPOSED";
   const aceitaSemTroca = oferta.status === "ACCEPTED" && !virouTroca;
 
   async function responder(status, mensagem) {
     const { ok } = await acao.executar(() => updateOfferStatus(oferta.id, status), mensagem);
-    if (ok) onMudou();
+    if (!ok) return;
+    avisarQuePendenciasMudaram();
+    onMudou();
+  }
+
+  async function confirmarEResponder(pedido, status, mensagem) {
+    const confirmou = await pedir({ textoCancelar: "Voltar", ...pedido });
+    if (confirmou) responder(status, mensagem);
+  }
+
+  function aceitar() {
+    confirmarEResponder(
+      {
+        titulo: `Aceitar a oferta de @${oferta.proposer.username}?`,
+        mensagem: `@${oferta.proposer.username} poderá criar a troca, que reserva as cartas dos dois lados.`,
+        textoConfirmar: "Aceitar oferta",
+      },
+      "ACCEPTED",
+      "Oferta aceita."
+    );
+  }
+
+  function recusar() {
+    confirmarEResponder(
+      {
+        titulo: `Recusar a oferta de @${oferta.proposer.username}?`,
+        mensagem: "Não dá para reabrir depois.",
+        textoConfirmar: "Recusar oferta",
+        perigo: true,
+      },
+      "REJECTED",
+      "Oferta recusada."
+    );
+  }
+
+  function cancelar() {
+    confirmarEResponder(
+      {
+        titulo: `Cancelar sua oferta para @${listing.owner.username}?`,
+        mensagem: "Não dá para reabrir depois.",
+        textoConfirmar: "Cancelar oferta",
+        perigo: true,
+      },
+      "CANCELED",
+      "Oferta cancelada."
+    );
   }
 
   async function criarTroca() {
@@ -23,17 +71,28 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, onMudou }) 
       () => createTrade(oferta.id),
       "Troca criada: as cartas dos dois lados estão reservadas. Veja em Trocas."
     );
-    if (ok) onMudou();
+    if (!ok) return;
+    avisarQuePendenciasMudaram();
+    onMudou();
   }
 
   return (
-    <div className={s.cartaoNegociacao}>
+    <div className={s.cartaoNegociacao} data-pendente={recebida && aberta} data-cy="cartao-oferta">
       <div className={s.acoes}>
         <span className={s.status}>{virouTroca ? "Virou troca" : STATUS_NEGOCIACAO[oferta.status]}</span>
         <span className={s.suave}>
           {recebida ? `De @${oferta.proposer.username}` : `Para @${listing.owner.username}`} · {formatarData(oferta.createdAt)}
         </span>
       </div>
+      <p className={s.proximoPasso}>
+        {proximoPassoOferta({
+          status: oferta.status,
+          recebida,
+          virouTroca,
+          dono: listing.owner.username,
+          proponente: oferta.proposer.username,
+        })}
+      </p>
 
       <div className={s.linhaCartas}>
         <div>
@@ -66,7 +125,7 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, onMudou }) 
           Ver anúncio
         </Link>
         {recebida && aberta && (
-          <button className={s.botao} disabled={acao.ocupado} onClick={() => responder("ACCEPTED", "Oferta aceita.")}>
+          <button className={s.botao} disabled={acao.ocupado} onClick={aceitar}>
             Aceitar
           </button>
         )}
@@ -74,7 +133,7 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, onMudou }) 
           <button
             className={s.botaoPerigo}
             disabled={acao.ocupado}
-            onClick={() => responder("REJECTED", "Oferta recusada.")}
+            onClick={recusar}
           >
             Recusar
           </button>
@@ -88,7 +147,7 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, onMudou }) 
           <button
             className={s.botaoPerigo}
             disabled={acao.ocupado}
-            onClick={() => responder("CANCELED", "Oferta cancelada.")}
+            onClick={cancelar}
           >
             Cancelar oferta
           </button>
@@ -99,7 +158,7 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, onMudou }) 
           </Link>
         )}
       </div>
-      <Aviso erro={acao.erro} sucesso={acao.sucesso} />
+      <Aviso erro={acao.erro} />
     </div>
   );
 }

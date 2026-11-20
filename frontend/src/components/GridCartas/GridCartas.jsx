@@ -3,23 +3,24 @@ import { ArrowRight } from "lucide-react";
 
 import { searchCards } from "../../api/cards";
 import { useCarregar } from "../../hooks/useCarregar";
+import Aviso from "../Aviso/Aviso";
 import GradeCartas from "../GradeCartas/GradeCartas";
+import { IDIOMA_PADRAO } from "../../utils/idioma";
 import styles from "./GridCartas.module.css";
 
-const TOTAL = 8; // 4 colunas × 2 linhas
-const LANG = "en"; // a TCGdex não tem todos os sets em pt; en sempre existe
+const TOTAL = 8;
 
 // Seção "Cartas em destaque" da home: busca as cartas e usa a GradeCartas.
 export default function GridCartas() {
   // name: "" é igual ao que o catálogo envia quando não há busca
-  const { dados, erro, carregando } = useCarregar(
-    () => searchCards({ name: "", lang: LANG, page: 1, limit: TOTAL, sort: "wanted", order: "desc" }),
+  const { dados, erro, carregando, recarregar } = useCarregar(
+    () => searchCards({ name: "", lang: IDIOMA_PADRAO, page: 1, limit: TOTAL, sort: "wanted", order: "desc" }),
     "grid-mais-desejadas",
   );
 
-  const cartas = dados?.items ?? [];
+  const cartas = (dados?.items ?? []).filter((carta) => carta.wishlistCount > 0);
 
-  if (!carregando && (erro || cartas.length === 0)) return null;
+  if (!carregando && !erro && cartas.length === 0) return null;
 
   return (
     <section className={styles.secao} aria-labelledby="grid-cartas-titulo">
@@ -35,7 +36,11 @@ export default function GridCartas() {
           </Link>
         </header>
 
-        <GradeCartas cartas={cartas} lang={LANG} carregando={carregando} total={TOTAL} />
+        <Aviso erro={erro} onTentarDeNovo={recarregar} />
+
+        {!erro && (
+          <GradeCartas cartas={cartas} lang={IDIOMA_PADRAO} carregando={carregando} total={TOTAL} />
+        )}
       </div>
     </section>
   );

@@ -95,11 +95,12 @@ export class PrismaCatalogSearchStore implements CatalogSearchStore {
   constructor(private readonly db: Db) {}
 
   async listSets(lang: string): Promise<CatalogSet[]> {
-    const ordered = await this.db.catalogSet.findMany({
-      where: { lang },
-      orderBy: { position: 'asc' },
-      select: { id: true, name: true },
-    });
+    const ordered = await this.db.$queryRaw<CatalogSet[]>`
+      SELECT s.id, s.name
+      FROM "CatalogSet" s
+      WHERE s.lang = ${lang}
+        AND EXISTS (SELECT 1 FROM "CatalogCard" c WHERE c.lang = s.lang AND c."setId" = s.id)
+      ORDER BY s.position`;
     if (ordered.length > 0) return ordered;
     return this.db.$queryRaw<CatalogSet[]>`
       SELECT DISTINCT "setId" AS id, "setName" AS name

@@ -1,7 +1,9 @@
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowDown, ArrowUpRight, ArrowLeftRight, ShieldCheck } from "lucide-react";
 import { getListing } from "../api/listings";
+import { listMyOffers } from "../api/offers";
 import { useSession } from "../auth/useSession";
+import AcoesAnuncio from "../components/AcoesAnuncio/AcoesAnuncio";
 import Aviso from "../components/Aviso/Aviso";
 import DadosAnuncio from "../components/DadosAnuncio/DadosAnuncio";
 import FormOferta from "../components/FormOferta/FormOferta";
@@ -10,6 +12,7 @@ import PrecoReferencia from "../components/PrecoReferencia/PrecoReferencia";
 import ModeracaoAnuncio from "../components/ModeracaoAnuncio/ModeracaoAnuncio";
 import { useCarregar } from "../hooks/useCarregar";
 import { useMe } from "../hooks/useMe";
+import { contarOfertasAguardando, textoOfertasAguardando } from "../utils/rotulos";
 import s from "../styles/detalheCarta.module.css";
 
 export default function ListingPage() {
@@ -19,9 +22,14 @@ export default function ListingPage() {
   const chave = `${id}|${!!session}`;
   const { dados, erro, carregando, recarregar } = useCarregar(async () => ({ anuncio: await getListing(id), chave }), chave);
   const anuncio = dados?.chave === chave ? dados.anuncio : null;
-  const souDono = me?.username === anuncio?.owner.username;
+  const souDono = Boolean(anuncio && me && me.username === anuncio.owner.username);
   const souAdmin = me?.role === "ADMIN";
   const podeOfertar = me && !souDono && anuncio?.status === "ACTIVE";
+  const anuncioAberto = anuncio?.status === "ACTIVE" || anuncio?.status === "PAUSED";
+  const verOfertas = souDono && anuncioAberto;
+  const chaveOfertas = verOfertas ? `${anuncio.id}|${anuncio.status}` : "";
+  const ofertas = useCarregar(async () => (verOfertas ? listMyOffers("PROPOSED") : null), chaveOfertas);
+  const aguardando = ofertas.dados ? contarOfertasAguardando(ofertas.dados.received, anuncio?.id) : null;
 
   return (
     <div className={s.pagina}>
@@ -47,7 +55,9 @@ export default function ListingPage() {
               {souDono ? (
                 <div className={s.convite}>
                   <h2>Este anúncio é seu</h2><p>Acompanhe propostas ou ajuste a disponibilidade da sua carta.</p>
-                  <div className={s.acoes}><Link className={s.botao} to="/anuncios">Gerenciar anúncio</Link><Link className={s.link} to="/propostas">Ver propostas</Link></div>
+                  <AcoesAnuncio key={anuncio.id} anuncio={anuncio} onMudou={recarregar} />
+                  {verOfertas && aguardando !== null && <Link className={s.link} to="/propostas?aba=recebidas&status=PROPOSED">{textoOfertasAguardando(aguardando)}</Link>}
+                  {anuncioAberto && <Link className={s.link} to="/anuncios">Editar quantidade e descrição em Meus anúncios</Link>}
                 </div>
               ) : podeOfertar ? (
                 <div className={s.convite}>

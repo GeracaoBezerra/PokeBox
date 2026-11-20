@@ -35,8 +35,11 @@ export const cardListQuerySchema = z.object({
   sort: z.enum(['name', 'recent', 'wanted', 'traded'], {
     message: 'sort aceita name, recent, wanted ou traded',
   }).optional(),
-  order: z.enum(['asc', 'desc'], { message: 'order aceita asc ou desc' }).default('asc'),
-});
+  order: z.enum(['asc', 'desc'], { message: 'order aceita asc ou desc' }).optional(),
+}).transform(({ order, ...query }) => ({
+  ...query,
+  order: order ?? (query.sort && query.sort !== 'name' ? 'desc' : 'asc'),
+}));
 
 export type CardListQueryParams = z.infer<typeof cardListQuerySchema>;
 

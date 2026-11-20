@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart, HeartCrack, Layers, Check } from "lucide-react";
 import { addToWishlist, listWishlist, removeFromWishlist } from "../../api/wishlist";
@@ -8,24 +7,19 @@ import Aviso from "../Aviso/Aviso";
 
 export default function VoceEACarta({ card, lang, user, onMudou, atualizando = false }) {
   const wishlist = useAcao();
-  const [tomFeedback, setTomFeedback] = useState("sucesso");
   const ocupado = wishlist.ocupado || atualizando;
   const IconeWishlist = user.inWishlist ? HeartCrack : Heart;
 
   async function alternarWishlist() {
     if (ocupado) return;
-    const removendo = user.inWishlist;
     const { ok } = await wishlist.executar(async () => {
       if (!user.inWishlist) return addToWishlist(card.id, lang);
       // A exclusão exige o id do item da wishlist, não o id da carta.
       const itens = await listWishlist();
       const item = itens.find((item) => item.cardId === card.id);
       if (item) await removeFromWishlist(item.id);
-    }, user.inWishlist ? "Carta removida da wishlist." : "Carta adicionada à wishlist.");
-    if (ok) {
-      setTomFeedback(removendo ? "remocao" : "sucesso");
-      onMudou();
-    }
+    }, user.inWishlist ? "Carta removida da wishlist." : "Carta adicionada à wishlist.", { tipo: user.inWishlist ? "info" : "sucesso" });
+    if (ok) onMudou();
   }
   return (
     <section className={s.suaCarta} aria-label="Esta carta na sua coleção">
@@ -56,8 +50,8 @@ export default function VoceEACarta({ card, lang, user, onMudou, atualizando = f
         <Link className={s.link} to="/procuro">Ver wishlist</Link>
         <Link className={s.link} to="/colecao">Ver minha coleção</Link>
       </div>
-      <div className={s.feedbackWishlist} data-visivel={Boolean(wishlist.erro || wishlist.sucesso)}>
-        <div><Aviso erro={wishlist.erro} sucesso={wishlist.sucesso} tom={tomFeedback} /></div>
+      <div className={s.feedbackWishlist} data-visivel={Boolean(wishlist.erro)}>
+        <div><Aviso erro={wishlist.erro} /></div>
       </div>
     </section>
   );

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Search,
   Menu,
   X,
   Heart,
@@ -12,20 +11,16 @@ import {
   Megaphone,
   Inbox,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Logo from "../Logo/Logo";
 import MenuUsuario from "../MenuUsuario/MenuUsuario";
+import BuscaGeral from "./BuscaGeral";
+import { usePendencias } from "../../hooks/usePendencias";
 import styles from "./header.module.css";
 
 export default function Header() {
   const [menuAberto, setMenuAberto] = useState(false);
-  const [busca, setBusca] = useState("");
-  const navigate = useNavigate();
-
-  function buscar(event) {
-    event.preventDefault();
-    navigate(`/catalogo?name=${encodeURIComponent(busca.trim())}`);
-  }
+  const pendencias = usePendencias();
 
   function fecharMenu() {
     setMenuAberto(false);
@@ -44,23 +39,7 @@ export default function Header() {
             <Logo decorativa tamanho={44} />
           </Link>
 
-          {/* Busca para desktop */}
-          <form
-            className={`${styles.buscaContainer} ${styles.buscaDesktop}`}
-            role="search"
-            onSubmit={buscar}
-          >
-            <Search className={styles.iconeBusca} size={18} />
-
-            <input
-              type="search"
-              placeholder="Buscar cartas, sets ou colecionadores..."
-              value={busca}
-              onChange={(event) => setBusca(event.target.value)}
-              className={styles.inputBusca}
-              aria-label="Buscar cartas, sets ou colecionadores"
-            />
-          </form>
+          <BuscaGeral />
 
           <div className={styles.acoes}>
             <MenuUsuario />
@@ -77,24 +56,6 @@ export default function Header() {
             </button>
           </div>
         </div>
-
-        {/* Busca para dispositivos móveis */}
-        <form
-          className={`${styles.buscaContainer} ${styles.buscaMobile}`}
-          role="search"
-          onSubmit={buscar}
-        >
-          <Search className={styles.iconeBusca} size={18} />
-
-          <input
-            type="search"
-            placeholder="Buscar cartas ou sets..."
-            value={busca}
-            onChange={(event) => setBusca(event.target.value)}
-            className={styles.inputBusca}
-            aria-label="Buscar cartas ou sets"
-          />
-        </form>
 
         {/* Navegação */}
         <nav
@@ -134,14 +95,26 @@ export default function Header() {
             <span>Anúncios</span>
           </Link>
 
-          <Link to="/propostas" className={styles.linkNav} onClick={fecharMenu}>
+          <Link
+            to={pendencias.ofertas > 0 ? "/propostas?aba=recebidas&status=PROPOSED" : "/propostas"}
+            className={styles.linkNav}
+            onClick={fecharMenu}
+            aria-label={pendencias.ofertas > 0 ? `Propostas, ${pendencias.ofertas} aguardando resposta` : undefined}
+          >
             <Inbox size={16} />
             <span>Propostas</span>
+            {pendencias.ofertas > 0 && <span className={styles.selo} aria-hidden="true">{pendencias.ofertas}</span>}
           </Link>
 
-          <Link to="/trocas" className={styles.linkNav} onClick={fecharMenu}>
+          <Link
+            to={pendencias.trocas > 0 ? "/trocas?aba=recebidas&status=PROPOSED" : "/trocas"}
+            className={styles.linkNav}
+            onClick={fecharMenu}
+            aria-label={pendencias.trocas > 0 ? `Trocas, ${pendencias.trocas} aguardando você concluir` : undefined}
+          >
             <ArrowLeftRight size={16} />
             <span>Trocas</span>
+            {pendencias.trocas > 0 && <span className={styles.selo} aria-hidden="true">{pendencias.trocas}</span>}
           </Link>
         </nav>
       </div>

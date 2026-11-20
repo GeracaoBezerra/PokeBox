@@ -69,6 +69,7 @@
 @media (prefers-reduced-motion: reduce) { .modalFiltros[open] { animation: none; } }
 .vazio { display: grid; justify-items: center; gap: var(--esp-16); padding: var(--esp-48) var(--esp-24); border-radius: var(--raio-painel); background: var(--superficie); text-align: center; }
 .vazio > svg { color: var(--acento); }
+.vazio h1,
 .vazio h2 { font-family: var(--fonte-titulo); font-size: var(--fs-lg); }
 .vazio p { color: var(--texto-suave); font-size: var(--fs-sm); }
 
@@ -97,6 +98,8 @@
 
 .chips .limparChips { border-style: dashed; color: var(--acento); }
 .dica { color: var(--texto-suave); font-size: var(--fs-xs); }
+.reserva { margin-top: var(--esp-16); color: var(--texto-suave); font-size: var(--fs-sm); text-align: center; }
+.reserva a { color: var(--acento); font-weight: var(--peso-semi); text-decoration: underline; }
 .entrada { position: relative; display: block; }
 .entrada > svg { position: absolute; top: 50%; left: var(--esp-12); transform: translateY(-50%); color: var(--texto-suave); pointer-events: none; }
 .campo .entrada input { padding-left: calc(var(--esp-12) * 2 + 16px); }

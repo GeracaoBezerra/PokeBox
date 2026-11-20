@@ -32,6 +32,14 @@ afterAll(async () => {
 });
 
 describe('GET /cards com o catálogo local vazio', () => {
+  test.each(['recent', 'wanted', 'traded'])('ranking %s não consulta a TCGdex', async (sort) => {
+    const callsBefore = ctx.tcgdex.calls();
+    const res = await request(ctx.app).get('/cards').query({ lang: 'pt', sort });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+    expect(res.body.pagination.hasNextPage).toBe(false);
+    expect(ctx.tcgdex.calls()).toBe(callsBefore);
+  });
   test('busca pela TCGdex (fase 1) e não tolera erro de digitação', async () => {
     const found = await request(ctx.app).get('/cards').query({ name: 'charizard' });
     const typo = await request(ctx.app).get('/cards').query({ name: 'charzard' });
@@ -147,6 +155,7 @@ describe('GET /cards e /cards/filters com os filtros sincronizados (#158)', () =
   beforeAll(async () => {
     const cards = ctx.tcgdex.cards;
     await store.saveSets('en', [
+      { id: 'vazio1', name: 'Coleção sem cartas' },
       ...new Map(cards.map((card) => [card.setId, { id: card.setId, name: card.setName }])).values(),
     ]);
     await store.saveAttributes(
@@ -170,6 +179,14 @@ describe('GET /cards e /cards/filters com os filtros sincronizados (#158)', () =
     expect(res.body.data.types).toContain('Fire');
     expect(res.body.data.categories).toEqual(expect.arrayContaining(['Pokemon', 'Trainer']));
     expect(res.body.data.sets).toContainEqual({ id: 'base1', name: 'Base Set' });
+  });
+
+  test('painel de filtros não lista coleção sem nenhuma carta no idioma (#196)', async () => {
+    const res = await request(ctx.app).get('/cards/filters');
+    const setIds: string[] = res.body.data.sets.map((set: { id: string }) => set.id);
+
+    expect(setIds).not.toContain('vazio1');
+    expect(setIds).toContain('base1');
   });
 
   test('filtro de tipo sem nome responde pelo banco, e o tipo não diferencia maiúscula', async () => {
@@ -209,7 +226,7 @@ describe('GET /cards com rankings da home (#92)', () => {
   const firstId = 'rank92-1';
   const secondId = 'rank92-2';
   let userIds: string[] = [];
-  let tradeId: string;
+  const tradeIds: string[] = [];
 
   beforeAll(async () => {
     const db = ctx.container.infra.prisma;
@@ -231,7 +248,7 @@ describe('GET /cards com rankings da home (#92)', () => {
       skipDuplicates: true,
     });
     const users = await Promise.all(
-      [1, 2].map((index) => {
+      [1, 2, 3].map((index) => {
         const username = uniqueName(`rank${index}`);
         return db.user.create({
           data: {
@@ -240,7 +257,7 @@ describe('GET /cards com rankings da home (#92)', () => {
             email: `${username}@teste.dev`,
             phone: `8599999000${index}`,
             passwordHash: 'teste',
-            accountStatus: 'ACTIVE',
+            accountStatus: index === 3 ? 'INACTIVE' : 'ACTIVE',
             emailVerified: true,
           },
         });
@@ -252,6 +269,7 @@ describe('GET /cards com rankings da home (#92)', () => {
         { userId: users[0].id, cardId: firstId },
         { userId: users[1].id, cardId: firstId },
         { userId: users[0].id, cardId: secondId },
+        { userId: users[2].id, cardId: secondId },
       ],
     });
     const trade = await db.trade.create({
@@ -268,19 +286,33 @@ describe('GET /cards com rankings da home (#92)', () => {
         },
       },
     });
-    tradeId = trade.id;
+    tradeIds.push(trade.id);
+    const proposed = await db.trade.create({
+      data: {
+        proposerId: users[0].id,
+        recipientId: users[1].id,
+        status: 'PROPOSED',
+        items: {
+          create: {
+            cardId: secondId, condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 10,
+            fromUserId: users[0].id, toUserId: users[1].id,
+          },
+        },
+      },
+    });
+    tradeIds.push(proposed.id);
   });
 
   afterAll(async () => {
     const db = ctx.container.infra.prisma;
-    await db.trade.delete({ where: { id: tradeId } });
+    await db.trade.deleteMany({ where: { id: { in: tradeIds } } });
     await db.wishlistItem.deleteMany({ where: { userId: { in: userIds } } });
     await db.card.deleteMany({ where: { id: { in: [firstId, secondId] } } });
     await db.user.deleteMany({ where: { id: { in: userIds } } });
   });
 
   test('mais desejadas agrega contas ativas antes de paginar', async () => {
-    const res = await request(ctx.app).get('/cards').query({ name: 'Ranking', sort: 'wanted', order: 'desc', limit: 2 });
+    const res = await request(ctx.app).get('/cards').query({ name: 'Ranking', sort: 'wanted', limit: 2 });
 
     expect(res.status).toBe(200);
     expect(res.body.data[0]).toMatchObject({ id: firstId, wishlistCount: 2 });

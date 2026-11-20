@@ -85,23 +85,6 @@ interface SeedOffer {
   trade?: Extract<TradeStatus, 'PROPOSED' | 'ACCEPTED'>;
 }
 
-interface SeedHistoricalTradeItem {
-  cardId: string;
-  condition: CardCondition;
-  finish: CardFinish;
-  quantity: number;
-  from: string;
-  to: string;
-}
-
-interface SeedHistoricalTrade {
-  id: string;
-  proposer: string;
-  recipient: string;
-  daysAgo: number;
-  items: SeedHistoricalTradeItem[];
-}
-
 type SeedCard = Omit<Prisma.CardCreateInput, 'releaseDate' | 'marketPriceUpdatedAt'> & {
   variants?: CardVariants;
   releaseDate?: string | null;
@@ -455,50 +438,23 @@ const offers: SeedOffer[] = [
     status: 'ACCEPTED',
     trade: 'PROPOSED',
   },
-];
-
-const historicalTrades: SeedHistoricalTrade[] = [
   {
-    id: 'seed-trade-history-01', proposer: 'gary', recipient: 'misty', daysAgo: 48,
-    items: [
-      { cardId: 'base1-4', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1, from: 'gary', to: 'misty' },
-      { cardId: 'base1-2', condition: 'MINT', finish: 'HOLO', quantity: 1, from: 'misty', to: 'gary' },
-    ],
+    listing: 'brock-garchomp-ex',
+    proposer: 'misty',
+    quantity: 1,
+    message: 'Três Magikarp pelo Garchomp?',
+    items: [{ item: 'misty-magikarp-151', quantity: 3 }],
+    status: 'ACCEPTED',
+    trade: 'ACCEPTED',
   },
   {
-    id: 'seed-trade-history-02', proposer: 'brock', recipient: 'cynthia', daysAgo: 37,
-    items: [
-      { cardId: 'base1-4', condition: 'EXCELLENT', finish: 'HOLO', quantity: 1, from: 'brock', to: 'cynthia' },
-      { cardId: 'swsh7-215', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1, from: 'cynthia', to: 'brock' },
-    ],
-  },
-  {
-    id: 'seed-trade-history-03', proposer: 'ash', recipient: 'erika', daysAgo: 29,
-    items: [
-      { cardId: 'base1-4', condition: 'GOOD', finish: 'HOLO', quantity: 2, from: 'ash', to: 'erika' },
-      { cardId: 'sv03.5-205', condition: 'MINT', finish: 'HOLO', quantity: 1, from: 'erika', to: 'ash' },
-    ],
-  },
-  {
-    id: 'seed-trade-history-04', proposer: 'dawn', recipient: 'cynthia', daysAgo: 18,
-    items: [
-      { cardId: 'sv03.5-025', condition: 'NEAR_MINT', finish: 'REVERSE', quantity: 2, from: 'dawn', to: 'cynthia' },
-      { cardId: 'swsh7-215', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1, from: 'cynthia', to: 'dawn' },
-    ],
-  },
-  {
-    id: 'seed-trade-history-05', proposer: 'misty', recipient: 'cynthia', daysAgo: 11,
-    items: [
-      { cardId: 'swsh7-215', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 2, from: 'cynthia', to: 'misty' },
-      { cardId: 'sv03.5-151', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1, from: 'misty', to: 'cynthia' },
-    ],
-  },
-  {
-    id: 'seed-trade-history-06', proposer: 'ash', recipient: 'gary', daysAgo: 6,
-    items: [
-      { cardId: 'sv03.5-025', condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 3, from: 'ash', to: 'gary' },
-      { cardId: 'sv03.5-006', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1, from: 'gary', to: 'ash' },
-    ],
+    listing: 'ash-pikachu-vmax',
+    proposer: 'gary',
+    quantity: 1,
+    message: 'Três Eevee pelo Pikachu VMAX?',
+    items: [{ item: 'gary-eevee-151', quantity: 3 }],
+    status: 'ACCEPTED',
+    trade: 'ACCEPTED',
   },
 ];
 
@@ -550,13 +506,6 @@ function validateSeedData(cards: SeedCard[]) {
     if (owned.has(`${username}:${cardId}`)) throw new Error(`Wishlist de ${username}: ${cardId} já está na coleção (RN-12)`);
   }
 
-  for (const trade of historicalTrades) {
-    for (const item of trade.items) {
-      if (!cardsById.has(item.cardId)) {
-        throw new Error(`Troca histórica ${trade.id}: carta ${item.cardId} não está em seed-data/cards.json`);
-      }
-    }
-  }
 }
 
 async function seedUsers() {
@@ -812,28 +761,6 @@ async function seedOffers(byUsername: UsersByUsername, items: ItemsByKey, byItem
   }
 }
 
-async function seedHistoricalTrades(byUsername: UsersByUsername) {
-  for (const trade of historicalTrades) {
-    const proposerId = byUsername[trade.proposer].id;
-    const recipientId = byUsername[trade.recipient].id;
-    const completedAt = daysAgo(trade.daysAgo);
-    await prisma.trade.upsert({
-      where: { id: trade.id },
-      update: { proposerId, recipientId, status: 'ACCEPTED', completedAt, createdAt: completedAt },
-      create: { id: trade.id, proposerId, recipientId, status: 'ACCEPTED', completedAt, createdAt: completedAt },
-    });
-    await prisma.tradeItem.deleteMany({ where: { tradeId: trade.id } });
-    await prisma.tradeItem.createMany({
-      data: trade.items.map(({ from, to, ...item }) => ({
-        ...item,
-        tradeId: trade.id,
-        fromUserId: byUsername[from].id,
-        toUserId: byUsername[to].id,
-      })),
-    });
-  }
-}
-
 async function main() {
   const cards = await loadCards();
   validateSeedData(cards);
@@ -846,10 +773,9 @@ async function main() {
   await seedWishlist(byUsername);
   const byItem = await seedListings(byUsername, items);
   await seedOffers(byUsername, items, byItem);
-  await seedHistoricalTrades(byUsername);
 
   console.log(
-    `Seed ok. ${cards.length} cartas · ${collection.length} itens de coleção · ${wishlist.length} de wishlist · ${listings.length} anúncios · ${offers.length} ofertas · ${historicalTrades.length} trocas históricas · usuários: ${users.map((user) => user.username).join(', ')} · senhas: SEED_ADMIN_PASSWORD (admin) e SEED_DEMO_PASSWORD (demais)`,
+    `Seed ok. ${cards.length} cartas · ${collection.length} itens de coleção · ${wishlist.length} de wishlist · ${listings.length} anúncios · ${offers.length} ofertas · usuários: ${users.map((user) => user.username).join(', ')} · senhas: SEED_ADMIN_PASSWORD (admin) e SEED_DEMO_PASSWORD (demais)`,
   );
 }
 

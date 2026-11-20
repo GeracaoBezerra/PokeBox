@@ -50,7 +50,7 @@ function Linha({ rotulo, children }) {
 // link: use só se o destino for outro.
 // painel: passe false para esconder o painel (por exemplo, enquanto os dados
 // completos da carta ainda não chegaram).
-export default function CartaCard({ carta, lang, link, painel = true }) {
+export default function CartaCard({ carta, lang, link, painel = true, acoes }) {
   const { id, name: nome, rarity: raridade, illustrator: artista, types } = carta;
 
   const src = carta.image?.small ?? carta.imageUrl ?? null;
@@ -112,6 +112,7 @@ export default function CartaCard({ carta, lang, link, painel = true }) {
           </div>
         )}
       </div>
+      {acoes}
     </div>
   );
 }

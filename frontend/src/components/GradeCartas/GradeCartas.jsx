@@ -2,20 +2,21 @@ import { useEffect, useState } from "react";
 import { getCard } from "../../api/cards";
 import CartaCard from "../CartaCard/CartaCard";
 import SkeletonCard from "../SkeletonCard/SkeletonCard";
+import { IDIOMA_PADRAO } from "../../utils/idioma";
 import styles from "./GradeCartas.module.css";
 
-function temPainelLateral() {
-  return typeof window !== "undefined" && window.matchMedia("(min-width: 601px)").matches;
-}
-
-// Em telas com painel lateral, carrega o detalhe assim que a carta entra na
-// grade. O SkeletonCard inteiro permanece até lista e detalhe estarem prontos.
-function ItemCarta({ carta, lang }) {
+// Busca o detalhe apenas quando a carta recebe hover ou foco, em telas com
+// painel lateral. O painel só é liberado quando os dados completos chegam.
+function ItemCarta({ carta, lang, acoes }) {
   const [detalhe, setDetalhe] = useState(null);
-  const [falhou, setFalhou] = useState(false);
+  const [pedido, setPedido] = useState(false);
+
+  function solicitarDetalhe() {
+    if (window.matchMedia("(min-width: 601px)").matches) setPedido(true);
+  }
 
   useEffect(() => {
-    if (!temPainelLateral()) return;
+    if (!pedido) return;
     let cancelado = false;
 
     getCard(carta.id, lang)
@@ -23,29 +24,21 @@ function ItemCarta({ carta, lang }) {
         if (!cancelado) setDetalhe(resposta.card);
       })
       .catch(() => {
-        if (!cancelado) setFalhou(true);
+        // sem detalhe, a carta fica sem painel (o resto continua funcionando)
       });
 
     return () => {
       cancelado = true;
     };
-  }, [carta.id, lang]);
-
-  const precisaDetalhe = temPainelLateral();
-  if (precisaDetalhe && detalhe == null && !falhou) {
-    return (
-      <li className={styles.item} aria-busy="true">
-        <SkeletonCard />
-      </li>
-    );
-  }
+  }, [pedido, carta.id, lang]);
 
   return (
-    <li className={styles.item}>
+    <li className={styles.item} onMouseEnter={solicitarDetalhe} onFocus={solicitarDetalhe}>
       <CartaCard
         carta={{ ...carta, ...detalhe }}
         lang={lang}
         painel={detalhe != null}
+        acoes={acoes?.(carta)}
       />
     </li>
   );
@@ -60,10 +53,11 @@ export function ItemGrade({ children }) {
 export default function GradeCartas({
   children,
   cartas = [],
-  lang = "en",
+  lang = IDIOMA_PADRAO,
   carregando = false,
   total = 12,
   variante = "padrao",
+  acoes,
 }) {
   return (
     <ul className={`${styles.grade} ${variante === "catalogo" ? styles.catalogo : ""}`} role="list" aria-busy={carregando}>
@@ -77,7 +71,7 @@ export default function GradeCartas({
           ))
         : children ??
           cartas.map((carta) => (
-            <ItemCarta key={`${lang}:${carta.id}`} carta={carta} lang={lang} />
+            <ItemCarta key={`${lang}:${carta.id}`} carta={carta} lang={lang} acoes={acoes} />
           ))}
     </ul>
   );
