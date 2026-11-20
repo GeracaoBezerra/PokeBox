@@ -7,7 +7,7 @@ import CabecalhoPagina from "../components/CabecalhoPagina/CabecalhoPagina";
 import CartaoOferta from "../components/CartaoOferta/CartaoOferta";
 import { idDaAba } from "../components/Abas/idDaAba";
 import Paginacao from "../components/Paginacao/Paginacao";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useCarregar } from "../hooks/useCarregar";
 import { useFiltrosNegociacao } from "../hooks/useFiltrosNegociacao";
 import s from "../styles/paginas.module.css";
@@ -27,6 +27,7 @@ async function carregarPropostas(side, status, page) {
 }
 
 export default function MyOffersPage() {
+  const aviso = useLocation().state?.aviso;
   const { aba, side, status, page, atualizar } = useFiltrosNegociacao(STATUS_NEGOCIACAO);
   const { dados, erro, carregando, recarregar } = useCarregar(
     () => carregarPropostas(side, status, page),
@@ -42,6 +43,8 @@ export default function MyOffersPage() {
         Ofertas que você recebeu nos seus anúncios e que você fez nos anúncios dos outros. Depois que o dono aceita, quem
         ofertou cria a troca.
       </CabecalhoPagina>
+
+      <Aviso sucesso={aviso} />
 
       <AbasNegociacao
         rotulo="Ofertas"
