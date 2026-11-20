@@ -8,6 +8,7 @@ import {
   listingInclude,
   type ActiveListingFilters,
   type ListingChanges,
+  type ListingRef,
   type ListingRepository,
   type ListingWithItem,
   type NewListing,
@@ -111,10 +112,11 @@ export class PrismaListingRepository implements ListingRepository {
     return db.listing.update({ where: { id }, data, include: listingInclude });
   }
 
-  existsActiveByUserAndCard(userId: string, cardId: string): Promise<{ id: string } | null> {
-    return this.db.listing.findFirst({
-      where: { status: 'ACTIVE', collectionItem: { userId, cardId } },
-      select: { id: true },
+  findOpenByUserAndCard(userId: string, cardId: string): Promise<ListingRef[]> {
+    return this.db.listing.findMany({
+      where: { status: { in: [...OPEN_STATUSES] }, collectionItem: { userId, cardId } },
+      select: { id: true, status: true },
+      orderBy: [...newestFirst],
     });
   }
 }
