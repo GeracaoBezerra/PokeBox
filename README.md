@@ -397,16 +397,16 @@ Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow d
 
 E2E (ponta a ponta) é o topo da pirâmide: um navegador de verdade abre o PokeBox, entra, clica e confere a tela, com front, API e banco rodando juntos no Docker. São poucos testes, só dos caminhos que não podem quebrar. O Cypress fica na pasta `e2e/`, com o próprio `package.json`, para não pesar no `npm install` do front e do backend.
 
-> **Atenção: o E2E apaga os dados de usuário do banco local.** Antes de cada arquivo de teste, ele limpa usuários, coleções, wishlist, anúncios, ofertas e trocas e roda o seed de novo, como se fosse um `make reset` só dessas tabelas. O catálogo de cartas (`Card`, `CardCache`, `CatalogCard`, `CatalogSet` e `CatalogFilterValue`) fica. Se você tem dados criados à mão que quer guardar, não rode o E2E nesse banco.
+> **Atenção: o E2E apaga os dados de usuário do banco local.** Antes de cada arquivo de teste, ele limpa usuários, coleções, wishlist, anúncios, ofertas e trocas e roda o seed de novo, como se fosse um `make reset` só dessas tabelas. O catálogo de cartas (`Card`, `CardCache`, `CatalogCard`, `CatalogSet` e `CatalogFilterValue`) fica. Se você tem dados criados à mão que quer guardar, não rode o E2E nesse banco. Por isso o reset tem uma trava: ele só roda com a variável `E2E_PERMITIR_RESET=1`; sem ela, o primeiro teste falha com uma mensagem explicando. O `make e2e` e o workflow da CI já ligam a variável.
 
 ```bash
 docker compose up -d --build --wait
 cd e2e
 npm ci
-npx cypress run
+E2E_PERMITIR_RESET=1 npx cypress run
 ```
 
-`npx cypress run` (ou `make e2e`, da raiz) roda sem janela, como a CI. `npx cypress open` abre a janela do Cypress para ver o teste rodando e escrever testes novos. Os prints das falhas ficam em `e2e/cypress/screenshots`.
+`E2E_PERMITIR_RESET=1 npx cypress run` (ou `make e2e`, da raiz) roda sem janela, como a CI. `E2E_PERMITIR_RESET=1 npx cypress open` abre a janela do Cypress para ver o teste rodando e escrever testes novos. Os prints das falhas ficam em `e2e/cypress/screenshots`.
 
 Como está montado:
 

@@ -86,7 +86,7 @@ coverage: ## roda unidade + integracao com cobertura (relatorio em backend/cover
 	@cd backend && npm run test:coverage
 
 e2e: ## roda o E2E (Cypress) sem janela; precisa do compose no ar e APAGA os dados de usuario do banco local
-	@cd e2e && npx cypress run
+	@cd e2e && E2E_PERMITIR_RESET=1 npx cypress run
 
 test-db-down: ## remove o banco de teste (os dados dele sao descartaveis)
 	@docker compose --profile test rm -sf tcg-db-test

@@ -24,6 +24,11 @@ export default defineConfig({
 
       on("task", {
         resetarBanco() {
+          if (process.env.E2E_PERMITIR_RESET !== "1") {
+            throw new Error(
+              "O E2E apaga os dados de usuário do banco local. Para permitir, rode com E2E_PERMITIR_RESET=1 (ou use make e2e)."
+            );
+          }
           compose(`exec -T tcg-db sh -c 'psql -q -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"'`, {
             input: LIMPAR_DADOS,
             stdio: ["pipe", "inherit", "inherit"],
