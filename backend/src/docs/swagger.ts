@@ -717,7 +717,7 @@ export const swaggerSpec = {
         tags: ["Cards"],
         summary: "Lista/busca cartas",
         description:
-          "Lista paginada de cartas da TCGdex, com busca opcional. Com o catálogo local sincronizado (npm run catalog:sync, tabela CatalogCard), a busca por nome roda no banco com pg_trgm e unaccent: tolera erro de digitação (charzard acha Charizard), ignora acento (flabebe acha Flabébé), não chama a TCGdex e continua funcionando com ela fora do ar; o set reconhecido, search e a paginação seguem as mesmas regras abaixo. Sem nome, com filtro type, rarity ou category, ou em idioma ainda não sincronizado, a busca é a da TCGdex descrita a seguir. A busca quebra o texto em palavras (sem acento, ignorando palavras de 1 letra) e reconhece nomes de set: em \"charizard base\", \"base\" vira os sets Base Set, Base Set 2 e Expedition Base Set (no máximo 3) e \"charizard\" é procurado no nome. Se a frase inteira não achar nada, cada palavra é tentada sozinha (até 4), e as que não trazem nada voltam em search.ignored. Palavra que só cobre parte do nome de um set (\"pikachu\" em Detective Pikachu) também é procurada no nome quando o resto não acha nada, para \"pikachu\" continuar trazendo todos os Pikachu. O resultado é ordenado por relevância (carta do set reconhecido, nome igual ao buscado, palavras contidas no nome) e paginado sobre a lista inteira, que fica 10 min em memória: trocar de página não chama a TCGdex de novo. A lista de sets fica 1 dia em memória. Cada item traz o set e o número da carta. Sem name, devolve a lista da TCGdex como antes, sem o campo search. Cartas com id fora do padrão aceito por GET /cards/{id} (letras, números, ponto e hífen) não aparecem na lista, porque o detalhe delas não abriria: hoje são as Unown \"!\" e \"?\" (exu-! e exu-%3F). Por isso uma página pode vir com menos cartas que o limit. Filtros (type, rarity, set, category) usam o valor exato do idioma pedido, que vem de GET /cards/filters; a caixa não importa (fire vira Fire). Valor que não existe no idioma responde 400. Com nome, os filtros entram na busca antes do ranking; sort=name troca a ordem por relevância pela ordem alfabética.",
+          "Lista paginada de cartas da TCGdex, com busca opcional. Com o catálogo local sincronizado (npm run catalog:sync, tabela CatalogCard), a busca por nome roda no banco com pg_trgm e unaccent: tolera erro de digitação (charzard acha Charizard), ignora acento (flabebe acha Flabébé), não chama a TCGdex e continua funcionando com ela fora do ar; o set reconhecido, search e a paginação seguem as mesmas regras abaixo. Sem nome, com filtro type, rarity ou category, ou em idioma ainda não sincronizado, a busca é a da TCGdex descrita a seguir. A busca quebra o texto em palavras (sem acento, ignorando palavras de 1 letra) e reconhece nomes de set: em \"charizard base\", \"base\" vira os sets Base Set, Base Set 2 e Expedition Base Set (no máximo 3) e \"charizard\" é procurado no nome. Se a frase inteira não achar nada, cada palavra é tentada sozinha (até 4), e as que não trazem nada voltam em search.ignored. Palavra que só cobre parte do nome de um set (\"pikachu\" em Detective Pikachu) também é procurada no nome quando o resto não acha nada, para \"pikachu\" continuar trazendo todos os Pikachu. O resultado é ordenado por relevância (carta do set reconhecido, nome igual ao buscado, palavras contidas no nome) e paginado sobre a lista inteira, que fica 10 min em memória: trocar de página não chama a TCGdex de novo. A lista de sets fica 1 dia em memória. Cada item traz o set e o número da carta. Sem name, devolve a lista da TCGdex como antes, sem o campo search. Cartas com id fora do padrão aceito por GET /cards/{id} (letras, números, ponto e hífen) não aparecem na lista, porque o detalhe delas não abriria: hoje são as Unown \"!\" e \"?\" (exu-! e exu-%3F). Por isso uma página pode vir com menos cartas que o limit. Filtros (type, rarity, set, category) usam o valor exato do idioma pedido, que vem de GET /cards/filters; a caixa não importa (fire vira Fire). Valor que não existe no idioma responde 400. Com nome, os filtros entram na busca antes do ranking; sort=name troca a ordem por relevância pela ordem alfabética. As ordenações recent, wanted e traded são calculadas no banco antes da paginação; wanted e traded retornam wishlistCount ou tradeCount quando aplicável.",
         security: [],
         parameters: [
           {
@@ -771,15 +771,15 @@ export const swaggerSpec = {
             name: "sort",
             in: "query",
             required: false,
-            description: "Ordena pelo nome no lugar da relevância",
-            schema: { type: "string", enum: ["name"] },
+            description: "Ordena por nome, lançamento, quantidade em wishlists ou unidades trocadas",
+            schema: { type: "string", enum: ["name", "recent", "wanted", "traded"] },
           },
           {
             name: "order",
             in: "query",
             required: false,
             description: "Direção da ordenação (só vale com sort)",
-            schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
+            schema: { type: "string", enum: ["asc", "desc"] },
           },
           langParam,
         ],
@@ -1791,6 +1791,8 @@ export const swaggerSpec = {
             type: "object",
             properties: { small: nullableString, large: nullableString },
           },
+          wishlistCount: { type: "integer", minimum: 0, description: "Presente quando sort=wanted" },
+          tradeCount: { type: "integer", minimum: 0, description: "Presente quando sort=traded" },
         },
       },
       CardFilterOptionsResponse: {

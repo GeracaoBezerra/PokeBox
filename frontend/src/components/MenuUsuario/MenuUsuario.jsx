@@ -37,8 +37,8 @@ export default function MenuUsuario() {
   if (!session) {
     return (
       <Link to="/login" className={`${styles.botao} ${styles.botaoEntrar}`}>
-        <User size={20} aria-hidden="true" />
         <span className={styles.textoEntrar}>Entrar</span>
+        <User size={20} aria-hidden="true" />
       </Link>
     );
   }
@@ -50,7 +50,7 @@ export default function MenuUsuario() {
   }
 
   const user = session.user;
-  const primeiroNome = (user?.name ?? user?.username ?? "").split(" ")[0];
+  const primeiroNome = (user?.name ?? user?.username ?? "").trim().split(/\s+/)[0];
 
   return (
     <div className={styles.usuario} ref={containerRef}>

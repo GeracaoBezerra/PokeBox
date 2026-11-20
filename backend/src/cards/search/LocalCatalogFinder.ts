@@ -19,6 +19,8 @@ function toCardListItem(entry: CatalogEntry): CardListItem {
       small: entry.imageUrl,
       large: entry.imageUrl ? entry.imageUrl.replace(/\/low\.webp$/, '/high.webp') : null,
     },
+    ...(entry.wishlistCount != null && { wishlistCount: entry.wishlistCount }),
+    ...(entry.tradeCount != null && { tradeCount: entry.tradeCount }),
   };
 }
 
@@ -44,10 +46,14 @@ export class LocalCatalogFinder implements CardFinder {
     const { lang, name, page, limit, filters = {}, sort } = query;
     const tokens = tokenize(name);
     const attributes = attributesOf(filters);
-    if (attributes && !(await this.hasFilterValues(lang))) return this.fallback.find(query);
+    const requiresLocalRanking = sort && sort.field !== 'name';
+    const withoutLocalCatalog = () => requiresLocalRanking
+      ? { cards: [], hasNextPage: false, search: null }
+      : this.fallback.find(query);
+    if (attributes && !(await this.hasFilterValues(lang))) return withoutLocalCatalog();
 
     const sets = await this.listSets(lang);
-    if (sets.length === 0) return this.fallback.find(query);
+    if (sets.length === 0) return withoutLocalCatalog();
     if (tokens.length === 0) return this.browse(query, attributes);
 
     const matched = matchSets(tokens, sets);

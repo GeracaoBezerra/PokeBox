@@ -22,6 +22,12 @@ describe('cardListQuerySchema', () => {
     expect(result.data).toMatchObject({ type: 'Fire', rarity: 'Rare Holo', set: 'sv03.5', category: 'Trainer', sort: 'name', order: 'desc' });
   });
 
+  test.each(['recent', 'wanted', 'traded'])('aceita a ordenação %s', (sort) => {
+    expect(parse({ sort, order: 'desc' }).data).toMatchObject({ sort, order: 'desc' });
+    expect(parse({ sort }).data).toMatchObject({ sort, order: 'desc' });
+    expect(parse({ sort, order: 'asc' }).data).toMatchObject({ sort, order: 'asc' });
+  });
+
   test('aceita nomes com acento de outros idiomas', () => {
     expect(fields({ type: 'Psíquico', category: 'Pokémon' })).toEqual([]);
   });

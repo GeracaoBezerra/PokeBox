@@ -10,22 +10,22 @@ const destaques = [
   {
     id: 1,
     titulo: "Novas adições",
-    texto: "As últimas cartas anunciadas para troca.",
-    to: "/", // TODO: "/marketplace?ordem=recentes"
+    texto: "Os lançamentos mais recentes do catálogo.",
+    to: "/catalogo?sort=recent&order=desc",
     src: "https://assets.tcgdex.net/en/base/base1/10/high.webp",
   },
   {
     id: 2,
     titulo: "Trocas em alta",
-    texto: "As cartas mais negociadas da semana.",
-    to: "/", // TODO: "/marketplace?ordem=em-alta"
+    texto: "As cartas mais trocadas pela comunidade.",
+    to: "/catalogo?sort=traded&order=desc",
     src: "https://assets.tcgdex.net/en/base/base1/6/high.webp",
   },
   {
     id: 3,
     titulo: "Mais desejadas",
     texto: "Cartas que aparecem em mais wishlists.",
-    to: "/", // TODO: "/cards?ordem=mais-desejadas"
+    to: "/catalogo?sort=wanted&order=desc",
     src: "https://assets.tcgdex.net/en/base/base1/16/high.webp",
   },
 ];

@@ -9,7 +9,7 @@ API := http://localhost:3000
 PSQL := docker compose exec -T tcg-db psql -U $(DB_USER) -d $(DB_NAME)
 
 .PHONY: help up stop down ps logs psql reset dev traces traces-down generate migrate status studio \
-        users constraints migrations schema clean-users unit test-int test-db-down coverage e2e test test-db test-collection test-profile test-wishlist test-listings test-offers \
+        seed users constraints migrations schema clean-users unit test-int test-db-down coverage e2e test test-db test-collection test-profile test-wishlist test-listings test-offers \
         prod-up prod-down prod-logs
 
 help:
@@ -96,6 +96,9 @@ generate: ## regenera o client do prisma
 
 migrate: ## aplica as migrations pendentes
 	@cd backend && npm run db:migrate
+
+seed: ## roda o seed de novo (volta os dados de exemplo; o compose so roda sozinho com o banco vazio)
+	@cd backend && npm run db:seed
 
 status: ## mostra o estado das migrations
 	@cd backend && npx prisma migrate status

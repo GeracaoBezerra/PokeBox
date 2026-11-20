@@ -20,7 +20,7 @@ User ─┬─< CollectionItem >── Card ──< WishlistItem >── User
 | `User` | conta: `username` e `email` únicos, `passwordHash` (bcrypt), dados de contato e endereço opcionais, `role` (`USER`/`ADMIN`), `accountStatus` (`PENDING_VERIFICATION`/`ACTIVE`/`INACTIVE`/`SUSPENDED`), `deletedAt` para soft delete | auth |
 | `Card` | catálogo local: snapshot da carta da TCGdex com os campos usados em filtros e listagens (nome, set, série, lançamento, número, raridade, imagem, categoria, tipos, HP, estágio, ilustrador, nº da Pokédex, regulation mark, tipo de treinador/energia) e o preço de referência (`marketPrice`, `marketPriceCurrency`, `marketPriceSource`, `marketPriceUpdatedAt`). Ataques e habilidades ficam só no `CardCache`. `id` = id da TCGdex | RN-01, RN-09 |
 | `CardCache` | JSON completo do detalhe da carta vindo da TCGdex, por `(cardId, lang)`. Preenchido pelo `catalog:sync` para todas as cartas de `en` e `pt` (#192) e, nos outros idiomas, na primeira vez que a carta é aberta. Sempre usado quando existe; com mais de 24 h, é atualizado por trás. Não é referenciado por FK | RN-09 |
-| `CatalogCard` | resumo de **todas** as cartas da TCGdex, só para a busca (#78): `id` e `lang` (chave composta), `name`, `nameNormalized` (minúsculas e sem acento), `localId`, `setId`, `setName`, `imageUrl` (imagem pequena, `.../low.webp`), `types` (lista), `rarity`, `category` (#158) e `syncedAt`. Preenchida pelo `npm run catalog:sync`, não pela API. Sem FK: não se mistura com `Card`, que guarda só as cartas que alguém tem ou quer | busca |
+| `CatalogCard` | resumo de **todas** as cartas da TCGdex, só para a busca (#78): `id` e `lang` (chave composta), `name`, `nameNormalized` (minúsculas e sem acento), `localId`, `setId`, `setName`, `imageUrl` (imagem pequena, `.../low.webp`), `types` (lista), `rarity`, `category` (#158) e `syncedAt`. Preenchida pelo `npm run catalog:sync`, não pela API (o seed grava um mini catálogo `en` e `pt` com as cartas dele, #92). Sem FK: não se mistura com `Card`, que guarda só as cartas que alguém tem ou quer | busca |
 | `CatalogSet` | sets de cada idioma na ordem de lançamento da TCGdex (#158): `id` e `lang` (chave composta), `name`, `position`. Preenchida pelo sync; alimenta a lista de expansões do painel de filtros e o reconhecimento de set na busca | busca |
 | `CatalogFilterValue` | valores aceitos nos filtros de cada idioma (#158): `lang`, `kind` (`type`, `rarity` ou `category`) e `value`, os três na chave. Preenchida pelo sync, por último: enquanto estiver vazia para um idioma, a busca com filtro de tipo, raridade ou categoria continua indo à TCGdex | busca |
 | `CollectionItem` | posse: quanto de cada carta, em qual condição e variante, o usuário tem | RN-01, RN-02, RN-03, RN-08, RN-10 |
@@ -29,7 +29,7 @@ User ─┬─< CollectionItem >── Card ──< WishlistItem >── User
 | `Offer` | proposta em um anúncio (`PROPOSED → ACCEPTED/REJECTED/CANCELED`): quantas cartas do anúncio o proponente quer | RN-06 |
 | `OfferItem` | o que o proponente oferece em troca: itens da coleção dele e a quantidade de cada um | RN-06 |
 | `Trade` | negociação entre dois usuários; pode nascer de uma oferta | RN-07 |
-| `TradeItem` | o que cada lado entrega na troca | RN-07, RN-08 |
+| `TradeItem` | o que cada lado entrega na troca; `cardId` também alimenta o ranking de cartas mais trocadas | RN-07, RN-08, #92 |
 
 ## Decisões
 
@@ -96,6 +96,7 @@ Além dos índices que o Postgres cria para PK e `UNIQUE`:
 | `Listing` por `(status, createdAt DESC, id)` (#112) | `GET /listings`: o banco lê os anúncios ativos já na ordem de "mais recentes" e para no fim da página, em vez de ordenar todos. Também atende filtro só por `status` |
 | `CatalogCard` por `setId` | cartas de um set reconhecido na busca (`charizard base`) |
 | `CatalogCard` por `(lang, rarity)` e `(lang, category)`, e GIN em `types` (#158) | busca e lista com filtro de raridade, categoria e tipo (`types @> ARRAY['Fire']`, o operador que o GIN atende) |
+| `TradeItem` por `cardId` (#92) | agrega rapidamente as unidades de cada carta nas trocas concluídas |
 | `CatalogSet` por `(lang, position)` | lista de sets na ordem de lançamento |
 | `CatalogCard_nameNormalized_trgm_idx`: GIN com `gin_trgm_ops` em `nameNormalized` (#78) | busca tolerante a erro de digitação. Atende os operadores `<<%` (semelhança por palavra) e `LIKE '%texto%'` do `pg_trgm` |
 
@@ -132,6 +133,7 @@ O `npm run catalog:sync` (`backend/scripts/sync-catalog.ts`) preenche a tabela: 
 | `20261116212649_catalog_card` | cria `CatalogCard` com o índice por `setId` (#78) |
 | `20261116212650_catalog_card_search` | escrita à mão: cria as extensões `pg_trgm` e `unaccent` e o índice GIN de trigramas em `CatalogCard.nameNormalized` (#78). O índice também está no `schema.prisma` (`type: Gin`), para o Prisma não achar diferença entre o schema e o banco |
 | `20261118001906_catalog_filtros` | `types`, `rarity` e `category` em `CatalogCard` com seus índices; cria `CatalogSet` e `CatalogFilterValue`; a CHECK `catalog_filter_value_kind_check` foi acrescentada à mão (#158) |
+| `20261119120000_trade_item_card_ranking` | índice de `TradeItem.cardId` usado pelo ranking de cartas mais trocadas (#92) |
 
 Nova tabela ou coluna: altere o `schema.prisma`, rode `npx prisma migrate dev --name <descricao>` e atualize este arquivo no mesmo PR.
 
@@ -142,7 +144,7 @@ cd backend
 npm run db:seed
 ```
 
-Idempotente: pode rodar várias vezes. Depois da migration `add_card_details_and_variants`, recrie o banco local (apague o volume, suba de novo e rode as migrations) antes do seed, porque a chave da coleção mudou.
+No Compose local, o backend roda o seed sozinho só quando o banco está vazio (nenhum `User`), depois das migrations (`npm run db:seed-if-empty` no `docker-compose.yml`, lógica em `src/lib/seedIfEmpty.ts`). Com o banco populado, a subida pula o seed e não mexe nos dados; para rodar de novo, `make seed` ou `npm run db:seed`. Em produção (Render e `make prod-up`) o seed nunca roda sozinho. Idempotente: pode rodar várias vezes. Depois da migration `add_card_details_and_variants`, recrie o banco local (apague o volume, suba de novo e rode as migrations) antes do seed, porque a chave da coleção mudou.
 
 Cria:
 
@@ -163,21 +165,22 @@ Senhas pelo `.env`: `SEED_ADMIN_PASSWORD` para o `admin` e `SEED_DEMO_PASSWORD` 
 | Tabela | O que o seed cria |
 |---|---|
 | `Card` | 87 cartas reais de 22 coleções (Base Set a Surging Sparks): 65 Pokémon, 12 Treinador, 10 Energia, todas com imagem |
-| `CollectionItem` | 111 itens (20 privados), de 10 a 22 por usuário, com quantidade maior que 1 e variantes holo, reverse e 1ª edição; as trocas concluídas criam mais 6 (117 no total) |
-| `WishlistItem` | 30 itens, 3 ou 4 por usuário, nenhum de carta que a pessoa já tem (RN-12); vários cruzam com cartas e anúncios de outros usuários, e alguns só têm dono desativado (0 oportunidades) |
-| `Listing` | 30 anúncios com `createdAt` espalhado em 45 dias: 22 `ACTIVE` (21 na vitrine, o do `lance` some), 2 `PAUSED`, 1 `BLOCKED`, 5 `CLOSED` (2 fechados pelo dono e 3 pelas trocas) |
-| `Offer` | 13 ofertas: 5 `PROPOSED`, 4 `ACCEPTED` (1 sem troca e 3 que viraram troca), 2 `REJECTED`, 2 `CANCELED` |
-| `Trade` | 3 trocas: 2 `ACCEPTED` (erika ↔ brock, gary ↔ cynthia) e 1 `PROPOSED` (brock ↔ cynthia, com 2 cartas reservadas de cada lado) |
+| `CollectionItem` | 111 itens (20 privados), de 10 a 22 por usuário, com quantidade maior que 1 e variantes holo, reverse e 1ª edição; as trocas concluídas criam mais 10 (121 no total) |
+| `WishlistItem` | 44 itens, de 1 a 7 por usuário, nenhum de carta que a pessoa já tem (RN-12); vários cruzam com cartas e anúncios de outros usuários, e alguns só têm dono desativado (0 oportunidades). Alguns repetem a mesma carta para o ranking de mais desejadas (#92): Umbreon VMAX `swsh7-215` em 7 wishlists de contas ativas, Charizard `base1-4` em 6, Charizard ex `sv03.5-199` em 5 e Blastoise `base1-2` em 4. As 3 do `lance` (desativado) não contam |
+| `Listing` | 30 anúncios com `createdAt` espalhado em 45 dias: 20 `ACTIVE` (19 na vitrine, o do `lance` some), 2 `PAUSED`, 1 `BLOCKED`, 7 `CLOSED` (2 fechados pelo dono e 5 pelas trocas) |
+| `Offer` | 15 ofertas: 5 `PROPOSED`, 6 `ACCEPTED` (1 sem troca e 5 que viraram troca), 2 `REJECTED`, 2 `CANCELED` |
+| `Trade` | 5 trocas: 4 `ACCEPTED` (erika ↔ brock, gary ↔ cynthia, misty ↔ brock e gary ↔ ash, que alimentam o ranking de mais trocadas, #92) e 1 `PROPOSED` (brock ↔ cynthia, com 2 cartas reservadas de cada lado) |
+| `CatalogCard`, `CatalogSet`, `CatalogFilterValue` | mini catálogo da busca nos dois idiomas, para a home e os rankings (#92) funcionarem sem `npm run catalog:sync`. Em `en`: as 87 cartas, os 22 sets em ordem de lançamento e os valores de filtro delas (11 tipos, 16 raridades, 3 categorias). Em `pt`: as 62 cartas que existem em português na TCGdex (as 25 de Base Set a Diamond & Pearl só existem em inglês), os 16 sets delas com nome em português e a posição da lista de sets da TCGdex em `pt` (a mesma do sync), e os valores de filtro delas (10 tipos, 15 raridades, 3 categorias, como "Fogo" e "Treinador"). Não roda com `NODE_ENV=test` (a integração monta o catálogo dela). O `npm run catalog:sync` completa o catálogo; rodar o seed de novo depois dele regrava só essas cartas com os dados do `cards.json` e do `catalog-pt.json` |
 
 Como fica idempotente:
 
-- usuários, cartas, itens de coleção e wishlist usam `upsert` pelas chaves únicas. Item de coleção que já existe não muda, para não desfazer o que as trocas já moveram;
+- usuários, cartas, cartas do mini catálogo, itens de coleção e wishlist usam `upsert` pelas chaves únicas; sets e valores de filtro do catálogo usam `createMany` com `skipDuplicates`. Item de coleção que já existe não muda, para não desfazer o que as trocas já moveram;
 - anúncios são procurados pelo item da coleção (`findFirst`); se já existe, fica como está;
 - ofertas são procuradas pelo par anúncio + quem ofertou. As que o seed deixa em aberto voltam para `PROPOSED` (e o anúncio delas para `ACTIVE`) a cada execução, como a da misty pelo Charizard do ash, que o `make test` usa. Se uma delas já virou troca, o seed avisa e não mexe: para voltar ao estado inicial, `npx prisma migrate reset` (apaga o banco local). Ofertas recusadas, canceladas ou aceitas e as trocas já criadas não são refeitas;
 - item que saiu do seed é apagado: hoje só a Fire Energy `sve-002` da `misty` (o set `sve` não tem imagem; ela passou a ter a `base1-98`). Vale para bancos populados pelo seed antigo, como o de produção. Se o item estiver num anúncio, numa oferta ou reservado, o seed avisa e mantém;
 - anúncios, ofertas e trocas são criados pelos services da API (`ListingService`, `OfferService`, `TradeService`), com as mesmas regras e transações (RN-05 a RN-08). Só duas coisas vão direto no banco: a data de criação dos anúncios (a API não deixa escolher) e a volta das ofertas em aberto para `PROPOSED` (a API não deixa uma oferta finalizada voltar).
 
-Antes de gravar, o seed confere os próprios dados: toda carta existe no `cards.json`, toda variante existe na carta e nenhuma wishlist pede carta que a pessoa já tem.
+Antes de gravar, o seed confere os próprios dados: toda carta existe no `cards.json` (inclusive as do catálogo em português), toda variante existe na carta e nenhuma wishlist pede carta que a pessoa já tem.
 
 ### Cartas do seed
 
@@ -186,3 +189,5 @@ Os dados das cartas são reais e ficam versionados em `prisma/seed-data/cards.js
 ```bash
 npm run db:seed-cards
 ```
+
+O mini catálogo em português fica em `prisma/seed-data/catalog-pt.json` (`sets` com `id`, `name` e `position`; `cards` com `id`, `localId`, `name`, `setId`, `setName`, `imageUrl`, `types`, `rarity` e `category`). Ele foi gerado uma vez a partir da TCGdex em `pt` (`/pt/cards/<id>`; 404 quer dizer que a carta não existe em português e fica de fora), com a mesma regra do `catalog:sync`: nome e número da lista de cartas do set, nome do set e posição da lista de sets, imagem pequena (`.../low.webp`) e tipo, raridade e categoria nos valores da TCGdex em português. Ao trocar as cartas do `cards.json`, esse arquivo precisa ser refeito do mesmo jeito; o seed recusa carta do catálogo em português que não esteja no `cards.json`.
