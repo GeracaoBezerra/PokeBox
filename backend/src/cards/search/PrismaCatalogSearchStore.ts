@@ -63,7 +63,7 @@ function metricJoins(sort: CatalogSearch['sort']): Prisma.Sql {
         SELECT ti."cardId", SUM(ti.quantity)::int AS count
         FROM "TradeItem" ti
         JOIN "Trade" t ON t.id = ti."tradeId"
-        WHERE t."completedAt" IS NOT NULL
+        WHERE t.status = 'ACCEPTED'
         GROUP BY ti."cardId"
       ) traded ON traded."cardId" = c.id`;
   }
