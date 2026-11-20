@@ -1,14 +1,31 @@
 import { Link } from "react-router-dom";
-import { Heart, HeartCrack, Layers, Check } from "lucide-react";
+import { useState } from "react";
+import { Heart, HeartCrack, Layers, Check, Megaphone } from "lucide-react";
 import { addToWishlist, listWishlist, removeFromWishlist } from "../../api/wishlist";
+import { useSession } from "../../auth/useSession";
 import { useAcao } from "../../hooks/useAcao";
 import s from "../../styles/detalheCarta.module.css";
 import Aviso from "../Aviso/Aviso";
+import AnunciarCarta from "../AnunciarCarta/AnunciarCarta";
+import Modal from "../Modal/Modal";
 
-export default function VoceEACarta({ card, lang, user, onMudou, atualizando = false }) {
+export default function VoceEACarta({ card, lang, user, listings = [], onMudou, atualizando = false }) {
+  const session = useSession();
+  const [modalAberto, setModalAberto] = useState(false);
   const wishlist = useAcao();
   const ocupado = wishlist.ocupado || atualizando;
   const IconeWishlist = user.inWishlist ? HeartCrack : Heart;
+  const meuAnuncio = listings.find(
+    (anuncio) => anuncio.owner?.username === session?.user?.username
+  );
+  const destino = meuAnuncio
+    ? `/marketplace/${encodeURIComponent(meuAnuncio.id)}`
+    : "/anuncios";
+
+  function anuncioCriado() {
+    setModalAberto(false);
+    onMudou();
+  }
 
   async function alternarWishlist() {
     if (ocupado) return;
@@ -30,6 +47,14 @@ export default function VoceEACarta({ card, lang, user, onMudou, atualizando = f
       </div>
       {user.onTradeList && <p className={s.suave}>Você tem um anúncio ativo desta carta.</p>}
       <div className={s.acoes}>
+        {user.inCollection > 0 && !user.onTradeList && (
+          <button type="button" className={s.botaoSecundario} onClick={() => setModalAberto(true)}>
+            <Megaphone size={16} aria-hidden="true" /> Anunciar esta carta
+          </button>
+        )}
+        {user.onTradeList && (
+          <Link className={s.link} to={destino}>Ver meu anúncio</Link>
+        )}
         {(user.inWishlist || user.inCollection === 0) && (
           <button
             className={`${s.botaoSecundario} ${s.botaoWishlist}`}
@@ -53,6 +78,9 @@ export default function VoceEACarta({ card, lang, user, onMudou, atualizando = f
       <div className={s.feedbackWishlist} data-visivel={Boolean(wishlist.erro)}>
         <div><Aviso erro={wishlist.erro} /></div>
       </div>
+      <Modal aberto={modalAberto} titulo="Anunciar esta carta" onFechar={() => setModalAberto(false)}>
+        <AnunciarCarta card={card} onCriado={anuncioCriado} />
+      </Modal>
     </section>
   );
 }
