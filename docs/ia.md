@@ -64,3 +64,63 @@ Cada correção da revisão do Eduardo ganhou teste (com MSW, `renderHook` ou fu
 
 **O que ficou de fora:** cobertura e testes do resto dos hooks e páginas (#180) e os testes E2E (#181, #182). A ordem "pendentes primeiro" da #170 vale só dentro da página atual, porque a API não ordena por status.
 
+## Testes de hooks, rota privada, página e cobertura do front (#180)
+
+**Ferramenta:** Claude Code (Claude Opus), rodando no repositório, com acesso ao código e ao terminal. Não usou banco nem API: tudo roda com o MSW.
+
+**O que foi pedido:** fazer o que a #180 pede e o pacotão (PR #195) ainda não tinha feito, sem repetir testes que já existiam: `matchMedia` falso, `renderWithProviders`, testes do `useCarregar`, do `useAcao`, do `usePendencias` e da `RotaPrivada`, a página da wishlist inteira com o MSW e a cobertura com mínimo na CI, no mesmo formato do backend (#109).
+
+**O que a IA fez:**
+
+- Escreveu 28 testes novos (de 238 para 266) em 5 arquivos, e o `renderWithProviders` com os mesmos providers e a mesma ordem do `main.jsx` (incluindo o `ToastProvider`, que entrou com a #176 depois que a issue foi escrita). A `criarSessaoFalsa` ficou num `.js` separado, para o ESLint não reclamar de um `.jsx` que exporta função que não é componente.
+- Ligou o `@vitest/coverage-v8` (mesma versão do Vitest), mediu a cobertura e pôs o mínimo em medido menos uns 2 pontos, como o backend. Na CI, o job `frontend` mostra a tabela no resumo da execução (com um script igual ao do backend) e guarda o relatório como artefato `coverage-frontend`. A pasta `coverage` entrou no `globalIgnores` do ESLint, senão o `npm run lint` tentaria analisar os `.js` do relatório.
+
+**O que a IA errou e foi corrigido rodando os testes:**
+
+| Erro | Como apareceu | Como foi corrigido |
+|---|---|---|
+| Teste do `useAcao` com JSX (o `wrapper` do toast) num arquivo `.js` | o Vite não compilou o arquivo | renomeado para `.test.jsx` |
+| Procurou o aviso de erro da página pelo papel `alert` | o toast também tem uma região `alert` (vazia), e a busca achou duas | o teste procura o texto do aviso |
+| Procurou o item da wishlist pelo nome "Pikachu" | o nome aparece duas vezes (no card e embaixo dele) | o teste procura "Base · 58" |
+
+**Como conferimos que os testes testam algo:** trocamos de propósito, um de cada vez, `"/login"` por `"/entrar"` na `RotaPrivada` (3 testes falharam), tiramos o `recarregar()` depois de remover na wishlist (1 falhou), tiramos a regra que esconde o erro antigo durante o recarregamento no `useCarregar` (1 falhou) e zeramos o intervalo de 1 minuto do `usePendencias` (2 falharam). Com o código de volta, todos passaram. Também rodamos a cobertura com um mínimo de 99% de linhas para ver o comando terminar com erro.
+
+**O que ficou de fora:** testes das outras páginas. A issue pede uma página com o MSW para mostrar o padrão, e o pacotão já tinha o perfil público e o formulário de oferta.
+
+## E2E com Cypress (#181)
+
+**Ferramenta:** Claude Code (Claude Opus), rodando num worktree próprio, com acesso ao código, ao terminal e ao Docker local.
+
+**O que foi pedido:** montar a base do E2E a partir da #181: pasta `e2e/` com o próprio `package.json`, task de reset do banco, `cy.login` com `cy.session`, o teste de autenticação e o workflow `E2E` na CI, conferindo seletores e textos nas telas depois do pacotão.
+
+**O que a IA fez:**
+
+- Conferiu no schema que o `TRUNCATE` da issue pega todas as tabelas com dado de usuário e nenhuma tabela do catálogo (`Card`, `CardCache`, `CatalogCard`, `CatalogSet`, `CatalogFilterValue` não têm chave estrangeira para elas), e contou as linhas do catálogo antes e depois do reset para confirmar que nada sumiu.
+- Instalou o Cypress 16, em que `Cypress.env()` não existe mais: as senhas passaram a ser lidas com `cy.env()` e o endereço da API com `Cypress.expose()`, como a issue pedia conferir.
+- Acrescentou um caso que a issue não tinha: entrar pela tela depois de ser mandado ao login volta para a página privada de origem (o pacotão passou a guardar essa página).
+- Rodou a suíte duas vezes seguidas e uma vez com o texto do erro trocado de propósito, para ver o teste falhar e salvar o print.
+
+**O que foi ajustado em relação à issue:**
+
+| Na issue | Como está no código | Como ficou |
+|---|---|---|
+| botão com nome exato "Menu do usuário" | o pacotão mudou o nome para "Olá, Ash. Menu do usuário" | o teste procura o nome com `/Menu do usuário/` e, no `cy.login`, o nome completo |
+| `Cypress.env('senhaDemo')` | removido no Cypress 16 | `cy.env(["senhaDemo"])` |
+| `cypress-io/github-action@v6` | a versão atual é a v7 | `@v7`, rodando no Chrome (o Electron está marcado como obsoleto no Cypress 16) |
+
+**O que ficou de fora:** comparar com `npx prisma migrate reset --force`. Ele apagaria o catálogo local de cartas, que leva uns 26 minutos para sincronizar; o `TRUNCATE` + seed ficou.
+
+## E2E dos fluxos principais (#182)
+
+**Ferramenta:** Claude Code (Claude Opus), no mesmo worktree da #181, numa branch empilhada sobre ela.
+
+**O que foi pedido:** escrever o E2E dos fluxos da #182 (coleção, wishlist, anúncio, troca com dois usuários e moderação do admin), conferindo os botões e textos nas telas depois do pacotão.
+
+**O que a IA fez:**
+
+- Leu cada componente citado na issue antes de escrever o teste e ajustou o que o pacotão mudou: o formulário da coleção fica dentro de um "Adicionar à minha coleção" que precisa ser aberto; o botão da wishlist na página da carta tem o nome acessível "Adicionar à wishlist" (o texto "Quero esta carta" fica escondido dos leitores de tela); aceitar, concluir e bloquear abrem o modal de confirmação, e o teste confirma dentro do modal; a busca do marketplace é a busca geral do topo; a oferta lista a coleção paginada, então o teste busca o Psyduck antes de marcar.
+- Leu o `id` do anúncio novo na resposta do `POST /listings` (`data.listing.id`, conferido no controller) com `cy.intercept`.
+- Acrescentou três `data-cy` (`item-wishlist`, `cartao-oferta`, `cartao-troca`), os mesmos que a issue sugeria, porque esses cartões não têm papel nem rótulo próprios.
+- Quebrou de propósito o texto do botão "Concluir troca" para ver o `troca.cy.js` falhar e salvar o print, e desfez.
+
+**O que a IA errou e foi corrigido:** a primeira versão fazia o reset no `before`, como a issue pede. Ao testar a falha de propósito, a IA conferiu que o Cypress não repete o `before` quando tenta o teste de novo, e uma segunda tentativa da troca começaria com o anúncio e a oferta da primeira no banco. Nos arquivos dos fluxos, o reset passou para o `beforeEach` (cada arquivo tem um ou dois testes, então o custo é pequeno).
