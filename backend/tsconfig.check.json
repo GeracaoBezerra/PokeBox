@@ -13,6 +13,7 @@
     "test",
     "prisma/seed.ts",
     "scripts/seed-cards.ts",
+    "scripts/seed-if-empty.ts",
     "scripts/sync-catalog.ts"
   ],
   "exclude": [

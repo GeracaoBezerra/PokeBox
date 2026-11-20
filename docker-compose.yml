@@ -51,7 +51,7 @@ services:
       target: dev
     container_name: tcg-backend-container
     restart: unless-stopped
-    command: ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && exec node --import ./dist/instrumentation.js dist/server.js"]
+    command: ["sh", "-c", "npx prisma migrate deploy && npm run db:seed-if-empty && exec node --import ./dist/instrumentation.js dist/server.js"]
     env_file:
       - .env
     environment:
