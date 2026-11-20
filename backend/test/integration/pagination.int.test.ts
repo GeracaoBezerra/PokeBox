@@ -1,6 +1,16 @@
 import request from 'supertest';
 
-import { acceptedOffer, addItem, bearer, CHARIZARD, createListing, createTrade, PROFESSOR_OAK } from './support/flows.js';
+import {
+  acceptedOffer,
+  addItem,
+  bearer,
+  CHARIZARD,
+  createListing,
+  createTrade,
+  makeOffer,
+  PROFESSOR_OAK,
+  setOfferStatus,
+} from './support/flows.js';
 import { loginSeedUser, registerUser, startTestApp, type TestApp, type TestUser } from './support/testApp.js';
 
 let ctx: TestApp;
@@ -170,6 +180,34 @@ describe('GET /offers/me e /trades/me com side (#77)', () => {
     expect(legacy.body.data.received).toEqual([]);
     expect(sent.body.data.items.map((t: { id: string }) => t.id)).toEqual([trade.id]);
     expect(sent.body.pagination).toEqual({ page: 1, limit: 20, hasNextPage: false });
+  });
+});
+
+describe('GET /offers/me?side=received com pendentes primeiro (#199)', () => {
+  test('a pendente mais antiga vem antes das respondidas e as páginas seguem sem repetir', async () => {
+    const owner = await registerUser(ctx.app);
+    const ownerItem = await addItem(ctx.app, owner, { cardId: CHARIZARD });
+    const listing = await createListing(ctx.app, owner, ownerItem.id);
+    const offerFrom = async () => {
+      const proposer = await registerUser(ctx.app);
+      const item = await addItem(ctx.app, proposer, { cardId: PROFESSOR_OAK, finish: 'NORMAL' });
+      return makeOffer(ctx.app, proposer, listing.id, [{ collectionItemId: item.id, quantity: 1 }]);
+    };
+    const pending = await offerFrom();
+    const rejectedFirst = await offerFrom();
+    const rejectedLast = await offerFrom();
+    await setOfferStatus(ctx.app, owner, rejectedFirst.id, 'REJECTED');
+    await setOfferStatus(ctx.app, owner, rejectedLast.id, 'REJECTED');
+
+    const pages = await Promise.all(
+      [1, 2, 3].map((page) => request(ctx.app).get(`/offers/me?side=received&limit=1&page=${page}`).set(bearer(owner))),
+    );
+    const ids = pages.map((res) => res.body.data.items.map((o: { id: string }) => o.id));
+    const rejected = await request(ctx.app).get('/offers/me?side=received&status=REJECTED').set(bearer(owner));
+
+    expect(ids).toEqual([[pending.id], [rejectedLast.id], [rejectedFirst.id]]);
+    expect(pages.map((res) => res.body.pagination.hasNextPage)).toEqual([true, true, false]);
+    expect(rejected.body.data.items.map((o: { id: string }) => o.id)).toEqual([rejectedLast.id, rejectedFirst.id]);
   });
 });
 

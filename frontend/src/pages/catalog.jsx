@@ -1,14 +1,24 @@
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SearchX } from "lucide-react";
-import { getCardFilters, searchCards } from "../api/cards";
+import { getCard, getCardFilters, searchCards } from "../api/cards";
+import { mensagemAmigavel } from "../api/mensagens";
+import { addToWishlist, removeFromWishlist } from "../api/wishlist";
+import { useSession } from "../auth/useSession";
+import AcoesRapidas from "../components/AcoesRapidas/AcoesRapidas";
 import Aviso from "../components/Aviso/Aviso";
-import BarraBusca from "../components/BarraBusca/BarraBusca";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import FormColecao from "../components/FormColecao/FormColecao";
 import FiltrosCatalogo from "../components/FiltrosCatalogo/FiltrosCatalogo";
 import GradeCartas from "../components/GradeCartas/GradeCartas";
 import Paginacao from "../components/Paginacao/Paginacao";
 import SelosFiltro from "../components/SelosFiltro/SelosFiltro";
+import { useAcao } from "../hooks/useAcao";
 import { useCarregar } from "../hooks/useCarregar";
+import { useMinhasCartas } from "../hooks/useMinhasCartas";
+import { useToast } from "../hooks/useToast";
 import s from "../styles/vitrine.module.css";
+import { IDIOMAS, IDIOMA_PADRAO, linkBuscaNaReserva } from "../utils/idioma";
 import { CATEGORIAS, TIPOS } from "../utils/rotulos";
 
 const CAMPOS_FILTRO = ["category", "type", "rarity", "set"];
@@ -45,10 +55,50 @@ function rotuloDoSelo(campo, valor, opcoes) {
   }
 }
 
+function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, onPrecisaLogin, onTenho, onMudou }) {
+  const toast = useToast();
+  const { ocupado, executar } = useAcao();
+  const itemWishlist = minhas?.naWishlist.get(carta.id);
+
+  async function alternarWishlist() {
+    if (!logado) {
+      onPrecisaLogin();
+      return;
+    }
+    const tirar = Boolean(itemWishlist);
+    const { ok, erro } = await executar(
+      () => (tirar ? removeFromWishlist(itemWishlist) : addToWishlist(carta.id, lang)),
+      tirar ? `${carta.name} saiu da wishlist.` : `${carta.name} entrou na wishlist.`,
+      { tipo: tirar ? "aviso" : "sucesso" }
+    );
+    if (ok) onMudou();
+    else toast.erro(mensagemAmigavel(erro));
+  }
+
+  return (
+    <AcoesRapidas
+      nome={carta.name}
+      naWishlist={Boolean(itemWishlist)}
+      tenho={Boolean(minhas?.tenho.has(carta.id))}
+      ocupado={ocupado || atualizando}
+      bloqueado={logado && !minhas}
+      onQuero={alternarWishlist}
+      onTenho={() => (logado ? onTenho(carta) : onPrecisaLogin())}
+    />
+  );
+}
+
+function AdicionarNaColecao({ carta, lang, onAdicionado }) {
+  const detalhe = useCarregar(() => getCard(carta.id, lang), `${carta.id}|${lang}`);
+  if (detalhe.carregando) return <p role="status">Carregando…</p>;
+  if (detalhe.erro) return <Aviso erro={detalhe.erro} onTentarDeNovo={detalhe.recarregar} />;
+  return <FormColecao key={carta.id} card={detalhe.dados.card} lang={lang} onAdicionado={onAdicionado} />;
+}
+
 export default function CatalogPage() {
   const [params, setParams] = useSearchParams();
   const name = params.get("name") ?? "";
-  const lang = params.get("lang") ?? "en";
+  const lang = params.get("lang") ?? IDIOMA_PADRAO;
   const paginaPedida = Number(params.get("page") ?? 1);
   const page = Number.isInteger(paginaPedida) && paginaPedida > 0 ? paginaPedida : 1;
   const filtrosPedidos = Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, params.get(campo) ?? ""]));
@@ -64,6 +114,35 @@ export default function CatalogPage() {
   );
   const { dados, erro, recarregar } = busca;
   const carregando = busca.carregando || esperandoOpcoes;
+  const session = useSession();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [cartaTenho, setCartaTenho] = useState(null);
+  const minhasCartas = useMinhasCartas(session);
+
+  function pedirLogin() {
+    navigate("/login", { state: { de: location.pathname + location.search } });
+  }
+
+  function acoesDaCarta(carta) {
+    return (
+      <AcoesDaCarta
+        carta={carta}
+        lang={lang}
+        logado={Boolean(session)}
+        minhas={minhasCartas.minhas}
+        atualizando={Boolean(session) && minhasCartas.carregando}
+        onPrecisaLogin={pedirLogin}
+        onTenho={setCartaTenho}
+        onMudou={minhasCartas.recarregar}
+      />
+    );
+  }
+
+  function adicionouNaColecao() {
+    setCartaTenho(null);
+    minhasCartas.recarregar();
+  }
 
   function atualizar(mudancas, reiniciarPagina = true) {
     const novos = new URLSearchParams(params);
@@ -75,8 +154,8 @@ export default function CatalogPage() {
     setParams(novos);
   }
 
-  function buscar(nome, idioma) {
-    atualizar({ name: nome, lang: idioma, ...(idioma !== lang ? VAZIOS : {}) });
+  function trocarIdioma(idioma) {
+    atualizar({ ...VAZIOS, lang: idioma });
   }
 
   function ordenar(valor) {
@@ -86,6 +165,12 @@ export default function CatalogPage() {
   function limparFiltros() {
     atualizar(VAZIOS);
   }
+
+  const atalhoIngles = lang === IDIOMA_PADRAO && name ? (
+    <p className={s.reserva}>
+      Não achou? As coleções antigas só existem em inglês. <Link to={linkBuscaNaReserva(name)}>Procurar em inglês</Link>
+    </p>
+  ) : null;
 
   const selos = CAMPOS_FILTRO.filter((campo) => filtros[campo]).map((campo) => ({
     campo,
@@ -100,13 +185,16 @@ export default function CatalogPage() {
         <p>Encontre sua próxima carta, complete sua coleção e descubra novas possibilidades de troca.</p>
       </header>
       <div className={s.barra}>
-        <BarraBusca
-          rotulo="Buscar cartas"
-          placeholder="Nome da carta ou expansão…"
-          valor={name}
-          idioma={lang}
-          onBuscar={buscar}
-        />
+        <label className={s.campo}>
+          Idioma
+          <select value={lang} onChange={(e) => trocarIdioma(e.target.value)}>
+            {Object.entries(IDIOMAS).map(([codigo, nome]) => (
+              <option key={codigo} value={codigo}>
+                {nome}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className={s.campo}>
           Ordenar por
           <select value={ordenacao} onChange={(e) => ordenar(e.target.value)}>
@@ -148,16 +236,28 @@ export default function CatalogPage() {
           </div>
           <SelosFiltro selos={selos} onRemover={(campo) => atualizar({ [campo]: "" })} onLimpar={limparFiltros} />
           <Aviso erro={erro} onTentarDeNovo={recarregar} />
+          {!carregando && dados && (
+            <Aviso
+              erro={minhasCartas.erro}
+              texto={
+                minhasCartas.minhas
+                  ? "Não conseguimos atualizar sua wishlist e sua coleção. Os botões Quero e Tenho mostram o que sabíamos antes."
+                  : "Não conseguimos carregar sua wishlist e sua coleção, então os botões Quero e Tenho ficam desligados por enquanto."
+              }
+              onTentarDeNovo={minhasCartas.recarregar}
+            />
+          )}
           {carregando && <GradeCartas carregando total={24} variante="catalogo" />}
           {!carregando && dados && (
             <>
               {dados.items.length ? (
-                <GradeCartas cartas={dados.items} lang={lang} variante="catalogo" />
+                <GradeCartas cartas={dados.items} lang={lang} variante="catalogo" acoes={acoesDaCarta} />
               ) : (
                 <div className={s.vazio}>
                   <SearchX size={32} aria-hidden="true" />
                   <h2>Nenhuma carta encontrada</h2>
                   <p>Tente outro nome ou ajuste os filtros para ampliar a busca.</p>
+                  {atalhoIngles}
                   {selos.length > 0 && (
                     <button type="button" className={s.botao} onClick={limparFiltros}>
                       Limpar filtros
@@ -170,10 +270,19 @@ export default function CatalogPage() {
                 temProxima={dados.pagination?.hasNextPage}
                 onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
               />
+              {dados.items.length > 0 && atalhoIngles}
             </>
           )}
         </section>
       </div>
+      <ConfirmModal
+        aberto={Boolean(cartaTenho)}
+        titulo={cartaTenho ? `Adicionar ${cartaTenho.name} à coleção` : ""}
+        textoCancelar="Fechar"
+        onCancelar={() => setCartaTenho(null)}
+      >
+        {cartaTenho && <AdicionarNaColecao carta={cartaTenho} lang={lang} onAdicionado={adicionouNaColecao} />}
+      </ConfirmModal>
     </div>
   );
 }

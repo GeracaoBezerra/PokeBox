@@ -1,5 +1,6 @@
 import type { TradeStatus } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
+import { pendingFirst } from '../utils/pendingFirst.js';
 import {
   tradeInclude,
   type LockedTrade,
@@ -48,13 +49,24 @@ export class PrismaTradeRepository implements TradeRepository {
   }
 
   findReceived(userId: string, { status, skip, take }: TradeListOptions = {}): Promise<TradeWithItems[]> {
-    return this.db.trade.findMany({
-      where: { recipientId: userId, status },
-      include: tradeInclude,
-      orderBy: [...newestFirst],
-      skip,
-      take,
-    });
+    const where = { recipientId: userId };
+    if (status) {
+      return this.db.trade.findMany({ where: { ...where, status }, include: tradeInclude, orderBy: [...newestFirst], skip, take });
+    }
+
+    return pendingFirst(
+      {
+        find: (pending, window) =>
+          this.db.trade.findMany({
+            where: { ...where, status: pending ? 'PROPOSED' : { not: 'PROPOSED' } },
+            include: tradeInclude,
+            orderBy: [...newestFirst],
+            ...window,
+          }),
+        countPending: () => this.db.trade.count({ where: { ...where, status: 'PROPOSED' } }),
+      },
+      { skip, take },
+    );
   }
 
   updateStatus(id: string, status: TradeStatus, db: Db = this.db): Promise<TradeWithItems> {

@@ -1,0 +1,101 @@
+.pagina {
+  composes: pagina from "../styles/paginas.module.css";
+  padding-top: var(--esp-32);
+}
+
+.filtros {
+  margin-block: var(--esp-24);
+  padding: var(--esp-8) var(--esp-12);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-painel);
+  background: var(--superficie);
+}
+
+.filtros > div {
+  justify-content: space-between;
+  gap: var(--esp-12);
+  margin: 0;
+}
+
+.filtros :is([role="tab"], select) { min-height: var(--alvo-min); }
+
+.filtros [role="tab"][aria-selected="false"] { border-color: transparent; }
+.filtros [role="tab"][aria-selected="false"]:hover { background: var(--superficie-hover); }
+
+.lista,
+.carregando {
+  display: grid;
+  gap: var(--esp-16);
+}
+
+.lista > li > article,
+.vazio { animation: entrar var(--tempo-medio) var(--curva-entrar) both; }
+
+.lista > li {
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto 30rem;
+}
+
+.fimLista:not(:empty) {
+  display: grid;
+  justify-items: center;
+  gap: var(--esp-8);
+  padding-top: var(--esp-24);
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+}
+
+.fimLista .atalho { margin: 0; }
+.atalho[aria-disabled="true"] { opacity: var(--opac-desabilitado); }
+
+.vazio {
+  display: grid;
+  justify-items: center;
+  gap: var(--esp-8);
+  padding: var(--esp-48) var(--esp-16);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-painel);
+  background: var(--superficie);
+  text-align: center;
+}
+
+.vazio svg { color: var(--texto-suave); }
+.vazio h2 { font-family: var(--fonte-titulo); font-size: var(--fs-lg); }
+.vazio p { color: var(--texto-suave); }
+
+.atalho {
+  composes: botaoSecundario from "../styles/paginas.module.css";
+  display: inline-flex;
+  min-height: var(--alvo-min);
+  align-items: center;
+  margin-top: var(--esp-8);
+}
+
+.carregando > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: center;
+  gap: var(--esp-16);
+  min-height: 15rem;
+  padding: var(--esp-24);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-painel);
+  background: var(--superficie);
+}
+
+.carregando span { height: 7rem; border-radius: var(--raio-painel); background: var(--skeleton-base); }
+
+@keyframes entrar {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .pagina { padding-top: var(--esp-24); }
+  .filtros label { flex: 1 1 8rem; }
+  .carregando > div { grid-template-columns: 1fr; padding: var(--esp-16); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lista > li > article, .vazio { animation: none; }
+}

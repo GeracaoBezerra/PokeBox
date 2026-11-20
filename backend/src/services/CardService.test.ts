@@ -22,7 +22,7 @@ function setup() {
   const readers = {
     collection: { sumQuantityByUserAndCard: jest.fn<UserCardReaders['collection']['sumQuantityByUserAndCard']>(async () => null) },
     wishlist: { existsByUserAndCard: jest.fn<UserCardReaders['wishlist']['existsByUserAndCard']>(async () => null) },
-    listings: { existsActiveByUserAndCard: jest.fn<UserCardReaders['listings']['existsActiveByUserAndCard']>(async () => null) },
+    listings: { findOpenByUserAndCard: jest.fn<UserCardReaders['listings']['findOpenByUserAndCard']>(async () => []) },
   };
   return { catalog, finder, readers, service: new CardService(catalog, finder, readers) };
 }
@@ -126,19 +126,21 @@ describe('CardService', () => {
     await expect(service.fetchCard('base1-4')).rejects.toBeInstanceOf(TcgdexUnavailableError);
   });
 
-  test('getUserCardInfo junta coleção, wishlist e anúncio ativo', async () => {
+  test('getUserCardInfo junta coleção, wishlist e anúncio aberto', async () => {
     const { service, readers } = setup();
     readers.collection.sumQuantityByUserAndCard.mockResolvedValue(2);
     readers.wishlist.existsByUserAndCard.mockResolvedValue({ id: 'w1' });
+    readers.listings.findOpenByUserAndCard.mockResolvedValue([{ id: 'l1', status: 'PAUSED' }]);
 
     await expect(service.getUserCardInfo('user-1', 'base1-4')).resolves.toEqual({
       inCollection: 2,
       inWishlist: true,
       onTradeList: false,
+      myListing: { id: 'l1', status: 'PAUSED' },
     });
     expect(readers.collection.sumQuantityByUserAndCard).toHaveBeenCalledWith('user-1', 'base1-4');
     expect(readers.wishlist.existsByUserAndCard).toHaveBeenCalledWith('user-1', 'base1-4');
-    expect(readers.listings.existsActiveByUserAndCard).toHaveBeenCalledWith('user-1', 'base1-4');
+    expect(readers.listings.findOpenByUserAndCard).toHaveBeenCalledWith('user-1', 'base1-4');
   });
 });
 

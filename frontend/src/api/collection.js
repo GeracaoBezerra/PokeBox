@@ -1,8 +1,13 @@
 import { http } from "./http";
+import { parametrosDaPagina } from "./parametros";
 
-export async function listCollection() {
-  const body = await http.get("/collection");
-  return body.data.items;
+export async function listCollection(opcoes) {
+  if (!opcoes) {
+    const body = await http.get("/collection");
+    return body.data.items;
+  }
+  const body = await http.get("/collection", { params: parametrosDaPagina(opcoes) });
+  return { items: body.data.items, pagination: body.pagination };
 }
 
 export async function addToCollection(data) {
@@ -19,7 +24,12 @@ export async function removeCollectionItem(id) {
   await http.delete(`/collection/${id}`);
 }
 
-export async function getPublicCollection(username) {
-  const body = await http.get(`/users/${encodeURIComponent(username)}/collection`);
-  return body.data;
+export async function getPublicCollection(username, opcoes) {
+  const caminho = `/users/${encodeURIComponent(username)}/collection`;
+  if (!opcoes) {
+    const body = await http.get(caminho);
+    return body.data;
+  }
+  const body = await http.get(caminho, { params: parametrosDaPagina(opcoes) });
+  return { user: body.data.user, items: body.data.items, pagination: body.pagination };
 }

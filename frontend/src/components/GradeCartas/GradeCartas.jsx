@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { getCard } from "../../api/cards";
 import CartaCard from "../CartaCard/CartaCard";
 import SkeletonCard from "../SkeletonCard/SkeletonCard";
+import { IDIOMA_PADRAO } from "../../utils/idioma";
 import styles from "./GradeCartas.module.css";
 
 // Busca o detalhe apenas quando a carta recebe hover ou foco, em telas com
 // painel lateral. O painel só é liberado quando os dados completos chegam.
-function ItemCarta({ carta, lang }) {
+function ItemCarta({ carta, lang, acoes }) {
   const [detalhe, setDetalhe] = useState(null);
   const [pedido, setPedido] = useState(false);
 
@@ -37,6 +38,7 @@ function ItemCarta({ carta, lang }) {
         carta={{ ...carta, ...detalhe }}
         lang={lang}
         painel={detalhe != null}
+        acoes={acoes?.(carta)}
       />
     </li>
   );
@@ -49,15 +51,17 @@ export function ItemGrade({ children }) {
 }
 
 export default function GradeCartas({
+  ref,
   children,
   cartas = [],
-  lang = "en",
+  lang = IDIOMA_PADRAO,
   carregando = false,
   total = 12,
   variante = "padrao",
+  acoes,
 }) {
   return (
-    <ul className={`${styles.grade} ${variante === "catalogo" ? styles.catalogo : ""}`} role="list" aria-busy={carregando}>
+    <ul ref={ref} className={`${styles.grade} ${variante === "catalogo" ? styles.catalogo : ""}`} role="list" aria-busy={carregando}>
       {carregando
         ? // Esqueleto com a mesma proporção da carta: a altura da seção
           // não muda quando os dados chegam (evita o rodapé "pular")
@@ -68,7 +72,7 @@ export default function GradeCartas({
           ))
         : children ??
           cartas.map((carta) => (
-            <ItemCarta key={`${lang}:${carta.id}`} carta={carta} lang={lang} />
+            <ItemCarta key={`${lang}:${carta.id}`} carta={carta} lang={lang} acoes={acoes} />
           ))}
     </ul>
   );

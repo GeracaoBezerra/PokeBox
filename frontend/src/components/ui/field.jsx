@@ -3,7 +3,7 @@ export default function Field({ label, htmlFor, error, children }) {
     <>
       <label htmlFor={htmlFor}>{label}</label>
       {children}
-      <div className="err" role={error ? "alert" : undefined}>
+      <div id={`${htmlFor}-erro`} className="err" role={error ? "alert" : undefined}>
         {error}
       </div>
     </>

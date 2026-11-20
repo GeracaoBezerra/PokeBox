@@ -1,0 +1,40 @@
+.acoes {
+  display: flex;
+  gap: var(--esp-8);
+  margin-top: var(--esp-8);
+}
+
+.botao {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-4);
+  min-height: var(--alvo-min);
+  padding: 0 var(--esp-8);
+  background: var(--superficie);
+  color: var(--texto);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-botao);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition:
+    border-color var(--tempo-rapido),
+    color var(--tempo-rapido);
+}
+
+.botao:hover:not(:disabled) {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.botao[aria-pressed="true"] {
+  color: var(--acento);
+  border-color: var(--acento);
+}
+
+.botao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { removeCollectionItem, updateCollectionItem } from "../../api/collection";
 import { createListing } from "../../api/listings";
+import { errosPorCampo } from "../../api/mensagens";
 import { useAcao } from "../../hooks/useAcao";
+import { useConfirmacao } from "../../hooks/useConfirmacao";
 import s from "../../styles/paginas.module.css";
 import { CONDICOES, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
@@ -17,6 +19,8 @@ export default function LinhaColecao({ item, onMudou }) {
   });
   const [anunciando, setAnunciando] = useState(false);
   const acao = useAcao();
+  const novoAnuncio = useAcao();
+  const { pedir } = useConfirmacao();
 
   const mudou =
     Number(form.quantity) !== item.quantity || form.condition !== item.condition || form.isPublic !== item.isPublic;
@@ -31,13 +35,19 @@ export default function LinhaColecao({ item, onMudou }) {
   }
 
   async function apagar() {
-    if (!window.confirm(`Apagar ${item.card.name} da coleção?`)) return;
+    const confirmou = await pedir({
+      titulo: "Apagar carta da coleção?",
+      mensagem: `${item.card.name} sai da sua coleção. Não dá para desfazer.`,
+      textoConfirmar: "Apagar",
+      perigo: true,
+    });
+    if (!confirmou) return;
     const { ok } = await acao.executar(() => removeCollectionItem(item.id));
     if (ok) onMudou();
   }
 
   async function anunciar(anuncio) {
-    const { ok } = await acao.executar(
+    const { ok } = await novoAnuncio.executar(
       () => createListing({ collectionItemId: item.id, ...anuncio }),
       "Anúncio criado. Veja em Meus anúncios."
     );
@@ -54,7 +64,7 @@ export default function LinhaColecao({ item, onMudou }) {
           <MiniaturaCarta card={item.card} />
         </td>
         <td>
-          <Link className={s.link} to={`/cards/${item.cardId}`}>
+          <Link className={s.link} to={`/cards/${encodeURIComponent(item.cardId)}`}>
             {item.card.name}
           </Link>
           <div className={s.suave}>
@@ -107,11 +117,19 @@ export default function LinhaColecao({ item, onMudou }) {
           </div>
         </td>
       </tr>
-      {(anunciando || acao.erro || acao.sucesso) && (
+      {(anunciando || acao.erro || novoAnuncio.erro) && (
         <tr>
           <td colSpan={9}>
-            {anunciando && <FormNovoAnuncio disponivel={item.available} ocupado={acao.ocupado} onCriar={anunciar} />}
-            <Aviso erro={acao.erro} sucesso={acao.sucesso} />
+            {anunciando && (
+              <FormNovoAnuncio
+                disponivel={item.available}
+                ocupado={novoAnuncio.ocupado}
+                onCriar={anunciar}
+                erros={errosPorCampo(novoAnuncio.erro?.details)}
+              />
+            )}
+            <Aviso erro={novoAnuncio.erro} campos={anunciando ? ["quantity", "description"] : []} />
+            <Aviso erro={acao.erro} />
           </td>
         </tr>
       )}

@@ -100,6 +100,10 @@ textarea.entrada {
   cursor: not-allowed;
 }
 
+.entrada[aria-invalid="true"] {
+  border-color: var(--erro);
+}
+
 @media (max-width: 600px) {
   .formulario {
     grid-template-columns: minmax(0, 1fr);

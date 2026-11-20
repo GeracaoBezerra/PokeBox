@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import s from "../../styles/vitrine.module.css";
 
-const IDIOMAS = { en: "Inglês", pt: "Português", es: "Espanhol", fr: "Francês", de: "Alemão", it: "Italiano", ja: "Japonês" };
-
-export default function BarraBusca({ rotulo, placeholder, valor, idioma, onBuscar }) {
+export default function BarraBusca({ rotulo, placeholder, valor, onBuscar, inputRef }) {
   const [texto, setTexto] = useState(valor);
   const [valorAnterior, setValorAnterior] = useState(valor);
   const onBuscarRef = useRef(onBuscar);
@@ -20,13 +18,13 @@ export default function BarraBusca({ rotulo, placeholder, valor, idioma, onBusca
 
   useEffect(() => {
     if (texto.trim() === valor) return undefined;
-    const espera = setTimeout(() => onBuscarRef.current(texto.trim(), idioma), 400);
+    const espera = setTimeout(() => onBuscarRef.current(texto.trim()), 400);
     return () => clearTimeout(espera);
-  }, [texto, valor, idioma]);
+  }, [texto, valor]);
 
   function enviar(evento) {
     evento.preventDefault();
-    onBuscarRef.current(texto.trim(), idioma);
+    onBuscarRef.current(texto.trim());
   }
 
   return (
@@ -37,6 +35,7 @@ export default function BarraBusca({ rotulo, placeholder, valor, idioma, onBusca
           <Search size={16} aria-hidden="true" />
           <input
             type="search"
+            ref={inputRef}
             maxLength={50}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
@@ -44,18 +43,6 @@ export default function BarraBusca({ rotulo, placeholder, valor, idioma, onBusca
           />
         </span>
       </label>
-      {idioma && (
-        <label className={s.campo}>
-          Idioma
-          <select value={idioma} onChange={(e) => onBuscarRef.current(texto.trim(), e.target.value)}>
-            {Object.entries(IDIOMAS).map(([codigo, nome]) => (
-              <option key={codigo} value={codigo}>
-                {nome}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
     </form>
   );
 }

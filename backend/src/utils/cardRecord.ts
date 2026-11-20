@@ -1,4 +1,5 @@
 import type { CardImage, MarketPrice } from '../cards/types.js';
+import type { ListingStatus } from '../generated/prisma/index.js';
 
 export interface MarketPriceFields {
   marketPrice: number | null;
@@ -47,16 +48,22 @@ export interface CardRecord extends MarketPriceFields {
   energyType: string | null;
 }
 
+export interface MyListing {
+  id: string;
+  status: ListingStatus;
+}
+
 export interface UserCardInfo {
   inCollection: number;
   inWishlist: boolean;
   onTradeList: boolean;
+  myListing: MyListing | null;
 }
 
 export interface UserCardFacts {
   quantity: number | null | undefined;
   wishlistItem: unknown;
-  activeListing: unknown;
+  openListings: MyListing[];
 }
 
 export function toMarketPriceFields(marketPrice: MarketPrice | null | undefined, now = new Date()): MarketPriceFields {
@@ -110,10 +117,13 @@ export function toCardRecord(card: CardRecordSource, now = new Date()): CardReco
   };
 }
 
-export function toUserCardInfo({ quantity, wishlistItem, activeListing }: UserCardFacts): UserCardInfo {
+export function toUserCardInfo({ quantity, wishlistItem, openListings }: UserCardFacts): UserCardInfo {
+  const active = openListings.find((listing) => listing.status === 'ACTIVE');
+  const mine = active ?? openListings[0];
   return {
     inCollection: quantity ?? 0,
     inWishlist: Boolean(wishlistItem),
-    onTradeList: Boolean(activeListing),
+    onTradeList: Boolean(active),
+    myListing: mine ? { id: mine.id, status: mine.status } : null,
   };
 }

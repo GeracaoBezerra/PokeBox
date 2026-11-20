@@ -1,0 +1,24 @@
+.resumo {
+  display: grid;
+  gap: var(--esp-8);
+  width: 100%;
+  padding: var(--esp-16);
+  border: var(--borda-painel);
+  border-radius: var(--raio-botao);
+  background: var(--superficie);
+  overflow-wrap: anywhere;
+}
+
+.resumo p {
+  margin: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--fs-md);
+}
+
+.aviso {
+  color: var(--erro);
+  font-weight: 600;
+}

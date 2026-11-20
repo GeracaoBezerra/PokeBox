@@ -1,34 +1,22 @@
 .aviso {
-  margin: 8px 0;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-}
-
-.erro {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--esp-8);
-}
-
-.erro,
-.remocao {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--erro);
+  border-radius: 6px;
   background: var(--erro-fundo);
   color: var(--erro);
-  border: 1px solid var(--erro);
+  font-size: 0.9rem;
 }
 
 .sucesso {
+  border-color: var(--sucesso);
   background: var(--sucesso-fundo);
   color: var(--sucesso);
-  border: 1px solid var(--sucesso);
-}
-
-.codigo {
-  font-family: "IBM Plex Mono", monospace;
-  opacity: 0.8;
 }
 
 .tentar {
