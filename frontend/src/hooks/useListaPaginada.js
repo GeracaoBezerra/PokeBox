@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const VAZIA = { alvo: null, ultima: 0, itens: [], temMais: false, erro: null };
+
 export function useListaPaginada(buscar, chave = "") {
   const buscarRef = useRef(buscar);
-  const [alvo, setAlvo] = useState({ chave, pagina: 1, versao: 0 });
-  const [estado, setEstado] = useState({ chave: null, pagina: 0, versao: -1, ultimaCarregada: 0, itens: [], temMais: false, erro: null });
+  const [alvo, setAlvo] = useState({ chave, de: 1, ate: 1 });
+  const [estado, setEstado] = useState(VAZIA);
 
-  if (alvo.chave !== chave) setAlvo({ chave, pagina: 1, versao: alvo.versao });
+  if (alvo.chave !== chave) setAlvo({ chave, de: 1, ate: 1 });
 
   useEffect(() => {
     buscarRef.current = buscar;
@@ -13,46 +15,53 @@ export function useListaPaginada(buscar, chave = "") {
 
   useEffect(() => {
     let ativo = true;
-    const marca = { chave: alvo.chave, pagina: alvo.pagina, versao: alvo.versao };
-    buscarRef
-      .current(alvo.pagina)
-      .then((resposta) => {
-        if (!ativo) return;
-        setEstado((atual) => ({
-          ...marca,
-          ultimaCarregada: alvo.pagina,
-          itens: alvo.pagina === 1 ? resposta?.items ?? [] : [...atual.itens, ...(resposta?.items ?? [])],
-          temMais: Boolean(resposta?.pagination?.hasNextPage),
-          erro: null,
+    const buscarPagina = buscarRef.current;
+    async function carregar() {
+      const itens = [];
+      let pagina = alvo.de;
+      try {
+        for (;; pagina++) {
+          const resposta = await buscarPagina(pagina);
+          if (!ativo) return;
+          itens.push(...(resposta?.items ?? []));
+          const temMais = Boolean(resposta?.pagination?.hasNextPage);
+          if (!temMais || pagina === alvo.ate) {
+            setEstado((anterior) => ({
+              alvo, ultima: pagina, temMais, erro: null,
+              itens: alvo.de === 1 ? itens : [...anterior.itens, ...itens],
+            }));
+            return;
+          }
+        }
+      } catch (erro) {
+        if (ativo) setEstado((anterior) => ({
+          ...(anterior.alvo?.chave === alvo.chave ? anterior : VAZIA), alvo, erro,
         }));
-      })
-      .catch((erro) => {
-        if (!ativo) return;
-        setEstado((atual) => ({
-          ...marca,
-          ultimaCarregada: alvo.pagina === 1 ? 0 : atual.ultimaCarregada,
-          itens: alvo.pagina === 1 ? [] : atual.itens,
-          temMais: atual.temMais,
-          erro,
-        }));
-      });
-    return () => {
-      ativo = false;
-    };
+      }
+    }
+    carregar();
+    return () => { ativo = false; };
   }, [alvo]);
 
-  const pronto = estado.chave === alvo.chave && estado.pagina === alvo.pagina && estado.versao === alvo.versao;
-  const proximaPagina = estado.ultimaCarregada + 1;
-  const carregarMais = useCallback(() => setAlvo((atual) => ({ ...atual, pagina: proximaPagina })), [proximaPagina]);
-  const recarregar = useCallback(() => setAlvo((atual) => ({ chave: atual.chave, pagina: 1, versao: atual.versao + 1 })), []);
+  const atual = estado.alvo?.chave === chave ? estado : VAZIA;
+  const pronto = estado.alvo === alvo;
+  const proxima = atual.ultima + 1;
+  const carregarMais = useCallback(() => {
+    setAlvo((anterior) => ({ chave: anterior.chave, de: proxima, ate: proxima }));
+  }, [proxima]);
+  const recarregar = useCallback(() => setAlvo((anterior) => ({ chave: anterior.chave, de: 1, ate: 1 })), []);
+  const atualizarCarregadas = useCallback(() => setAlvo((anterior) => ({ ...anterior, de: 1 })), []);
+  const tentarDeNovo = useCallback(() => setAlvo((anterior) => ({ ...anterior })), []);
 
   return {
-    itens: estado.chave === chave ? estado.itens : [],
-    temMais: pronto && estado.temMais,
-    carregando: !pronto && alvo.pagina === 1,
-    carregandoMais: !pronto && alvo.pagina > 1,
-    erro: pronto ? estado.erro : null,
+    itens: atual.itens,
+    temMais: pronto && atual.temMais,
+    carregando: !pronto && alvo.de === 1,
+    carregandoMais: !pronto && alvo.de > 1,
+    erro: pronto ? atual.erro : null,
     carregarMais,
     recarregar,
+    atualizarCarregadas,
+    tentarDeNovo,
   };
 }
