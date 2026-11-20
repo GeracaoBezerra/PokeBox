@@ -15,11 +15,12 @@ const reverse = { id: "item-reverse", cardId: card.id, finish: "REVERSE", firstE
 const outraCarta = { id: "item-outra", cardId: "base1-4", finish: "HOLO", firstEdition: true, condition: "MINT", quantity: 1, available: 1 };
 const reservado = { ...normal, id: "item-reservado", available: 0 };
 
-const semAnuncio = { inCollection: 4, inWishlist: false, onTradeList: false };
-const comAnuncio = { inCollection: 4, inWishlist: false, onTradeList: true };
+const semAnuncio = { inCollection: 4, inWishlist: false, onTradeList: false, myListing: null };
+const comAnuncioAtivo = { inCollection: 4, inWishlist: false, onTradeList: true, myListing: { id: "anuncio-ash", status: "ACTIVE" } };
+const comAnuncioPausado = { inCollection: 4, inWishlist: false, onTradeList: false, myListing: { id: "anuncio-pausado", status: "PAUSED" } };
 
-function renderizar({ user = semAnuncio, listings = [], onMudou = vi.fn() } = {}) {
-  renderWithProviders(<VoceEACarta card={card} lang="en" user={user} listings={listings} onMudou={onMudou} />, {
+function renderizar({ user = semAnuncio, onMudou = vi.fn() } = {}) {
+  renderWithProviders(<VoceEACarta card={card} lang="en" user={user} onMudou={onMudou} />, {
     rota: `/cards/${card.id}`,
   });
   return onMudou;
@@ -136,27 +137,32 @@ describe("VoceEACarta: atalho para anunciar", () => {
     expect(onMudou).not.toHaveBeenCalled();
   });
 
-  it("quem já anuncia vê Ver meu anúncio apontando para o próprio anúncio", () => {
-    renderizar({
-      user: comAnuncio,
-      listings: [
-        { id: "anuncio-misty", owner: { username: "misty" } },
-        { id: "anuncio-ash", owner: { username: "ash" } },
-      ],
-    });
+  it("com anúncio ativo, mostra Ver meu anúncio apontando para o próprio anúncio", () => {
+    renderizar({ user: comAnuncioAtivo });
 
+    expect(screen.getByText("Você tem um anúncio ativo desta carta.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ver meu anúncio" })).toHaveAttribute("href", "/marketplace/anuncio-ash");
     expect(screen.queryByRole("button", { name: "Anunciar esta carta" })).not.toBeInTheDocument();
   });
 
-  it("se o anúncio não está na lista da carta, Ver meu anúncio leva a Meus anúncios", () => {
-    renderizar({ user: comAnuncio, listings: [{ id: "anuncio-misty", owner: { username: "misty" } }] });
+  it("com anúncio pausado, também mostra Ver meu anúncio em vez de Anunciar esta carta", () => {
+    renderizar({ user: comAnuncioPausado });
 
-    expect(screen.getByRole("link", { name: "Ver meu anúncio" })).toHaveAttribute("href", "/anuncios");
+    expect(screen.getByText("Você tem um anúncio pausado desta carta.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver meu anúncio" })).toHaveAttribute("href", "/marketplace/anuncio-pausado");
+    expect(screen.queryByRole("button", { name: "Anunciar esta carta" })).not.toBeInTheDocument();
+  });
+
+  it("sem anúncio e com a carta, mostra Anunciar esta carta e nenhum aviso de anúncio", () => {
+    renderizar({ user: semAnuncio });
+
+    expect(screen.getByRole("button", { name: "Anunciar esta carta" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Ver meu anúncio" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Você tem um anúncio/)).not.toBeInTheDocument();
   });
 
   it("quem não tem a carta não vê nenhum dos dois atalhos", () => {
-    renderizar({ user: { inCollection: 0, inWishlist: false, onTradeList: false } });
+    renderizar({ user: { inCollection: 0, inWishlist: false, onTradeList: false, myListing: null } });
 
     expect(screen.queryByRole("button", { name: "Anunciar esta carta" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Ver meu anúncio" })).not.toBeInTheDocument();
