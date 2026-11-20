@@ -1990,6 +1990,7 @@ export const swaggerSpec = {
         description: "Oferta de troca. Nunca traz userId, proposerId, e-mail, reservedQuantity nem isPublic.",
         properties: {
           id: { type: "string", format: "uuid" },
+          hasTrade: { type: "boolean", description: "Indica se já foi criada uma troca para esta oferta." },
           status: { type: "string", enum: offerStatuses, example: "PROPOSED" },
           quantity: { type: "integer", minimum: 1, description: "Quantas cartas do anúncio o proponente quer", example: 1 },
           message: { type: "string", nullable: true, example: "Troco meu Mew holo pelo seu Charizard?" },
