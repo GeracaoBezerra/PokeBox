@@ -252,13 +252,15 @@ export default function CatalogPage() {
             </p>
             <span>{carregando ? "Buscando cartas…" : dados ? `${dados.items.length} cartas nesta página` : ""}</span>
           </div>
-          {buscaParcial && (
-            <p className={s.dicaBusca} role="status">
-              Não achamos tudo que você digitou ({palavrasIgnoradas.join(", ")}). Mostrando resultados para{" "}
-              <strong>“{infoBusca.name}”</strong>
-              {setsReconhecidos.length > 0 && ` em ${setsReconhecidos.join(", ")}`}.
-            </p>
-          )}
+          <div role="status">
+            {buscaParcial && (
+              <p className={s.dicaBusca}>
+                Não achamos tudo que você digitou ({palavrasIgnoradas.join(", ")}). Mostrando resultados para{" "}
+                <strong>“{infoBusca.name}”</strong>
+                {setsReconhecidos.length > 0 && ` em ${setsReconhecidos.join(", ")}`}.
+              </p>
+            )}
+          </div>
           <SelosFiltro selos={selos} onRemover={(campo) => atualizar({ [campo]: "" })} onLimpar={limparFiltros} />
           <Aviso erro={erro} onTentarDeNovo={recarregar} />
           {!carregando && dados && (
