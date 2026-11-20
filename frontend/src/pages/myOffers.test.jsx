@@ -38,7 +38,6 @@ it("mantém as propostas visíveis durante a atualização e remove apenas a que
       await atualizacao;
       return ofertas([outra]);
     }),
-    http.get(url("/trades/me"), () => HttpResponse.json({ data: { sent: [], received: [] } })),
     http.patch(url("/offers/o1/status"), () => {
       respondida = true;
       return HttpResponse.json({ data: { offer: { ...oferta, status: "REJECTED" } } });
@@ -72,8 +71,7 @@ it("mostra os lados da proposta enviada e permite expandir um pacote de cartas",
     })),
   ];
   server.use(
-    http.get(url("/offers/me"), () => ofertas([{ ...oferta, items: itens, status: "ACCEPTED" }])),
-    http.get(url("/trades/me"), () => HttpResponse.json({ data: { sent: [{ offerId: oferta.id }], received: [] } })),
+    http.get(url("/offers/me"), () => ofertas([{ ...oferta, items: itens, status: "ACCEPTED", hasTrade: true }])),
   );
 
   renderWithProviders(<MyOffersPage />, { rota: "/propostas?aba=enviadas" });
@@ -82,13 +80,12 @@ it("mostra os lados da proposta enviada e permite expandir um pacote de cartas",
   const oferecidas = within(screen.getByRole("region", { name: "Você dá" }));
   expect(oferecidas.getByRole("link", { name: "Psyduck" })).toBeVisible();
   expect(oferecidas.getAllByRole("listitem")).toHaveLength(2);
-  const expandir = oferecidas.getByRole("button", { name: "Ver mais 2 cartas" });
-  expect(expandir).toHaveAttribute("aria-expanded", "false");
-  await userEvent.click(expandir);
-  expect(oferecidas.getAllByRole("listitem")).toHaveLength(4);
-  expect(expandir).toHaveAttribute("aria-expanded", "true");
-  await userEvent.click(oferecidas.getByRole("button", { name: "Mostrar menos" }));
-  expect(oferecidas.getAllByRole("listitem")).toHaveLength(2);
+  await userEvent.click(oferecidas.getByRole("button", { name: "Ver as 4 cartas" }));
+  const galeria = screen.getByRole("dialog", { name: "Você dá · 4 cartas" });
+  expect(within(galeria).getAllByRole("listitem")).toHaveLength(4);
+  expect(within(galeria).getByRole("link", { name: "Mew" })).toBeVisible();
+  await userEvent.click(within(galeria).getByRole("button", { name: "Fechar galeria" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
   expect(within(screen.getByRole("region", { name: "Você recebe" })).getByRole("link", { name: "Rowlet" })).toBeVisible();
   expect(screen.getByRole("link", { name: "Ver troca" })).toHaveAttribute("href", "/trocas");
   expect(screen.queryByRole("button", { name: "Criar troca" })).toBeNull();
