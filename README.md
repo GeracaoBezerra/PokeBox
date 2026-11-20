@@ -17,6 +17,7 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 - [Como rodar](#como-rodar)
 - [Usuários de teste (seed)](#usuários-de-teste-seed)
 - [Testes](#testes)
+  - [E2E com Cypress](#e2e-com-cypress)
 - [Deploy](#deploy)
 - [Logs e saúde da API](#logs-e-saúde-da-api)
 - [Traces](#traces)
@@ -34,7 +35,7 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 | Banco | PostgreSQL 17 |
 | Frontend | React 19, Vite, React Router, axios |
 | Dados das cartas | API pública [TCGdex](https://tcgdex.dev), com cache no banco e uma cópia resumida de todas as cartas para a busca (`pg_trgm` + `unaccent`) |
-| Testes | Jest com ts-jest (backend), Vitest com jsdom, Testing Library e MSW (frontend) |
+| Testes | Jest com ts-jest (backend), Vitest com jsdom, Testing Library e MSW (frontend), Cypress com Testing Library (E2E) |
 | Documentação da API | Swagger em `/docs` |
 | Infra | Docker Compose (modo dev e modo produção), GitHub Actions (CI e deploy), Render (API), Neon (banco), Vercel (front) |
 
@@ -66,7 +67,8 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 │       ├── utils/         regras puras (testadas com jest)
 │       └── docs/          especificação do Swagger
 ├── frontend/              app React (Vite), Dockerfile (dev, build, prod com nginx), nginx.conf e vercel.json
-├── .github/workflows/     ci.yml (testes), deploy.yml (testes, depois Render e Vercel) e catalog-sync.yml (catálogo da busca, toda segunda)
+├── e2e/                   testes E2E com Cypress (package.json próprio, reset do banco e login rápido)
+├── .github/workflows/     ci.yml (testes), e2e.yml (Cypress), deploy.yml (testes, depois Render e Vercel) e catalog-sync.yml (catálogo da busca, toda segunda)
 ├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento
 ├── docker-compose.prod.yml o que muda no modo produção local
 └── .env.example           variáveis de ambiente
@@ -408,6 +410,38 @@ A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop`
 | `frontend` | `npm ci`, `npm run lint`, `npm run test:coverage` (Vitest, com o mínimo de cobertura) e `npm run build`. Mostra a tabela de cobertura no resumo da execução e guarda o relatório completo como artefato `coverage-frontend` |
 
 Os dois precisam passar para mergear. Na `main`, quem chama a CI é o workflow de deploy, antes de publicar (veja [Deploy](#deploy)).
+
+### E2E com Cypress
+
+E2E (ponta a ponta) é o topo da pirâmide: um navegador de verdade abre o PokeBox, entra, clica e confere a tela, com front, API e banco rodando juntos no Docker. São poucos testes, só dos caminhos que não podem quebrar. O Cypress fica na pasta `e2e/`, com o próprio `package.json`, para não pesar no `npm install` do front e do backend.
+
+> **Atenção: o E2E apaga os dados de usuário do banco local.** Antes de cada arquivo de teste, ele limpa usuários, coleções, wishlist, anúncios, ofertas e trocas e roda o seed de novo, como se fosse um `make reset` só dessas tabelas. O catálogo de cartas (`Card`, `CardCache`, `CatalogCard`, `CatalogSet` e `CatalogFilterValue`) fica. Se você tem dados criados à mão que quer guardar, não rode o E2E nesse banco. Por isso o reset tem uma trava: ele só roda com a variável `E2E_PERMITIR_RESET=1`; sem ela, o primeiro teste falha com uma mensagem explicando. O `make e2e` e o workflow da CI já ligam a variável.
+
+```bash
+docker compose up -d --build --wait
+cd e2e
+npm ci
+E2E_PERMITIR_RESET=1 npx cypress run
+```
+
+`E2E_PERMITIR_RESET=1 npx cypress run` (ou `make e2e`, da raiz) roda sem janela, como a CI. `E2E_PERMITIR_RESET=1 npx cypress open` abre a janela do Cypress para ver o teste rodando e escrever testes novos. Os prints das falhas ficam em `e2e/cypress/screenshots`.
+
+Como está montado:
+
+- **Reset do banco**: a task `resetarBanco` (`e2e/cypress.config.js`) roda um `TRUNCATE ... RESTART IDENTITY CASCADE` nas tabelas de usuário direto no Postgres do container `tcg-db` e depois o seed dentro do container `tcg-backend` (`npx prisma db seed`). Não existe rota de reset na API: uma rota que apaga o banco seria perigosa se escapasse para produção. Leva uns 2 a 3 segundos.
+- **Senhas**: vêm do `.env` da raiz (`SEED_ADMIN_PASSWORD` e `SEED_DEMO_PASSWORD`), o mesmo que o compose usa, e são lidas no teste com `cy.env()`. Nenhuma senha fica escrita nos testes.
+- **Login rápido**: `cy.login(email)` entra pela API e guarda o token (`pokebox.token`) e o usuário (`pokebox.user`) com `cy.session`, que reaproveita o login nos testes seguintes. O `validate` chama `GET /auth/me`; depois de um reset, o token antigo deixa de valer e o login é refeito. `cy.loginAdmin()` faz o mesmo com o admin.
+- **Seletores**: pelo papel, rótulo e texto que a pessoa vê (`findByRole`, `findByLabelText`, da Testing Library para Cypress). Nada de classe CSS e nada de `cy.wait(ms)`.
+- Na falha, o Cypress tenta o teste mais uma vez (`retries.runMode: 1`).
+- Por que Cypress: é a ferramenta da aula. O Playwright seria a alternativa (mais rápido e com vários navegadores), mas o time ficou com o que estudou.
+
+| Arquivo | O que cobre |
+|---|---|
+| `auth.cy.js` | login pela tela com o ash (cai na home com o menu do usuário), senha errada mostra "E-mail ou senha inválidos", página privada sem sessão manda para o login, entrar pela tela depois disso volta para a página privada, `cy.login` reaproveitando a sessão |
+
+Na CI, o workflow `E2E` (`.github/workflows/e2e.yml`) roda em toda PR para `develop` e `main` e pode ser disparado à mão na aba Actions. Ele cria um `.env` com valores só de teste (escritos no próprio workflow, sem secrets), sobe o compose, espera o front e a API responderem e roda o Cypress no Chrome. Se falhar, guarda os prints e o vídeo no artefato `cypress-falhas` (7 dias) e mostra os logs da API. Ele não é check obrigatório por enquanto.
+
+A busca do catálogo, a página da carta e o "adicionar à coleção/wishlist" dependem da TCGdex num banco novo como o da CI (o seed não preenche `CardCache` nem `CatalogCard`). Os runners do GitHub têm internet, e o `retries` cobre uma falha passageira. Login, rota privada, coleção, marketplace, anúncio, oferta, troca e moderação usam só o banco.
 
 ## Deploy
 
@@ -819,7 +853,7 @@ As páginas (`frontend/src/pages/`) só buscam os dados e montam a tela; cada bl
 | Backend | ✅ todas as rotas em produção (autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas e admin), com testes de unidade e de integração na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, com deploy automático a cada release |
 | Frontend | 🟡 todas as telas existem e conversam com a API (home, login, cadastro, catálogo, detalhe da carta, marketplace, detalhe do anúncio, coleção, wishlist, meus anúncios, propostas, trocas, perfil e perfil público); o pacotão da PR #195 trouxe modal de confirmação, toasts e mensagens amigáveis, erro embaixo do campo, sessão expirada sem recarregar, listas paginadas com filtros na URL, abas acessíveis, selo de pendências, oferta com busca e resumo, busca geral no topo, Quero e Tenho no catálogo, português como idioma padrão e perfil público com busca; em andamento: o resto do acabamento das telas |
-| Testes do front | 🟡 feito: Vitest (#179), com 266 testes rodando na CI (funções puras, `AuthService`, `http` com MSW, componentes, hooks, rota privada e páginas com a API simulada) e cobertura com mínimo na CI (#180); a fazer: E2E com Cypress (#181, #182) |
+| Testes do front | 🟡 feito: Vitest (#179), com 266 testes rodando na CI (funções puras, `AuthService`, `http` com MSW, componentes, hooks, rota privada e páginas com a API simulada), cobertura com mínimo na CI (#180) e base do E2E com Cypress, com reset do banco, login rápido, teste de autenticação e workflow na CI (#181); a fazer: os fluxos principais no E2E (#182) |
 
 Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).
 

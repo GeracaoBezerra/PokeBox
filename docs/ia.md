@@ -86,3 +86,26 @@ Cada correção da revisão do Eduardo ganhou teste (com MSW, `renderHook` ou fu
 **Como conferimos que os testes testam algo:** trocamos de propósito, um de cada vez, `"/login"` por `"/entrar"` na `RotaPrivada` (3 testes falharam), tiramos o `recarregar()` depois de remover na wishlist (1 falhou), tiramos a regra que esconde o erro antigo durante o recarregamento no `useCarregar` (1 falhou) e zeramos o intervalo de 1 minuto do `usePendencias` (2 falharam). Com o código de volta, todos passaram. Também rodamos a cobertura com um mínimo de 99% de linhas para ver o comando terminar com erro.
 
 **O que ficou de fora:** testes das outras páginas. A issue pede uma página com o MSW para mostrar o padrão, e o pacotão já tinha o perfil público e o formulário de oferta.
+
+## E2E com Cypress (#181)
+
+**Ferramenta:** Claude Code (Claude Opus), rodando num worktree próprio, com acesso ao código, ao terminal e ao Docker local.
+
+**O que foi pedido:** montar a base do E2E a partir da #181: pasta `e2e/` com o próprio `package.json`, task de reset do banco, `cy.login` com `cy.session`, o teste de autenticação e o workflow `E2E` na CI, conferindo seletores e textos nas telas depois do pacotão.
+
+**O que a IA fez:**
+
+- Conferiu no schema que o `TRUNCATE` da issue pega todas as tabelas com dado de usuário e nenhuma tabela do catálogo (`Card`, `CardCache`, `CatalogCard`, `CatalogSet`, `CatalogFilterValue` não têm chave estrangeira para elas), e contou as linhas do catálogo antes e depois do reset para confirmar que nada sumiu.
+- Instalou o Cypress 16, em que `Cypress.env()` não existe mais: as senhas passaram a ser lidas com `cy.env()` e o endereço da API com `Cypress.expose()`, como a issue pedia conferir.
+- Acrescentou um caso que a issue não tinha: entrar pela tela depois de ser mandado ao login volta para a página privada de origem (o pacotão passou a guardar essa página).
+- Rodou a suíte duas vezes seguidas e uma vez com o texto do erro trocado de propósito, para ver o teste falhar e salvar o print.
+
+**O que foi ajustado em relação à issue:**
+
+| Na issue | Como está no código | Como ficou |
+|---|---|---|
+| botão com nome exato "Menu do usuário" | o pacotão mudou o nome para "Olá, Ash. Menu do usuário" | o teste procura o nome com `/Menu do usuário/` e, no `cy.login`, o nome completo |
+| `Cypress.env('senhaDemo')` | removido no Cypress 16 | `cy.env(["senhaDemo"])` |
+| `cypress-io/github-action@v6` | a versão atual é a v7 | `@v7`, rodando no Chrome (o Electron está marcado como obsoleto no Cypress 16) |
+
+**O que ficou de fora:** comparar com `npx prisma migrate reset --force`. Ele apagaria o catálogo local de cartas, que leva uns 26 minutos para sincronizar; o `TRUNCATE` + seed ficou.

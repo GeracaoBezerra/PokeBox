@@ -9,7 +9,7 @@ API := http://localhost:3000
 PSQL := docker compose exec -T tcg-db psql -U $(DB_USER) -d $(DB_NAME)
 
 .PHONY: help up stop down ps logs psql reset dev traces traces-down generate migrate status studio \
-        users constraints migrations schema clean-users unit test-int test-db-down coverage test test-db test-collection test-profile test-wishlist test-listings test-offers \
+        users constraints migrations schema clean-users unit test-int test-db-down coverage e2e test test-db test-collection test-profile test-wishlist test-listings test-offers \
         prod-up prod-down prod-logs
 
 help:
@@ -84,6 +84,9 @@ coverage: ## roda unidade + integracao com cobertura (relatorio em backend/cover
 	@test -f backend/.env.test || cp backend/.env.test.example backend/.env.test
 	@docker compose --profile test up -d --wait tcg-db-test
 	@cd backend && npm run test:coverage
+
+e2e: ## roda o E2E (Cypress) sem janela; precisa do compose no ar e APAGA os dados de usuario do banco local
+	@cd e2e && E2E_PERMITIR_RESET=1 npx cypress run
 
 test-db-down: ## remove o banco de teste (os dados dele sao descartaveis)
 	@docker compose --profile test rm -sf tcg-db-test
