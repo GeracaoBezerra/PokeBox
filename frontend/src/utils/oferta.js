@@ -44,6 +44,12 @@ export function textoQuantidadesInvalidas(itens) {
   return `Corrija a quantidade oferecida de ${lista} antes de enviar.`;
 }
 
+export function textoCartasSelecionadas(total) {
+  if (total === 0) return "Nenhuma carta selecionada";
+  if (total === 1) return "1 carta selecionada";
+  return `${total} cartas selecionadas`;
+}
+
 export function descreverCartaOferta(card, item, quantidade) {
   return `${quantidade}× ${card.name} (${variante(item)}, ${CONDICOES[item.condition] ?? item.condition})`;
 }

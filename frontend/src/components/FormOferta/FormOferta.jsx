@@ -8,7 +8,7 @@ import { useAcao } from "../../hooks/useAcao";
 import { useListaPaginada } from "../../hooks/useListaPaginada";
 import s from "../../styles/detalheCarta.module.css";
 import { temPalavra } from "../../utils/filtrosMarketplace";
-import { LIMITE_CARTAS_OFERTA, cartasDaBusca, quantidadesInvalidas, textoQuantidadesInvalidas } from "../../utils/oferta";
+import { LIMITE_CARTAS_OFERTA, cartasDaBusca, quantidadesInvalidas, textoCartasSelecionadas, textoQuantidadesInvalidas } from "../../utils/oferta";
 import Aviso from "../Aviso/Aviso";
 import CampoBusca from "../CampoBusca/CampoBusca";
 import ErroCampo from "../ErroCampo/ErroCampo";
@@ -104,6 +104,7 @@ export default function FormOferta({ anuncio }) {
             </div>
           </div>
           <div className={s.cabecalhoSelecao}><h3>O que você oferece</h3><span className={s.suave}>{total}/{LIMITE_CARTAS_OFERTA} cartas selecionadas</span></div>
+          <p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p>
           <Aviso erro={erroColecao} />
           {erroColecao && <button type="button" className={s.botaoSecundario} onClick={recarregar}>Carregar coleção novamente</button>}
           {carregando && <CarregandoCartas total={4} formato="tabela" />}
@@ -113,7 +114,8 @@ export default function FormOferta({ anuncio }) {
           {!carregando && visiveis.length > 0 && <CartasOferecidas itens={visiveis} escolhidas={quantidades} onAlternar={alternar} onQuantidade={mudarQuantidade} />}
           {esperandoBusca && <p className={s.suave} role="status">Buscando na sua coleção…</p>}
           {!carregando && !esperandoBusca && lista.temMais && <button type="button" className={s.botaoSecundario} disabled={lista.carregandoMais} onClick={lista.carregarMais}>{lista.carregandoMais ? "Carregando…" : "Carregar mais cartas"}</button>}
-          <div className={s.rodapeOferta}><ResumoTroca anuncio={anuncio} quantidade={quantidade} escolhidas={listaEscolhidas} aviso={avisoQuantidades} /><p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p><button className={s.botao} type="submit" disabled={carregando || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
+          <ResumoTroca anuncio={anuncio} quantidade={quantidade} escolhidas={listaEscolhidas} aviso={avisoQuantidades} />
+          <div className={s.rodapeOferta}><span className={s.resumoOferta}>{textoCartasSelecionadas(total)}</span><button className={s.botao} type="submit" disabled={carregando || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
         </fieldset>
         <Aviso erro={acao.erro} campos={["quantity", "message"]} />
       </form>
