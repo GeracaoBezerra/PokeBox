@@ -4,7 +4,7 @@ import CartaCard from "../CartaCard/CartaCard";
 
 export default function ItemWishlist({ item, ocupado, onRemover }) {
   return (
-    <div className={s.cartaMini}>
+    <div className={s.cartaMini} data-cy="item-wishlist">
       <CartaCard carta={item.card} />
       <strong>{item.card.name}</strong>
       <span className={s.suave}>

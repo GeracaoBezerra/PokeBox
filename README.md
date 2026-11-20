@@ -438,10 +438,19 @@ Como está montado:
 | Arquivo | O que cobre |
 |---|---|
 | `auth.cy.js` | login pela tela com o ash (cai na home com o menu do usuário), senha errada mostra "E-mail ou senha inválidos", página privada sem sessão manda para o login, entrar pela tela depois disso volta para a página privada, `cy.login` reaproveitando a sessão |
+| `colecao.cy.js` | o ash abre o Bulbasaur do Base Set (`/cards/base1-44`), adiciona à coleção com os valores padrão, vê "Carta adicionada à coleção." e a linha do Bulbasaur em Minha coleção |
+| `wishlist.cy.js` | o ash remove o Zapdos em `/procuro` (sobram 3 cartas); depois abre o Squirtle do Base Set (`/cards/base1-63`), clica em "Quero esta carta" e vê o Squirtle na wishlist |
+| `anuncio.cy.js` | o ash anuncia 1 Rowlet pela linha da coleção, vê "Anúncio criado. Veja em Meus anúncios." e acha o anúncio buscando "rowlet" no marketplace |
+| `troca.cy.js` | a troca inteira com dois usuários: o ash anuncia o Rowlet (o `id` vem da resposta do `POST /listings`, com `cy.intercept`), a misty oferece 1 Psyduck, o ash aceita (confirmando no modal), a misty cria a troca, o ash conclui, e o Rowlet aparece na coleção da misty e o Psyduck na do ash |
+| `admin.cy.js` | o admin abre o anúncio do Blastoise da misty pelo marketplace, bloqueia na caixa "Moderação do anúncio" (confirmando no modal), e o anúncio some da busca "blastoise" |
+
+Cada arquivo roda sozinho (`npx cypress run --spec cypress/e2e/troca.cy.js`). Nos arquivos dos fluxos, o reset roda antes de **cada** teste (`beforeEach`), e não só uma vez por arquivo: o Cypress não repete o `before` quando tenta um teste de novo, e uma segunda tentativa que começasse no meio de uma troca acharia o banco sujo. Para achar um pedaço da tela sem papel próprio, os componentes ganharam três atributos só para teste: `data-cy="item-wishlist"` (`ItemWishlist`), `data-cy="cartao-oferta"` (`CartaoOferta`) e `data-cy="cartao-troca"` (`CartaoTroca`). Quem mudar esses componentes mantém os atributos.
+
+A suíte inteira (6 arquivos, 11 testes) leva uns 40 segundos no computador, com o compose já no ar.
 
 Na CI, o workflow `E2E` (`.github/workflows/e2e.yml`) roda em toda PR para `develop` e `main` e pode ser disparado à mão na aba Actions. Ele cria um `.env` com valores só de teste (escritos no próprio workflow, sem secrets), sobe o compose, espera o front e a API responderem e roda o Cypress no Chrome. Se falhar, guarda os prints e o vídeo no artefato `cypress-falhas` (7 dias) e mostra os logs da API. Ele não é check obrigatório por enquanto.
 
-A busca do catálogo, a página da carta e o "adicionar à coleção/wishlist" dependem da TCGdex num banco novo como o da CI (o seed não preenche `CardCache` nem `CatalogCard`). Os runners do GitHub têm internet, e o `retries` cobre uma falha passageira. Login, rota privada, coleção, marketplace, anúncio, oferta, troca e moderação usam só o banco.
+A página da carta e o "adicionar à coleção/wishlist" dependem da TCGdex num banco novo como o da CI (o seed não preenche `CardCache` nem `CatalogCard`): no E2E, isso é o `colecao.cy.js` e a parte "adicionar" do `wishlist.cy.js`. Os runners do GitHub têm internet. Nesses dois testes, a primeira conferência espera até 15 s (a API pode levar até 8 s esperando a TCGdex, e o Cypress espera 4 s por padrão), e o `retries` cobre uma falha passageira. O teste de remover da wishlist confere um item a menos do que havia, sem depender de quantos itens o seed põe na wishlist do ash. Login, rota privada, a lista da coleção, marketplace, anúncio, oferta, troca, remover da wishlist e moderação usam só o banco. Os testes não usam o painel de filtros do marketplace, que também chama a TCGdex.
 
 ## Deploy
 
@@ -853,7 +862,7 @@ As páginas (`frontend/src/pages/`) só buscam os dados e montam a tela; cada bl
 | Backend | ✅ todas as rotas em produção (autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas e admin), com testes de unidade e de integração na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, com deploy automático a cada release |
 | Frontend | 🟡 todas as telas existem e conversam com a API (home, login, cadastro, catálogo, detalhe da carta, marketplace, detalhe do anúncio, coleção, wishlist, meus anúncios, propostas, trocas, perfil e perfil público); o pacotão da PR #195 trouxe modal de confirmação, toasts e mensagens amigáveis, erro embaixo do campo, sessão expirada sem recarregar, listas paginadas com filtros na URL, abas acessíveis, selo de pendências, oferta com busca e resumo, busca geral no topo, Quero e Tenho no catálogo, português como idioma padrão e perfil público com busca; em andamento: o resto do acabamento das telas |
-| Testes do front | 🟡 feito: Vitest (#179), com 266 testes rodando na CI (funções puras, `AuthService`, `http` com MSW, componentes, hooks, rota privada e páginas com a API simulada), cobertura com mínimo na CI (#180) e base do E2E com Cypress, com reset do banco, login rápido, teste de autenticação e workflow na CI (#181); a fazer: os fluxos principais no E2E (#182) |
+| Testes do front | ✅ Vitest (#179), com 266 testes rodando na CI (funções puras, `AuthService`, `http` com MSW, componentes, hooks, rota privada e páginas com a API simulada), cobertura com mínimo na CI (#180) e E2E com Cypress, com reset do banco, login rápido e workflow na CI (#181), cobrindo os fluxos de autenticação, coleção, wishlist, anúncio, troca e moderação (#182) |
 
 Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).
 
