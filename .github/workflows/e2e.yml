@@ -5,6 +5,9 @@ on:
     branches: [develop, main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
@@ -40,6 +43,8 @@ jobs:
           cache-dependency-path: e2e/package-lock.json
 
       - uses: cypress-io/github-action@v7
+        env:
+          E2E_PERMITIR_RESET: "1"
         with:
           working-directory: e2e
           browser: chrome
