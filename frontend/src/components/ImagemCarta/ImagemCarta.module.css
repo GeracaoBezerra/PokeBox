@@ -1,14 +1,39 @@
 .semImagem {
+  container-type: inline-size;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  position: relative;
   aspect-ratio: 245 / 342;
-  padding: 4px;
-  border: 1px dashed var(--borda);
-  border-radius: 6px;
-  background: var(--superficie-funda);
-  color: var(--texto-suave);
-  font-size: 0.7rem;
+  padding: var(--esp-8);
+  border-radius: var(--raio-carta);
+  background-color: #e5e7eb;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: #374151;
   text-align: center;
+  overflow: hidden;
+}
+
+.semImagem::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(229 231 235 / 0.95), transparent 45%);
+  pointer-events: none;
+}
+
+.legenda {
+  position: relative;
+  z-index: 1;
+  font-weight: var(--peso-semi);
+  font-size: clamp(0.6rem, 6cqw, 1.25rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
