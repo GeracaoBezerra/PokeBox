@@ -62,7 +62,8 @@ export default function CartaCard({ carta, lang, link, painel = true, acoes }) {
   const tipoInfo = acharTipo(tipoApi);
   const tipo = tipoInfo?.rotulo ?? tipoApi;
 
-  const destino = link ?? (lang ? `/cards/${id}?lang=${lang}` : `/cards/${id}`);
+  const idUrl = encodeURIComponent(id);
+  const destino = link ?? (lang ? `/cards/${idUrl}?lang=${lang}` : `/cards/${idUrl}`);
   const alt = [nome, set, numeroTexto].filter(Boolean).join(", ");
   const temDados = Boolean(tipo || raridade || set || numeroTexto || artista);
   const wishlistCount = carta.wishlistCount;
@@ -74,20 +75,15 @@ export default function CartaCard({ carta, lang, link, painel = true, acoes }) {
     <div className={styles.carta} data-tipo={tipoInfo?.chave ?? "incolor"}>
       <div className={styles.palco}>
         <Link to={destino} className={styles.link}>
-          {src ? (
-            <img
-              className={styles.imagem}
-              src={src}
-              alt={alt}
-              width="245"
-              height="342"
-              loading="lazy"
-              decoding="async"
-              draggable={false}
-            />
-          ) : (
-            <ImagemCarta className={styles.imagem} alt={alt} />
-          )}
+          <ImagemCarta
+            className={styles.imagem}
+            src={src}
+            alt={alt}
+            width="245"
+            height="342"
+            decoding="async"
+            draggable={false}
+          />
         </Link>
 
         {/* Painel de dados: é só um resumo visual, os mesmos dados estarão
