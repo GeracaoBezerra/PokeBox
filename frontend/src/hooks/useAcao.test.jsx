@@ -90,6 +90,8 @@ describe("useAcao", () => {
       await result.current.executar(() => Promise.resolve(), "Pikachu saiu da wishlist.", { tipo: "info" });
     });
 
-    expect(screen.getByRole("status")).toHaveTextContent("Pikachu saiu da wishlist.");
+    const toast = screen.getByText("Pikachu saiu da wishlist.").parentElement;
+    expect(toast.className).toMatch(/info/);
+    expect(toast.className).not.toMatch(/sucesso/);
   });
 });

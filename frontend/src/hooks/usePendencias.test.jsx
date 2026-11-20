@@ -48,11 +48,13 @@ afterEach(() => {
 
 describe("usePendencias", () => {
   it("sem login, devolve zero e não chama a API", async () => {
+    const { pedidos } = apiDasPendencias({ ofertas: 2, trocas: 1 });
     const { result } = renderizar(criarSessaoFalsa(null));
 
     await act(async () => {});
 
     expect(result.current.pendencias).toEqual({ ofertas: 0, trocas: 0 });
+    expect(pedidos).toEqual([]);
   });
 
   it("com login, conta só as ofertas e trocas recebidas que aguardam resposta", async () => {
@@ -86,14 +88,17 @@ describe("usePendencias", () => {
   });
 
   it("ao entrar com outra conta, conta de novo para ela", async () => {
-    const { atual } = apiDasPendencias({ ofertas: 0 });
-    const service = criarSessaoFalsa(null);
+    const { atual, pedidos } = apiDasPendencias({ ofertas: 1 });
+    const service = criarSessaoFalsa();
     const { result } = renderizar(service);
+    await waitFor(() => expect(result.current.pendencias.ofertas).toBe(1));
+    const pedidosDoAsh = pedidos.length;
 
     atual.ofertas = 4;
     act(() => service.entrar({ name: "Misty", username: "misty" }));
 
     await waitFor(() => expect(result.current.pendencias.ofertas).toBe(4));
+    expect(pedidos.length).toBeGreaterThan(pedidosDoAsh);
   });
 
   it("trocar de página só conta de novo se já passou um minuto da última contagem", async () => {
