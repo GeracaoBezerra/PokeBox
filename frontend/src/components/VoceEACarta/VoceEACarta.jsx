@@ -7,7 +7,7 @@ import { useAcao } from "../../hooks/useAcao";
 import s from "../../styles/detalheCarta.module.css";
 import Aviso from "../Aviso/Aviso";
 import AnunciarCarta from "../AnunciarCarta/AnunciarCarta";
-import Modal from "../Modal/Modal";
+import ConfirmModal from "../ConfirmModal/ConfirmModal";
 
 export default function VoceEACarta({ card, lang, user, listings = [], onMudou, atualizando = false }) {
   const session = useSession();
@@ -78,9 +78,14 @@ export default function VoceEACarta({ card, lang, user, listings = [], onMudou, 
       <div className={s.feedbackWishlist} data-visivel={Boolean(wishlist.erro)}>
         <div><Aviso erro={wishlist.erro} /></div>
       </div>
-      <Modal aberto={modalAberto} titulo="Anunciar esta carta" onFechar={() => setModalAberto(false)}>
-        <AnunciarCarta card={card} onCriado={anuncioCriado} />
-      </Modal>
+      <ConfirmModal
+        aberto={modalAberto}
+        titulo="Anunciar esta carta"
+        textoCancelar="Fechar"
+        onCancelar={() => setModalAberto(false)}
+      >
+        {modalAberto && <AnunciarCarta card={card} onCriado={anuncioCriado} />}
+      </ConfirmModal>
     </section>
   );
 }
