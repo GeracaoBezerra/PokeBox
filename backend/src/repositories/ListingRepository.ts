@@ -36,6 +36,8 @@ export interface OpenListing {
   status: ListingStatus;
 }
 
+export type ListingRef = Pick<OpenListing, 'id' | 'status'>;
+
 export interface NewListing {
   collectionItemId: string;
   quantity: number;
@@ -57,12 +59,12 @@ export interface ListingRepository {
   countByItem(collectionItemId: string, db?: Db): Promise<ListingCounts>;
   create(data: NewListing, db?: Db): Promise<ListingWithItem>;
   update(id: string, data: ListingChanges, db?: Db): Promise<ListingWithItem>;
-  existsActiveByUserAndCard(userId: string, cardId: string): Promise<{ id: string } | null>;
+  findOpenByUserAndCard(userId: string, cardId: string): Promise<ListingRef[]>;
 }
 
 export type ListingCounter = Pick<ListingRepository, 'sumOpenByItem' | 'countByItem'>;
 
-export type ListingLookup = Pick<ListingRepository, 'existsActiveByUserAndCard'>;
+export type ListingLookup = Pick<ListingRepository, 'findOpenByUserAndCard'>;
 
 export type ListingUpdater = Pick<ListingRepository, 'update'>;
 

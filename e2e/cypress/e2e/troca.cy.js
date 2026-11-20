@@ -24,7 +24,14 @@ describe("Troca entre dois colecionadores", () => {
     cy.findByRole("checkbox", { name: "Oferecer Psyduck" }).check();
     cy.findByRole("spinbutton", { name: "Quantidade de Psyduck oferecida" }).should("have.value", "1");
     cy.findByRole("button", { name: "Enviar oferta" }).click();
-    cy.findByText("Oferta enviada! Acompanhe a resposta em Propostas.").should("be.visible");
+    cy.location("pathname").should("eq", "/propostas");
+    cy.location("search").should("eq", "?aba=enviadas");
+    cy.findByText("Oferta enviada para @ash.").should("be.visible");
+    cy.findByRole("tab", { name: "Enviadas" }).should("have.attr", "aria-selected", "true");
+    cy.contains('[data-cy="cartao-oferta"]', "Rowlet").should("be.visible");
+    cy.go("back");
+    cy.findByRole("heading", { name: "Você já fez uma oferta aqui" }).should("be.visible");
+    cy.findByRole("heading", { name: "Monte sua oferta" }).should("not.exist");
 
     cy.login("ash@pokebox.dev");
     cy.visit("/propostas");

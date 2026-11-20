@@ -1,14 +1,24 @@
 import { Link } from "react-router-dom";
-import { Heart, HeartCrack, Layers, Check } from "lucide-react";
+import { useState } from "react";
+import { Heart, HeartCrack, Layers, Check, Megaphone } from "lucide-react";
 import { addToWishlist, listWishlist, removeFromWishlist } from "../../api/wishlist";
 import { useAcao } from "../../hooks/useAcao";
 import s from "../../styles/detalheCarta.module.css";
 import Aviso from "../Aviso/Aviso";
+import AnunciarCarta from "../AnunciarCarta/AnunciarCarta";
+import ConfirmModal from "../ConfirmModal/ConfirmModal";
 
 export default function VoceEACarta({ card, lang, user, onMudou, atualizando = false }) {
+  const [modalAberto, setModalAberto] = useState(false);
   const wishlist = useAcao();
   const ocupado = wishlist.ocupado || atualizando;
   const IconeWishlist = user.inWishlist ? HeartCrack : Heart;
+  const meuAnuncio = user.myListing;
+
+  function anuncioCriado() {
+    setModalAberto(false);
+    onMudou();
+  }
 
   async function alternarWishlist() {
     if (ocupado) return;
@@ -18,7 +28,7 @@ export default function VoceEACarta({ card, lang, user, onMudou, atualizando = f
       const itens = await listWishlist();
       const item = itens.find((item) => item.cardId === card.id);
       if (item) await removeFromWishlist(item.id);
-    }, user.inWishlist ? "Carta removida da wishlist." : "Carta adicionada à wishlist.", { tipo: user.inWishlist ? "info" : "sucesso" });
+    }, user.inWishlist ? "Carta removida da wishlist." : "Carta adicionada à wishlist.", { tipo: user.inWishlist ? "aviso" : "sucesso" });
     if (ok) onMudou();
   }
   return (
@@ -28,8 +38,20 @@ export default function VoceEACarta({ card, lang, user, onMudou, atualizando = f
         <div><h2>Sua coleção</h2><p>{user.inCollection > 0 ? `${user.inCollection} ${user.inCollection === 1 ? "cópia na sua coleção" : "cópias na sua coleção"}` : "Você ainda não tem esta carta"}</p></div>
         {user.inCollection > 0 && <Check size={20} aria-label="Na coleção" />}
       </div>
-      {user.onTradeList && <p className={s.suave}>Você tem um anúncio ativo desta carta.</p>}
+      {meuAnuncio && (
+        <p className={s.suave}>
+          {meuAnuncio.status === "PAUSED" ? "Você tem um anúncio pausado desta carta." : "Você tem um anúncio ativo desta carta."}
+        </p>
+      )}
       <div className={s.acoes}>
+        {user.inCollection > 0 && !meuAnuncio && (
+          <button type="button" className={s.botaoSecundario} onClick={() => setModalAberto(true)}>
+            <Megaphone size={16} aria-hidden="true" /> Anunciar esta carta
+          </button>
+        )}
+        {meuAnuncio && (
+          <Link className={s.link} to={`/marketplace/${encodeURIComponent(meuAnuncio.id)}`}>Ver meu anúncio</Link>
+        )}
         {(user.inWishlist || user.inCollection === 0) && (
           <button
             className={`${s.botaoSecundario} ${s.botaoWishlist}`}
@@ -53,6 +75,14 @@ export default function VoceEACarta({ card, lang, user, onMudou, atualizando = f
       <div className={s.feedbackWishlist} data-visivel={Boolean(wishlist.erro)}>
         <div><Aviso erro={wishlist.erro} /></div>
       </div>
+      <ConfirmModal
+        aberto={modalAberto}
+        titulo="Anunciar esta carta"
+        textoCancelar="Fechar"
+        onCancelar={() => setModalAberto(false)}
+      >
+        {modalAberto && <AnunciarCarta card={card} onCriado={anuncioCriado} />}
+      </ConfirmModal>
     </section>
   );
 }

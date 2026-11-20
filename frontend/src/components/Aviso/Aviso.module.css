@@ -13,6 +13,12 @@
   font-size: 0.9rem;
 }
 
+.sucesso {
+  border-color: var(--sucesso);
+  background: var(--sucesso-fundo);
+  color: var(--sucesso);
+}
+
 .tentar {
   padding: var(--esp-4) var(--esp-12);
   border: 1px solid var(--erro);

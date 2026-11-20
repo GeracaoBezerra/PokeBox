@@ -69,7 +69,7 @@ function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, onPrecisaLogin
     const { ok, erro } = await executar(
       () => (tirar ? removeFromWishlist(itemWishlist) : addToWishlist(carta.id, lang)),
       tirar ? `${carta.name} saiu da wishlist.` : `${carta.name} entrou na wishlist.`,
-      { tipo: tirar ? "info" : "sucesso" }
+      { tipo: tirar ? "aviso" : "sucesso" }
     );
     if (ok) onMudou();
     else toast.erro(mensagemAmigavel(erro));

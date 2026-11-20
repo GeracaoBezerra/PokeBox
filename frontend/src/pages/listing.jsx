@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowDown, ArrowUpRight, ArrowLeftRight, ShieldCheck } from "lucide-react";
 import { getListing } from "../api/listings";
 import { listMyOffers } from "../api/offers";
@@ -25,6 +25,19 @@ export default function ListingPage() {
   const souDono = Boolean(anuncio && me && me.username === anuncio.owner.username);
   const souAdmin = me?.role === "ADMIN";
   const podeOfertar = me && !souDono && anuncio?.status === "ACTIVE";
+  const navigate = useNavigate();
+  const deMarketplace = useLocation().state?.deMarketplace === true;
+
+  const verificarOferta = Boolean(podeOfertar);
+  const minhas = useCarregar(
+    () => (verificarOferta ? listMyOffers("PROPOSED") : Promise.resolve(null)),
+    `${id}|${verificarOferta}`
+  );
+  const verificandoOferta = verificarOferta && minhas.carregando;
+  const ofertaAberta = verificarOferta && !minhas.carregando
+    ? minhas.dados?.sent?.find((oferta) => oferta.listing?.id === anuncio.id)
+    : undefined;
+
   const anuncioAberto = anuncio?.status === "ACTIVE" || anuncio?.status === "PAUSED";
   const verOfertas = souDono && anuncioAberto;
   const chaveOfertas = verOfertas ? `${anuncio.id}|${anuncio.status}` : "";
@@ -34,7 +47,13 @@ export default function ListingPage() {
   return (
     <div className={s.pagina}>
       <nav className={s.navegacao} aria-label="Navegação do anúncio">
-        <Link to="/marketplace"><ArrowLeft size={16} aria-hidden="true" /> Voltar ao marketplace</Link>
+        {deMarketplace ? (
+          <button type="button" className={s.voltar} onClick={() => navigate(-1)}>
+            <ArrowLeft size={16} aria-hidden="true" /> Voltar ao marketplace
+          </button>
+        ) : (
+          <Link to="/marketplace"><ArrowLeft size={16} aria-hidden="true" /> Voltar ao marketplace</Link>
+        )}
         <span>Trocas na comunidade</span>
       </nav>
       {erro ? (
@@ -61,8 +80,20 @@ export default function ListingPage() {
                 </div>
               ) : podeOfertar ? (
                 <div className={s.convite}>
-                  <h2>Vamos fazer uma troca?</h2><p>Escolha cartas da sua coleção e envie uma proposta para @{anuncio.owner.username}.</p>
-                  <a className={s.botao} href="#fazer-oferta"><ArrowLeftRight size={18} aria-hidden="true" /> Fazer uma oferta <ArrowDown size={16} aria-hidden="true" /></a>
+                  <Aviso erro={minhas.erro} onTentarDeNovo={minhas.recarregar} />
+                  {ofertaAberta ? (
+                    <>
+                      <h2>Você já fez uma oferta aqui</h2>
+                      <Link className={s.link} to="/propostas?aba=enviadas">Ver em Propostas</Link>
+                    </>
+                  ) : verificandoOferta ? (
+                    <p className={s.suave} role="status">Verificando suas ofertas…</p>
+                  ) : (
+                    <>
+                      <h2>Vamos fazer uma troca?</h2><p>Escolha cartas da sua coleção e envie uma proposta para @{anuncio.owner.username}.</p>
+                      <a className={s.botao} href="#fazer-oferta"><ArrowLeftRight size={18} aria-hidden="true" /> Fazer uma oferta <ArrowDown size={16} aria-hidden="true" /></a>
+                    </>
+                  )}
                 </div>
               ) : !session ? (
                 <div className={s.convite}>
@@ -74,12 +105,12 @@ export default function ListingPage() {
               ) : (
                 <div className={s.convite}><h2>Anúncio indisponível para ofertas</h2><p>Você pode explorar outras cartas na comunidade.</p><Link className={s.link} to="/marketplace">Ver outros anúncios</Link></div>
               )}
-              <Link className={s.link} to={`/cards/${anuncio.card.id}`}>Conhecer todos os detalhes da carta <ArrowUpRight size={16} aria-hidden="true" /></Link>
+              <Link className={s.link} to={`/cards/${encodeURIComponent(anuncio.card.id)}`}>Conhecer todos os detalhes da carta <ArrowUpRight size={16} aria-hidden="true" /></Link>
               {souAdmin && !souDono && <ModeracaoAnuncio key={id} anuncio={anuncio} onMudou={recarregar} atualizando={carregando} />}
             </div>
           </div>
           <div className={s.notaTroca}><ShieldCheck size={20} aria-hidden="true" /><p>A oferta inicia a conversa. As cartas só ficam reservadas quando a troca é criada.</p></div>
-          {podeOfertar && <FormOferta key={id} anuncio={anuncio} />}
+          {podeOfertar && !verificandoOferta && !ofertaAberta && <FormOferta key={id} anuncio={anuncio} />}
         </>
       )}
     </div>
