@@ -20,10 +20,6 @@ export function mudarFiltros(params, mudancas, reiniciarPagina = true) {
   return novos;
 }
 
-export function pendentesPrimeiro(lista) {
-  return [...lista].sort((a, b) => (b.status === "PROPOSED") - (a.status === "PROPOSED"));
-}
-
 export function resumirTrocas({ sent, received }) {
   const todas = [...sent, ...received];
   const contar = (...status) => todas.filter((troca) => status.includes(troca.status)).length;

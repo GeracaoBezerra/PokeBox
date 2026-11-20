@@ -1,0 +1,65 @@
+name: E2E
+
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Criar o .env só para o E2E
+        run: |
+          cat > .env <<'EOF'
+          POSTGRES_USER=e2e
+          POSTGRES_PASSWORD=e2e
+          POSTGRES_DB=pokebox_e2e
+          JWT_SECRET=segredo-so-para-o-e2e-da-ci
+          SEED_ADMIN_PASSWORD=admin-do-e2e-123
+          SEED_DEMO_PASSWORD=demo-do-e2e-123
+          AUTH_RATE_LIMIT=0
+          LOG_LEVEL=warn
+          EOF
+
+      - name: Subir banco, API e front
+        run: docker compose up -d --build --wait
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - uses: cypress-io/github-action@v7
+        env:
+          E2E_PERMITIR_RESET: "1"
+        with:
+          working-directory: e2e
+          browser: chrome
+          wait-on: "http://localhost:5173, http://localhost:3000/health"
+          wait-on-timeout: 120
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-falhas
+          path: |
+            e2e/cypress/screenshots
+            e2e/cypress/videos
+          retention-days: 7
+
+      - if: failure()
+        name: Logs da API
+        run: docker compose logs --no-color --tail=200 tcg-backend

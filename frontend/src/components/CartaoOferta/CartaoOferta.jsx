@@ -77,7 +77,7 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, onMudou }) 
   }
 
   return (
-    <div className={s.cartaoNegociacao} data-pendente={recebida && aberta}>
+    <div className={s.cartaoNegociacao} data-pendente={recebida && aberta} data-cy="cartao-oferta">
       <div className={s.acoes}>
         <span className={s.status}>{virouTroca ? "Virou troca" : STATUS_NEGOCIACAO[oferta.status]}</span>
         <span className={s.suave}>
