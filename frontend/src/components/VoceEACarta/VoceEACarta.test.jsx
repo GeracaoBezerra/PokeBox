@@ -153,6 +153,14 @@ describe("VoceEACarta: atalho para anunciar", () => {
     expect(screen.queryByRole("button", { name: "Anunciar esta carta" })).not.toBeInTheDocument();
   });
 
+  it("com anúncio em troca, avisa e mostra Ver meu anúncio", () => {
+    renderizar({ user: { ...comAnuncioPausado, myListing: { id: "anuncio-em-troca", status: "IN_TRADE" } } });
+
+    expect(screen.getByText("Você tem um anúncio em troca desta carta.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver meu anúncio" })).toHaveAttribute("href", "/marketplace/anuncio-em-troca");
+    expect(screen.queryByRole("button", { name: "Anunciar esta carta" })).not.toBeInTheDocument();
+  });
+
   it("sem anúncio e com a carta, mostra Anunciar esta carta e nenhum aviso de anúncio", () => {
     renderizar({ user: semAnuncio });
 

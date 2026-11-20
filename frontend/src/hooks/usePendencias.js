@@ -3,10 +3,11 @@ import { useLocation } from "react-router-dom";
 import { listMyOffers } from "../api/offers";
 import { listMyTrades } from "../api/trades";
 import { useSession } from "../auth/useSession";
+import { trocasEsperandoConfirmacao } from "../utils/negociacao";
 import { useCarregar } from "./useCarregar";
 
 const EVENTO_PENDENCIAS = "pendencias:mudou";
-const SEM_PENDENCIAS = { ofertas: 0, trocas: 0 };
+const SEM_PENDENCIAS = { ofertas: 0, trocas: 0, abaTrocas: "recebidas" };
 const INTERVALO_MINIMO_MS = 60 * 1000;
 
 export function avisarQuePendenciasMudaram() {
@@ -15,7 +16,12 @@ export function avisarQuePendenciasMudaram() {
 
 async function contar() {
   const [ofertas, trocas] = await Promise.all([listMyOffers("PROPOSED"), listMyTrades("PROPOSED")]);
-  return { ofertas: ofertas.received.length, trocas: trocas.received.length };
+  const esperando = trocasEsperandoConfirmacao(trocas);
+  return {
+    ofertas: ofertas.received.filter((oferta) => !oferta.onHold).length,
+    trocas: esperando.total,
+    abaTrocas: esperando.aba,
+  };
 }
 
 export function usePendencias() {

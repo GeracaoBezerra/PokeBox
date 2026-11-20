@@ -267,6 +267,7 @@
 .statusAnuncio { padding: var(--esp-4) var(--esp-12); border-radius: var(--raio-pilula); font-size: var(--fs-xs); background: var(--superficie); color: var(--texto-suave); }
 .statusAnuncio[data-status="ACTIVE"] { background: var(--sucesso-fundo); color: var(--sucesso); }
 .statusAnuncio[data-status="PAUSED"] { background: var(--aviso-fundo); color: var(--aviso); }
+.statusAnuncio[data-status="IN_TRADE"] { background: var(--info-fundo); color: var(--info); }
 .statusAnuncio[data-status="BLOCKED"] { background: var(--erro-fundo); color: var(--erro); }
 .colecionador { display: flex; align-items: center; gap: var(--esp-12); }
 .colecionador > div { min-width: 0; display: grid; }

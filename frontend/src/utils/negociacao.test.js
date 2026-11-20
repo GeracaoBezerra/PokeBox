@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lerFiltrosNegociacao, mudarFiltros, resumirTrocas } from "./negociacao";
+import { lerFiltrosNegociacao, mudarFiltros, resumirTrocas, trocasEsperandoConfirmacao } from "./negociacao";
 import { STATUS_NEGOCIACAO } from "./rotulos";
 
 const ler = (busca) => lerFiltrosNegociacao(new URLSearchParams(busca), STATUS_NEGOCIACAO);
@@ -54,12 +54,24 @@ describe("mudarFiltros", () => {
 });
 
 describe("resumirTrocas", () => {
-  it("conta as trocas dos dois lados por situação", () => {
+  it("conta as trocas dos dois lados por situação e as que esperam a sua confirmação", () => {
     const resumo = resumirTrocas({
-      sent: [{ status: "ACCEPTED" }, { status: "PROPOSED" }, { status: "CANCELED" }],
-      received: [{ status: "ACCEPTED" }, { status: "PROPOSED" }, { status: "REJECTED" }, { status: "ACCEPTED" }],
+      sent: [{ status: "ACCEPTED" }, { status: "PROPOSED", proposerConfirmedAt: null }, { status: "CANCELED" }],
+      received: [
+        { status: "ACCEPTED" },
+        { status: "PROPOSED", recipientConfirmedAt: "2026-11-20T10:00:00Z" },
+        { status: "REJECTED" },
+        { status: "ACCEPTED" },
+      ],
     });
-    expect(resumo).toEqual({ total: 7, concluidas: 3, emAndamento: 2, encerradas: 2, esperandoVoce: 1 });
+    expect(resumo).toEqual({
+      total: 7,
+      concluidas: 3,
+      emAndamento: 2,
+      encerradas: 2,
+      esperandoVoce: 1,
+      abaEsperando: "enviadas",
+    });
   });
 
   it("sem trocas, tudo zero", () => {
@@ -69,6 +81,19 @@ describe("resumirTrocas", () => {
       emAndamento: 0,
       encerradas: 0,
       esperandoVoce: 0,
+      abaEsperando: "recebidas",
     });
+  });
+});
+
+describe("trocasEsperandoConfirmacao", () => {
+  it("conta os dois lados e prefere a aba Recebidas quando ela tem pendência", () => {
+    const pendente = { status: "PROPOSED", proposerConfirmedAt: null, recipientConfirmedAt: null };
+    expect(trocasEsperandoConfirmacao({ sent: [pendente], received: [pendente] })).toEqual({ total: 2, aba: "recebidas" });
+  });
+
+  it("não conta a troca que você já confirmou, mesmo que o outro não", () => {
+    const euConfirmei = { status: "PROPOSED", proposerConfirmedAt: "2026-11-20T10:00:00Z", recipientConfirmedAt: null };
+    expect(trocasEsperandoConfirmacao({ sent: [euConfirmei], received: [] })).toEqual({ total: 0, aba: "recebidas" });
   });
 });

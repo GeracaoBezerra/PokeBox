@@ -25,10 +25,11 @@ export default function ListingPage() {
   const souDono = Boolean(anuncio && me && me.username === anuncio.owner.username);
   const souAdmin = me?.role === "ADMIN";
   const podeOfertar = me && !souDono && anuncio?.status === "ACTIVE";
+  const emTroca = anuncio?.status === "IN_TRADE";
   const navigate = useNavigate();
   const deMarketplace = useLocation().state?.deMarketplace === true;
 
-  const verificarOferta = Boolean(podeOfertar);
+  const verificarOferta = Boolean(podeOfertar || (me && !souDono && emTroca));
   const minhas = useCarregar(
     () => (verificarOferta ? listMyOffers("PROPOSED") : Promise.resolve(null)),
     `${id}|${verificarOferta}`
@@ -39,7 +40,7 @@ export default function ListingPage() {
     : undefined;
 
   const anuncioAberto = anuncio?.status === "ACTIVE" || anuncio?.status === "PAUSED";
-  const verOfertas = souDono && anuncioAberto;
+  const verOfertas = souDono && (anuncioAberto || emTroca);
   const chaveOfertas = verOfertas ? `${anuncio.id}|${anuncio.status}` : "";
   const ofertas = useCarregar(async () => (verOfertas ? listMyOffers("PROPOSED") : null), chaveOfertas);
   const aguardando = ofertas.dados ? contarOfertasAguardando(ofertas.dados.received, anuncio?.id) : null;
@@ -78,6 +79,25 @@ export default function ListingPage() {
                   {verOfertas && aguardando !== null && <Link className={s.link} to="/propostas?aba=recebidas&status=PROPOSED">{textoOfertasAguardando(aguardando)}</Link>}
                   {anuncioAberto && <Link className={s.link} to="/anuncios">Editar quantidade e descrição em Meus anúncios</Link>}
                 </div>
+              ) : emTroca ? (
+                <div className={s.convite}>
+                  <Aviso erro={minhas.erro} onTentarDeNovo={minhas.recarregar} />
+                  {ofertaAberta ? (
+                    <>
+                      <h2>Você já fez uma oferta aqui</h2>
+                      <p>Este anúncio está em troca no momento. Se a troca não acontecer, sua oferta volta a valer.</p>
+                      <Link className={s.link} to="/propostas?aba=enviadas">Ver em Propostas</Link>
+                    </>
+                  ) : verificandoOferta ? (
+                    <p className={s.suave} role="status">Verificando suas ofertas…</p>
+                  ) : (
+                    <>
+                      <h2>Este anúncio está em troca no momento.</h2>
+                      <p>Você pode explorar outras cartas na comunidade.</p>
+                      <Link className={s.link} to="/marketplace">Ver outros anúncios</Link>
+                    </>
+                  )}
+                </div>
               ) : podeOfertar ? (
                 <div className={s.convite}>
                   <Aviso erro={minhas.erro} onTentarDeNovo={minhas.recarregar} />
@@ -109,7 +129,7 @@ export default function ListingPage() {
               {souAdmin && !souDono && <ModeracaoAnuncio key={id} anuncio={anuncio} onMudou={recarregar} atualizando={carregando} />}
             </div>
           </div>
-          <div className={s.notaTroca}><ShieldCheck size={20} aria-hidden="true" /><p>A oferta inicia a conversa. As cartas só ficam reservadas quando a troca é criada.</p></div>
+          <div className={s.notaTroca}><ShieldCheck size={20} aria-hidden="true" /><p>A oferta inicia a conversa. Quando o dono aceita, a troca nasce e as cartas ficam reservadas até os dois confirmarem o recebimento.</p></div>
           {podeOfertar && !verificandoOferta && !ofertaAberta && <FormOferta key={id} anuncio={anuncio} />}
         </>
       )}

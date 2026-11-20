@@ -41,6 +41,7 @@ export const STATUS_ANUNCIO = {
   PAUSED: "Pausado",
   CLOSED: "Fechado",
   BLOCKED: "Bloqueado",
+  IN_TRADE: "Em troca",
 };
 
 export const STATUS_NEGOCIACAO = {
@@ -86,19 +87,48 @@ export function descreverCartas(itens) {
   return itens.map((item) => `${item.quantity}× ${item.card.name}`).join(", ");
 }
 
-export function proximoPassoOferta({ status, recebida, virouTroca, dono, proponente }) {
-  if (virouTroca) return "Acompanhe em Trocas.";
-  if (status === "PROPOSED") return recebida ? "Aceite ou recuse esta oferta." : `Aguardando @${dono} responder.`;
-  if (status === "ACCEPTED") {
-    return recebida ? `Aguardando @${proponente} criar a troca.` : "Aceita. Agora crie a troca para reservar as cartas.";
-  }
+export function motivoCancelamento({ cancelReason, recebida, dono, proponente }) {
+  if (cancelReason === "PROPOSER") return recebida ? `@${proponente} cancelou a oferta.` : "Você cancelou a oferta.";
+  if (cancelReason === "LISTING_CLOSED") return recebida ? "Cancelada: você fechou o anúncio." : `Cancelada: @${dono} fechou o anúncio.`;
+  if (cancelReason === "LISTING_BLOCKED") return "Cancelada: o anúncio foi bloqueado pela moderação.";
+  if (cancelReason === "LISTING_TRADED") return "Cancelada: o anúncio foi trocado com outra pessoa.";
+  if (cancelReason === "ACCOUNT_DEACTIVATED") return "Cancelada: a conta foi desativada.";
   return "Encerrada.";
 }
 
-export function proximoPassoTroca({ status, souDonoDoAnuncio, parceiro }) {
+export function textoEmEspera({ recebida, statusDoAnuncio }) {
+  if (!recebida) return "Em espera: o anúncio está em negociação; se a troca não acontecer, sua oferta volta a valer.";
+  if (statusDoAnuncio && statusDoAnuncio !== "IN_TRADE") return "Em espera: este anúncio não tem quantidade suficiente agora.";
+  return "Em espera: este anúncio está em troca com outra pessoa.";
+}
+
+export function proximoPassoOferta({ status, recebida, virouTroca, emEspera, statusDoAnuncio, cancelReason, dono, proponente }) {
+  if (virouTroca) return "Virou troca: as cartas estão reservadas. Confirme o recebimento em Trocas.";
+  if (status === "PROPOSED" && emEspera) return textoEmEspera({ recebida, statusDoAnuncio });
+  if (status === "PROPOSED") return recebida ? "Aceite ou recuse esta oferta." : `Aguardando @${dono} responder.`;
+  if (status === "ACCEPTED") return "Aceita.";
+  if (status === "CANCELED") return motivoCancelamento({ cancelReason, recebida, dono, proponente });
+  return "Encerrada.";
+}
+
+export function proximoPassoTroca({ status, euConfirmei, parceiroConfirmou, parceiro }) {
   if (status === "PROPOSED") {
-    return souDonoDoAnuncio ? "Confira as cartas e conclua ou recuse." : `Aguardando @${parceiro} concluir.`;
+    if (euConfirmei) return `Você confirmou. Aguardando @${parceiro} confirmar.`;
+    if (parceiroConfirmou) return `@${parceiro} já confirmou. Confirme quando receber as cartas.`;
+    return "Confirme quando receber as cartas.";
   }
   if (status === "ACCEPTED") return "As cartas já mudaram de dono.";
   return "As cartas reservadas voltaram a ficar disponíveis.";
+}
+
+export function confirmacoesDaTroca(troca, souDonoDoAnuncio) {
+  const doDono = Boolean(troca.recipientConfirmedAt);
+  const deQuemOfertou = Boolean(troca.proposerConfirmedAt);
+  return souDonoDoAnuncio
+    ? { euConfirmei: doDono, parceiroConfirmou: deQuemOfertou }
+    : { euConfirmei: deQuemOfertou, parceiroConfirmou: doDono };
+}
+
+export function esperaMinhaConfirmacao(troca, souDonoDoAnuncio) {
+  return troca.status === "PROPOSED" && !confirmacoesDaTroca(troca, souDonoDoAnuncio).euConfirmei;
 }

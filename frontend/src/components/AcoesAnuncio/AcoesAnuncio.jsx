@@ -25,7 +25,7 @@ export default function AcoesAnuncio({ anuncio, onMudou, acao: acaoDeFora }) {
   async function fechar() {
     const confirmou = await pedir({
       titulo: "Fechar anúncio?",
-      mensagem: "Não dá para reabrir. As ofertas abertas e as aceitas que ainda não viraram troca serão canceladas.",
+      mensagem: "Não dá para reabrir. As ofertas abertas serão canceladas; as trocas em andamento continuam.",
       textoConfirmar: "Fechar anúncio",
       perigo: true,
     });
@@ -44,7 +44,7 @@ export default function AcoesAnuncio({ anuncio, onMudou, acao: acaoDeFora }) {
   return (
     <>
       <div className={s.acoes}>
-        {anuncio.status === "ACTIVE" && (
+        {(anuncio.status === "ACTIVE" || anuncio.status === "IN_TRADE") && (
           <button className={s.botaoSecundario} disabled={acao.ocupado} onClick={() => mudar("PAUSED", "Anúncio pausado.")}>
             Pausar
           </button>

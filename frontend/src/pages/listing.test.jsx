@@ -21,12 +21,12 @@ const anuncio = {
   owner: { username: "ash", name: "Ash Ketchum" },
 };
 
-function preparar(enviadas) {
+function preparar(enviadas, mudancas = {}) {
   server.use(
     rota.get(url("/auth/me"), () =>
       HttpResponse.json({ success: true, data: { user: { username: "misty", name: "Misty", role: "USER" } } })
     ),
-    rota.get(url("/listings/anuncio-1"), () => HttpResponse.json({ success: true, data: { listing: anuncio } })),
+    rota.get(url("/listings/anuncio-1"), () => HttpResponse.json({ success: true, data: { listing: { ...anuncio, ...mudancas } } })),
     rota.get(url("/offers/me"), () => HttpResponse.json({ success: true, data: { sent: enviadas, received: [] } })),
     rota.get(url("/collection"), () =>
       HttpResponse.json({ success: true, data: { items: [] }, pagination: { hasNextPage: false } })
@@ -61,5 +61,27 @@ describe("Página do anúncio", () => {
 
     expect(await screen.findByRole("heading", { name: "Monte sua oferta" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Você já fez uma oferta aqui" })).not.toBeInTheDocument();
+  });
+
+  it("anúncio em troca mostra o selo e o aviso, sem formulário de oferta", async () => {
+    preparar([], { status: "IN_TRADE", quantity: 0 });
+
+    renderizar();
+
+    expect(await screen.findByRole("heading", { name: "Este anúncio está em troca no momento." })).toBeInTheDocument();
+    expect(screen.getByText("Em troca")).toBeInTheDocument();
+    expect(screen.getByText("Nenhuma no momento")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Monte sua oferta" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Fazer uma oferta/ })).not.toBeInTheDocument();
+  });
+
+  it("anúncio em troca com oferta sua em espera continua dizendo que você já ofertou", async () => {
+    preparar([{ id: "oferta-1", status: "PROPOSED", onHold: true, listing: { id: "anuncio-1" } }], { status: "IN_TRADE", quantity: 0 });
+
+    renderizar();
+
+    expect(await screen.findByRole("heading", { name: "Você já fez uma oferta aqui" })).toBeInTheDocument();
+    expect(screen.getByText(/Se a troca não acontecer, sua oferta volta a valer\./)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Monte sua oferta" })).not.toBeInTheDocument();
   });
 });

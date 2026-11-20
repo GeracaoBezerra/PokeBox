@@ -72,6 +72,11 @@
   color: var(--sucesso);
 }
 
+.status[data-status="ON_HOLD"] {
+  background: var(--aviso-fundo);
+  color: var(--aviso);
+}
+
 .status[data-status="TRADE"] {
   background: var(--info-fundo);
   color: var(--info);
