@@ -18,7 +18,7 @@ export default function VoceEACarta({ card, lang, user, onMudou, atualizando = f
       const itens = await listWishlist();
       const item = itens.find((item) => item.cardId === card.id);
       if (item) await removeFromWishlist(item.id);
-    }, user.inWishlist ? "Carta removida da wishlist." : "Carta adicionada à wishlist.", { tipo: user.inWishlist ? "info" : "sucesso" });
+    }, user.inWishlist ? "Carta removida da wishlist." : "Carta adicionada à wishlist.", { tipo: user.inWishlist ? "aviso" : "sucesso" });
     if (ok) onMudou();
   }
   return (

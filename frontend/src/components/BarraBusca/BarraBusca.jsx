@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import s from "../../styles/vitrine.module.css";
 
-export default function BarraBusca({ rotulo, placeholder, valor, onBuscar }) {
+export default function BarraBusca({ rotulo, placeholder, valor, onBuscar, inputRef }) {
   const [texto, setTexto] = useState(valor);
   const [valorAnterior, setValorAnterior] = useState(valor);
   const onBuscarRef = useRef(onBuscar);
@@ -35,6 +35,7 @@ export default function BarraBusca({ rotulo, placeholder, valor, onBuscar }) {
           <Search size={16} aria-hidden="true" />
           <input
             type="search"
+            ref={inputRef}
             maxLength={50}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
