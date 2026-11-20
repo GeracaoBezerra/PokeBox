@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 
+import type { TradeUnitOfWork, UnitOfWorkFactory } from '../repositories/UnitOfWork.js';
 import type { UserAccountStore } from '../repositories/UserRepository.js';
 import type { AuthUser } from '../types/auth.js';
 import { UserService } from './UserService.js';
@@ -22,13 +23,22 @@ const misty: AuthUser = {
   state: 'CE',
 };
 
-function setup() {
+function setup(hasOpenTrade = false) {
+  const calls: string[] = [];
   const users = {
     update: jest.fn<UserAccountStore['update']>(async (_id, data) => ({ ...misty, ...data })),
-    deactivate: jest.fn<UserAccountStore['deactivate']>(async () => undefined),
-  } satisfies UserAccountStore;
+  };
+  const uow = {
+    trades: { hasOpenFor: jest.fn(async () => hasOpenTrade) },
+    offers: { cancelOpenOfUser: jest.fn(async () => calls.push('ofertas')) },
+    listings: { closeOpenByOwner: jest.fn(async () => calls.push('anúncios')) },
+    users: { deactivate: jest.fn(async () => void calls.push('conta')) },
+  };
+  const unitOfWork: UnitOfWorkFactory = {
+    run: (work) => work(uow as unknown as TradeUnitOfWork),
+  };
 
-  return { users, service: new UserService(users) };
+  return { users, uow, calls, service: new UserService(users, unitOfWork) };
 }
 
 describe('UserService', () => {
@@ -41,11 +51,25 @@ describe('UserService', () => {
     expect(user.city).toBe('Fortaleza');
   });
 
-  it('deactivateMe desativa só o usuário logado', async () => {
-    const { users, service } = setup();
+  it('deactivateMe cancela as ofertas, fecha os anúncios e desativa só o usuário logado', async () => {
+    const { uow, calls, service } = setup();
 
     await service.deactivateMe('u-misty');
 
-    expect(users.deactivate).toHaveBeenCalledWith('u-misty');
+    expect(uow.offers.cancelOpenOfUser).toHaveBeenCalledWith('u-misty', 'ACCOUNT_DEACTIVATED');
+    expect(uow.listings.closeOpenByOwner).toHaveBeenCalledWith('u-misty');
+    expect(uow.users.deactivate).toHaveBeenCalledWith('u-misty');
+    expect(calls).toEqual(['ofertas', 'anúncios', 'conta']);
+  });
+
+  it('deactivateMe com troca aberta dá 409 e não mexe em nada', async () => {
+    const { uow, service } = setup(true);
+
+    await expect(service.deactivateMe('u-misty')).rejects.toMatchObject({
+      statusCode: 409,
+      message: 'Conclua ou cancele suas trocas antes de desativar a conta.',
+    });
+    expect(uow.offers.cancelOpenOfUser).not.toHaveBeenCalled();
+    expect(uow.users.deactivate).not.toHaveBeenCalled();
   });
 });
