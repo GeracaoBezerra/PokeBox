@@ -118,9 +118,6 @@ export default function CatalogPage() {
             <option value="relevance">Relevância</option>
             <option value="name-asc">Nome: A–Z</option>
             <option value="name-desc">Nome: Z–A</option>
-            <option value="rarity" disabled>
-              Raridade — em breve
-            </option>
             <option value="recent">Mais recentes</option>
             <option value="traded">Mais trocadas</option>
             <option value="wanted">Mais desejadas</option>

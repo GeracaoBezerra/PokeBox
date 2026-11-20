@@ -144,10 +144,9 @@ Use `localhost` nas URLs: dentro do Docker o `docker-compose.yml` troca o host p
 
 ```bash
 docker compose up -d --build
-docker compose exec tcg-backend npm run db:seed
 ```
 
-O backend aplica as migrations sozinho ao subir (`prisma migrate deploy`). O seed é manual.
+Antes de subir, preencha `SEED_ADMIN_PASSWORD` e `SEED_DEMO_PASSWORD` no `.env`. No Compose local, o backend espera o PostgreSQL ficar saudável, aplica as migrations e roda o seed antes de iniciar a API. O seed roda a cada inicialização do backend e reaplica as senhas dos usuários de demonstração definidas no `.env`.
 
 | Serviço | Endereço |
 |---|---|

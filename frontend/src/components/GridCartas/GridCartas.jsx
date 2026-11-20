@@ -3,7 +3,6 @@ import { ArrowRight } from "lucide-react";
 
 import { searchCards } from "../../api/cards";
 import { useCarregar } from "../../hooks/useCarregar";
-import Aviso from "../Aviso/Aviso";
 import GradeCartas from "../GradeCartas/GradeCartas";
 import styles from "./GridCartas.module.css";
 
@@ -20,6 +19,8 @@ export default function GridCartas() {
 
   const cartas = dados?.items ?? [];
 
+  if (!carregando && (erro || cartas.length === 0)) return null;
+
   return (
     <section className={styles.secao} aria-labelledby="grid-cartas-titulo">
       <div className={styles.container}>
@@ -34,15 +35,7 @@ export default function GridCartas() {
           </Link>
         </header>
 
-        <Aviso erro={erro} />
-
-        {!erro && (
-          <GradeCartas cartas={cartas} lang={LANG} carregando={carregando} />
-        )}
-
-        {!carregando && dados && cartas.length === 0 && (
-          <p className={styles.estado}>Nenhuma carta encontrada.</p>
-        )}
+        <GradeCartas cartas={cartas} lang={LANG} carregando={carregando} total={TOTAL} />
       </div>
     </section>
   );
