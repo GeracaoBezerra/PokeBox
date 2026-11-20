@@ -19,6 +19,8 @@ function toCardListItem(entry: CatalogEntry): CardListItem {
       small: entry.imageUrl,
       large: entry.imageUrl ? entry.imageUrl.replace(/\/low\.webp$/, '/high.webp') : null,
     },
+    ...(entry.wishlistCount != null && { wishlistCount: entry.wishlistCount }),
+    ...(entry.tradeCount != null && { tradeCount: entry.tradeCount }),
   };
 }
 

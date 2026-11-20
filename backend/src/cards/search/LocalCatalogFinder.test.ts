@@ -170,6 +170,16 @@ describe('LocalCatalogFinder.find', () => {
     expect(store.search).toHaveBeenCalledWith(expect.objectContaining({ sort: { field: 'name', order: 'desc' } }));
   });
 
+  test('mantém os contadores calculados pelo ranking no item da lista', async () => {
+    store.search.mockResolvedValueOnce([
+      { ...entry('base1-4', 'Charizard', 'base1', 'Base Set'), wishlistCount: 12, tradeCount: 7 },
+    ]);
+
+    const result = await finder.find(query({ sort: { field: 'wanted', order: 'desc' } }));
+
+    expect(result.cards[0]).toMatchObject({ id: 'base1-4', wishlistCount: 12, tradeCount: 7 });
+  });
+
   test.each([
     ['filtro de tipo', query({ filters: { type: 'Fire' } })],
     ['filtro de raridade', query({ filters: { rarity: 'Rare' } })],

@@ -130,6 +130,18 @@ describe('CardController', () => {
     });
   });
 
+  test.each(['recent', 'wanted', 'traded'] as const)('lista repassa o ranking %s', async (sort) => {
+    const { app, cards } = setup();
+
+    const res = await request(app, `/cards?sort=${sort}&order=desc`);
+
+    expect(res.status).toBe(200);
+    expect(cards.find).toHaveBeenCalledWith(expect.objectContaining({ sort: { field: sort, order: 'desc' } }));
+    expect(res.headers.get('cache-control')).toBe(
+      sort === 'recent' ? 'public, max-age=300' : 'public, no-cache',
+    );
+  });
+
   test('GET /cards/filters devolve as opções do idioma com cache de 1 hora', async () => {
     const { app, cards } = setup();
 

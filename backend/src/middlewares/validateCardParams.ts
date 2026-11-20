@@ -32,7 +32,9 @@ export const cardListQuerySchema = z.object({
   rarity: z.string().trim().min(1).max(50, 'Raridade muito longa').optional(),
   set: z.string().max(30, 'Set muito longo').regex(CARD_ID_PATTERN, 'Set inválido').optional(),
   category: z.string().trim().max(30, 'Categoria muito longa').regex(LETTERS, 'Categoria inválida').optional(),
-  sort: z.enum(['name'], { message: 'sort aceita só name' }).optional(),
+  sort: z.enum(['name', 'recent', 'wanted', 'traded'], {
+    message: 'sort aceita name, recent, wanted ou traded',
+  }).optional(),
   order: z.enum(['asc', 'desc'], { message: 'order aceita asc ou desc' }).default('asc'),
 });
 

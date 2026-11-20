@@ -29,7 +29,7 @@ User ─┬─< CollectionItem >── Card ──< WishlistItem >── User
 | `Offer` | proposta em um anúncio (`PROPOSED → ACCEPTED/REJECTED/CANCELED`): quantas cartas do anúncio o proponente quer | RN-06 |
 | `OfferItem` | o que o proponente oferece em troca: itens da coleção dele e a quantidade de cada um | RN-06 |
 | `Trade` | negociação entre dois usuários; pode nascer de uma oferta | RN-07 |
-| `TradeItem` | o que cada lado entrega na troca | RN-07, RN-08 |
+| `TradeItem` | o que cada lado entrega na troca; `cardId` também alimenta o ranking de cartas mais trocadas | RN-07, RN-08, #92 |
 
 ## Decisões
 
@@ -96,6 +96,7 @@ Além dos índices que o Postgres cria para PK e `UNIQUE`:
 | `Listing` por `(status, createdAt DESC, id)` (#112) | `GET /listings`: o banco lê os anúncios ativos já na ordem de "mais recentes" e para no fim da página, em vez de ordenar todos. Também atende filtro só por `status` |
 | `CatalogCard` por `setId` | cartas de um set reconhecido na busca (`charizard base`) |
 | `CatalogCard` por `(lang, rarity)` e `(lang, category)`, e GIN em `types` (#158) | busca e lista com filtro de raridade, categoria e tipo (`types @> ARRAY['Fire']`, o operador que o GIN atende) |
+| `TradeItem` por `cardId` (#92) | agrega rapidamente as unidades de cada carta nas trocas concluídas |
 | `CatalogSet` por `(lang, position)` | lista de sets na ordem de lançamento |
 | `CatalogCard_nameNormalized_trgm_idx`: GIN com `gin_trgm_ops` em `nameNormalized` (#78) | busca tolerante a erro de digitação. Atende os operadores `<<%` (semelhança por palavra) e `LIKE '%texto%'` do `pg_trgm` |
 
@@ -132,6 +133,7 @@ O `npm run catalog:sync` (`backend/scripts/sync-catalog.ts`) preenche a tabela: 
 | `20261116212649_catalog_card` | cria `CatalogCard` com o índice por `setId` (#78) |
 | `20261116212650_catalog_card_search` | escrita à mão: cria as extensões `pg_trgm` e `unaccent` e o índice GIN de trigramas em `CatalogCard.nameNormalized` (#78). O índice também está no `schema.prisma` (`type: Gin`), para o Prisma não achar diferença entre o schema e o banco |
 | `20261118001906_catalog_filtros` | `types`, `rarity` e `category` em `CatalogCard` com seus índices; cria `CatalogSet` e `CatalogFilterValue`; a CHECK `catalog_filter_value_kind_check` foi acrescentada à mão (#158) |
+| `20261119120000_trade_item_card_ranking` | índice de `TradeItem.cardId` usado pelo ranking de cartas mais trocadas (#92) |
 
 Nova tabela ou coluna: altere o `schema.prisma`, rode `npx prisma migrate dev --name <descricao>` e atualize este arquivo no mesmo PR.
 

@@ -4,18 +4,18 @@ import CartaCard from "../CartaCard/CartaCard";
 import SkeletonCard from "../SkeletonCard/SkeletonCard";
 import styles from "./GradeCartas.module.css";
 
-// Busca o detalhe apenas quando a carta recebe hover ou foco, em telas com
-// painel lateral. O painel só é liberado quando os dados completos chegam.
+function temPainelLateral() {
+  return typeof window !== "undefined" && window.matchMedia("(min-width: 601px)").matches;
+}
+
+// Em telas com painel lateral, carrega o detalhe assim que a carta entra na
+// grade. O SkeletonCard inteiro permanece até lista e detalhe estarem prontos.
 function ItemCarta({ carta, lang }) {
   const [detalhe, setDetalhe] = useState(null);
-  const [pedido, setPedido] = useState(false);
-
-  function solicitarDetalhe() {
-    if (window.matchMedia("(min-width: 601px)").matches) setPedido(true);
-  }
+  const [falhou, setFalhou] = useState(false);
 
   useEffect(() => {
-    if (!pedido) return;
+    if (!temPainelLateral()) return;
     let cancelado = false;
 
     getCard(carta.id, lang)
@@ -23,16 +23,25 @@ function ItemCarta({ carta, lang }) {
         if (!cancelado) setDetalhe(resposta.card);
       })
       .catch(() => {
-        // sem detalhe, a carta fica sem painel (o resto continua funcionando)
+        if (!cancelado) setFalhou(true);
       });
 
     return () => {
       cancelado = true;
     };
-  }, [pedido, carta.id, lang]);
+  }, [carta.id, lang]);
+
+  const precisaDetalhe = temPainelLateral();
+  if (precisaDetalhe && detalhe == null && !falhou) {
+    return (
+      <li className={styles.item} aria-busy="true">
+        <SkeletonCard />
+      </li>
+    );
+  }
 
   return (
-    <li className={styles.item} onMouseEnter={solicitarDetalhe} onFocus={solicitarDetalhe}>
+    <li className={styles.item}>
       <CartaCard
         carta={{ ...carta, ...detalhe }}
         lang={lang}

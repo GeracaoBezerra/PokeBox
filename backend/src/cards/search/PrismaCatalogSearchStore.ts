@@ -1,5 +1,6 @@
 import { Prisma } from '../../generated/prisma/index.js';
 import type { Db } from '../../lib/prisma.js';
+import { USABLE_STATUSES } from '../../utils/accountStatus.js';
 import type { CardFilterValues } from '../types.js';
 import type {
   CatalogAttributeFilters,
@@ -27,30 +28,67 @@ const normalized = (text: string) => Prisma.sql`lower(unaccent(${text}))`;
 const likePattern = (word: string) => `%${word.replace(/[\\%_]/g, '\\$&')}%`;
 
 function wordMatches(word: string): Prisma.Sql {
-  return Prisma.sql`(${normalized(word)} <<% "nameNormalized" OR "nameNormalized" LIKE ${normalized(likePattern(word))})`;
+  return Prisma.sql`(${normalized(word)} <<% c."nameNormalized" OR c."nameNormalized" LIKE ${normalized(likePattern(word))})`;
 }
 
 function matchClause({ words, setIds }: CatalogSearch): Prisma.Sql {
   if (words.length === 0 && setIds.length === 0) return Prisma.sql`TRUE`;
-  if (words.length === 0) return Prisma.sql`"setId" = ANY(${setIds}::text[])`;
+  if (words.length === 0) return Prisma.sql`c."setId" = ANY(${setIds}::text[])`;
   return Prisma.sql`(${Prisma.join(words.map(wordMatches), ' OR ')})`;
 }
 
 function attributeClause({ type, rarity, category }: CatalogAttributeFilters = {}): Prisma.Sql {
   const conditions = [
-    type ? Prisma.sql`types @> ARRAY[${type}]::text[]` : null,
-    rarity ? Prisma.sql`rarity = ${rarity}` : null,
-    category ? Prisma.sql`category = ${category}` : null,
+    type ? Prisma.sql`c.types @> ARRAY[${type}]::text[]` : null,
+    rarity ? Prisma.sql`c.rarity = ${rarity}` : null,
+    category ? Prisma.sql`c.category = ${category}` : null,
   ].filter((condition): condition is Prisma.Sql => condition !== null);
   return conditions.length === 0 ? Prisma.empty : Prisma.sql`AND ${Prisma.join(conditions, ' AND ')}`;
 }
 
+function metricJoins(sort: CatalogSearch['sort']): Prisma.Sql {
+  if (sort?.field === 'wanted') {
+    return Prisma.sql`
+      LEFT JOIN (
+        SELECT wi."cardId", COUNT(*)::int AS count
+        FROM "WishlistItem" wi
+        JOIN "User" u ON u.id = wi."userId"
+        WHERE u."deletedAt" IS NULL AND u."accountStatus"::text = ANY(${USABLE_STATUSES}::text[])
+        GROUP BY wi."cardId"
+      ) wished ON wished."cardId" = c.id`;
+  }
+  if (sort?.field === 'traded') {
+    return Prisma.sql`
+      LEFT JOIN (
+        SELECT ti."cardId", SUM(ti.quantity)::int AS count
+        FROM "TradeItem" ti
+        JOIN "Trade" t ON t.id = ti."tradeId"
+        WHERE t."completedAt" IS NOT NULL
+        GROUP BY ti."cardId"
+      ) traded ON traded."cardId" = c.id`;
+  }
+  if (sort?.field === 'recent') {
+    return Prisma.sql`LEFT JOIN "CatalogSet" catalog_set ON catalog_set.id = c."setId" AND catalog_set.lang = c.lang`;
+  }
+  return Prisma.empty;
+}
+
+function metricColumns(sort: CatalogSearch['sort']): Prisma.Sql {
+  const wished = sort?.field === 'wanted' ? Prisma.sql`COALESCE(wished.count, 0)::int` : Prisma.sql`NULL::int`;
+  const traded = sort?.field === 'traded' ? Prisma.sql`COALESCE(traded.count, 0)::int` : Prisma.sql`NULL::int`;
+  return Prisma.sql`${wished} AS "wishlistCount", ${traded} AS "tradeCount"`;
+}
+
 function orderClause({ words, phrase, setIds, sort }: CatalogSearch): Prisma.Sql {
-  if (sort) return Prisma.sql`"nameNormalized" ${Prisma.raw(sort.order === 'desc' ? 'DESC' : 'ASC')}, id`;
-  const bySet = Prisma.sql`"setId" = ANY(${setIds}::text[]) DESC`;
-  if (words.length === 0) return Prisma.sql`${bySet}, "imageUrl" IS NULL, name, id`;
-  const score = Prisma.join(words.map((word) => Prisma.sql`word_similarity(${normalized(word)}, "nameNormalized")`), ' + ');
-  return Prisma.sql`${bySet}, (${score}) DESC, similarity(${normalized(phrase)}, "nameNormalized") DESC, "imageUrl" IS NULL, name, id`;
+  const direction = Prisma.raw(sort?.order === 'asc' ? 'ASC' : 'DESC');
+  if (sort?.field === 'wanted') return Prisma.sql`"wishlistCount" ${direction}, c."nameNormalized", c.id`;
+  if (sort?.field === 'traded') return Prisma.sql`"tradeCount" ${direction}, c."nameNormalized", c.id`;
+  if (sort?.field === 'recent') return Prisma.sql`COALESCE(catalog_set.position, -1) ${direction}, c."localId" DESC, c.id`;
+  if (sort?.field === 'name') return Prisma.sql`c."nameNormalized" ${direction}, c.id`;
+  const bySet = Prisma.sql`c."setId" = ANY(${setIds}::text[]) DESC`;
+  if (words.length === 0) return Prisma.sql`${bySet}, c."imageUrl" IS NULL, c.name, c.id`;
+  const score = Prisma.join(words.map((word) => Prisma.sql`word_similarity(${normalized(word)}, c."nameNormalized")`), ' + ');
+  return Prisma.sql`${bySet}, (${score}) DESC, similarity(${normalized(phrase)}, c."nameNormalized") DESC, c."imageUrl" IS NULL, c.name, c.id`;
 }
 
 export class PrismaCatalogSearchStore implements CatalogSearchStore {
@@ -90,18 +128,19 @@ export class PrismaCatalogSearchStore implements CatalogSearchStore {
     const found = await Promise.all(
       words.map((word) =>
         this.db.$queryRaw<{ found: boolean }[]>`
-          SELECT EXISTS (SELECT 1 FROM "CatalogCard" WHERE lang = ${lang} AND ${wordMatches(word)}) AS found`,
+          SELECT EXISTS (SELECT 1 FROM "CatalogCard" c WHERE c.lang = ${lang} AND ${wordMatches(word)}) AS found`,
       ),
     );
     return words.filter((_, index) => found[index][0]?.found);
   }
 
   search(query: CatalogSearch): Promise<CatalogEntry[]> {
-    const onlySet = query.onlySetId ? Prisma.sql`AND "setId" = ${query.onlySetId}` : Prisma.empty;
+    const onlySet = query.onlySetId ? Prisma.sql`AND c."setId" = ${query.onlySetId}` : Prisma.empty;
     return this.db.$queryRaw<CatalogEntry[]>`
-      SELECT id, "localId", name, "setId", "setName", "imageUrl"
-      FROM "CatalogCard"
-      WHERE lang = ${query.lang} ${onlySet} ${attributeClause(query.attributes)} AND ${matchClause(query)}
+      SELECT c.id, c."localId", c.name, c."setId", c."setName", c."imageUrl", ${metricColumns(query.sort)}
+      FROM "CatalogCard" c
+      ${metricJoins(query.sort)}
+      WHERE c.lang = ${query.lang} ${onlySet} ${attributeClause(query.attributes)} AND ${matchClause(query)}
       ORDER BY ${orderClause(query)}
       LIMIT ${query.take} OFFSET ${query.offset}`;
   }

@@ -85,6 +85,23 @@ interface SeedOffer {
   trade?: Extract<TradeStatus, 'PROPOSED' | 'ACCEPTED'>;
 }
 
+interface SeedHistoricalTradeItem {
+  cardId: string;
+  condition: CardCondition;
+  finish: CardFinish;
+  quantity: number;
+  from: string;
+  to: string;
+}
+
+interface SeedHistoricalTrade {
+  id: string;
+  proposer: string;
+  recipient: string;
+  daysAgo: number;
+  items: SeedHistoricalTradeItem[];
+}
+
 type SeedCard = Omit<Prisma.CardCreateInput, 'releaseDate' | 'marketPriceUpdatedAt'> & {
   variants?: CardVariants;
   releaseDate?: string | null;
@@ -267,6 +284,22 @@ const wishlist: SeedWishlistItem[] = [
   { username: 'lance', cardId: 'swsh7-215' },
   { username: 'lance', cardId: 'neo1-9' },
   { username: 'lance', cardId: 'sv03.5-199' },
+  // Rankings intencionais para a home e o catálogo (#92). A conta inativa
+  // de lance continua no seed para comprovar que ela não entra na contagem.
+  { username: 'admin', cardId: 'swsh7-215' },
+  { username: 'ash', cardId: 'swsh7-215' },
+  { username: 'misty', cardId: 'swsh7-215' },
+  { username: 'gary', cardId: 'swsh7-215' },
+  { username: 'dawn', cardId: 'swsh7-215' },
+  { username: 'brock', cardId: 'base1-4' },
+  { username: 'erika', cardId: 'base1-4' },
+  { username: 'dawn', cardId: 'base1-4' },
+  { username: 'cynthia', cardId: 'base1-4' },
+  { username: 'misty', cardId: 'sv03.5-199' },
+  { username: 'brock', cardId: 'sv03.5-199' },
+  { username: 'erika', cardId: 'sv03.5-199' },
+  { username: 'brock', cardId: 'base1-2' },
+  { username: 'gary', cardId: 'base1-2' },
 ];
 
 const listings: SeedListing[] = [
@@ -424,6 +457,51 @@ const offers: SeedOffer[] = [
   },
 ];
 
+const historicalTrades: SeedHistoricalTrade[] = [
+  {
+    id: 'seed-trade-history-01', proposer: 'gary', recipient: 'misty', daysAgo: 48,
+    items: [
+      { cardId: 'base1-4', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1, from: 'gary', to: 'misty' },
+      { cardId: 'base1-2', condition: 'MINT', finish: 'HOLO', quantity: 1, from: 'misty', to: 'gary' },
+    ],
+  },
+  {
+    id: 'seed-trade-history-02', proposer: 'brock', recipient: 'cynthia', daysAgo: 37,
+    items: [
+      { cardId: 'base1-4', condition: 'EXCELLENT', finish: 'HOLO', quantity: 1, from: 'brock', to: 'cynthia' },
+      { cardId: 'swsh7-215', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1, from: 'cynthia', to: 'brock' },
+    ],
+  },
+  {
+    id: 'seed-trade-history-03', proposer: 'ash', recipient: 'erika', daysAgo: 29,
+    items: [
+      { cardId: 'base1-4', condition: 'GOOD', finish: 'HOLO', quantity: 2, from: 'ash', to: 'erika' },
+      { cardId: 'sv03.5-205', condition: 'MINT', finish: 'HOLO', quantity: 1, from: 'erika', to: 'ash' },
+    ],
+  },
+  {
+    id: 'seed-trade-history-04', proposer: 'dawn', recipient: 'cynthia', daysAgo: 18,
+    items: [
+      { cardId: 'sv03.5-025', condition: 'NEAR_MINT', finish: 'REVERSE', quantity: 2, from: 'dawn', to: 'cynthia' },
+      { cardId: 'swsh7-215', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1, from: 'cynthia', to: 'dawn' },
+    ],
+  },
+  {
+    id: 'seed-trade-history-05', proposer: 'misty', recipient: 'cynthia', daysAgo: 11,
+    items: [
+      { cardId: 'swsh7-215', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 2, from: 'cynthia', to: 'misty' },
+      { cardId: 'sv03.5-151', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1, from: 'misty', to: 'cynthia' },
+    ],
+  },
+  {
+    id: 'seed-trade-history-06', proposer: 'ash', recipient: 'gary', daysAgo: 6,
+    items: [
+      { cardId: 'sv03.5-025', condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 3, from: 'ash', to: 'gary' },
+      { cardId: 'sv03.5-006', condition: 'NEAR_MINT', finish: 'HOLO', quantity: 1, from: 'gary', to: 'ash' },
+    ],
+  },
+];
+
 const offerRepository = new PrismaOfferRepository(prisma);
 const listingRepository = new PrismaListingRepository(prisma);
 const collectionRepository = new PrismaCollectionRepository(prisma);
@@ -471,6 +549,14 @@ function validateSeedData(cards: SeedCard[]) {
     if (!cardsById.has(cardId)) throw new Error(`Wishlist de ${username}: carta ${cardId} não está em seed-data/cards.json`);
     if (owned.has(`${username}:${cardId}`)) throw new Error(`Wishlist de ${username}: ${cardId} já está na coleção (RN-12)`);
   }
+
+  for (const trade of historicalTrades) {
+    for (const item of trade.items) {
+      if (!cardsById.has(item.cardId)) {
+        throw new Error(`Troca histórica ${trade.id}: carta ${item.cardId} não está em seed-data/cards.json`);
+      }
+    }
+  }
 }
 
 async function seedUsers() {
@@ -503,6 +589,63 @@ async function seedCards(cards: SeedCard[]) {
     };
     await prisma.card.upsert({ where: { id: card.id }, update: data, create: data });
   }
+}
+
+function normalizedName(name: string): string {
+  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function seedTypes(card: SeedCard): string[] {
+  return Array.isArray(card.types) ? card.types.filter((type): type is string => typeof type === 'string') : [];
+}
+
+async function seedCatalog(cards: SeedCard[]) {
+  const sets = [
+    ...new Map(
+      cards.map((card) => [
+        card.setId,
+        { id: card.setId, name: card.setName, releaseDate: card.releaseDate ?? '0000-00-00' },
+      ]),
+    ).values(),
+  ].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate) || a.id.localeCompare(b.id));
+
+  await prisma.catalogSet.createMany({
+    data: sets.map((set, position) => ({ id: set.id, lang: 'en', name: set.name, position })),
+    skipDuplicates: true,
+  });
+
+  for (const card of cards) {
+    const localId = String(card.number).split('/')[0];
+    const data = {
+      name: card.name,
+      nameNormalized: normalizedName(card.name),
+      localId,
+      setId: card.setId,
+      setName: card.setName,
+      imageUrl: card.imageUrl ?? null,
+      types: seedTypes(card),
+      rarity: card.rarity ?? null,
+      category: card.category ?? null,
+    };
+    await prisma.catalogCard.upsert({
+      where: { id_lang: { id: card.id, lang: 'en' } },
+      update: data,
+      create: { id: card.id, lang: 'en', ...data },
+    });
+  }
+
+  const filterRows = [
+    ...new Set(cards.flatMap(seedTypes)),
+  ].map((value) => ({ lang: 'en', kind: 'type', value }));
+  filterRows.push(
+    ...[...new Set(cards.map((card) => card.rarity).filter((value): value is string => Boolean(value)))].map((value) => ({
+      lang: 'en', kind: 'rarity', value,
+    })),
+    ...[...new Set(cards.map((card) => card.category).filter((value): value is string => Boolean(value)))].map((value) => ({
+      lang: 'en', kind: 'category', value,
+    })),
+  );
+  await prisma.catalogFilterValue.createMany({ data: filterRows, skipDuplicates: true });
 }
 
 async function seedCollection(byUsername: UsersByUsername) {
@@ -669,20 +812,44 @@ async function seedOffers(byUsername: UsersByUsername, items: ItemsByKey, byItem
   }
 }
 
+async function seedHistoricalTrades(byUsername: UsersByUsername) {
+  for (const trade of historicalTrades) {
+    const proposerId = byUsername[trade.proposer].id;
+    const recipientId = byUsername[trade.recipient].id;
+    const completedAt = daysAgo(trade.daysAgo);
+    await prisma.trade.upsert({
+      where: { id: trade.id },
+      update: { proposerId, recipientId, status: 'ACCEPTED', completedAt, createdAt: completedAt },
+      create: { id: trade.id, proposerId, recipientId, status: 'ACCEPTED', completedAt, createdAt: completedAt },
+    });
+    await prisma.tradeItem.deleteMany({ where: { tradeId: trade.id } });
+    await prisma.tradeItem.createMany({
+      data: trade.items.map(({ from, to, ...item }) => ({
+        ...item,
+        tradeId: trade.id,
+        fromUserId: byUsername[from].id,
+        toUserId: byUsername[to].id,
+      })),
+    });
+  }
+}
+
 async function main() {
   const cards = await loadCards();
   validateSeedData(cards);
 
   const byUsername = await seedUsers();
   await seedCards(cards);
+  if (process.env.NODE_ENV !== 'test') await seedCatalog(cards);
   const items = await seedCollection(byUsername);
   await removeRetiredItems(byUsername);
   await seedWishlist(byUsername);
   const byItem = await seedListings(byUsername, items);
   await seedOffers(byUsername, items, byItem);
+  await seedHistoricalTrades(byUsername);
 
   console.log(
-    `Seed ok. ${cards.length} cartas · ${collection.length} itens de coleção · ${wishlist.length} de wishlist · ${listings.length} anúncios · ${offers.length} ofertas · usuários: ${users.map((user) => user.username).join(', ')} · senhas: SEED_ADMIN_PASSWORD (admin) e SEED_DEMO_PASSWORD (demais)`,
+    `Seed ok. ${cards.length} cartas · ${collection.length} itens de coleção · ${wishlist.length} de wishlist · ${listings.length} anúncios · ${offers.length} ofertas · ${historicalTrades.length} trocas históricas · usuários: ${users.map((user) => user.username).join(', ')} · senhas: SEED_ADMIN_PASSWORD (admin) e SEED_DEMO_PASSWORD (demais)`,
   );
 }
 

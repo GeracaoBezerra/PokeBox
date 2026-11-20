@@ -55,9 +55,10 @@ export default function CatalogPage() {
   const opcoes = useCarregar(() => getCardFilters(lang), lang);
   const esperandoOpcoes = Object.values(filtrosPedidos).some(Boolean) && opcoes.carregando;
   const filtros = opcoes.dados ? filtrosValidos(filtrosPedidos, opcoes.dados) : filtrosPedidos;
-  const sort = params.get("sort") === "name" ? "name" : undefined;
+  const sortPedido = params.get("sort");
+  const sort = ["name", "recent", "wanted", "traded"].includes(sortPedido) ? sortPedido : undefined;
   const order = params.get("order") === "desc" ? "desc" : "asc";
-  const ordenacao = sort ? `name-${order}` : "relevance";
+  const ordenacao = sort === "name" ? `name-${order}` : sort ?? "relevance";
   const busca = useCarregar(
     async () => (esperandoOpcoes ? null : searchCards({ name, lang, page, limit: 24, ...filtros, sort, order })),
     esperandoOpcoes ? "esperando" : JSON.stringify({ name, lang, page, ...filtros, sort, order })
@@ -80,7 +81,11 @@ export default function CatalogPage() {
   }
 
   function ordenar(valor) {
-    atualizar({ sort: valor === "relevance" ? "" : "name", order: valor === "name-desc" ? "desc" : "" });
+    if (valor === "relevance") return atualizar({ sort: "", order: "" });
+    if (valor.startsWith("name-")) {
+      return atualizar({ sort: "name", order: valor === "name-desc" ? "desc" : "asc" });
+    }
+    atualizar({ sort: valor, order: "desc" });
   }
 
   function limparFiltros() {
@@ -116,12 +121,9 @@ export default function CatalogPage() {
             <option value="rarity" disabled>
               Raridade — em breve
             </option>
-            <option value="recent" disabled>
-              Mais recentes — em breve
-            </option>
-            <option value="wanted" disabled>
-              Mais desejadas — em breve
-            </option>
+            <option value="recent">Mais recentes</option>
+            <option value="traded">Mais trocadas</option>
+            <option value="wanted">Mais desejadas</option>
           </select>
         </label>
       </div>
