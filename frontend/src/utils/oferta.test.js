@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cartasDaBusca, filtrarPorNome, normalizar, quantidadeValida, quantidadesInvalidas, textoQuantidadesInvalidas, textoVoceDa, textoVoceRecebe, unirPorId } from "./oferta";
+import { cartasDaBusca, filtrarPorNome, normalizar, quantidadeValida, quantidadesInvalidas, textoCartasSelecionadas, textoQuantidadesInvalidas, textoVoceDa, textoVoceRecebe, unirPorId } from "./oferta";
 
 const item = (id, name, extra = {}) => ({ id, card: { name }, finish: "NORMAL", firstEdition: false, condition: "GOOD", ...extra });
 
@@ -101,5 +101,19 @@ describe("textos do resumo da troca", () => {
 
   it("pede para escolher uma carta quando nada foi marcado", () => {
     expect(textoVoceDa([])).toBe("Você dá: escolha ao menos uma carta acima.");
+  });
+});
+
+describe("textoCartasSelecionadas", () => {
+  it("diz quando nenhuma carta foi marcada", () => {
+    expect(textoCartasSelecionadas(0)).toBe("Nenhuma carta selecionada");
+  });
+
+  it("usa o singular para uma carta", () => {
+    expect(textoCartasSelecionadas(1)).toBe("1 carta selecionada");
+  });
+
+  it("usa o plural a partir de duas", () => {
+    expect(textoCartasSelecionadas(3)).toBe("3 cartas selecionadas");
   });
 });

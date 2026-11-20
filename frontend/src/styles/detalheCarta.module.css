@@ -287,8 +287,8 @@
 .semResultado { display: flex; align-items: center; gap: var(--esp-16); flex-wrap: wrap; }
 .cabecalhoSelecao,
 .rodapeOferta { display: flex; align-items: center; justify-content: space-between; gap: var(--esp-16); flex-wrap: wrap; }
-.rodapeOferta { border-top: 1px solid var(--borda-suave); padding-top: var(--esp-24); }
-.rodapeOferta p { max-width: 60ch; }
+.rodapeOferta { position: sticky; bottom: 0; z-index: var(--z-nav); border-top: 1px solid var(--borda-suave); padding-block: var(--esp-16); background: var(--superficie); }
+.resumoOferta { font-size: var(--fs-sm); font-weight: var(--peso-semi); }
 .cartasSelecao { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--esp-24); padding: 0; margin: 0; list-style: none; }
 .itemSelecao {
   display: flex;
@@ -326,6 +326,7 @@
   .itemSelecao { padding: var(--esp-16); gap: var(--esp-16); }
   .cartaSelecaoInfo { gap: var(--esp-16); }
   .especificacoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rodapeOferta { gap: var(--esp-8); padding-block: var(--esp-12); }
   .rodapeOferta .botao { width: 100%; }
 }
 
