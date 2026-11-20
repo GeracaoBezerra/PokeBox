@@ -1951,6 +1951,22 @@ export const swaggerSpec = {
           },
           inWishlist: { type: "boolean", example: false, description: "A carta está na sua wishlist." },
           onTradeList: { type: "boolean", example: true, description: "Você tem anúncio ACTIVE dessa carta (PAUSED não conta)." },
+          myListing: {
+            type: "object",
+            nullable: true,
+            description: "Seu anúncio aberto dessa carta (ACTIVE ou PAUSED), para abrir em GET /listings/{id}. Com mais de um, vem o ACTIVE; no empate, o mais recente. null quando não há anúncio aberto.",
+            properties: {
+              id: { type: "string", format: "uuid", example: "5b1f0c9e-2d6a-4f3b-9a51-7c2e8d4b6a10" },
+              status: { type: "string", enum: ["ACTIVE", "PAUSED"], example: "PAUSED" },
+            },
+            example: { id: "5b1f0c9e-2d6a-4f3b-9a51-7c2e8d4b6a10", status: "PAUSED" },
+          },
+        },
+        example: {
+          inCollection: 3,
+          inWishlist: false,
+          onTradeList: false,
+          myListing: { id: "5b1f0c9e-2d6a-4f3b-9a51-7c2e8d4b6a10", status: "PAUSED" },
         },
       },
       Listing: {

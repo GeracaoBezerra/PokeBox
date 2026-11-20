@@ -12,18 +12,16 @@ import { AppError } from '../errors/AppError.js';
 import { CardNotFoundError } from '../errors/CardNotFoundError.js';
 import type { Lang } from '../middlewares/validateCardParams.js';
 import type { CollectionQuantityReader } from '../repositories/CollectionRepository.js';
+import type { ListingLookup } from '../repositories/ListingRepository.js';
 import type { WishlistLookup } from '../repositories/WishlistRepository.js';
 import { isValidCardId } from '../utils/cardId.js';
 import { toUserCardInfo, type UserCardInfo } from '../utils/cardRecord.js';
 
-export interface ActiveListingReader {
-  existsActiveByUserAndCard(userId: string, cardId: string): Promise<{ id: string } | null>;
-}
 
 export interface UserCardReaders {
   collection: CollectionQuantityReader;
   wishlist: WishlistLookup;
-  listings: ActiveListingReader;
+  listings: ListingLookup;
 }
 
 export interface CardFetcher {
@@ -94,11 +92,11 @@ export class CardService implements CardFetcher {
   }
 
   async getUserCardInfo(userId: string, cardId: string): Promise<UserCardInfo> {
-    const [quantity, wishlistItem, activeListing] = await Promise.all([
+    const [quantity, wishlistItem, openListings] = await Promise.all([
       this.readers.collection.sumQuantityByUserAndCard(userId, cardId),
       this.readers.wishlist.existsByUserAndCard(userId, cardId),
-      this.readers.listings.existsActiveByUserAndCard(userId, cardId),
+      this.readers.listings.findOpenByUserAndCard(userId, cardId),
     ]);
-    return toUserCardInfo({ quantity, wishlistItem, activeListing });
+    return toUserCardInfo({ quantity, wishlistItem, openListings });
   }
 }

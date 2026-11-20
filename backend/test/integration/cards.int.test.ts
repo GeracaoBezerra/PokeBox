@@ -1,6 +1,6 @@
 import request from 'supertest';
 
-import { addItem, bearer, CHARIZARD } from './support/flows.js';
+import { addItem, bearer, CHARIZARD, createListing } from './support/flows.js';
 import { registerUser, startTestApp, type TestApp } from './support/testApp.js';
 
 let ctx: TestApp;
@@ -67,7 +67,28 @@ describe('GET /cards/:id', () => {
 
     const res = await request(ctx.app).get(`/cards/${CHARIZARD}`).set(bearer(user));
 
-    expect(res.body.data.user).toEqual({ inCollection: 2, inWishlist: false, onTradeList: false });
+    expect(res.body.data.user).toEqual({ inCollection: 2, inWishlist: false, onTradeList: false, myListing: null });
+  });
+
+  test('com login: anúncio pausado aparece em myListing, mas não conta como onTradeList', async () => {
+    const user = await registerUser(ctx.app);
+    const item = await addItem(ctx.app, user, { quantity: 2 });
+    const listing = await createListing(ctx.app, user, item.id);
+    await request(ctx.app).patch(`/listings/${listing.id}`).set(bearer(user)).send({ status: 'PAUSED' }).expect(200);
+
+    const res = await request(ctx.app).get(`/cards/${CHARIZARD}`).set(bearer(user));
+
+    expect(res.body.data.user).toMatchObject({ onTradeList: false, myListing: { id: listing.id, status: 'PAUSED' } });
+  });
+
+  test('com login: anúncio ativo aparece em myListing e em onTradeList', async () => {
+    const user = await registerUser(ctx.app);
+    const item = await addItem(ctx.app, user, { quantity: 2 });
+    const listing = await createListing(ctx.app, user, item.id);
+
+    const res = await request(ctx.app).get(`/cards/${CHARIZARD}`).set(bearer(user));
+
+    expect(res.body.data.user).toMatchObject({ onTradeList: true, myListing: { id: listing.id, status: 'ACTIVE' } });
   });
 
   test('carta que não existe → 404; id fora da regra → 400', async () => {
