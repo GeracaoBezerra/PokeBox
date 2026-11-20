@@ -1,8 +1,7 @@
 import { useId, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRightLeft, Layers, Store, UserRound, X } from "lucide-react";
 import { updateOfferStatus } from "../../api/offers";
-import { createTrade } from "../../api/trades";
 import { useAcao } from "../../hooks/useAcao";
 import { avisarQuePendenciasMudaram } from "../../hooks/usePendencias";
 import { useConfirmacao } from "../../hooks/useConfirmacao";
@@ -75,15 +74,25 @@ function LadoOferta({ titulo, itens, virouTroca }) {
   );
 }
 
-export default function CartaoOferta({ oferta, recebida, virouTroca, atualizando, onMudou }) {
+function rotuloDoStatus({ virouTroca, emEspera, status }) {
+  if (virouTroca) return { chave: "TRADE", texto: "Virou troca" };
+  if (emEspera) return { chave: "ON_HOLD", texto: "Em espera" };
+  return { chave: status, texto: STATUS_NEGOCIACAO[status] };
+}
+
+export default function CartaoOferta({ oferta, recebida, atualizando, onMudou }) {
   const acao = useAcao();
+  const navigate = useNavigate();
   const { pedir } = useConfirmacao();
   const { listing } = oferta;
   const aberta = oferta.status === "PROPOSED";
-  const aceitaSemTroca = oferta.status === "ACCEPTED" && !virouTroca;
+  const virouTroca = Boolean(oferta.tradeId);
+  const emEspera = aberta && Boolean(oferta.onHold);
   const parceiro = recebida ? oferta.proposer : listing.owner;
   const anunciada = [{ ...listing.item, card: listing.card, quantity: oferta.quantity }];
   const ocupado = acao.ocupado || atualizando;
+  const selo = rotuloDoStatus({ virouTroca, emEspera, status: oferta.status });
+  const linkDaTroca = `/trocas?aba=${recebida ? "recebidas" : "enviadas"}`;
 
   async function responder(status, mensagem) {
     const { ok } = await acao.executar(() => updateOfferStatus(oferta.id, status), mensagem);
@@ -97,16 +106,21 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, atualizando
     if (confirmou) responder(status, mensagem);
   }
 
-  function aceitar() {
-    confirmarEResponder(
-      {
-        titulo: `Aceitar a oferta de @${oferta.proposer.username}?`,
-        mensagem: `@${oferta.proposer.username} poderá criar a troca, que reserva as cartas dos dois lados.`,
-        textoConfirmar: "Aceitar oferta",
-      },
-      "ACCEPTED",
-      "Oferta aceita."
+  async function aceitar() {
+    const confirmou = await pedir({
+      titulo: `Aceitar a oferta de @${oferta.proposer.username}?`,
+      mensagem: "Aceitar cria a troca na hora e reserva as cartas dos dois lados. Depois, cada um confirma quando receber as cartas.",
+      textoConfirmar: "Aceitar oferta",
+      textoCancelar: "Voltar",
+    });
+    if (!confirmou) return;
+    const { ok } = await acao.executar(
+      () => updateOfferStatus(oferta.id, "ACCEPTED"),
+      "Oferta aceita: a troca foi criada e as cartas estão reservadas."
     );
+    if (!ok) return;
+    avisarQuePendenciasMudaram();
+    navigate("/trocas?aba=recebidas&status=PROPOSED");
   }
 
   function recusar() {
@@ -135,16 +149,6 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, atualizando
     );
   }
 
-  async function criarTroca() {
-    const { ok } = await acao.executar(
-      () => createTrade(oferta.id),
-      "Troca criada: as cartas dos dois lados estão reservadas. Veja em Trocas."
-    );
-    if (!ok) return;
-    avisarQuePendenciasMudaram();
-    onMudou();
-  }
-
   return (
     <article className={s.cartao} data-cy="cartao-oferta">
       <header className={s.cabecalho}>
@@ -153,9 +157,7 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, atualizando
           <h2><Link to={`/u/${parceiro.username}`}>{recebida ? "De" : "Para"} @{parceiro.username}</Link></h2>
           <time className={s.detalhes} dateTime={oferta.createdAt}>{formatarData(oferta.createdAt)}</time>
         </div>
-        <span className={s.status} data-status={virouTroca ? "TRADE" : oferta.status}>
-          {virouTroca ? "Virou troca" : STATUS_NEGOCIACAO[oferta.status]}
-        </span>
+        <span className={s.status} data-status={selo.chave}>{selo.texto}</span>
       </header>
 
       <div className={s.comparacao}>
@@ -170,35 +172,39 @@ export default function CartaoOferta({ oferta, recebida, virouTroca, atualizando
       <footer className={s.rodape}>
         <div className={s.contexto}>
           <p className={s.detalhes}>
-            {proximoPassoOferta({ status: oferta.status, recebida, virouTroca, dono: listing.owner.username, proponente: oferta.proposer.username })}
+            {proximoPassoOferta({
+              status: oferta.status,
+              recebida,
+              virouTroca,
+              emEspera,
+              statusDoAnuncio: listing.status,
+              cancelReason: oferta.cancelReason,
+              dono: listing.owner.username,
+              proponente: oferta.proposer.username,
+            })}
           </p>
           <Link className={s.anuncio} to={`/marketplace/${listing.id}`}>
             <Store size={16} aria-hidden="true" /> Ver anúncio
           </Link>
         </div>
         <div className={s.acoes}>
-          {recebida && (aberta || aceitaSemTroca) && (
+          {recebida && aberta && (
             <button type="button" className={s.perigo} disabled={ocupado} onClick={recusar}>
               Recusar
             </button>
           )}
-          {!recebida && (aberta || aceitaSemTroca) && (
+          {!recebida && aberta && (
             <button type="button" className={s.perigo} disabled={ocupado} onClick={cancelar}>
               Cancelar oferta
             </button>
           )}
           {recebida && aberta && (
-            <button type="button" className={s.primaria} disabled={ocupado} onClick={aceitar}>
+            <button type="button" className={s.primaria} disabled={ocupado || emEspera} onClick={aceitar}>
               Aceitar
             </button>
           )}
-          {!recebida && aceitaSemTroca && (
-            <button type="button" className={s.primaria} disabled={ocupado} onClick={criarTroca}>
-              Criar troca
-            </button>
-          )}
           {virouTroca && (
-            <Link className={s.primaria} to="/trocas">
+            <Link className={s.primaria} to={linkDaTroca}>
               Ver troca
             </Link>
           )}
