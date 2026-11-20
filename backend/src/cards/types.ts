@@ -92,6 +92,8 @@ export type CardListItem = {
   name: string;
   set: { id: string; name: string } | null;
   image: CardImage;
+  wishlistCount?: number;
+  tradeCount?: number;
 };
 
 export type CardSearchInfo = {
@@ -108,7 +110,7 @@ export type CardFilters = {
 };
 
 export type CardSort = {
-  field: 'name';
+  field: 'name' | 'recent' | 'wanted' | 'traded';
   order: 'asc' | 'desc';
 };
 

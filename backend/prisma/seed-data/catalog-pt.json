@@ -1,0 +1,870 @@
+{
+  "sets": [
+    {
+      "id": "xy1",
+      "name": "XY",
+      "position": 29
+    },
+    {
+      "id": "sm1",
+      "name": "Sol e Lua",
+      "position": 43
+    },
+    {
+      "id": "swsh1",
+      "name": "Espada e Escudo",
+      "position": 62
+    },
+    {
+      "id": "swsh3",
+      "name": "Escuridão Incandescente",
+      "position": 64
+    },
+    {
+      "id": "swsh4",
+      "name": "Voltagem Vívida",
+      "position": 66
+    },
+    {
+      "id": "swsh7",
+      "name": "Céus em Evolução",
+      "position": 71
+    },
+    {
+      "id": "swsh9",
+      "name": "Astros Cintilantes",
+      "position": 75
+    },
+    {
+      "id": "swsh12.5",
+      "name": "Realeza Absoluta",
+      "position": 85
+    },
+    {
+      "id": "sv01",
+      "name": "Escarlate e Violeta",
+      "position": 87
+    },
+    {
+      "id": "sv02",
+      "name": "Evoluções em Paldea",
+      "position": 89
+    },
+    {
+      "id": "sv03",
+      "name": "Obsidiana em Chamas",
+      "position": 90
+    },
+    {
+      "id": "sv03.5",
+      "name": "151",
+      "position": 91
+    },
+    {
+      "id": "sv04",
+      "name": "Fenda Paradoxal",
+      "position": 92
+    },
+    {
+      "id": "sv04.5",
+      "name": "Destinos de Paldea",
+      "position": 93
+    },
+    {
+      "id": "sv06",
+      "name": "Máscaras do Crepúsculo",
+      "position": 95
+    },
+    {
+      "id": "sv08",
+      "name": "Fagulhas Impetuosas",
+      "position": 100
+    }
+  ],
+  "cards": [
+    {
+      "id": "xy1-41",
+      "localId": "41",
+      "name": "Greninja",
+      "setId": "xy1",
+      "setName": "XY",
+      "imageUrl": "https://assets.tcgdex.net/pt/xy/xy1/41/low.webp",
+      "types": [
+        "Água"
+      ],
+      "rarity": "Rara",
+      "category": "Pokémon"
+    },
+    {
+      "id": "xy1-97",
+      "localId": "97",
+      "name": "Xerneas EX",
+      "setId": "xy1",
+      "setName": "XY",
+      "imageUrl": "https://assets.tcgdex.net/pt/xy/xy1/97/low.webp",
+      "types": [
+        "Fada"
+      ],
+      "rarity": "Ultra Rara",
+      "category": "Pokémon"
+    },
+    {
+      "id": "xy1-140",
+      "localId": "140",
+      "name": "Energia de Fada",
+      "setId": "xy1",
+      "setName": "XY",
+      "imageUrl": "https://assets.tcgdex.net/pt/xy/xy1/140/low.webp",
+      "types": [
+        "Fada"
+      ],
+      "rarity": "Comum",
+      "category": "Energia"
+    },
+    {
+      "id": "sm1-9",
+      "localId": "9",
+      "name": "Rowlet",
+      "setId": "sm1",
+      "setName": "Sol e Lua",
+      "imageUrl": "https://assets.tcgdex.net/pt/sm/sm1/9/low.webp",
+      "types": [
+        "Planta"
+      ],
+      "rarity": "Comum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sm1-61",
+      "localId": "61",
+      "name": "Espeon GX",
+      "setId": "sm1",
+      "setName": "Sol e Lua",
+      "imageUrl": "https://assets.tcgdex.net/pt/sm/sm1/61/low.webp",
+      "types": [
+        "Psíquico"
+      ],
+      "rarity": "Ultra Rara",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sm1-80",
+      "localId": "80",
+      "name": "Umbreon GX",
+      "setId": "sm1",
+      "setName": "Sol e Lua",
+      "imageUrl": "https://assets.tcgdex.net/pt/sm/sm1/80/low.webp",
+      "types": [
+        "Sombrio"
+      ],
+      "rarity": "Ultra Rara",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sm1-129",
+      "localId": "129",
+      "name": "Doce Raro",
+      "setId": "sm1",
+      "setName": "Sol e Lua",
+      "imageUrl": "https://assets.tcgdex.net/pt/sm/sm1/129/low.webp",
+      "types": [],
+      "rarity": "Incomum",
+      "category": "Treinador"
+    },
+    {
+      "id": "swsh1-1",
+      "localId": "1",
+      "name": "Celebi V",
+      "setId": "swsh1",
+      "setName": "Espada e Escudo",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh1/1/low.webp",
+      "types": [
+        "Planta"
+      ],
+      "rarity": "Rara Holo V",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh1-142",
+      "localId": "142",
+      "name": "Snorlax VMAX",
+      "setId": "swsh1",
+      "setName": "Espada e Escudo",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh1/142/low.webp",
+      "types": [
+        "Incolor"
+      ],
+      "rarity": "Rara Holo VMAX",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh1-178",
+      "localId": "178",
+      "name": "Pesquisa de Professores",
+      "setId": "swsh1",
+      "setName": "Espada e Escudo",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh1/178/low.webp",
+      "types": [],
+      "rarity": "Rara Holo",
+      "category": "Treinador"
+    },
+    {
+      "id": "swsh3-136",
+      "localId": "136",
+      "name": "Furret",
+      "setId": "swsh3",
+      "setName": "Escuridão Incandescente",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh3/136/low.webp",
+      "types": [
+        "Incolor"
+      ],
+      "rarity": "Incomum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh4-25",
+      "localId": "25",
+      "name": "Charizard",
+      "setId": "swsh4",
+      "setName": "Voltagem Vívida",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh4/25/low.webp",
+      "types": [
+        "Fogo"
+      ],
+      "rarity": "Rara",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh4-44",
+      "localId": "44",
+      "name": "Pikachu VMAX",
+      "setId": "swsh4",
+      "setName": "Voltagem Vívida",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh4/44/low.webp",
+      "types": [
+        "Elétrico"
+      ],
+      "rarity": "Rara Holo VMAX",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh7-75",
+      "localId": "75",
+      "name": "Sylveon VMAX",
+      "setId": "swsh7",
+      "setName": "Céus em Evolução",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh7/75/low.webp",
+      "types": [
+        "Psíquico"
+      ],
+      "rarity": "Rara Holo VMAX",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh7-111",
+      "localId": "111",
+      "name": "Rayquaza VMAX",
+      "setId": "swsh7",
+      "setName": "Céus em Evolução",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh7/111/low.webp",
+      "types": [
+        "Dragão"
+      ],
+      "rarity": "Rara Holo VMAX",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh7-125",
+      "localId": "125",
+      "name": "Eevee",
+      "setId": "swsh7",
+      "setName": "Céus em Evolução",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh7/125/low.webp",
+      "types": [
+        "Incolor"
+      ],
+      "rarity": "Comum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh7-215",
+      "localId": "215",
+      "name": "Umbreon VMAX",
+      "setId": "swsh7",
+      "setName": "Céus em Evolução",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh7/215/low.webp",
+      "types": [
+        "Sombrio"
+      ],
+      "rarity": "Rare Secreta",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh9-018",
+      "localId": "018",
+      "name": "Charizard V-ASTRO",
+      "setId": "swsh9",
+      "setName": "Astros Cintilantes",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh9/018/low.webp",
+      "types": [
+        "Fogo"
+      ],
+      "rarity": "Rara Holo VSTAR",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh9-123",
+      "localId": "123",
+      "name": "Arceus V-ASTRO",
+      "setId": "swsh9",
+      "setName": "Astros Cintilantes",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh9/123/low.webp",
+      "types": [
+        "Incolor"
+      ],
+      "rarity": "Rara Holo VSTAR",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh9-132",
+      "localId": "132",
+      "name": "Ordem da Chefia",
+      "setId": "swsh9",
+      "setName": "Astros Cintilantes",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh9/132/low.webp",
+      "types": [],
+      "rarity": "Rara Holo",
+      "category": "Treinador"
+    },
+    {
+      "id": "swsh9-151",
+      "localId": "151",
+      "name": "Energia Turbo Dupla",
+      "setId": "swsh9",
+      "setName": "Astros Cintilantes",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh9/151/low.webp",
+      "types": [],
+      "rarity": "Incomum",
+      "category": "Energia"
+    },
+    {
+      "id": "swsh12.5-020",
+      "localId": "020",
+      "name": "Charizard Radiante",
+      "setId": "swsh12.5",
+      "setName": "Realeza Absoluta",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh12.5/020/low.webp",
+      "types": [
+        "Fogo"
+      ],
+      "rarity": "Rara Radiante",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh12.5-060",
+      "localId": "060",
+      "name": "Mew V",
+      "setId": "swsh12.5",
+      "setName": "Realeza Absoluta",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh12.5/060/low.webp",
+      "types": [
+        "Psíquico"
+      ],
+      "rarity": "Rara Holo V",
+      "category": "Pokémon"
+    },
+    {
+      "id": "swsh12.5-160",
+      "localId": "160",
+      "name": "Pikachu",
+      "setId": "swsh12.5",
+      "setName": "Realeza Absoluta",
+      "imageUrl": "https://assets.tcgdex.net/pt/swsh/swsh12.5/160/low.webp",
+      "types": [
+        "Elétrico"
+      ],
+      "rarity": "Rare Secreta",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv01-001",
+      "localId": "001",
+      "name": "Pineco",
+      "setId": "sv01",
+      "setName": "Escarlate e Violeta",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv01/001/low.webp",
+      "types": [
+        "Planta"
+      ],
+      "rarity": "Comum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv01-081",
+      "localId": "081",
+      "name": "Miraidon ex",
+      "setId": "sv01",
+      "setName": "Escarlate e Violeta",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv01/081/low.webp",
+      "types": [
+        "Elétrico"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv01-125",
+      "localId": "125",
+      "name": "Koraidon ex",
+      "setId": "sv01",
+      "setName": "Escarlate e Violeta",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv01/125/low.webp",
+      "types": [
+        "Lutador"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv01-166",
+      "localId": "166",
+      "name": "Arven",
+      "setId": "sv01",
+      "setName": "Escarlate e Violeta",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv01/166/low.webp",
+      "types": [],
+      "rarity": "Incomum",
+      "category": "Treinador"
+    },
+    {
+      "id": "sv01-181",
+      "localId": "181",
+      "name": "Bola de Ninho",
+      "setId": "sv01",
+      "setName": "Escarlate e Violeta",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv01/181/low.webp",
+      "types": [],
+      "rarity": "Incomum",
+      "category": "Treinador"
+    },
+    {
+      "id": "sv01-196",
+      "localId": "196",
+      "name": "Ultra Bola",
+      "setId": "sv01",
+      "setName": "Escarlate e Violeta",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv01/196/low.webp",
+      "types": [],
+      "rarity": "Incomum",
+      "category": "Treinador"
+    },
+    {
+      "id": "sv01-257",
+      "localId": "257",
+      "name": "Energia Lightning Básica",
+      "setId": "sv01",
+      "setName": "Escarlate e Violeta",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv01/257/low.webp",
+      "types": [
+        "Elétrico"
+      ],
+      "rarity": "Hiper rara",
+      "category": "Energia"
+    },
+    {
+      "id": "sv02-063",
+      "localId": "063",
+      "name": "Pikachu ex",
+      "setId": "sv02",
+      "setName": "Evoluções em Paldea",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv02/063/low.webp",
+      "types": [
+        "Elétrico"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv02-172",
+      "localId": "172",
+      "name": "Ordem da Chefia",
+      "setId": "sv02",
+      "setName": "Evoluções em Paldea",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv02/172/low.webp",
+      "types": [],
+      "rarity": "Rara",
+      "category": "Treinador"
+    },
+    {
+      "id": "sv02-185",
+      "localId": "185",
+      "name": "Kissera",
+      "setId": "sv02",
+      "setName": "Evoluções em Paldea",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv02/185/low.webp",
+      "types": [],
+      "rarity": "Incomum",
+      "category": "Treinador"
+    },
+    {
+      "id": "sv02-279",
+      "localId": "279",
+      "name": "Energia Water Básica",
+      "setId": "sv02",
+      "setName": "Evoluções em Paldea",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv02/279/low.webp",
+      "types": [
+        "Água"
+      ],
+      "rarity": "Hiper rara",
+      "category": "Energia"
+    },
+    {
+      "id": "sv03-125",
+      "localId": "125",
+      "name": "Charizard ex",
+      "setId": "sv03",
+      "setName": "Obsidiana em Chamas",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03/125/low.webp",
+      "types": [
+        "Sombrio"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03-130",
+      "localId": "130",
+      "name": "Umbreon",
+      "setId": "sv03",
+      "setName": "Obsidiana em Chamas",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03/130/low.webp",
+      "types": [
+        "Sombrio"
+      ],
+      "rarity": "Incomum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03-230",
+      "localId": "230",
+      "name": "Energia Fire Básica",
+      "setId": "sv03",
+      "setName": "Obsidiana em Chamas",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03/230/low.webp",
+      "types": [
+        "Fogo"
+      ],
+      "rarity": "Hiper rara",
+      "category": "Energia"
+    },
+    {
+      "id": "sv03.5-001",
+      "localId": "001",
+      "name": "Bulbasaur",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/001/low.webp",
+      "types": [
+        "Planta"
+      ],
+      "rarity": "Comum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-004",
+      "localId": "004",
+      "name": "Charmander",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/004/low.webp",
+      "types": [
+        "Fogo"
+      ],
+      "rarity": "Comum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-006",
+      "localId": "006",
+      "name": "Charizard ex",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/006/low.webp",
+      "types": [
+        "Fogo"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-007",
+      "localId": "007",
+      "name": "Squirtle",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/007/low.webp",
+      "types": [
+        "Água"
+      ],
+      "rarity": "Comum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-025",
+      "localId": "025",
+      "name": "Pikachu",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/025/low.webp",
+      "types": [
+        "Elétrico"
+      ],
+      "rarity": "Comum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-054",
+      "localId": "054",
+      "name": "Psyduck",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/054/low.webp",
+      "types": [
+        "Água"
+      ],
+      "rarity": "Comum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-094",
+      "localId": "094",
+      "name": "Gengar",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/094/low.webp",
+      "types": [
+        "Psíquico"
+      ],
+      "rarity": "Rara",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-129",
+      "localId": "129",
+      "name": "Magikarp",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/129/low.webp",
+      "types": [
+        "Água"
+      ],
+      "rarity": "Comum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-130",
+      "localId": "130",
+      "name": "Gyarados",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/130/low.webp",
+      "types": [
+        "Água"
+      ],
+      "rarity": "Rara",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-133",
+      "localId": "133",
+      "name": "Eevee",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/133/low.webp",
+      "types": [
+        "Incolor"
+      ],
+      "rarity": "Comum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-143",
+      "localId": "143",
+      "name": "Snorlax",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/143/low.webp",
+      "types": [
+        "Incolor"
+      ],
+      "rarity": "Incomum",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-150",
+      "localId": "150",
+      "name": "Mewtwo",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/150/low.webp",
+      "types": [
+        "Psíquico"
+      ],
+      "rarity": "Rara",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-151",
+      "localId": "151",
+      "name": "Mew ex",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/151/low.webp",
+      "types": [
+        "Psíquico"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-173",
+      "localId": "173",
+      "name": "Pikachu",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/173/low.webp",
+      "types": [
+        "Elétrico"
+      ],
+      "rarity": "Ilustração Rara",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-199",
+      "localId": "199",
+      "name": "Charizard ex",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/199/low.webp",
+      "types": [
+        "Fogo"
+      ],
+      "rarity": "Ilustração Rara Especial",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-205",
+      "localId": "205",
+      "name": "Mew ex",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/205/low.webp",
+      "types": [
+        "Psíquico"
+      ],
+      "rarity": "Hiper rara",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv03.5-207",
+      "localId": "207",
+      "name": "Energia Psychic Básica",
+      "setId": "sv03.5",
+      "setName": "151",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv03.5/207/low.webp",
+      "types": [
+        "Psíquico"
+      ],
+      "rarity": "Hiper rara",
+      "category": "Energia"
+    },
+    {
+      "id": "sv04-038",
+      "localId": "038",
+      "name": "Garchomp ex",
+      "setId": "sv04",
+      "setName": "Fenda Paradoxal",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv04/038/low.webp",
+      "types": [
+        "Água"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv04-171",
+      "localId": "171",
+      "name": "Hipótese do Professor Turo",
+      "setId": "sv04",
+      "setName": "Fenda Paradoxal",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv04/171/low.webp",
+      "types": [],
+      "rarity": "Incomum",
+      "category": "Treinador"
+    },
+    {
+      "id": "sv04.5-054",
+      "localId": "054",
+      "name": "Charizard ex",
+      "setId": "sv04.5",
+      "setName": "Destinos de Paldea",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv04.5/054/low.webp",
+      "types": [
+        "Sombrio"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv06-106",
+      "localId": "106",
+      "name": "Greninja ex",
+      "setId": "sv06",
+      "setName": "Máscaras do Crepúsculo",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv06/106/low.webp",
+      "types": [
+        "Lutador"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv06-167",
+      "localId": "167",
+      "name": "Energia Legado",
+      "setId": "sv06",
+      "setName": "Máscaras do Crepúsculo",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv06/167/low.webp",
+      "types": [],
+      "rarity": "ACE SPEC Raro",
+      "category": "Energia"
+    },
+    {
+      "id": "sv08-057",
+      "localId": "057",
+      "name": "Pikachu ex",
+      "setId": "sv08",
+      "setName": "Fagulhas Impetuosas",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv08/057/low.webp",
+      "types": [
+        "Elétrico"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    },
+    {
+      "id": "sv08-086",
+      "localId": "086",
+      "name": "Sylveon ex",
+      "setId": "sv08",
+      "setName": "Fagulhas Impetuosas",
+      "imageUrl": "https://assets.tcgdex.net/pt/sv/sv08/086/low.webp",
+      "types": [
+        "Psíquico"
+      ],
+      "rarity": "Rara Dupla",
+      "category": "Pokémon"
+    }
+  ]
+}

@@ -67,6 +67,9 @@ export default function CartaCard({ carta, lang, link, estadoLink, painel = true
   const destino = link ?? (lang ? `/cards/${idUrl}?lang=${lang}` : `/cards/${idUrl}`);
   const alt = [nome, set, numeroTexto].filter(Boolean).join(", ");
   const temDados = Boolean(tipo || raridade || set || numeroTexto || artista);
+  const wishlistCount = carta.wishlistCount;
+  const tradeCount = carta.tradeCount;
+  const temPainel = temDados || wishlistCount != null || tradeCount != null;
 
   return (
     // Sem tipo, usa o "incolor" (cinza neutro) para o painel manter fundo e borda
@@ -86,7 +89,7 @@ export default function CartaCard({ carta, lang, link, estadoLink, painel = true
 
         {/* Painel de dados: é só um resumo visual, os mesmos dados estarão
             na página da carta. */}
-        {painel && temDados && (
+        {painel && temPainel && (
           <div className={styles.painel} aria-hidden="true">
             <p className={styles.nome}>{nome}</p>
 
@@ -100,6 +103,8 @@ export default function CartaCard({ carta, lang, link, estadoLink, painel = true
               {set && <Linha rotulo="Set">{set}</Linha>}
               {numeroTexto && <Linha rotulo="Número">{numeroTexto}</Linha>}
               {artista && <Linha rotulo="Artista">{artista}</Linha>}
+              {wishlistCount != null && <Linha rotulo="Wishlists">{wishlistCount}</Linha>}
+              {tradeCount != null && <Linha rotulo="Unidades trocadas">{tradeCount}</Linha>}
             </dl>
           </div>
         )}

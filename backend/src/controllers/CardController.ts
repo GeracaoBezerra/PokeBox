@@ -51,7 +51,8 @@ export class CardController {
         sort: sort && { field: sort, order },
       });
 
-      res.set('Cache-Control', 'public, max-age=300');
+      const dynamicRanking = sort === 'wanted' || sort === 'traded';
+      res.set('Cache-Control', dynamicRanking ? 'public, no-cache' : 'public, max-age=300');
       res.json({
         success: true,
         data: cards,

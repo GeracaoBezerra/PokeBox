@@ -91,6 +91,29 @@ type SeedCard = Omit<Prisma.CardCreateInput, 'releaseDate' | 'marketPriceUpdated
   marketPriceUpdatedAt?: string | null;
 };
 
+interface CatalogSetRow {
+  id: string;
+  name: string;
+  position: number;
+}
+
+interface CatalogCardRow {
+  id: string;
+  localId: string;
+  name: string;
+  setId: string;
+  setName: string;
+  imageUrl: string | null;
+  types: string[];
+  rarity: string | null;
+  category: string | null;
+}
+
+interface CatalogData {
+  sets: CatalogSetRow[];
+  cards: CatalogCardRow[];
+}
+
 type UsersByUsername = Record<string, User>;
 type ItemsByKey = Record<string, CollectionItem>;
 type ListingsByItem = Record<string, Listing>;
@@ -267,6 +290,20 @@ const wishlist: SeedWishlistItem[] = [
   { username: 'lance', cardId: 'swsh7-215' },
   { username: 'lance', cardId: 'neo1-9' },
   { username: 'lance', cardId: 'sv03.5-199' },
+  { username: 'admin', cardId: 'swsh7-215' },
+  { username: 'ash', cardId: 'swsh7-215' },
+  { username: 'misty', cardId: 'swsh7-215' },
+  { username: 'gary', cardId: 'swsh7-215' },
+  { username: 'dawn', cardId: 'swsh7-215' },
+  { username: 'brock', cardId: 'base1-4' },
+  { username: 'erika', cardId: 'base1-4' },
+  { username: 'dawn', cardId: 'base1-4' },
+  { username: 'cynthia', cardId: 'base1-4' },
+  { username: 'misty', cardId: 'sv03.5-199' },
+  { username: 'brock', cardId: 'sv03.5-199' },
+  { username: 'erika', cardId: 'sv03.5-199' },
+  { username: 'brock', cardId: 'base1-2' },
+  { username: 'gary', cardId: 'base1-2' },
 ];
 
 const listings: SeedListing[] = [
@@ -422,6 +459,24 @@ const offers: SeedOffer[] = [
     status: 'ACCEPTED',
     trade: 'PROPOSED',
   },
+  {
+    listing: 'brock-garchomp-ex',
+    proposer: 'misty',
+    quantity: 1,
+    message: 'Três Magikarp pelo Garchomp?',
+    items: [{ item: 'misty-magikarp-151', quantity: 3 }],
+    status: 'ACCEPTED',
+    trade: 'ACCEPTED',
+  },
+  {
+    listing: 'ash-pikachu-vmax',
+    proposer: 'gary',
+    quantity: 1,
+    message: 'Três Eevee pelo Pikachu VMAX?',
+    items: [{ item: 'gary-eevee-151', quantity: 3 }],
+    status: 'ACCEPTED',
+    trade: 'ACCEPTED',
+  },
 ];
 
 const offerRepository = new PrismaOfferRepository(prisma);
@@ -452,9 +507,20 @@ async function loadCards(): Promise<SeedCard[]> {
   return JSON.parse(file);
 }
 
-function validateSeedData(cards: SeedCard[]) {
+async function loadCatalogPt(): Promise<CatalogData> {
+  const file = await readFile(new URL('./seed-data/catalog-pt.json', import.meta.url), 'utf8');
+  return JSON.parse(file);
+}
+
+function validateSeedData(cards: SeedCard[], catalogPt: CatalogData) {
   const cardsById = new Map(cards.map((card) => [card.id, card]));
   const owned = new Set<string>();
+
+  const setsPt = new Set(catalogPt.sets.map((set) => set.id));
+  for (const { id, setId } of catalogPt.cards) {
+    if (!cardsById.has(id)) throw new Error(`Catálogo pt: carta ${id} não está em seed-data/cards.json`);
+    if (!setsPt.has(setId)) throw new Error(`Catálogo pt: set ${setId} da carta ${id} não está em seed-data/catalog-pt.json`);
+  }
 
   for (const { key, username, cardId, finish, firstEdition = false } of collection) {
     const card = cardsById.get(cardId);
@@ -503,6 +569,69 @@ async function seedCards(cards: SeedCard[]) {
     };
     await prisma.card.upsert({ where: { id: card.id }, update: data, create: data });
   }
+}
+
+function normalizedName(name: string): string {
+  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function seedTypes(card: SeedCard): string[] {
+  return Array.isArray(card.types) ? card.types.filter((type): type is string => typeof type === 'string') : [];
+}
+
+function catalogEn(cards: SeedCard[]): CatalogData {
+  const sets = [
+    ...new Map(
+      cards.map((card) => [
+        card.setId,
+        { id: card.setId, name: card.setName, releaseDate: card.releaseDate ?? '0000-00-00' },
+      ]),
+    ).values(),
+  ].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate) || a.id.localeCompare(b.id));
+
+  return {
+    sets: sets.map((set, position) => ({ id: set.id, name: set.name, position })),
+    cards: cards.map((card) => ({
+      id: card.id,
+      localId: String(card.number).split('/')[0],
+      name: card.name,
+      setId: card.setId,
+      setName: card.setName,
+      imageUrl: card.imageUrl ?? null,
+      types: seedTypes(card),
+      rarity: card.rarity ?? null,
+      category: card.category ?? null,
+    })),
+  };
+}
+
+async function saveCatalog(lang: string, { sets, cards }: CatalogData) {
+  await prisma.catalogSet.createMany({
+    data: sets.map((set) => ({ id: set.id, lang, name: set.name, position: set.position })),
+    skipDuplicates: true,
+  });
+
+  for (const { id, ...card } of cards) {
+    const data = { ...card, nameNormalized: normalizedName(card.name) };
+    await prisma.catalogCard.upsert({
+      where: { id_lang: { id, lang } },
+      update: data,
+      create: { id, lang, ...data },
+    });
+  }
+
+  const distinct = (values: (string | null)[]) => [...new Set(values.filter((value): value is string => Boolean(value)))];
+  const filterRows = [
+    ...distinct(cards.flatMap((card) => card.types)).map((value) => ({ lang, kind: 'type', value })),
+    ...distinct(cards.map((card) => card.rarity)).map((value) => ({ lang, kind: 'rarity', value })),
+    ...distinct(cards.map((card) => card.category)).map((value) => ({ lang, kind: 'category', value })),
+  ];
+  await prisma.catalogFilterValue.createMany({ data: filterRows, skipDuplicates: true });
+}
+
+async function seedCatalog(cards: SeedCard[], catalogPt: CatalogData) {
+  await saveCatalog('en', catalogEn(cards));
+  await saveCatalog('pt', catalogPt);
 }
 
 async function seedCollection(byUsername: UsersByUsername) {
@@ -671,10 +800,12 @@ async function seedOffers(byUsername: UsersByUsername, items: ItemsByKey, byItem
 
 async function main() {
   const cards = await loadCards();
-  validateSeedData(cards);
+  const catalogPt = await loadCatalogPt();
+  validateSeedData(cards, catalogPt);
 
   const byUsername = await seedUsers();
   await seedCards(cards);
+  if (process.env.NODE_ENV !== 'test') await seedCatalog(cards, catalogPt);
   const items = await seedCollection(byUsername);
   await removeRetiredItems(byUsername);
   await seedWishlist(byUsername);
