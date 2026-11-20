@@ -2,19 +2,23 @@ import { useState } from "react";
 import placeholderCarta from "../../assets/placeholders/carta-placeholder.webp";
 import styles from "./ImagemCarta.module.css";
 
+function Placeholder({ className, descricao }) {
+  return (
+    <div
+      className={`${className ?? ""} ${styles.semImagem}`}
+      role="img"
+      aria-label={descricao}
+      style={{ backgroundImage: `url(${placeholderCarta})` }}
+    >
+      <span className={styles.legenda}>{descricao}</span>
+    </div>
+  );
+}
+
 function ImagemComFallback({ src, alt, className, loading, resto }) {
   const [erro, setErro] = useState(false);
   if (erro) {
-    return (
-      <div
-        className={`${className ?? ""} ${styles.semImagem}`}
-        role="img"
-        aria-label={alt}
-        style={{ backgroundImage: `url(${placeholderCarta})` }}
-      >
-        <span className={styles.legenda}>{alt}</span>
-      </div>
-    );
+    return <Placeholder className={className} descricao={alt} />;
   }
 
   return (
@@ -33,16 +37,7 @@ export default function ImagemCarta({ src, alt, className, loading = "lazy", ...
   const descricao = alt || "Carta Pokémon";
 
   if (!src) {
-    return (
-      <div
-        className={`${className ?? ""} ${styles.semImagem}`}
-        role="img"
-        aria-label={descricao}
-        style={{ backgroundImage: `url(${placeholderCarta})` }}
-      >
-        <span className={styles.legenda}>{descricao}</span>
-      </div>
-    );
+    return <Placeholder className={className} descricao={descricao} />;
   }
 
   return (

@@ -6,8 +6,8 @@
   justify-content: flex-end;
   position: relative;
   aspect-ratio: 245 / 342;
-  padding: var(--esp-8, 8px);
-  border-radius: var(--raio-carta, 6px);
+  padding: var(--esp-8);
+  border-radius: var(--raio-carta);
   background-color: #e5e7eb;
   background-size: cover;
   background-position: center;
@@ -28,7 +28,7 @@
 .legenda {
   position: relative;
   z-index: 1;
-  font-weight: 600;
+  font-weight: var(--peso-semi);
   font-size: clamp(0.6rem, 6cqw, 1.25rem);
   line-height: 1.2;
   overflow-wrap: anywhere;
