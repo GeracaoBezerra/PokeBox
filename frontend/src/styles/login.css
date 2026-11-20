@@ -2,20 +2,6 @@
    1. VARIÁVEIS
    ========================================================================== */
 .login-page {
-  /* Cores base */
-  --text: var(--texto);
-  --muted: var(--texto-suave);
-  --line: var(--borda-suave);
-  --card: var(--fundo);
-  --brand: var(--acento);
-  --brand-accent: var(--acento-hover);
-  --brand-link: var(--acento);
-  --err: var(--erro);
-  --ok: var(--sucesso);
-
-  /* Fundo da página */
-  --page-from: #0b1030;
-  --page-to: #2a0a24;
   --shade: rgb(5 8 30 / 0.38);
 
   /* Superfícies derivadas */
@@ -61,10 +47,14 @@
   padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
 
   font-family: var(--font-family);
-  color: var(--text);
+  color: var(--texto);
   text-align: left;
   letter-spacing: normal;
-  background: linear-gradient(160deg, var(--page-from), var(--page-to));
+  background: linear-gradient(
+    160deg,
+    var(--auth-fundo-inicio),
+    var(--auth-fundo-fim)
+  );
 }
 
 .login-page *,
@@ -82,7 +72,8 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-bg);
-  background: var(--page-from) url("/assets/fundo.webp") center / cover no-repeat;
+  background: var(--auth-fundo-inicio) url("/assets/fundo.webp") center / cover
+    no-repeat;
 }
 
 .login-page .bg video {
@@ -114,8 +105,8 @@
   width: min(600px, 92vw);
   padding: 32px 28px;
 
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: var(--fundo);
+  border: 1px solid var(--borda-suave);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: blur(14px);
@@ -136,18 +127,18 @@
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
-  color: var(--text);
+  color: var(--texto);
 }
 
 .login-page .logo b {
-  color: var(--brand);
+  color: var(--acento);
   font-weight: 800;
 }
 
 .login-page .sub {
   margin: 6px 0 22px;
   font-size: 14px;
-  color: var(--muted);
+  color: var(--texto-suave);
 }
 
 
@@ -171,9 +162,9 @@
   padding: 12px 14px;
 
   font-size: 16px; /* 16px evita zoom automático no iOS */
-  color: var(--text);
+  color: var(--texto);
   background: var(--input-bg);
-  border: 1px solid var(--line);
+  border: 1px solid var(--borda-suave);
   border-radius: var(--radius-sm);
   outline: none;
   transition:
@@ -182,19 +173,19 @@
 }
 
 .login-page input:focus {
-  border-color: var(--brand);
+  border-color: var(--acento);
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .login-page input[aria-invalid="true"] {
-  border-color: var(--err);
+  border-color: var(--erro);
 }
 
 .login-page .err {
   min-height: 16px;
   margin-top: 4px;
   font-size: 12px;
-  color: var(--err);
+  color: var(--erro);
 }
 
 
@@ -211,7 +202,7 @@
   font-size: 16px;
   font-weight: 700;
   color: var(--acento-texto);
-  background: linear-gradient(135deg, var(--brand), var(--brand-accent));
+  background: linear-gradient(135deg, var(--acento), var(--acento-hover));
   border: 0;
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-button);
@@ -240,7 +231,7 @@
 
   padding: 6px;
   font-size: 13px;
-  color: var(--muted);
+  color: var(--texto-suave);
   background: none;
   border: 0;
   cursor: pointer;
@@ -260,11 +251,11 @@
 }
 
 .login-page .msg.error {
-  color: var(--err);
+  color: var(--erro);
 }
 
 .login-page .msg.ok {
-  color: var(--ok);
+  color: var(--sucesso);
 }
 
 
@@ -275,12 +266,12 @@
   margin-top: 16px;
   font-size: 13px;
   text-align: center;
-  color: var(--muted);
+  color: var(--texto-suave);
 }
 
 .login-page .foot a {
   font-weight: 600;
-  color: var(--brand-link);
+  color: var(--acento);
   text-decoration: none;
 }
 
@@ -291,7 +282,7 @@
 .login-page .go:focus-visible,
 .login-page .eye:focus-visible,
 .login-page .foot a:focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--acento);
   outline-offset: 2px;
 }
 
