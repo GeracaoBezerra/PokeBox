@@ -11,7 +11,6 @@ import { Link } from "react-router-dom";
 import { useCarregar } from "../hooks/useCarregar";
 import { useFiltrosNegociacao } from "../hooks/useFiltrosNegociacao";
 import s from "../styles/paginas.module.css";
-import { pendentesPrimeiro } from "../utils/negociacao";
 import { STATUS_NEGOCIACAO } from "../utils/rotulos";
 
 const VAZIO = {
@@ -36,7 +35,6 @@ export default function MyOffersPage() {
 
   const lista = carregando ? [] : dados?.items ?? [];
   const vazia = !carregando && dados && lista.length === 0;
-  const ordenada = aba === "recebidas" ? pendentesPrimeiro(lista) : lista;
 
   return (
     <div className={s.pagina}>
@@ -77,7 +75,7 @@ export default function MyOffersPage() {
         )}
 
         <div className={s.gradeNegociacoes}>
-          {ordenada.map((oferta) => (
+          {lista.map((oferta) => (
             <CartaoOferta
               key={oferta.id}
               oferta={oferta}
