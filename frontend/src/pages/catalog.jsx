@@ -114,6 +114,11 @@ export default function CatalogPage() {
   );
   const { dados, erro, recarregar } = busca;
   const carregando = busca.carregando || esperandoOpcoes;
+  const infoBusca = carregando ? null : dados?.search ?? null;
+  const setsReconhecidos = infoBusca?.sets ?? [];
+  const palavrasIgnoradas = infoBusca?.ignored ?? [];
+  const buscaParcial = Boolean(palavrasIgnoradas.length && infoBusca?.name && dados?.items.length);
+  const paginaVazia = Boolean(dados) && dados.items.length === 0;
   const session = useSession();
   const navigate = useNavigate();
   const location = useLocation();
@@ -164,6 +169,25 @@ export default function CatalogPage() {
 
   function limparFiltros() {
     atualizar(VAZIOS);
+  }
+
+  function resumoDaBusca() {
+    if (!name) return "Todas as cartas";
+    if (infoBusca && !infoBusca.name && setsReconhecidos.length) {
+      return `Cartas de ${setsReconhecidos.join(", ")}`;
+    }
+    if (infoBusca?.name && setsReconhecidos.length && !palavrasIgnoradas.length) {
+      return (
+        <>
+          Resultados para <strong>“{infoBusca.name}”</strong> em {setsReconhecidos.join(", ")}
+        </>
+      );
+    }
+    return (
+      <>
+        Resultados para <strong>“{name}”</strong>
+      </>
+    );
   }
 
   const atalhoIngles = lang === IDIOMA_PADRAO && name ? (
@@ -224,16 +248,17 @@ export default function CatalogPage() {
         <section className={s.resultados} aria-label="Resultados do catálogo">
           <div className={s.resumo} role="status">
             <p>
-              {name ? (
-                <>
-                  Resultados para <strong>“{name}”</strong>
-                </>
-              ) : (
-                "Todas as cartas"
-              )}
+              {resumoDaBusca()}
             </p>
             <span>{carregando ? "Buscando cartas…" : dados ? `${dados.items.length} cartas nesta página` : ""}</span>
           </div>
+          {buscaParcial && (
+            <p className={s.dicaBusca} role="status">
+              Não achamos tudo que você digitou ({palavrasIgnoradas.join(", ")}). Mostrando resultados para{" "}
+              <strong>“{infoBusca.name}”</strong>
+              {setsReconhecidos.length > 0 && ` em ${setsReconhecidos.join(", ")}`}.
+            </p>
+          )}
           <SelosFiltro selos={selos} onRemover={(campo) => atualizar({ [campo]: "" })} onLimpar={limparFiltros} />
           <Aviso erro={erro} onTentarDeNovo={recarregar} />
           {!carregando && dados && (
@@ -255,21 +280,35 @@ export default function CatalogPage() {
               ) : (
                 <div className={s.vazio}>
                   <SearchX size={32} aria-hidden="true" />
-                  <h2>Nenhuma carta encontrada</h2>
+                  <h2>{name ? `Nenhuma carta encontrada para “${name}”` : "Nenhuma carta encontrada"}</h2>
                   <p>Tente outro nome ou ajuste os filtros para ampliar a busca.</p>
                   {atalhoIngles}
-                  {selos.length > 0 && (
-                    <button type="button" className={s.botao} onClick={limparFiltros}>
-                      Limpar filtros
-                    </button>
-                  )}
+                  <div className={s.acoesVazio}>
+                    {name && (
+                      <button type="button" className={s.botao} onClick={() => atualizar({ name: "" })}>
+                        Limpar busca
+                      </button>
+                    )}
+                    {selos.length > 0 && (
+                      <button type="button" className={s.botao} onClick={limparFiltros}>
+                        Limpar filtros
+                      </button>
+                    )}
+                    {paginaVazia && page > 1 && (
+                      <button type="button" className={s.botao} onClick={() => atualizar({ page: "" }, false)}>
+                        Voltar para a primeira página
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
-              <Paginacao
-                pagina={page}
-                temProxima={dados.pagination?.hasNextPage}
-                onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
-              />
+              {!paginaVazia && (
+                <Paginacao
+                  pagina={page}
+                  temProxima={dados.pagination?.hasNextPage}
+                  onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
+                />
+              )}
               {dados.items.length > 0 && atalhoIngles}
             </>
           )}
