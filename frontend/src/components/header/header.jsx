@@ -107,10 +107,10 @@ export default function Header() {
           </Link>
 
           <Link
-            to={pendencias.trocas > 0 ? "/trocas?aba=recebidas&status=PROPOSED" : "/trocas"}
+            to={pendencias.trocas > 0 ? `/trocas?aba=${pendencias.abaTrocas}&status=PROPOSED` : "/trocas"}
             className={styles.linkNav}
             onClick={fecharMenu}
-            aria-label={pendencias.trocas > 0 ? `Trocas, ${pendencias.trocas} aguardando você concluir` : undefined}
+            aria-label={pendencias.trocas > 0 ? `Trocas, ${pendencias.trocas} esperando sua confirmação` : undefined}
           >
             <ArrowLeftRight size={16} />
             <span>Trocas</span>
