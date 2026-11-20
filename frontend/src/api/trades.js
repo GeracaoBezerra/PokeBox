@@ -1,11 +1,6 @@
 import { http } from "./http";
 import { parametrosDaPagina } from "./parametros";
 
-export async function createTrade(offerId) {
-  const body = await http.post("/trades", { offerId });
-  return body.data.trade;
-}
-
 export async function listMyTrades(opcoes) {
   if (typeof opcoes !== "object" || opcoes === null) {
     const body = await http.get("/trades/me", { params: { status: opcoes || undefined } });
