@@ -39,6 +39,8 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 | Documentação da API | Swagger em `/docs` |
 | Infra | Docker Compose (modo dev e modo produção), GitHub Actions (CI e deploy), Render (API), Neon (banco), Vercel (front) |
 
+**Cartas sem imagem:** ~21% das cartas da TCGdex vêm com `image: null`. O componente `ImagemCarta` exibe um placeholder (`src/assets/placeholders/carta-placeholder.webp`) com nome, set e número, também usado como fallback quando a URL da imagem falha ao carregar. É o único ponto do front que decide isso.
+
 ## Estrutura do repositório
 
 ```
