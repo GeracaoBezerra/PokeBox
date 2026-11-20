@@ -278,6 +278,8 @@ describe('GET /cards com rankings da home (#92)', () => {
         recipientId: users[1].id,
         status: 'ACCEPTED',
         completedAt: new Date(),
+        proposerConfirmedAt: new Date(),
+        recipientConfirmedAt: new Date(),
         items: {
           create: [
             { cardId: firstId, condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 3, fromUserId: users[0].id, toUserId: users[1].id },
