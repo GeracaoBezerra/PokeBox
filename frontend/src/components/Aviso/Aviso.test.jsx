@@ -10,6 +10,12 @@ describe("Aviso", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("mostra uma mensagem de sucesso", () => {
+    render(<Aviso sucesso="Oferta enviada para @ash." />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Oferta enviada para @ash.");
+  });
+
   it("mostra a mensagem do erro sem o código HTTP", () => {
     render(<Aviso erro={{ status: 409, message: "Você já tem uma oferta aberta neste anúncio" }} />);
 

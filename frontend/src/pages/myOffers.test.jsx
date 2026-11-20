@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { useLocation } from "react-router-dom";
 import { expect, it } from "vitest";
 import { CONFIG } from "../config";
 import { renderWithProviders } from "../test/renderWithProviders";
@@ -89,4 +90,30 @@ it("mostra os lados da proposta enviada e permite expandir um pacote de cartas",
   expect(within(screen.getByRole("region", { name: "Você recebe" })).getByRole("link", { name: "Rowlet" })).toBeVisible();
   expect(screen.getByRole("link", { name: "Ver troca" })).toHaveAttribute("href", "/trocas");
   expect(screen.queryByRole("button", { name: "Criar troca" })).toBeNull();
+});
+
+function EstadoDoHistorico() {
+  const { state } = useLocation();
+  return <output data-testid="estado">{JSON.stringify(state)}</output>;
+}
+
+it("mostra o aviso vindo da oferta e tira ele do histórico para não voltar ao recarregar", async () => {
+  server.use(
+    http.get(url("/offers/me"), () =>
+      HttpResponse.json({ success: true, data: { items: [] }, pagination: { page: 1, limit: 20, hasNextPage: false } })
+    )
+  );
+
+  renderWithProviders(
+    <>
+      <MyOffersPage />
+      <EstadoDoHistorico />
+    </>,
+    { rota: { pathname: "/propostas", search: "?aba=enviadas", state: { aviso: "Oferta enviada para @ash." } } }
+  );
+
+  expect(screen.getByText("Oferta enviada para @ash.")).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("null"));
+  expect(screen.getByText("Oferta enviada para @ash.")).toBeInTheDocument();
+  expect(await screen.findByText("Nenhuma proposta enviada")).toBeInTheDocument();
 });

@@ -23,7 +23,20 @@
 }
 
 .navegacao a:hover,
+.voltar:hover,
 .link:hover { color: var(--acento-hover); }
+
+.voltar {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
 
 .hero {
   display: grid;

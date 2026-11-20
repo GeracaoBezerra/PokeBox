@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http as rota, HttpResponse } from "msw";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { CONFIG } from "../../config";
 import { server } from "../../test/server";
@@ -37,7 +37,37 @@ function renderizar() {
   );
 }
 
+function Propostas() {
+  const { pathname, search, state } = useLocation();
+  return <p>{`${pathname}${search} ${state?.aviso}`}</p>;
+}
+
 describe("FormOferta", () => {
+  it("depois de enviar, vai para Propostas na aba Enviadas com o aviso", async () => {
+    server.use(
+      rota.get(url("/collection"), () =>
+        HttpResponse.json({ success: true, data: { items: [item("1", "Pikachu", 1)] }, pagination: { hasNextPage: false } })
+      ),
+      rota.post(url("/listings/anuncio-1/offers"), () => HttpResponse.json({ success: true, data: { offer: {} } }, { status: 201 }))
+    );
+    const pessoa = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/marketplace/anuncio-1"]}>
+        <ToastProvider>
+          <Routes>
+            <Route path="/marketplace/:id" element={<FormOferta anuncio={anuncio} />} />
+            <Route path="/propostas" element={<Propostas />} />
+          </Routes>
+        </ToastProvider>
+      </MemoryRouter>
+    );
+
+    await pessoa.click(await screen.findByRole("checkbox", { name: "Oferecer Pikachu" }));
+    await pessoa.click(screen.getByRole("button", { name: "Enviar oferta" }));
+
+    expect(await screen.findByText("/propostas?aba=enviadas Oferta enviada para @ash.")).toBeInTheDocument();
+  });
+
   it("não envia quando uma carta escondida pela busca está com a quantidade inválida e diz qual é", async () => {
     const enviou = vi.fn();
     server.use(
