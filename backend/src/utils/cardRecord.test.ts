@@ -115,22 +115,54 @@ describe('toCardResponse', () => {
 
 describe('toUserCardInfo', () => {
   it('devolve 0 quando o usuário não tem a carta', () => {
-    expect(toUserCardInfo({ quantity: null, wishlistItem: null, activeListing: null })).toEqual({
+    expect(toUserCardInfo({ quantity: null, wishlistItem: null, openListings: [] })).toEqual({
       inCollection: 0,
       inWishlist: false,
       onTradeList: false,
+      myListing: null,
     });
   });
 
   it('usa a soma das quantidades da coleção', () => {
-    expect(toUserCardInfo({ quantity: 3, wishlistItem: null, activeListing: null }).inCollection).toBe(3);
+    expect(toUserCardInfo({ quantity: 3, wishlistItem: null, openListings: [] }).inCollection).toBe(3);
   });
 
   it('marca inWishlist quando existe item na wishlist', () => {
-    expect(toUserCardInfo({ quantity: null, wishlistItem: { id: 'w1' }, activeListing: null }).inWishlist).toBe(true);
+    expect(toUserCardInfo({ quantity: null, wishlistItem: { id: 'w1' }, openListings: [] }).inWishlist).toBe(true);
   });
 
-  it('marca onTradeList quando existe anúncio ativo', () => {
-    expect(toUserCardInfo({ quantity: 1, wishlistItem: null, activeListing: { id: 'l1' } }).onTradeList).toBe(true);
+  it('marca onTradeList e devolve myListing quando existe anúncio ativo', () => {
+    const info = toUserCardInfo({ quantity: 1, wishlistItem: null, openListings: [{ id: 'l1', status: 'ACTIVE' }] });
+
+    expect(info.onTradeList).toBe(true);
+    expect(info.myListing).toEqual({ id: 'l1', status: 'ACTIVE' });
+  });
+
+  it('anúncio só pausado vira myListing, mas não conta como onTradeList', () => {
+    const info = toUserCardInfo({ quantity: 1, wishlistItem: null, openListings: [{ id: 'l1', status: 'PAUSED' }] });
+
+    expect(info.onTradeList).toBe(false);
+    expect(info.myListing).toEqual({ id: 'l1', status: 'PAUSED' });
+  });
+
+  it('prefere o anúncio ativo ao pausado mais recente', () => {
+    const openListings = [
+      { id: 'pausado-novo', status: 'PAUSED' as const },
+      { id: 'ativo-velho', status: 'ACTIVE' as const },
+    ];
+
+    expect(toUserCardInfo({ quantity: 2, wishlistItem: null, openListings }).myListing).toEqual({
+      id: 'ativo-velho',
+      status: 'ACTIVE',
+    });
+  });
+
+  it('entre pausados, fica com o primeiro da lista, que vem do mais recente', () => {
+    const openListings = [
+      { id: 'pausado-novo', status: 'PAUSED' as const },
+      { id: 'pausado-velho', status: 'PAUSED' as const },
+    ];
+
+    expect(toUserCardInfo({ quantity: 2, wishlistItem: null, openListings }).myListing?.id).toBe('pausado-novo');
   });
 });
