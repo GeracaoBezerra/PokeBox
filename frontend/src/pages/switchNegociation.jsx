@@ -10,7 +10,6 @@ import { Link } from "react-router-dom";
 import { useCarregar } from "../hooks/useCarregar";
 import { useFiltrosNegociacao } from "../hooks/useFiltrosNegociacao";
 import s from "../styles/paginas.module.css";
-import { pendentesPrimeiro } from "../utils/negociacao";
 import { STATUS_TROCA } from "../utils/rotulos";
 
 const VAZIO = {
@@ -37,7 +36,6 @@ export default function SwitchNegociationPage() {
 
   const lista = carregando ? [] : dados?.items ?? [];
   const vazia = !carregando && dados && lista.length === 0;
-  const ordenada = aba === "recebidas" ? pendentesPrimeiro(lista) : lista;
 
   return (
     <div className={s.pagina}>
@@ -78,7 +76,7 @@ export default function SwitchNegociationPage() {
         )}
 
         <div className={s.gradeNegociacoes}>
-          {ordenada.map((troca) => (
+          {lista.map((troca) => (
             <CartaoTroca key={troca.id} troca={troca} souDonoDoAnuncio={aba === "recebidas"} onMudou={recarregar} />
           ))}
         </div>

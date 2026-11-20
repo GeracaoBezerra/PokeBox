@@ -15,6 +15,22 @@ if (!HTMLDialogElement.prototype.showModal) {
   };
 }
 
+if (!window.matchMedia) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: (query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+}
+
 function escapePolyfill(evento) {
   if (evento.key !== "Escape" || !this.open) return;
   const cancelar = new Event("cancel", { cancelable: true });
