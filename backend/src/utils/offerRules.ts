@@ -50,6 +50,7 @@ export interface FulfillableCheck {
 
 export interface OfferSource<C extends PricedCard = PricedCard> {
   id: string;
+  trade: { id: string } | null;
   status: OfferStatus;
   quantity: number;
   message: string | null;
@@ -74,6 +75,7 @@ export interface OfferItemResponse<C extends PricedCard = PricedCard> {
 
 export interface OfferResponse<C extends PricedCard = PricedCard> {
   id: string;
+  hasTrade: boolean;
   status: OfferStatus;
   quantity: number;
   message: string | null;
@@ -156,6 +158,7 @@ export function assertStillFulfillable({ offerQuantity, listing, offeredItems }:
 export function toOfferResponse<C extends PricedCard>(offer: OfferSource<C>): OfferResponse<C> {
   return {
     id: offer.id,
+    hasTrade: Boolean(offer.trade),
     status: offer.status,
     quantity: offer.quantity,
     message: offer.message,
