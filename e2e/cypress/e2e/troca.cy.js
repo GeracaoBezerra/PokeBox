@@ -58,7 +58,7 @@ describe("Troca entre dois colecionadores", () => {
       cy.findByRole("button", { name: "Cancelar oferta" }).should("not.exist");
       cy.findByRole("link", { name: "Ver troca" }).click();
     });
-    cy.location("search").should("eq", "?aba=enviadas");
+    cy.location("search").should("eq", "?aba=enviadas&status=PROPOSED");
     cy.findByRole("tab", { name: "Enviadas" }).should("have.attr", "aria-selected", "true");
     cy.contains('[data-cy="cartao-troca"]', "Rowlet").within(() => {
       cy.findByRole("button", { name: "Confirmar recebimento" }).click();
@@ -90,5 +90,12 @@ describe("Troca entre dois colecionadores", () => {
     cy.login("misty@pokebox.dev");
     cy.visit("/colecao");
     cy.contains("tr", "Rowlet").should("be.visible");
+
+    cy.visit("/propostas?aba=enviadas");
+    cy.contains('[data-cy="cartao-oferta"]', "Rowlet").within(() => {
+      cy.findByText("Troca concluída").should("be.visible");
+      cy.findByRole("region", { name: "Você dá" }).findByRole("link", { name: "Psyduck" }).should("be.visible");
+      cy.findByRole("link", { name: "Ver troca" }).should("have.attr", "href", "/trocas?aba=enviadas&status=ACCEPTED");
+    });
   });
 });
