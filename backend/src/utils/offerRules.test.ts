@@ -5,6 +5,7 @@ import {
   assertStatusChange,
   assertStillFulfillable,
   isOnHold,
+  offeredItems,
   toOfferResponse,
 } from './offerRules.js';
 import type { ListingStatus, OfferCancelReason, OfferStatus } from '../generated/prisma/index.js';
@@ -186,6 +187,18 @@ describe('assertStillFulfillable', () => {
   });
 });
 
+describe('offeredItems', () => {
+  it('devolve as cartas oferecidas que ainda estão na coleção', () => {
+    const items = [{ quantity: 1, collectionItem: { id: 'item-misty' } }];
+    expect(offeredItems({ items })).toEqual(items);
+  });
+
+  it('carta oferecida que saiu da coleção dá 422', () => {
+    const items = [{ quantity: 1, collectionItem: null }];
+    expect(() => offeredItems({ items })).toThrow(expect.objectContaining({ statusCode: 422 }));
+  });
+});
+
 describe('toOfferResponse', () => {
   const card = { id: 'base1-4', name: 'Charizard', marketPrice: '312.50' };
   const offer = {
@@ -226,19 +239,12 @@ describe('toOfferResponse', () => {
       {
         id: 'offer-item-1',
         offerId: 'offer-1',
-        collectionItemId: 'item-misty',
+        collectionItemId: 'item-misty' as string | null,
         quantity: 1,
-        collectionItem: {
-          id: 'item-misty',
-          userId: PROPOSER_ID,
-          quantity: 2,
-          reservedQuantity: 1,
-          isPublic: false,
-          condition: 'LIGHT_PLAYED' as const,
-          finish: 'HOLO' as const,
-          firstEdition: false,
-          card: { id: 'base1-10', name: 'Mew', marketPrice: '20.00' },
-        },
+        condition: 'LIGHT_PLAYED' as const,
+        finish: 'HOLO' as const,
+        firstEdition: false,
+        card: { id: 'base1-10', name: 'Mew', marketPrice: '20.00' },
       },
     ],
   };

@@ -4,7 +4,7 @@ import type { ListingWithItem } from '../repositories/ListingRepository.js';
 import type { OfferWithDetails } from '../repositories/OfferRepository.js';
 import type { TradeWithItems } from '../repositories/TradeRepository.js';
 import type { TradeUnitOfWork } from '../repositories/UnitOfWork.js';
-import { assertStillFulfillable } from '../utils/offerRules.js';
+import { assertStillFulfillable, offeredItems } from '../utils/offerRules.js';
 import { buildTradeItems, nextListingState, trimListings, type ListingHold } from '../utils/tradeRules.js';
 
 export interface OpenTradeInput {
@@ -23,16 +23,17 @@ export function lockedOrFail(locked: Map<string, LockedCollectionItem | null>, i
 
 export class TradeOpener {
   async open(uow: TradeUnitOfWork, { offer, listing, locked }: OpenTradeInput): Promise<TradeWithItems> {
+    const offered = offeredItems(offer);
     assertStillFulfillable({
       offerQuantity: offer.quantity,
       listing,
-      offeredItems: offer.items.map((item) => ({
-        item: lockedOrFail(locked, item.collectionItemId),
+      offeredItems: offered.map((item) => ({
+        item: lockedOrFail(locked, item.collectionItem.id),
         requested: item.quantity,
       })),
     });
 
-    const items = buildTradeItems({ offer, listing });
+    const items = buildTradeItems({ offer: { ...offer, items: offered }, listing });
     const trade = await uow.trades.create({
       proposerId: offer.proposerId,
       recipientId: listing.collectionItem.userId,
@@ -47,13 +48,12 @@ export class TradeOpener {
     await uow.listingChanges.apply(listing, nextListingState({ listing, taken: offer.quantity }));
     const holds: ListingHold[] = [{ listingId: listing.id, quantity: offer.quantity }];
 
-    for (const { collectionItem, quantity } of offer.items) {
+    for (const { collectionItem, quantity } of offered) {
       const item = lockedOrFail(locked, collectionItem.id);
       holds.push(...(await this.trimProposerListings(uow, item, item.reservedQuantity + quantity)));
     }
 
     await uow.trades.addHolds(trade.id, holds);
-    await uow.offers.deleteItems(offer.id);
 
     return trade;
   }

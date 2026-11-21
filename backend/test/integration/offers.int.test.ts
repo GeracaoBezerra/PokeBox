@@ -199,4 +199,21 @@ describe('GET /offers', () => {
 
     await request(ctx.app).delete(`/collection/${oak.id}`).set(bearer(proposer)).expect(409);
   });
+
+  test('oferta recusada guarda as cartas oferecidas, mesmo depois de o item sair da coleção', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const listing = await openListing(owner);
+    const oak = await oakOf(proposer);
+    const offer = await makeOffer(ctx.app, proposer, listing.id, [{ collectionItemId: oak.id, quantity: 1 }]);
+
+    await request(ctx.app).patch(`/offers/${offer.id}/status`).set(bearer(owner)).send({ status: 'REJECTED' }).expect(200);
+    await request(ctx.app).delete(`/collection/${oak.id}`).set(bearer(proposer)).expect(204);
+
+    const after = (await request(ctx.app).get(`/offers/${offer.id}`).set(bearer(owner))).body.data.offer;
+    expect(after.status).toBe('REJECTED');
+    expect(after.items).toEqual([
+      expect.objectContaining({ collectionItemId: null, quantity: 1, card: expect.objectContaining({ id: PROFESSOR_OAK }) }),
+    ]);
+  });
 });

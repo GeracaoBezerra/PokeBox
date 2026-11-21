@@ -669,7 +669,7 @@ async function removeRetiredItems(byUsername: UsersByUsername) {
   for (const { username, cardId } of RETIRED_ITEMS) {
     const retired = await prisma.collectionItem.findMany({
       where: { userId: byUsername[username].id, cardId },
-      include: { _count: { select: { listings: true, offerItems: true } } },
+      include: { _count: { select: { listings: true, offerItems: { where: { offer: { status: 'PROPOSED' } } } } } },
     });
 
     for (const item of retired) {
@@ -762,11 +762,11 @@ async function reopenOffer(offerId: string, offer: SeedOffer, listing: Listing, 
   });
 
   for (const { item, quantity: offered } of offer.items) {
-    const collectionItemId = items[item].id;
+    const { id: collectionItemId, cardId, condition, finish, firstEdition } = items[item];
     await prisma.offerItem.upsert({
       where: { offerId_collectionItemId: { offerId, collectionItemId } },
       update: { quantity: offered },
-      create: { offerId, collectionItemId, quantity: offered },
+      create: { offerId, collectionItemId, cardId, condition, finish, firstEdition, quantity: offered },
     });
   }
 }

@@ -1,5 +1,6 @@
 import { Prisma, type OfferCancelReason, type OfferStatus } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
+import { NotFoundError } from '../errors/domainErrors.js';
 import type { OfferCounts } from '../utils/collectionRules.js';
 import {
   offerInclude,
@@ -15,8 +16,26 @@ const newestFirst = [{ createdAt: 'desc' }, { id: 'asc' }] as const;
 export class PrismaOfferRepository implements OfferRepository {
   constructor(private readonly db: Db) {}
 
-  create({ items, ...data }: NewOffer, db: Db = this.db): Promise<OfferWithDetails> {
-    return db.offer.create({ data: { ...data, items: { create: items } }, include: offerInclude });
+  async create({ items, ...data }: NewOffer, db: Db = this.db): Promise<OfferWithDetails> {
+    const copies = await db.collectionItem.findMany({
+      where: { id: { in: items.map((item) => item.collectionItemId) } },
+      select: { id: true, cardId: true, condition: true, finish: true, firstEdition: true },
+    });
+    const byId = new Map(copies.map(({ id, ...copy }) => [id, copy]));
+
+    return db.offer.create({
+      data: {
+        ...data,
+        items: {
+          create: items.map(({ collectionItemId, quantity }) => {
+            const copy = byId.get(collectionItemId);
+            if (!copy) throw new NotFoundError('Item da coleção não encontrado');
+            return { collectionItemId, quantity, ...copy };
+          }),
+        },
+      },
+      include: offerInclude,
+    });
   }
 
   findById(id: string, db: Db = this.db): Promise<OfferWithDetails | null> {
@@ -89,7 +108,7 @@ export class PrismaOfferRepository implements OfferRepository {
 
   async countByItem(collectionItemId: string, db: Db = this.db): Promise<OfferCounts> {
     const open = await db.offerItem.count({ where: { collectionItemId, offer: { status: 'PROPOSED' } } });
-    const accepted = await db.offerItem.count({ where: { collectionItemId, offer: { status: 'ACCEPTED' } } });
+    const accepted = await db.offerItem.count({ where: { collectionItemId, offer: { status: 'ACCEPTED', trade: null } } });
 
     return { open, accepted };
   }
@@ -107,14 +126,9 @@ export class PrismaOfferRepository implements OfferRepository {
     });
   }
 
-  async deleteItems(offerId: string, db: Db = this.db): Promise<void> {
-    await db.offerItem.deleteMany({ where: { offerId } });
-  }
-
   async cancelByIds(ids: string[], reason: OfferCancelReason, db: Db = this.db): Promise<number> {
     if (ids.length === 0) return 0;
 
-    await db.offerItem.deleteMany({ where: { offerId: { in: ids } } });
     await db.offer.updateMany({
       where: { id: { in: ids } },
       data: { status: 'CANCELED', cancelReason: reason, respondedAt: new Date() },

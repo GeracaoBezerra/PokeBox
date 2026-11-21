@@ -205,6 +205,17 @@ it("oferta cuja troca já concluiu diz Troca concluída e leva às trocas conclu
   expect(within(cartao).getByRole("link", { name: "Ver troca" })).toHaveAttribute("href", "/trocas?aba=recebidas&status=ACCEPTED");
 });
 
+it("oferta recusada continua mostrando as cartas oferecidas", async () => {
+  const recusada = { ...oferta, status: "REJECTED", items: [{ ...oferta.items[0], collectionItemId: null }] };
+  server.use(http.get(url("/offers/me"), () => ofertas([recusada])));
+
+  renderWithProviders(<MyOffersPage />, { rota: "/propostas" });
+
+  const cartao = (await screen.findByRole("heading", { name: "De @misty" })).closest("article");
+  expect(within(within(cartao).getByRole("region", { name: "Você recebe" })).getByRole("link", { name: "Psyduck" })).toBeVisible();
+  expect(within(cartao).queryByText("Cartas não registradas.")).toBeNull();
+});
+
 it("oferta recebida em espera não deixa aceitar e diz por quê", async () => {
   const emEspera = { ...oferta, onHold: true, listing: { ...oferta.listing, status: "IN_TRADE" } };
   server.use(http.get(url("/offers/me"), () => ofertas([emEspera])));

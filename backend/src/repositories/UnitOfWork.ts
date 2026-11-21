@@ -12,7 +12,7 @@ export type UnitListings = Pick<ListingRepository, 'findById' | 'findOpenByItem'
 
 export type UnitOffers = Pick<
   OfferRepository,
-  'create' | 'findById' | 'lockById' | 'findOpenByProposerAndListing' | 'updateStatus' | 'deleteItems' | 'cancelOpenOfUser'
+  'create' | 'findById' | 'lockById' | 'findOpenByProposerAndListing' | 'updateStatus' | 'cancelOpenOfUser'
 >;
 
 export type UnitTrades = Pick<

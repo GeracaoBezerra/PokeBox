@@ -63,7 +63,7 @@ export class TradeService {
     assertCanCreate({ offer: found, userId });
 
     const trade = await this.deps.unitOfWork.run(async (uow) => {
-      const offeredIds = found.items.map((item) => item.collectionItemId);
+      const offeredIds = found.items.flatMap((item) => (item.collectionItemId ? [item.collectionItemId] : []));
       const locked = await uow.lockItemsInOrder([found.listing.collectionItemId, ...offeredIds]);
 
       if (!(await uow.offers.lockById(offerId))) throw new NotFoundError(OFFER_NOT_FOUND);

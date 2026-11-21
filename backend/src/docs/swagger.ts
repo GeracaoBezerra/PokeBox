@@ -1462,7 +1462,7 @@ export const swaggerSpec = {
         tags: ["Offers"],
         summary: "Aceita (e cria a troca), recusa ou cancela uma oferta",
         description:
-          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED, cancelReason PROPOSER). Aceitar cria a troca na mesma transação, como o POST /trades: confere de novo se a oferta dá para cumprir (anúncio ACTIVE com a quantidade pedida e cartas oferecidas disponíveis), reserva as cartas dos dois lados (RN-08), passa os itens da oferta para a troca (items passa a vir dos itens da troca, do lado de quem ofertou), tira do anúncio só a quantidade da oferta (em 0, vira IN_TRADE) e reduz os anúncios abertos de quem ofertou que passariam do disponível (em 0, ACTIVE vira IN_TRADE e PAUSED continua PAUSED). Quanto saiu de cada anúncio fica guardado para voltar se a troca cair. As outras ofertas do anúncio não são canceladas: as que não cabem ficam em espera (onHold) e aceitar uma delas dá 422. Se a troca não puder nascer, nada muda (422). A resposta traz tradeId. Oferta ACCEPTED não muda mais (409): para desistir, recuse ou cancele a troca. REJECTED e CANCELED não mudam mais (422). Recusar ou cancelar apaga os itens oferecidos.",
+          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED, cancelReason PROPOSER). Aceitar cria a troca na mesma transação, como o POST /trades: confere de novo se a oferta dá para cumprir (anúncio ACTIVE com a quantidade pedida e cartas oferecidas disponíveis), reserva as cartas dos dois lados (RN-08), copia os itens da oferta para a troca, tira do anúncio só a quantidade da oferta (em 0, vira IN_TRADE) e reduz os anúncios abertos de quem ofertou que passariam do disponível (em 0, ACTIVE vira IN_TRADE e PAUSED continua PAUSED). Quanto saiu de cada anúncio fica guardado para voltar se a troca cair. As outras ofertas do anúncio não são canceladas: as que não cabem ficam em espera (onHold) e aceitar uma delas dá 422. Se a troca não puder nascer, nada muda (422). A resposta traz tradeId. Oferta ACCEPTED não muda mais (409): para desistir, recuse ou cancele a troca. REJECTED e CANCELED não mudam mais (422). Recusar ou cancelar mantém os itens oferecidos (histórico): cada item traz a cópia da carta, e collectionItemId fica null se o item sair da coleção.",
         security: [{ bearerAuth: [] }],
         parameters: [offerIdParam],
         requestBody: {
@@ -2047,11 +2047,11 @@ export const swaggerSpec = {
           listing: { $ref: "#/components/schemas/Listing" },
           items: {
             type: "array",
-            description: "Cartas oferecidas em troca. Vazio quando a oferta foi recusada, cancelada ou já virou troca (os itens passam para a troca).",
+            description: "Cartas oferecidas em troca, com a cópia da carta feita na oferta. Continuam depois que a oferta encerra ou vira troca (histórico).",
             items: {
               type: "object",
               properties: {
-                collectionItemId: { type: "string", format: "uuid" },
+                collectionItemId: { type: "string", format: "uuid", nullable: true, description: "Item da coleção de quem ofertou; null se ele saiu da coleção depois." },
                 quantity: { type: "integer", minimum: 1, example: 1 },
                 condition: { type: "string", enum: cardConditions, example: "NEAR_MINT" },
                 finish: { type: "string", enum: cardFinishes, example: "HOLO" },

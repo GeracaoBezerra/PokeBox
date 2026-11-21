@@ -76,7 +76,11 @@ export interface OfferSource<C extends PricedCard = PricedCard> {
   listing: ListingSource<C>;
   items: {
     quantity: number;
-    collectionItem: { id: string; condition: CardCondition; finish: CardFinish; firstEdition: boolean; card: C };
+    collectionItemId: string | null;
+    condition: CardCondition;
+    finish: CardFinish;
+    firstEdition: boolean;
+    card: C;
   }[];
 }
 
@@ -198,13 +202,13 @@ export function toOfferResponse<C extends PricedCard>(offer: OfferSource<C>): Of
     respondedAt: offer.respondedAt,
     proposer: { username: offer.proposer.username, name: offer.proposer.name },
     listing: toListingResponse(offer.listing),
-    items: offer.items.length > 0 ? offer.items.map(({ quantity, collectionItem }) => ({
-      collectionItemId: collectionItem.id,
+    items: offer.items.length > 0 ? offer.items.map(({ quantity, collectionItemId, condition, finish, firstEdition, card }) => ({
+      collectionItemId,
       quantity,
-      condition: collectionItem.condition,
-      finish: collectionItem.finish,
-      firstEdition: collectionItem.firstEdition,
-      card: toCardResponse(collectionItem.card),
+      condition,
+      finish,
+      firstEdition,
+      card: toCardResponse(card),
     })) : proposerTradeItems(offer),
   };
 }
@@ -220,4 +224,15 @@ function proposerTradeItems<C extends PricedCard>(offer: OfferSource<C>): OfferI
       firstEdition,
       card: toCardResponse(card),
     }));
+}
+
+export function offeredItems<T extends { collectionItem: unknown }>(
+  offer: { items: T[] },
+): (T & { collectionItem: NonNullable<T['collectionItem']> })[] {
+  return offer.items.map((item) => {
+    if (!item.collectionItem) {
+      throw new AppError(422, 'Quem fez a oferta não tem mais as cartas oferecidas');
+    }
+    return item as T & { collectionItem: NonNullable<T['collectionItem']> };
+  });
 }

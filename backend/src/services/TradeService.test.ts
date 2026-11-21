@@ -150,7 +150,6 @@ function setup() {
     })),
     findOpenByProposerAndListing: jest.fn<UnitOffers['findOpenByProposerAndListing']>(),
     updateStatus: jest.fn<UnitOffers['updateStatus']>(),
-    deleteItems: jest.fn<UnitOffers['deleteItems']>(async () => undefined),
     cancelOpenOfUser: jest.fn<UnitOffers['cancelOpenOfUser']>(async () => 0),
   };
   const listings = {
@@ -405,7 +404,6 @@ describe('create (RN-08)', () => {
     expect(collection.reserve).toHaveBeenCalledWith('item-proposer', 1);
     expect(listingChanges.apply).toHaveBeenCalledWith(listing, { quantity: 1 });
     expect(trades.addHolds).toHaveBeenCalledWith(TRADE_ID, [{ listingId: 'listing-id', quantity: 1 }]);
-    expect(offers.deleteItems).toHaveBeenCalledWith(OFFER_ID);
   });
 
   it('anúncio que chega a 0 vira Em troca', async () => {

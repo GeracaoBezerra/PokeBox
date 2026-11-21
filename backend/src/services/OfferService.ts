@@ -128,7 +128,7 @@ export class OfferService {
         nextStatus === 'ACCEPTED'
           ? await uow.lockItemsInOrder([
               found.listing.collectionItemId,
-              ...found.items.map((item) => item.collectionItemId),
+              ...found.items.flatMap((item) => (item.collectionItemId ? [item.collectionItemId] : [])),
             ])
           : null;
 
@@ -147,7 +147,6 @@ export class OfferService {
 
       if (lockedItems) return this.acceptIntoTrade(uow, id, listing, lockedItems);
 
-      await uow.offers.deleteItems(id);
       return uow.offers.updateStatus(id, nextStatus, undefined, nextStatus === 'CANCELED' ? 'PROPOSER' : null);
     });
 

@@ -187,7 +187,7 @@ describe('falha forçada no meio: nada muda (RN-07, RN-08)', () => {
           listingId: listing.id,
           proposerId: proposer.id,
           quantity: 1,
-          items: { create: [{ collectionItemId: freeProposerItem.id, quantity: 1 }] },
+          items: { create: [{ collectionItemId: freeProposerItem.id, cardId: CARDS[1], condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 1 }] },
         },
       });
     });

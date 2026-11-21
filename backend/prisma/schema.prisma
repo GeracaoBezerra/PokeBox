@@ -66,6 +66,7 @@ model Card {
 
   collectionItems CollectionItem[]
   wishlistItems   WishlistItem[]
+  offerItems      OfferItem[]
   tradeItems      TradeItem[]
 
   @@index([name])
@@ -148,16 +149,22 @@ model Offer {
 }
 
 model OfferItem {
-  id               String @id @default(uuid())
+  id               String        @id @default(uuid())
   offerId          String
-  collectionItemId String
+  collectionItemId String?
+  cardId           String
+  condition        CardCondition
+  finish           CardFinish
+  firstEdition     Boolean       @default(false)
   quantity         Int
 
-  offer          Offer          @relation(fields: [offerId], references: [id], onDelete: Cascade)
-  collectionItem CollectionItem @relation(fields: [collectionItemId], references: [id])
+  offer          Offer           @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  collectionItem CollectionItem? @relation(fields: [collectionItemId], references: [id], onDelete: SetNull)
+  card           Card            @relation(fields: [cardId], references: [id])
 
   @@unique([offerId, collectionItemId])
   @@index([collectionItemId])
+  @@index([cardId])
 }
 
 model Trade {

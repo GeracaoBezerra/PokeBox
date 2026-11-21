@@ -73,7 +73,6 @@ function setup() {
     lockById: jest.fn<UnitOffers['lockById']>(async () => accepted),
     findOpenByProposerAndListing: jest.fn<UnitOffers['findOpenByProposerAndListing']>(async () => null),
     updateStatus: jest.fn<UnitOffers['updateStatus']>(async (_id, status) => offerFrom(status)),
-    deleteItems: jest.fn<UnitOffers['deleteItems']>(async () => undefined),
     cancelOpenOfUser: jest.fn<UnitOffers['cancelOpenOfUser']>(async () => 0),
   };
   const listings = {
@@ -134,14 +133,13 @@ describe('changeStatus em oferta aberta', () => {
   it.each([
     ['proponente cancela', PROPOSER_ID, 'CANCELED', 'PROPOSER'],
     ['dono recusa', OWNER_ID, 'REJECTED', null],
-  ] as const)('%s: solta as cartas, muda o status e grava o motivo', async (_, userId, nextStatus, reason) => {
+  ] as const)('%s: muda o status, grava o motivo e mantém as cartas oferecidas', async (_, userId, nextStatus, reason) => {
     const { service, offers, unitOfWork, opener } = setup();
     offers.lockById.mockResolvedValue(proposed);
 
     const result = await service.changeStatus(userId, OFFER_ID, nextStatus);
 
     expect(unitOfWork.runs).toBe(1);
-    expect(offers.deleteItems).toHaveBeenCalledWith(OFFER_ID);
     expect(offers.updateStatus).toHaveBeenCalledWith(OFFER_ID, nextStatus, undefined, reason);
     expect(opener.open).not.toHaveBeenCalled();
     expect(result.status).toBe(nextStatus);
@@ -164,8 +162,6 @@ describe('changeStatus em oferta aceita', () => {
     const { service, offers } = setup();
 
     await expect(service.changeStatus(userId, OFFER_ID, nextStatus)).rejects.toMatchObject({ statusCode: 409 });
-
-    expect(offers.deleteItems).not.toHaveBeenCalled();
     expect(offers.updateStatus).not.toHaveBeenCalled();
   });
 });
@@ -179,7 +175,6 @@ describe('changeStatus para ACCEPTED cria a troca (RN-08)', () => {
 
     expect(unitOfWork.runs).toBe(1);
     expect(lockItemsInOrder).toHaveBeenCalledWith(['item-owner']);
-    expect(offers.deleteItems).not.toHaveBeenCalled();
     expect(offers.updateStatus).toHaveBeenCalledWith(OFFER_ID, 'ACCEPTED');
     expect(opener.open).toHaveBeenCalledWith(uow, expect.objectContaining({ listing }));
   });

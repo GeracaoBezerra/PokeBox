@@ -15,7 +15,7 @@ export const offerInclude = {
   proposer: { select: { username: true, name: true } },
   listing: { include: listingInclude },
   items: {
-    include: { collectionItem: { include: { card: true } } },
+    include: { card: true, collectionItem: true },
     orderBy: { id: 'asc' },
   },
 } satisfies Prisma.OfferInclude;
@@ -55,7 +55,6 @@ export interface OfferRepository {
   findReceived(userId: string, options?: OfferListOptions): Promise<OfferWithDetails[]>;
   countByItem(collectionItemId: string, db?: Db): Promise<OfferCounts>;
   updateStatus(id: string, status: OfferStatus, db?: Db, cancelReason?: OfferCancelReason | null): Promise<OfferWithDetails>;
-  deleteItems(offerId: string, db?: Db): Promise<void>;
   cancelByIds(ids: string[], reason: OfferCancelReason, db?: Db): Promise<number>;
   cancelOpenByListing(listingId: string, reason: OfferCancelReason, db?: Db): Promise<number>;
   cancelOpenOfUser(userId: string, reason: OfferCancelReason, db?: Db): Promise<number>;

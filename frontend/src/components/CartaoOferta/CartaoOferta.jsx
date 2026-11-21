@@ -35,7 +35,7 @@ function Cartas({ itens, className }) {
   );
 }
 
-function LadoOferta({ titulo, itens, virouTroca }) {
+function LadoOferta({ titulo, itens }) {
   const dialogo = useRef(null);
   const tituloGaleria = useId();
   const [aberto, setAberto] = useState(false);
@@ -45,7 +45,7 @@ function LadoOferta({ titulo, itens, virouTroca }) {
       <h3>{titulo}</h3>
       {itens.length > 0
         ? <Cartas className={s.previa} itens={itens.slice(0, LIMITE_PREVIA)} />
-        : <p className={s.detalhes}>{virouTroca ? "Cartas transferidas para a troca." : "Cartas liberadas."}</p>}
+        : <p className={s.detalhes}>Cartas não registradas.</p>}
       {itens.length > 1 && (
         <>
           <button type="button" className={s.verPacote} data-so-compacto={itens.length <= LIMITE_PREVIA}
@@ -164,9 +164,9 @@ export default function CartaoOferta({ oferta, recebida, atualizando, onMudou })
       </header>
 
       <div className={s.comparacao}>
-        <LadoOferta titulo="Você dá" itens={recebida ? anunciada : oferta.items} virouTroca={virouTroca} />
+        <LadoOferta titulo="Você dá" itens={recebida ? anunciada : oferta.items} />
         <ArrowRightLeft className={s.setas} size={18} aria-hidden="true" />
-        <LadoOferta titulo="Você recebe" itens={recebida ? oferta.items : anunciada} virouTroca={virouTroca} />
+        <LadoOferta titulo="Você recebe" itens={recebida ? oferta.items : anunciada} />
       </div>
 
       {oferta.message && <blockquote className={s.mensagem}>“{oferta.message}”</blockquote>}
