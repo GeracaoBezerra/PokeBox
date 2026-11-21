@@ -2,6 +2,7 @@ export function indexarMinhasCartas(wishlist = [], colecao = []) {
   return {
     naWishlist: new Map(wishlist.map((item) => [item.cardId, item.id])),
     tenho: new Set(colecao.map((item) => item.cardId)),
+    comUnidade: new Set(colecao.filter((item) => item.quantity > 0).map((item) => item.cardId)),
   };
 }
 

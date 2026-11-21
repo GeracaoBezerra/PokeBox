@@ -1,7 +1,6 @@
+import { LIMITE_BUSCA } from "./busca";
 import { temPalavra, usernameValido } from "./filtrosMarketplace";
 import { TIPOS } from "./rotulos";
-
-export const LIMITE_BUSCA = 50;
 
 export function filtrosDoPerfil(params) {
   const q = params.get("q") ?? "";

@@ -1,16 +1,16 @@
 import { useId } from "react";
 import { Link } from "react-router-dom";
-import { Store, Trash2 } from "lucide-react";
+import { PackageCheck, Store, Trash2 } from "lucide-react";
+import { precoReferencia } from "../../utils/rotulos";
+import { textoColecionadores } from "../../utils/wishlist";
 import CartaCard from "../CartaCard/CartaCard";
 import s from "./ItemWishlist.module.css";
 
-export default function ItemWishlist({ item, ocupado, onRemover }) {
+export default function ItemWishlist({ item, ocupado, onRemover, onJaConsegui }) {
   const tituloId = useId();
   const { card, cardId, opportunities } = item;
   const expansao = [card.setName, card.number].filter(Boolean).join(" · ");
-  const oportunidades = opportunities === 0
-    ? "Sem oportunidades"
-    : `${opportunities} ${opportunities === 1 ? "oportunidade" : "oportunidades"}`;
+  const preco = precoReferencia(card);
 
   return (
     <article className={s.item} aria-labelledby={tituloId} data-cy="item-wishlist">
@@ -22,11 +22,21 @@ export default function ItemWishlist({ item, ocupado, onRemover }) {
         </div>
         <p className={s.oportunidades} data-disponivel={opportunities > 0}>
           <Store size={16} aria-hidden="true" />
-          <span>{oportunidades}</span>
+          <span>{textoColecionadores(opportunities)}</span>
         </p>
+        {preco && <p className={s.preco}>{preco}</p>}
         <div className={s.acoes}>
+          <button
+            type="button"
+            className={s.consegui}
+            aria-describedby={tituloId}
+            onClick={(evento) => onJaConsegui(item, evento.currentTarget.closest("article"))}
+            disabled={ocupado}
+          >
+            <PackageCheck size={16} aria-hidden="true" /> Já consegui
+          </button>
           <Link className={s.anuncios} to={`/marketplace?cardId=${cardId}`} aria-describedby={tituloId}>
-            Ver anúncios
+            Procurar anúncios
           </Link>
           <button
             type="button"

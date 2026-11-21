@@ -10,7 +10,8 @@ import Paginacao from "../components/Paginacao/Paginacao";
 import { useCarregar } from "../hooks/useCarregar";
 import s from "../styles/paginas.module.css";
 import v from "../styles/vitrine.module.css";
-import { LIMITE_BUSCA, anuncioPorItem, filtrosDoPerfil, textoAnunciosAtivos, tipoDeErroDoPerfil } from "../utils/perfilPublico";
+import { LIMITE_BUSCA } from "../utils/busca";
+import { anuncioPorItem, filtrosDoPerfil, textoAnunciosAtivos, tipoDeErroDoPerfil } from "../utils/perfilPublico";
 import { CONDICOES, TIPOS, formatarData, variante } from "../utils/rotulos";
 
 const POR_PAGINA = 24;
