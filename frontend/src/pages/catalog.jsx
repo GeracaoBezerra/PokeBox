@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SearchX } from "lucide-react";
-import { getCard, getCardFilters, searchCards } from "../api/cards";
+import { getCardFilters, searchCards } from "../api/cards";
 import { mensagemAmigavel } from "../api/mensagens";
 import { addToWishlist, removeFromWishlist } from "../api/wishlist";
 import { useSession } from "../auth/useSession";
 import AcoesRapidas from "../components/AcoesRapidas/AcoesRapidas";
+import AdicionarNaColecao from "../components/AdicionarNaColecao/AdicionarNaColecao";
 import Aviso from "../components/Aviso/Aviso";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
-import FormColecao from "../components/FormColecao/FormColecao";
 import FiltrosCatalogo from "../components/FiltrosCatalogo/FiltrosCatalogo";
 import GradeCartas from "../components/GradeCartas/GradeCartas";
 import Paginacao from "../components/Paginacao/Paginacao";
@@ -86,13 +86,6 @@ function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, onPrecisaLogin
       onTenho={() => (logado ? onTenho(carta) : onPrecisaLogin())}
     />
   );
-}
-
-function AdicionarNaColecao({ carta, lang, onAdicionado }) {
-  const detalhe = useCarregar(() => getCard(carta.id, lang), `${carta.id}|${lang}`);
-  if (detalhe.carregando) return <p role="status">Carregando…</p>;
-  if (detalhe.erro) return <Aviso erro={detalhe.erro} onTentarDeNovo={detalhe.recarregar} />;
-  return <FormColecao key={carta.id} card={detalhe.dados.card} lang={lang} onAdicionado={onAdicionado} />;
 }
 
 export default function CatalogPage() {

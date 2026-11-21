@@ -124,3 +124,22 @@ Cada correção da revisão do Eduardo ganhou teste (com MSW, `renderHook` ou fu
 - Quebrou de propósito o texto do botão "Concluir troca" para ver o `troca.cy.js` falhar e salvar o print, e desfez.
 
 **O que a IA errou e foi corrigido:** a primeira versão fazia o reset no `before`, como a issue pede. Ao testar a falha de propósito, a IA conferiu que o Cypress não repete o `before` quando tenta o teste de novo, e uma segunda tentativa da troca começaria com o anúncio e a oferta da primeira no banco. Nos arquivos dos fluxos, o reset passou para o `beforeEach` (cada arquivo tem um ou dois testes, então o custo é pequeno).
+
+## Wishlist completa (#24)
+
+**Ferramenta:** Claude Code (Claude Opus), num worktree separado a partir da `develop`.
+
+**O que foi pedido:** fechar a #24, que estava com outro integrante, sem quebrar o que a #212 já tinha entregado na wishlist. Antes de codar, a IA comparou a issue com a `develop`, recortou a descrição para só o que faltava e conduziu uma rodada de perguntas (grilling) para decidir filtros, paginação, textos e o comportamento depois de cada ação.
+
+**O que a IA fez:**
+
+- Montou os filtros com as mesmas peças do marketplace (`PainelFiltros`, `GrupoFiltro`, `SelosFiltro`, `CampoBusca`, `Paginacao`) e a mesma leitura da URL do perfil público, em vez de criar componentes novos.
+- Tirou do catálogo o `AdicionarNaColecao` para um componente próprio e usou no "Já consegui".
+- Manteve os seis testes que já existiam na página, mudando só os textos que mudaram de propósito, e escreveu os novos cenários. Conferiu que os testes novos falham com o código antigo.
+- Rodou o E2E inteiro e testou a tela num Chrome sem janela com a misty, em 1280 e 360 px.
+
+**O que a IA errou e foi corrigido:**
+
+- No grilling, a IA disse que a raridade não ia funcionar porque a wishlist mistura cartas em português e inglês. Ao conferir o banco, viu que a tabela `Card` não guarda idioma e a raridade é sempre em inglês, como o marketplace já usa. A raridade entrou.
+- O "Já consegui" abria a carta sempre em português. No teste manual, o Charizard do Base Set deu "Carta base1-4 não encontrada", porque essa coleção não existe em português. A carta passou a cair para o inglês quando não existe em português (a mesma função do detalhe da carta), com um teste para isso.
+- O teste manual tirou o Charizard da wishlist da misty, e o `make test` (que espera essa carta lá) falhou em quatro passos. A IA voltou o banco local para o seed e rodou de novo.

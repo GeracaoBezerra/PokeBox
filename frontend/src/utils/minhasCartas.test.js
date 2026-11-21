@@ -13,6 +13,16 @@ describe("indexarMinhasCartas", () => {
     expect(tenho.size).toBe(1);
   });
 
+  it("comUnidade só tem as cartas com unidade na coleção, como a regra do backend", () => {
+    const { tenho, comUnidade } = indexarMinhasCartas(
+      [],
+      [{ cardId: "base1-4", quantity: 0 }, { cardId: "base1-2", quantity: 0 }, { cardId: "base1-2", quantity: 1 }]
+    );
+    expect(tenho.has("base1-4")).toBe(true);
+    expect(comUnidade.has("base1-4")).toBe(false);
+    expect(comUnidade.has("base1-2")).toBe(true);
+  });
+
   it("sem listas (sem login), nada está marcado", () => {
     const { naWishlist, tenho } = indexarMinhasCartas();
     expect(naWishlist.size).toBe(0);

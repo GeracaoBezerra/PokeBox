@@ -54,12 +54,47 @@
   color: var(--sucesso);
 }
 
+.preco {
+  color: var(--texto-suave);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  overflow-wrap: anywhere;
+}
+
 .acoes {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--alvo-min);
   gap: var(--esp-4);
   padding-top: var(--esp-8);
   border-top: 1px solid var(--borda-suave);
+}
+
+.consegui {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-8);
+  min-height: var(--alvo-min);
+  padding: var(--esp-4) var(--esp-8);
+  border: 0;
+  border-radius: var(--raio-botao);
+  background: var(--acento);
+  color: var(--acento-texto);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.consegui:not(:disabled):hover {
+  background: var(--acento-hover);
+}
+
+.consegui:disabled {
+  opacity: var(--opac-desabilitado);
+  cursor: not-allowed;
 }
 
 .anuncios,
