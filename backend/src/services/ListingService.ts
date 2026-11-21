@@ -7,6 +7,7 @@ import type { CreateListingInput, ListListingsQuery, UpdateListingInput } from '
 import { assertOwner } from '../utils/collectionRules.js';
 import { toPage, toSkipTake, type Page, type PageParams } from '../utils/pagination.js';
 import {
+  assertActivatable,
   assertListingQuantity,
   assertListingUpdate,
   isListingVisible,
@@ -43,7 +44,7 @@ export class ListingService {
   constructor(private readonly deps: ListingServiceDeps) {}
 
   async list({ page, limit, ...filters }: ListListingsQuery): Promise<ListingPage> {
-    const rows = await this.deps.listings.findActive({ ...filters, ...toSkipTake({ page, limit }) });
+    const rows = await this.deps.listings.findActive({ ...filters, withInTrade: true, ...toSkipTake({ page, limit }) });
     const { items, hasNextPage } = toPage(rows, { page, limit });
 
     return { items: items.map((listing) => toListingResponse(listing)), hasNextPage };
@@ -111,6 +112,7 @@ export class ListingService {
         quantity: input.quantity ?? current.quantity,
         status: input.status ?? current.status,
       };
+      assertActivatable(next);
 
       if (needsStockCheck(current, next)) {
         await this.assertStock(tx, item, next.quantity, id);

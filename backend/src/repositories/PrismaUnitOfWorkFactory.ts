@@ -4,6 +4,7 @@ import { PrismaCollectionRepository } from './PrismaCollectionRepository.js';
 import { PrismaListingRepository } from './PrismaListingRepository.js';
 import { PrismaOfferRepository } from './PrismaOfferRepository.js';
 import { PrismaTradeRepository } from './PrismaTradeRepository.js';
+import { PrismaUserRepository } from './PrismaUserRepository.js';
 import { PrismaWishlistRepository } from './PrismaWishlistRepository.js';
 import type { TransactionRunner } from './TransactionRunner.js';
 import type { TradeUnitOfWork, UnitOfWorkFactory } from './UnitOfWork.js';
@@ -21,6 +22,7 @@ export function buildPrismaTradeUnitOfWork(tx: Db): TradeUnitOfWork {
     offers,
     trades: new PrismaTradeRepository(tx),
     wishlist: new PrismaWishlistRepository(tx),
+    users: new PrismaUserRepository(tx),
     listingChanges: new ListingChangeApplier(listings, offers),
     lockItemsInOrder: (ids) => collection.lockInOrder(ids),
   };

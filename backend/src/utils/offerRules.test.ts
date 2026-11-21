@@ -4,9 +4,11 @@ import {
   assertOfferItem,
   assertStatusChange,
   assertStillFulfillable,
+  isOnHold,
+  offeredItems,
   toOfferResponse,
 } from './offerRules.js';
-import type { ListingStatus, OfferStatus } from '../generated/prisma/index.js';
+import type { ListingStatus, OfferCancelReason, OfferStatus } from '../generated/prisma/index.js';
 
 const statusOf = (fn: () => void): number | null => {
   try {
@@ -86,7 +88,6 @@ describe('assertStatusChange', () => {
 
   describe('RN-06: oferta finalizada não muda mais', () => {
     const cases: [OfferStatus, OfferStatus, typeof owner][] = [
-      ['ACCEPTED', 'ACCEPTED', owner],
       ...(['REJECTED', 'CANCELED'] as const).flatMap((from): [OfferStatus, OfferStatus, typeof owner][] => [
         [from, 'ACCEPTED', owner],
         [from, 'REJECTED', owner],
@@ -99,21 +100,15 @@ describe('assertStatusChange', () => {
     });
   });
 
-  describe('oferta aceita que ainda não virou troca pode ser encerrada', () => {
+  describe('oferta aceita já virou troca e não muda mais', () => {
     const accepted = { status: 'ACCEPTED' as OfferStatus };
 
-    it.each<[string, typeof owner, OfferStatus]>([
-      ['dono recusa', owner, 'REJECTED'],
-      ['proponente cancela', proposer, 'CANCELED'],
-    ])('%s', (_, who, nextStatus) => {
-      expect(() => assertStatusChange({ offer: accepted, nextStatus, ...who, hasTrade: false })).not.toThrow();
-    });
-
     it.each<[typeof owner, OfferStatus]>([
+      [owner, 'ACCEPTED'],
       [owner, 'REJECTED'],
       [proposer, 'CANCELED'],
-    ])('oferta que já virou troca dá 409 em %#', (who, nextStatus) => {
-      expect(statusOf(() => assertStatusChange({ offer: accepted, nextStatus, ...who, hasTrade: true }))).toBe(409);
+    ])('409 em %#', (who, nextStatus) => {
+      expect(statusOf(() => assertStatusChange({ offer: accepted, nextStatus, ...who }))).toBe(409);
     });
 
     it('papéis continuam valendo: dono não cancela, proponente não recusa', () => {
@@ -133,8 +128,30 @@ describe('assertListingActive', () => {
     expect(() => assertListingActive({ status: 'ACTIVE' })).not.toThrow();
   });
 
-  it.each<ListingStatus>(['PAUSED', 'CLOSED', 'BLOCKED'])('recusa anúncio %s com 422', (status) => {
+  it.each<ListingStatus>(['PAUSED', 'IN_TRADE', 'CLOSED', 'BLOCKED'])('recusa anúncio %s com 422', (status) => {
     expect(statusOf(() => assertListingActive({ status }))).toBe(422);
+  });
+
+  it('anúncio em troca explica que a oferta fica em espera', () => {
+    expect(() => assertListingActive({ status: 'IN_TRADE' })).toThrow(/em espera/);
+  });
+});
+
+describe('isOnHold', () => {
+  const listing = { status: 'ACTIVE' as ListingStatus, quantity: 2 };
+
+  it('oferta aberta que cabe no anúncio ativo não está em espera', () => {
+    expect(isOnHold({ status: 'PROPOSED', quantity: 2, listing })).toBe(false);
+  });
+
+  it('anúncio em troca ou com menos unidades do que a oferta pede deixa em espera', () => {
+    expect(isOnHold({ status: 'PROPOSED', quantity: 1, listing: { status: 'IN_TRADE', quantity: 0 } })).toBe(true);
+    expect(isOnHold({ status: 'PROPOSED', quantity: 3, listing })).toBe(true);
+  });
+
+  it('oferta finalizada nunca está em espera', () => {
+    expect(isOnHold({ status: 'CANCELED', quantity: 3, listing })).toBe(false);
+    expect(isOnHold({ status: 'ACCEPTED', quantity: 1, listing: { status: 'IN_TRADE', quantity: 0 } })).toBe(false);
   });
 });
 
@@ -170,10 +187,24 @@ describe('assertStillFulfillable', () => {
   });
 });
 
+describe('offeredItems', () => {
+  it('devolve as cartas oferecidas que ainda estão na coleção', () => {
+    const items = [{ quantity: 1, collectionItem: { id: 'item-misty' } }];
+    expect(offeredItems({ items })).toEqual(items);
+  });
+
+  it('carta oferecida que saiu da coleção dá 422', () => {
+    const items = [{ quantity: 1, collectionItem: null }];
+    expect(() => offeredItems({ items })).toThrow(expect.objectContaining({ statusCode: 422 }));
+  });
+});
+
 describe('toOfferResponse', () => {
   const card = { id: 'base1-4', name: 'Charizard', marketPrice: '312.50' };
   const offer = {
     id: 'offer-1',
+    trade: null as { id: string; status?: 'PROPOSED' | 'ACCEPTED' | 'REJECTED' | 'CANCELED'; items?: { collectionItemId: string | null; fromUserId: string; quantity: number; condition: 'LIGHT_PLAYED' | 'NEAR_MINT'; finish: 'HOLO'; firstEdition: boolean; card: { id: string; name: string; marketPrice: string } }[] } | null,
+    cancelReason: null as OfferCancelReason | null,
     listingId: 'listing-1',
     proposerId: PROPOSER_ID,
     quantity: 1,
@@ -208,24 +239,56 @@ describe('toOfferResponse', () => {
       {
         id: 'offer-item-1',
         offerId: 'offer-1',
-        collectionItemId: 'item-misty',
+        collectionItemId: 'item-misty' as string | null,
         quantity: 1,
-        collectionItem: {
-          id: 'item-misty',
-          userId: PROPOSER_ID,
-          quantity: 2,
-          reservedQuantity: 1,
-          isPublic: false,
-          condition: 'LIGHT_PLAYED' as const,
-          finish: 'HOLO' as const,
-          firstEdition: false,
-          card: { id: 'base1-10', name: 'Mew', marketPrice: '20.00' },
-        },
+        condition: 'LIGHT_PLAYED' as const,
+        finish: 'HOLO' as const,
+        firstEdition: false,
+        card: { id: 'base1-10', name: 'Mew', marketPrice: '20.00' },
       },
     ],
   };
 
   const response = toOfferResponse(offer);
+
+  it('informa o id da troca vinculada à oferta', () => {
+    expect(response.tradeId).toBeNull();
+    expect(toOfferResponse({ ...offer, status: 'ACCEPTED', trade: { id: 'trade-1' } }).tradeId).toBe('trade-1');
+    expect(response.tradeStatus).toBeNull();
+    expect(toOfferResponse({ ...offer, status: 'ACCEPTED', trade: { id: 'trade-1', status: 'ACCEPTED' } }).tradeStatus).toBe('ACCEPTED');
+  });
+
+  it('oferta que virou troca mostra as cartas de quem ofertou a partir da troca', () => {
+    const tradeItem = {
+      collectionItemId: null,
+      quantity: 1,
+      condition: 'LIGHT_PLAYED' as const,
+      finish: 'HOLO' as const,
+      firstEdition: false,
+    };
+    const accepted = toOfferResponse({
+      ...offer,
+      status: 'ACCEPTED',
+      items: [],
+      trade: {
+        id: 'trade-1',
+        items: [
+          { ...tradeItem, fromUserId: PROPOSER_ID, card: { id: 'base1-10', name: 'Mew', marketPrice: '20.00' } },
+          { ...tradeItem, fromUserId: OWNER_ID, card },
+        ],
+      },
+    });
+
+    expect(accepted.items).toEqual([
+      expect.objectContaining({ collectionItemId: null, quantity: 1, card: expect.objectContaining({ id: 'base1-10' }) }),
+    ]);
+  });
+
+  it('traz o motivo do cancelamento e se a oferta está em espera', () => {
+    expect(response).toMatchObject({ cancelReason: null, onHold: false });
+    expect(toOfferResponse({ ...offer, status: 'CANCELED', cancelReason: 'LISTING_TRADED' }).cancelReason).toBe('LISTING_TRADED');
+    expect(toOfferResponse({ ...offer, listing: { ...offer.listing, status: 'IN_TRADE', quantity: 0 } }).onHold).toBe(true);
+  });
 
   it('monta a oferta com proponente, anúncio e itens', () => {
     expect(response).toMatchObject({

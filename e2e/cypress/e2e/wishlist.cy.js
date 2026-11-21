@@ -15,6 +15,9 @@ describe("Wishlist", () => {
         cy.contains('[data-cy="item-wishlist"]', "Zapdos").within(() => {
           cy.findByRole("button", { name: "Remover" }).click();
         });
+        cy.findByRole("dialog", { name: "Remover Zapdos da wishlist?" }).within(() => {
+          cy.findByRole("button", { name: "Remover carta" }).click();
+        });
 
         cy.findByText("Zapdos saiu da wishlist.").should("be.visible");
         cy.get('[data-cy="item-wishlist"]').should("have.length", antes - 1).and("not.contain", "Zapdos");

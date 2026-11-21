@@ -51,6 +51,7 @@ services:
       target: dev
     container_name: tcg-backend-container
     restart: unless-stopped
+    command: ["sh", "-c", "npx prisma migrate deploy && npm run db:seed-if-empty && exec node --import ./dist/instrumentation.js dist/server.js"]
     env_file:
       - .env
     environment:
@@ -68,12 +69,30 @@ services:
     depends_on:
       tcg-db:
         condition: service_healthy
+        restart: true
 
   tcg-frontend:
     build:
       context: ./frontend
       target: dev
     container_name: tcg-frontend-container
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend
+          target: /app
+          initial_sync: true
+          ignore:
+            - package.json
+            - package-lock.json
+            - Dockerfile
+            - coverage/
+        - action: rebuild
+          path: ./frontend/package.json
+        - action: rebuild
+          path: ./frontend/package-lock.json
+        - action: rebuild
+          path: ./frontend/Dockerfile
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     depends_on:

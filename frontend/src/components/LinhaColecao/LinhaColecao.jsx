@@ -64,7 +64,7 @@ export default function LinhaColecao({ item, onMudou }) {
           <MiniaturaCarta card={item.card} />
         </td>
         <td>
-          <Link className={s.link} to={`/cards/${item.cardId}`}>
+          <Link className={s.link} to={`/cards/${encodeURIComponent(item.cardId)}`}>
             {item.card.name}
           </Link>
           <div className={s.suave}>

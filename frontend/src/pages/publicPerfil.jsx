@@ -132,7 +132,7 @@ export default function PublicPerfilPage() {
               {dados.items.map((item) => {
                 const anuncio = porItem.get(item.id);
                 return (
-                  <CartaMini key={item.id} to={`/cards/${item.card.id}`} carta={item.card}>
+                  <CartaMini key={item.id} to={`/cards/${encodeURIComponent(item.card.id)}`} carta={item.card}>
                     <span className={s.suave}>
                       {variante(item)} · {CONDICOES[item.condition]}
                     </span>

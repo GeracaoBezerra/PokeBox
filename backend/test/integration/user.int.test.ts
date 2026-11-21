@@ -1,6 +1,6 @@
 import request from 'supertest';
 
-import { bearer } from './support/flows.js';
+import { acceptedOffer, addItem, bearer, confirmTrade, createListing, makeOffer, PROFESSOR_OAK } from './support/flows.js';
 import { registerUser, startTestApp, type TestApp } from './support/testApp.js';
 
 let ctx: TestApp;
@@ -48,5 +48,65 @@ describe('DELETE /user/me', () => {
     const login = await request(ctx.app).post('/auth/login').send({ email: user.email, password: user.password });
     expect(login.status).toBe(403);
     await request(ctx.app).get(`/users/${user.username}/collection`).expect(404);
+  });
+});
+
+describe('DELETE /user/me com negociações', () => {
+  test('com troca aberta (qualquer lado) → 409 e nada muda', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const { listing } = await acceptedOffer(ctx.app, owner, proposer);
+
+    const asOwner = await request(ctx.app).delete('/user/me').set(bearer(owner));
+    const asProposer = await request(ctx.app).delete('/user/me').set(bearer(proposer));
+    const stillThere = await request(ctx.app).get(`/listings/${listing.id}`).set(bearer(owner));
+
+    expect(asOwner.status).toBe(409);
+    expect(asOwner.body.error).toBe('Conclua ou cancele suas trocas antes de desativar a conta.');
+    expect(asProposer.status).toBe(409);
+    expect(stillThere.body.data.listing.status).toBe('IN_TRADE');
+  });
+
+  test('com troca aberta, o 409 desfaz o cancelamento das outras ofertas', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const other = await registerUser(ctx.app);
+    await acceptedOffer(ctx.app, owner, proposer);
+    const theirs = await createListing(ctx.app, other, (await addItem(ctx.app, other)).id);
+    const oak = (await addItem(ctx.app, owner, { cardId: PROFESSOR_OAK, finish: 'NORMAL' })).id;
+    const pending = await makeOffer(ctx.app, owner, theirs.id, [{ collectionItemId: oak, quantity: 1 }]);
+
+    await request(ctx.app).delete('/user/me').set(bearer(owner)).expect(409);
+
+    const offer = (await request(ctx.app).get(`/offers/${pending.id}`).set(bearer(other))).body.data.offer;
+    expect(offer).toMatchObject({ status: 'PROPOSED', cancelReason: null });
+  });
+
+  test('sem troca aberta: cancela as ofertas feitas e recebidas e fecha os anúncios', async () => {
+    const leaving = await registerUser(ctx.app);
+    const other = await registerUser(ctx.app);
+    const mine = await createListing(ctx.app, leaving, (await addItem(ctx.app, leaving)).id);
+    const theirs = await createListing(ctx.app, other, (await addItem(ctx.app, other)).id);
+    const oak = (user: typeof leaving) => addItem(ctx.app, user, { cardId: PROFESSOR_OAK, finish: 'NORMAL' });
+    const received = await makeOffer(ctx.app, other, mine.id, [{ collectionItemId: (await oak(other)).id, quantity: 1 }]);
+    const made = await makeOffer(ctx.app, leaving, theirs.id, [{ collectionItemId: (await oak(leaving)).id, quantity: 1 }]);
+
+    await request(ctx.app).delete('/user/me').set(bearer(leaving)).expect(204);
+
+    const offerOf = async (id: string) => (await request(ctx.app).get(`/offers/${id}`).set(bearer(other))).body.data.offer;
+    const myListings = await ctx.container.infra.prisma.listing.findUnique({ where: { id: mine.id } });
+    expect(await offerOf(received.id)).toMatchObject({ status: 'CANCELED', cancelReason: 'ACCOUNT_DEACTIVATED' });
+    expect(await offerOf(made.id)).toMatchObject({ status: 'CANCELED', cancelReason: 'ACCOUNT_DEACTIVATED' });
+    expect(myListings?.status).toBe('CLOSED');
+  });
+
+  test('depois de concluir a troca, a conta desativa', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const { tradeId } = await acceptedOffer(ctx.app, owner, proposer);
+    await confirmTrade(ctx.app, owner, tradeId);
+    await confirmTrade(ctx.app, proposer, tradeId);
+
+    await request(ctx.app).delete('/user/me').set(bearer(proposer)).expect(204);
   });
 });

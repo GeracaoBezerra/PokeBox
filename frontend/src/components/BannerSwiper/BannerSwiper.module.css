@@ -38,7 +38,8 @@
   position: absolute;
   z-index: 2;
   top: 50%;
-  left: 8%;
+  /* Mesmo limite de largura e mesma margem lateral das seções da home. */
+  left: max(var(--esp-24), calc((100% - var(--largura-max)) / 2));
   transform: translateY(-50%);
   width: min(42%, 560px);
   color: var(--acento);

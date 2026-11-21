@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  STATUS_ANUNCIO,
+  confirmacoesDaTroca,
   contarOfertasAguardando,
   descreverCartas,
+  esperaMinhaConfirmacao,
   formatarData,
   precoReferencia,
   proximoPassoOferta,
@@ -97,6 +100,12 @@ describe("descreverCartas", () => {
   });
 });
 
+describe("STATUS_ANUNCIO", () => {
+  it("tem o rótulo do anúncio em troca", () => {
+    expect(STATUS_ANUNCIO.IN_TRADE).toBe("Em troca");
+  });
+});
+
 describe("proximoPassoOferta", () => {
   const base = { dono: "ash", proponente: "misty", virouTroca: false };
 
@@ -105,41 +114,101 @@ describe("proximoPassoOferta", () => {
     expect(proximoPassoOferta({ ...base, status: "PROPOSED", recebida: false })).toBe("Aguardando @ash responder.");
   });
 
-  it("oferta aceita ainda sem troca", () => {
-    expect(proximoPassoOferta({ ...base, status: "ACCEPTED", recebida: true })).toBe("Aguardando @misty criar a troca.");
-    expect(proximoPassoOferta({ ...base, status: "ACCEPTED", recebida: false })).toBe(
-      "Aceita. Agora crie a troca para reservar as cartas."
+  it("oferta em espera, para o dono, conforme o anúncio", () => {
+    expect(proximoPassoOferta({ ...base, status: "PROPOSED", recebida: true, emEspera: true, statusDoAnuncio: "IN_TRADE" })).toBe(
+      "Em espera: este anúncio está em troca com outra pessoa."
+    );
+    expect(proximoPassoOferta({ ...base, status: "PROPOSED", recebida: true, emEspera: true, statusDoAnuncio: "ACTIVE" })).toBe(
+      "Em espera: este anúncio não tem quantidade suficiente agora."
+    );
+    expect(proximoPassoOferta({ ...base, status: "PROPOSED", recebida: true, emEspera: true })).toBe(
+      "Em espera: este anúncio está em troca com outra pessoa."
     );
   });
 
-  it("oferta que virou troca", () => {
-    expect(proximoPassoOferta({ ...base, status: "ACCEPTED", recebida: true, virouTroca: true })).toBe("Acompanhe em Trocas.");
+  it("oferta em espera, para quem ofertou", () => {
+    expect(proximoPassoOferta({ ...base, status: "PROPOSED", recebida: false, emEspera: true, statusDoAnuncio: "IN_TRADE" })).toBe(
+      "Em espera: o anúncio está em negociação; se a troca não acontecer, sua oferta volta a valer."
+    );
   });
 
-  it("oferta recusada ou cancelada", () => {
+  it("oferta aceita sem troca (dado antigo)", () => {
+    expect(proximoPassoOferta({ ...base, status: "ACCEPTED", recebida: true })).toBe("Aceita.");
+  });
+
+  it("oferta que virou troca", () => {
+    expect(proximoPassoOferta({ ...base, status: "ACCEPTED", recebida: true, virouTroca: true })).toBe(
+      "Virou troca: as cartas estão reservadas. Confirme o recebimento em Trocas."
+    );
+  });
+
+  it("oferta cuja troca já concluiu ou foi desfeita", () => {
+    const troca = { ...base, status: "ACCEPTED", recebida: true, virouTroca: true };
+    expect(proximoPassoOferta({ ...troca, statusDaTroca: "PROPOSED" })).toBe(
+      "Virou troca: as cartas estão reservadas. Confirme o recebimento em Trocas."
+    );
+    expect(proximoPassoOferta({ ...troca, statusDaTroca: "ACCEPTED" })).toBe("Troca concluída: as cartas já mudaram de dono.");
+    expect(proximoPassoOferta({ ...troca, statusDaTroca: "CANCELED" })).toBe("Troca desfeita: as cartas voltaram para cada um.");
+  });
+
+  it("oferta recusada ou cancelada sem motivo", () => {
     expect(proximoPassoOferta({ ...base, status: "REJECTED", recebida: true })).toBe("Encerrada.");
     expect(proximoPassoOferta({ ...base, status: "CANCELED", recebida: false })).toBe("Encerrada.");
+  });
+
+  it("oferta cancelada mostra o motivo", () => {
+    const cancelada = (cancelReason, recebida) => proximoPassoOferta({ ...base, status: "CANCELED", recebida, cancelReason });
+    expect(cancelada("PROPOSER", false)).toBe("Você cancelou a oferta.");
+    expect(cancelada("PROPOSER", true)).toBe("@misty cancelou a oferta.");
+    expect(cancelada("LISTING_CLOSED", false)).toBe("Cancelada: @ash fechou o anúncio.");
+    expect(cancelada("LISTING_CLOSED", true)).toBe("Cancelada: você fechou o anúncio.");
+    expect(cancelada("LISTING_BLOCKED", false)).toBe("Cancelada: o anúncio foi bloqueado pela moderação.");
+    expect(cancelada("LISTING_TRADED", false)).toBe("Cancelada: o anúncio foi trocado com outra pessoa.");
+    expect(cancelada("ACCOUNT_DEACTIVATED", true)).toBe("Cancelada: a conta foi desativada.");
   });
 });
 
 describe("proximoPassoTroca", () => {
-  it("troca em andamento", () => {
-    expect(proximoPassoTroca({ status: "PROPOSED", souDonoDoAnuncio: true, parceiro: "misty" })).toBe(
-      "Confira as cartas e conclua ou recuse."
+  it("troca em andamento, ninguém confirmou", () => {
+    expect(proximoPassoTroca({ status: "PROPOSED", euConfirmei: false, parceiroConfirmou: false, parceiro: "misty" })).toBe(
+      "Confirme quando receber as cartas."
     );
-    expect(proximoPassoTroca({ status: "PROPOSED", souDonoDoAnuncio: false, parceiro: "ash" })).toBe("Aguardando @ash concluir.");
+  });
+
+  it("troca em andamento, você confirmou", () => {
+    expect(proximoPassoTroca({ status: "PROPOSED", euConfirmei: true, parceiroConfirmou: false, parceiro: "misty" })).toBe(
+      "Você confirmou. Aguardando @misty confirmar."
+    );
+  });
+
+  it("troca em andamento, o outro confirmou", () => {
+    expect(proximoPassoTroca({ status: "PROPOSED", euConfirmei: false, parceiroConfirmou: true, parceiro: "ash" })).toBe(
+      "@ash já confirmou. Confirme quando receber as cartas."
+    );
   });
 
   it("troca concluída", () => {
-    expect(proximoPassoTroca({ status: "ACCEPTED", souDonoDoAnuncio: false, parceiro: "ash" })).toBe("As cartas já mudaram de dono.");
+    expect(proximoPassoTroca({ status: "ACCEPTED", parceiro: "ash" })).toBe("As cartas já mudaram de dono.");
   });
 
   it("troca recusada ou cancelada", () => {
-    expect(proximoPassoTroca({ status: "REJECTED", souDonoDoAnuncio: true, parceiro: "misty" })).toBe(
-      "As cartas reservadas voltaram a ficar disponíveis."
-    );
-    expect(proximoPassoTroca({ status: "CANCELED", souDonoDoAnuncio: false, parceiro: "ash" })).toBe(
-      "As cartas reservadas voltaram a ficar disponíveis."
-    );
+    expect(proximoPassoTroca({ status: "REJECTED", parceiro: "misty" })).toBe("As cartas reservadas voltaram a ficar disponíveis.");
+    expect(proximoPassoTroca({ status: "CANCELED", parceiro: "ash" })).toBe("As cartas reservadas voltaram a ficar disponíveis.");
+  });
+});
+
+describe("confirmações da troca", () => {
+  const troca = { status: "PROPOSED", proposerConfirmedAt: "2026-11-20T10:00:00Z", recipientConfirmedAt: null };
+
+  it("lê a confirmação de cada lado conforme quem olha", () => {
+    expect(confirmacoesDaTroca(troca, true)).toEqual({ euConfirmei: false, parceiroConfirmou: true });
+    expect(confirmacoesDaTroca(troca, false)).toEqual({ euConfirmei: true, parceiroConfirmou: false });
+  });
+
+  it("só espera a sua confirmação em troca em andamento que você ainda não confirmou", () => {
+    expect(esperaMinhaConfirmacao(troca, true)).toBe(true);
+    expect(esperaMinhaConfirmacao(troca, false)).toBe(false);
+    expect(esperaMinhaConfirmacao({ ...troca, status: "ACCEPTED", recipientConfirmedAt: "x" }, true)).toBe(false);
+    expect(esperaMinhaConfirmacao({ ...troca, status: "CANCELED" }, true)).toBe(false);
   });
 });

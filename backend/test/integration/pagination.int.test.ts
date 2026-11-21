@@ -6,7 +6,6 @@ import {
   bearer,
   CHARIZARD,
   createListing,
-  createTrade,
   makeOffer,
   PROFESSOR_OAK,
   setOfferStatus,
@@ -170,15 +169,14 @@ describe('GET /offers/me e /trades/me com side (#77)', () => {
   test('trocas: side=sent pagina, sem side mantém { sent, received }', async () => {
     const owner = await registerUser(ctx.app);
     const proposer = await registerUser(ctx.app);
-    const { offer } = await acceptedOffer(ctx.app, owner, proposer);
-    const trade = await createTrade(ctx.app, proposer, offer.id);
+    const { tradeId } = await acceptedOffer(ctx.app, owner, proposer);
 
     const legacy = await request(ctx.app).get('/trades/me').set(bearer(proposer));
     const sent = await request(ctx.app).get('/trades/me?side=sent&status=PROPOSED').set(bearer(proposer));
 
-    expect(legacy.body.data.sent.map((t: { id: string }) => t.id)).toEqual([trade.id]);
+    expect(legacy.body.data.sent.map((t: { id: string }) => t.id)).toEqual([tradeId]);
     expect(legacy.body.data.received).toEqual([]);
-    expect(sent.body.data.items.map((t: { id: string }) => t.id)).toEqual([trade.id]);
+    expect(sent.body.data.items.map((t: { id: string }) => t.id)).toEqual([tradeId]);
     expect(sent.body.pagination).toEqual({ page: 1, limit: 20, hasNextPage: false });
   });
 });
@@ -208,6 +206,32 @@ describe('GET /offers/me?side=received com pendentes primeiro (#199)', () => {
     expect(ids).toEqual([[pending.id], [rejectedLast.id], [rejectedFirst.id]]);
     expect(pages.map((res) => res.body.pagination.hasNextPage)).toEqual([true, true, false]);
     expect(rejected.body.data.items.map((o: { id: string }) => o.id)).toEqual([rejectedLast.id, rejectedFirst.id]);
+  });
+  test('ofertas em espera (anúncio em troca) vêm depois das que dá para aceitar e antes das respondidas', async () => {
+    const owner = await registerUser(ctx.app);
+    const offerOn = async (listingId: string) => {
+      const proposer = await registerUser(ctx.app);
+      const item = await addItem(ctx.app, proposer, { cardId: PROFESSOR_OAK, finish: 'NORMAL' });
+      return makeOffer(ctx.app, proposer, listingId, [{ collectionItemId: item.id, quantity: 1 }]);
+    };
+    const busy = await createListing(ctx.app, owner, (await addItem(ctx.app, owner, { cardId: CHARIZARD })).id);
+    const free = await createListing(
+      ctx.app,
+      owner,
+      (await addItem(ctx.app, owner, { cardId: PROFESSOR_OAK, finish: 'NORMAL' })).id,
+    );
+    const onHold = await offerOn(busy.id);
+    const traded = await offerOn(busy.id);
+    const rejected = await offerOn(free.id);
+    const actionable = await offerOn(free.id);
+    await setOfferStatus(ctx.app, owner, rejected.id, 'REJECTED');
+    await setOfferStatus(ctx.app, owner, traded.id, 'ACCEPTED');
+
+    const res = await request(ctx.app).get('/offers/me?side=received&limit=10').set(bearer(owner));
+    const items = res.body.data.items as { id: string; onHold: boolean }[];
+
+    expect(items.map((o) => o.id)).toEqual([actionable.id, onHold.id, rejected.id, traded.id]);
+    expect(items.map((o) => o.onHold)).toEqual([false, true, false, false]);
   });
 });
 

@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Send } from "lucide-react";
 import { listCollection } from "../../api/collection";
 import { errosPorCampo } from "../../api/mensagens";
@@ -8,7 +8,7 @@ import { useAcao } from "../../hooks/useAcao";
 import { useListaPaginada } from "../../hooks/useListaPaginada";
 import s from "../../styles/detalheCarta.module.css";
 import { temPalavra } from "../../utils/filtrosMarketplace";
-import { LIMITE_CARTAS_OFERTA, cartasDaBusca, quantidadesInvalidas, textoQuantidadesInvalidas } from "../../utils/oferta";
+import { LIMITE_CARTAS_OFERTA, cartasDaBusca, quantidadesInvalidas, textoCartasSelecionadas, textoQuantidadesInvalidas } from "../../utils/oferta";
 import Aviso from "../Aviso/Aviso";
 import CampoBusca from "../CampoBusca/CampoBusca";
 import ErroCampo from "../ErroCampo/ErroCampo";
@@ -29,6 +29,7 @@ export default function FormOferta({ anuncio }) {
   const [escolhidas, setEscolhidas] = useState({});
   const [conferirQuantidades, setConferirQuantidades] = useState(false);
   const acao = useAcao();
+  const navigate = useNavigate();
   const id = useId();
   const erros = errosPorCampo(acao.erro?.details);
   const buscando = busca.trim() !== "";
@@ -69,24 +70,29 @@ export default function FormOferta({ anuncio }) {
 
   async function enviar(evento) {
     evento.preventDefault();
-    if (acao.ocupado || acao.sucesso || carregando || total === 0) return;
+    if (acao.ocupado || carregando || total === 0) return;
     if (invalidas.length > 0) {
       setConferirQuantidades(true);
       return;
     }
     const items = listaEscolhidas.map(({ item, quantidade: qtd }) => ({ collectionItemId: item.id, quantity: Number(qtd) }));
-    await acao.executar(() => createOffer(anuncio.id, {
+    const { ok } = await acao.executar(() => createOffer(anuncio.id, {
       quantity: Number(quantidade),
       ...(mensagem.trim() ? { message: mensagem.trim() } : {}),
       items,
-    }), "Oferta enviada! Acompanhe a resposta em Propostas.");
+    }));
+    if (ok) {
+      navigate("/propostas?aba=enviadas", {
+        state: { aviso: `Oferta enviada para @${anuncio.owner.username}.` },
+      });
+    }
   }
 
   return (
     <section className={s.secao} id="fazer-oferta" aria-labelledby="titulo-oferta">
       <header className={s.cabecalho}><span className={s.eyebrow}>Sua próxima troca</span><h2 id="titulo-oferta">Monte sua oferta</h2><p className={s.suave}>Diga o que você quer receber e escolha o que oferece em troca.</p></header>
       <form className={s.painel} onSubmit={enviar}>
-        <fieldset className={s.ofertaCampos} disabled={acao.ocupado || Boolean(acao.sucesso)}>
+        <fieldset className={s.ofertaCampos} disabled={acao.ocupado}>
           <div className={s.campos}>
             <div>
               <label className={s.campo}>Quantas cópias você quer receber<input type="number" min="1" max={anuncio.quantity} required value={quantidade} aria-invalid={Boolean(erros.quantity)} aria-describedby={erros.quantity ? `${id}-quantidade` : undefined} onChange={(e) => setQuantidade(e.target.value)} /></label>
@@ -98,6 +104,7 @@ export default function FormOferta({ anuncio }) {
             </div>
           </div>
           <div className={s.cabecalhoSelecao}><h3>O que você oferece</h3><span className={s.suave}>{total}/{LIMITE_CARTAS_OFERTA} cartas selecionadas</span></div>
+          <p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p>
           <Aviso erro={erroColecao} />
           {erroColecao && <button type="button" className={s.botaoSecundario} onClick={recarregar}>Carregar coleção novamente</button>}
           {carregando && <CarregandoCartas total={4} formato="tabela" />}
@@ -107,10 +114,10 @@ export default function FormOferta({ anuncio }) {
           {!carregando && visiveis.length > 0 && <CartasOferecidas itens={visiveis} escolhidas={quantidades} onAlternar={alternar} onQuantidade={mudarQuantidade} />}
           {esperandoBusca && <p className={s.suave} role="status">Buscando na sua coleção…</p>}
           {!carregando && !esperandoBusca && lista.temMais && <button type="button" className={s.botaoSecundario} disabled={lista.carregandoMais} onClick={lista.carregarMais}>{lista.carregandoMais ? "Carregando…" : "Carregar mais cartas"}</button>}
-          <div className={s.rodapeOferta}><ResumoTroca anuncio={anuncio} quantidade={quantidade} escolhidas={listaEscolhidas} aviso={avisoQuantidades} /><p className={s.suave}>As cartas selecionadas continuam na sua coleção até a conclusão da troca.</p><button className={s.botao} type="submit" disabled={carregando || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
+          <ResumoTroca anuncio={anuncio} quantidade={quantidade} escolhidas={listaEscolhidas} aviso={avisoQuantidades} />
+          <div className={s.rodapeOferta}><span className={s.resumoOferta}>{textoCartasSelecionadas(total)}</span><button className={s.botao} type="submit" disabled={carregando || total === 0}><Send size={16} aria-hidden="true" />{acao.ocupado ? "Enviando…" : "Enviar oferta"}</button></div>
         </fieldset>
         <Aviso erro={acao.erro} campos={["quantity", "message"]} />
-        {acao.sucesso && <Link className={s.link} to="/propostas">Acompanhar minha oferta</Link>}
       </form>
     </section>
   );

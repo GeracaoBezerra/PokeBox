@@ -1,21 +1,20 @@
 import { AppError } from '../errors/AppError.js';
 import type { CardCondition, CardFinish, ListingStatus, OfferStatus, TradeStatus } from '../generated/prisma/index.js';
 import { toCardResponse } from './cardRecord.js';
-import { cancelsOffers, isOpenStatus } from './listingRules.js';
+import { isOpenStatus } from './listingRules.js';
 import type { OwnedItem } from './offerRules.js';
 
 export type TradeRole = 'recipient' | 'proposer';
 
-export type TradeAction = 'accept' | 'reject' | 'cancel';
+export type TradeAction = 'reject' | 'cancel';
 
 export const TRADE_ACTIONS = {
-  accept: { status: 'ACCEPTED', role: 'recipient' },
   reject: { status: 'REJECTED', role: 'recipient' },
   cancel: { status: 'CANCELED', role: 'proposer' },
 } as const satisfies Record<TradeAction, { status: TradeStatus; role: TradeRole }>;
 
 const WRONG_ROLE: Record<TradeRole, string> = {
-  recipient: 'Só o dono do anúncio pode aceitar ou recusar a troca',
+  recipient: 'Só o dono do anúncio pode recusar a troca',
   proposer: 'Só quem fez a oferta pode cancelar a troca',
 };
 
@@ -41,6 +40,21 @@ export interface TradeActionCheck {
   trade: TradeParties & { status: TradeStatus };
   userId: string;
   action: TradeAction;
+}
+
+export interface Confirmations {
+  proposerConfirmedAt: Date | null;
+  recipientConfirmedAt: Date | null;
+}
+
+export interface ConfirmCheck {
+  trade: TradeParties & Confirmations & { status: TradeStatus };
+  userId: string;
+}
+
+export interface Confirmation {
+  role: TradeRole;
+  completes: boolean;
 }
 
 export interface StillTradableCheck<T extends OwnedItem = OwnedItem> {
@@ -78,6 +92,18 @@ export interface ListingChange {
 
 export interface ListingTrim extends ListingChange {
   id: string;
+  taken: number;
+}
+
+export interface TrimmableListing {
+  id: string;
+  quantity: number;
+  status: ListingStatus;
+}
+
+export interface ListingHold {
+  listingId: string;
+  quantity: number;
 }
 
 export interface TradeSource<C extends PricedCard = PricedCard> {
@@ -85,6 +111,8 @@ export interface TradeSource<C extends PricedCard = PricedCard> {
   status: TradeStatus;
   createdAt: Date;
   completedAt: Date | null;
+  proposerConfirmedAt: Date | null;
+  recipientConfirmedAt: Date | null;
   offerId: string | null;
   proposer: { username: string; name: string };
   recipient: { username: string; name: string };
@@ -114,6 +142,8 @@ export interface TradeResponse<C extends PricedCard = PricedCard> {
   status: TradeStatus;
   createdAt: Date;
   completedAt: Date | null;
+  proposerConfirmedAt: Date | null;
+  recipientConfirmedAt: Date | null;
   offerId: string | null;
   proposer: { username: string; name: string };
   recipient: { username: string; name: string };
@@ -165,9 +195,28 @@ export function assertTradeAction({ trade, userId, action }: TradeActionCheck): 
     throw new AppError(403, WRONG_ROLE[role]);
   }
 
+  assertTradeOpen(trade);
+}
+
+function assertTradeOpen(trade: { status: TradeStatus }): void {
   if (trade.status !== 'PROPOSED') {
     throw new AppError(409, `Troca já finalizada (${trade.status})`);
   }
+}
+
+export function assertCanConfirm({ trade, userId }: ConfirmCheck): Confirmation {
+  assertCanView(trade, userId);
+  assertTradeOpen(trade);
+
+  const role: TradeRole = trade.recipientId === userId ? 'recipient' : 'proposer';
+  const mine = role === 'recipient' ? trade.recipientConfirmedAt : trade.proposerConfirmedAt;
+  const theirs = role === 'recipient' ? trade.proposerConfirmedAt : trade.recipientConfirmedAt;
+
+  if (mine) {
+    throw new AppError(409, 'Você já confirmou o recebimento desta troca. Falta a outra parte confirmar');
+  }
+
+  return { role, completes: theirs !== null };
 }
 
 export function assertStillTradable<T extends OwnedItem>(
@@ -216,47 +265,49 @@ export function buildTradeItems({ offer, listing }: TradeItemsSource): NewTradeI
 
 export function nextListingState({ listing, taken }: { listing: { quantity: number }; taken: number }): ListingChange {
   const remaining = listing.quantity - taken;
-  return remaining > 0 ? { quantity: remaining } : { status: 'CLOSED' };
+  return remaining > 0 ? { quantity: remaining } : { quantity: 0, status: 'IN_TRADE' };
 }
 
-export function acceptedOffersToCancel({
-  offers,
-  change,
-}: {
-  offers: { id: string; quantity: number }[];
-  change: ListingChange;
-}): string[] {
-  return offers
-    .filter(
-      (offer) => cancelsOffers(change.status) || (change.quantity !== undefined && offer.quantity > change.quantity),
-    )
-    .map((offer) => offer.id);
-}
-
-export function trimListings({
-  listings,
-  available,
-}: {
-  listings: { id: string; quantity: number }[];
-  available: number;
-}): ListingTrim[] {
+export function trimListings({ listings, available }: { listings: TrimmableListing[]; available: number }): ListingTrim[] {
   let listed = listings.reduce((sum, listing) => sum + listing.quantity, 0);
   const changes: ListingTrim[] = [];
 
   for (const listing of listings) {
     if (listed <= available) break;
+    if (listing.quantity === 0) continue;
 
-    const excess = listed - available;
-    if (listing.quantity > excess) {
-      changes.push({ id: listing.id, quantity: listing.quantity - excess });
-      listed -= excess;
-    } else {
-      changes.push({ id: listing.id, status: 'CLOSED' });
-      listed -= listing.quantity;
-    }
+    const taken = Math.min(listing.quantity, listed - available);
+    const remaining = listing.quantity - taken;
+    const emptied = remaining === 0 && listing.status === 'ACTIVE';
+    changes.push({ id: listing.id, taken, quantity: remaining, ...(emptied ? { status: 'IN_TRADE' as const } : {}) });
+    listed -= taken;
   }
 
   return changes;
+}
+
+export function returnedListingState({
+  listing,
+  quantity,
+}: {
+  listing: { status: ListingStatus; quantity: number };
+  quantity: number;
+}): ListingChange | null {
+  if (!isOpenStatus(listing.status)) return null;
+
+  const back = { quantity: listing.quantity + quantity };
+  return listing.status === 'IN_TRADE' ? { ...back, status: 'ACTIVE' } : back;
+}
+
+export function closesAfterTrade({
+  listing,
+  otherOpenHolds,
+}: {
+  listing: { status: ListingStatus; quantity: number };
+  otherOpenHolds: number;
+}): boolean {
+  if (otherOpenHolds > 0) return false;
+  return listing.status === 'IN_TRADE' || (listing.status === 'PAUSED' && listing.quantity === 0);
 }
 
 export function toTradeResponse<C extends PricedCard>(trade: TradeSource<C>): TradeResponse<C> {
@@ -265,6 +316,8 @@ export function toTradeResponse<C extends PricedCard>(trade: TradeSource<C>): Tr
     status: trade.status,
     createdAt: trade.createdAt,
     completedAt: trade.completedAt,
+    proposerConfirmedAt: trade.proposerConfirmedAt,
+    recipientConfirmedAt: trade.recipientConfirmedAt,
     offerId: trade.offerId,
     proposer: { username: trade.proposer.username, name: trade.proposer.name },
     recipient: { username: trade.recipient.username, name: trade.recipient.name },

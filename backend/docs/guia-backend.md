@@ -4,7 +4,7 @@ Como o backend do PokeBox está montado e como as regras de negócio funcionam. 
 
 ## Ideia do app
 
-O PokeBox é um app de trocas de cartas Pokémon TCG, sem venda nem pagamento. O colecionador cadastra as cartas que tem (coleção), marca as que quer (wishlist), anuncia cartas para troca e faz ofertas nos anúncios dos outros oferecendo cartas da própria coleção. Quando o dono do anúncio aceita, nasce uma troca, e ao concluí-la as cartas mudam de dono.
+O PokeBox é um app de trocas de cartas Pokémon TCG, sem venda nem pagamento. O colecionador cadastra as cartas que tem (coleção), marca as que quer (wishlist), anuncia cartas para troca e faz ofertas nos anúncios dos outros oferecendo cartas da própria coleção. Quando o dono do anúncio aceita, nasce uma troca; quando as duas partes confirmam o recebimento, as cartas mudam de dono.
 
 Os dados das cartas (nome, imagem, variantes, preço) vêm da API pública da [TCGdex](https://tcgdex.dev). O banco guarda só o que é do usuário e uma cópia das cartas usadas.
 
@@ -44,7 +44,7 @@ O login devolve um JWT, válido por 1 dia (`JWT_EXPIRES_IN`), e o front manda es
 | `POST /auth/login` | e-mail e senha → token. Conta suspensa ou inativa → 403 |
 | `GET /auth/me` | dados completos do usuário logado (inclui telefone e endereço) |
 | `PATCH /user/me` | edita nome, telefone e endereço |
-| `DELETE /user/me` | desativa a conta. Nada é apagado: o histórico de trocas continua |
+| `DELETE /user/me` | desativa a conta. Nada é apagado: o histórico de trocas continua. Com troca em andamento → 409 ("Conclua ou cancele suas trocas antes de desativar a conta."). Sem troca em andamento, cancela as ofertas abertas feitas e recebidas e fecha os anúncios abertos |
 | `GET /auth/admin-check` | só responde 200 para ADMIN; serve para testar o papel |
 
 Há dois papéis. `USER` é o padrão; o `ADMIN` só tem poder extra sobre anúncios (bloquear e desbloquear). Ele não mexe na coleção, nas ofertas nem nas trocas dos outros.
@@ -102,7 +102,7 @@ A wishlist não tem variante nem condição: quem deseja aceita qualquer versão
 
 ## Processo de troca
 
-A troca passa por três objetos: anúncio, oferta e troca.
+A troca passa por três objetos: anúncio, oferta e troca, em 3 passos para quem usa: ofertar, aceitar (a troca nasce) e as duas partes confirmarem o recebimento.
 
 ```
 ANÚNCIO   ACTIVE                      o dono anuncia uma carta da coleção
@@ -112,14 +112,15 @@ OFERTA    PROPOSED                    o interessado oferece cartas dele
    ├──► REJECTED                      o dono recusa
    ├──► CANCELED                      o interessado desiste
    ▼
-          ACCEPTED                    o dono aceita
+          ACCEPTED                    o dono aceita: a troca nasce na mesma hora
    │
    ▼
-TROCA     PROPOSED                    o interessado cria a troca: cartas reservadas
-   ├──► REJECTED                      o dono recusa: reserva liberada
-   ├──► CANCELED                      o interessado cancela: reserva liberada
+TROCA     PROPOSED                    cartas reservadas dos dois lados
+   │                                  cada parte confirma o recebimento (a primeira só grava a data)
+   ├──► REJECTED                      o dono recusa: reserva liberada, quantidade volta ao anúncio
+   ├──► CANCELED                      o interessado cancela: reserva liberada, quantidade volta ao anúncio
    ▼
-          ACCEPTED                    o dono conclui: as cartas mudam de dono
+          ACCEPTED                    a segunda confirmação: as cartas mudam de dono
 ```
 
 ### 1. Anunciar
@@ -127,7 +128,7 @@ TROCA     PROPOSED                    o interessado cria a troca: cartas reserva
 `POST /listings` com `collectionItemId`, `quantity` e `description` opcional.
 
 - Só anuncia item da própria coleção (403).
-- Somando todos os anúncios abertos (ativos e pausados) do item, a quantidade anunciada não passa do disponível (422).
+- Somando todos os anúncios abertos (ativos, pausados e em troca) do item, a quantidade anunciada não passa do disponível (422).
 - Anunciar não reserva nada. A carta continua na coleção e pode ir para outros anúncios dentro do disponível.
 
 `PATCH /listings/:id` muda a quantidade, a descrição ou o status:
@@ -135,12 +136,14 @@ TROCA     PROPOSED                    o interessado cria a troca: cartas reserva
 | Status | Quem | O que acontece com as ofertas |
 |---|---|---|
 | `PAUSED` (pausar) | dono | some do marketplace; ofertas ficam como estão |
-| `ACTIVE` (reativar) | dono | volta ao marketplace |
-| `CLOSED` (fechar) | dono | definitivo. Cancela as ofertas abertas e as aceitas que ainda não viraram troca |
-| `BLOCKED` (bloquear) | só ADMIN | igual a fechar. Desbloquear volta como `PAUSED`, mas as ofertas canceladas não voltam |
-| diminuir a quantidade | dono | cancela as ofertas aceitas que pedem mais do que a nova quantidade |
+| `ACTIVE` (reativar) | dono | volta ao marketplace (pausado com quantidade 0 precisa informar a quantidade) |
+| `CLOSED` (fechar) | dono | definitivo. Cancela as ofertas abertas (motivo `LISTING_CLOSED`) |
+| `BLOCKED` (bloquear) | só ADMIN | igual a fechar (motivo `LISTING_BLOCKED`). Desbloquear volta como `PAUSED`, mas as ofertas canceladas não voltam |
+| diminuir a quantidade | dono | nada é cancelado: oferta que pede mais do que sobrou fica em espera |
 
-Leitura: `GET /listings` lista os ativos para todo mundo (filtros `cardId` e `username`). `GET /listings/me` lista os meus em qualquer status. `GET /listings/:id` mostra um anúncio pausado, fechado ou bloqueado só para o dono e o ADMIN.
+`IN_TRADE` (Em troca) é posto pelo sistema quando todas as unidades do anúncio estão numa troca em andamento. O anúncio continua público, aparece no fim do marketplace e não recebe oferta nova (422). O dono pode pausar ou fechar, mas não muda a quantidade nem reativa (409); o ADMIN pode bloquear. Se a troca cair, a quantidade volta e o anúncio volta a `ACTIVE`; se a troca concluir e não houver outra troca aberta nele, o anúncio fecha.
+
+Leitura: `GET /listings` lista os ativos e, no fim, os em troca, para todo mundo (filtros `cardId` e `username`). `GET /listings/me` lista os meus em qualquer status. `GET /listings/:id` mostra um anúncio ativo ou em troca para todos; pausado, fechado ou bloqueado só para o dono e o ADMIN.
 
 ### 2. Ofertar
 
@@ -156,13 +159,13 @@ Leitura: `GET /listings` lista os ativos para todo mundo (filtros `cardId` e `us
 
 `quantity` é quantas cartas do anúncio você quer. `items` são de 1 a 20 cartas da sua coleção que você dá em troca.
 
-- Só em anúncio ativo de outra pessoa (o próprio → 422; pausado, fechado ou bloqueado → 404).
+- Só em anúncio ativo de outra pessoa (o próprio → 422; em troca → 422; pausado, fechado ou bloqueado → 404).
 - `quantity` não passa da quantidade do anúncio.
 - As cartas oferecidas são suas (403) e cabem no seu disponível (422).
 - Uma oferta aberta por pessoa em cada anúncio (409).
 - A oferta não reserva cartas.
 
-### 3. Responder a oferta
+### 3. Responder a oferta (aceitar cria a troca)
 
 `PATCH /offers/:id/status` com `{ "status": ... }`:
 
@@ -170,36 +173,40 @@ Leitura: `GET /listings` lista os ativos para todo mundo (filtros `cardId` e `us
 |---|---|
 | `ACCEPTED` | dono do anúncio |
 | `REJECTED` | dono do anúncio |
-| `CANCELED` | quem fez a oferta |
+| `CANCELED` | quem fez a oferta (motivo `PROPOSER`) |
 
-Ao aceitar, o backend confere tudo de novo: o anúncio ainda tem a quantidade pedida e quem ofertou ainda tem as cartas. Se algo mudou → 422.
+Aceitar cria a troca na mesma transação (o miolo fica em `services/TradeOpener.ts`, usado também pelo `POST /trades`). O backend confere tudo de novo: o anúncio está ativo e tem a quantidade pedida, e quem ofertou ainda tem as cartas. Se algo mudou → 422 e nada muda. Se deu certo:
 
-Uma oferta finalizada não muda mais (422), com uma exceção: a oferta aceita que ainda não virou troca pode ser recusada pelo dono ou cancelada por quem fez, para não ficar presa. Recusar ou cancelar solta as cartas oferecidas.
+- a oferta fica `ACCEPTED` e a resposta traz o `tradeId`;
+- a troca nasce `PROPOSED` e reserva as cartas dos dois lados (`reservedQuantity` sobe);
+- o anúncio perde só a quantidade da oferta; em 0, vira `IN_TRADE`;
+- os anúncios de quem ofertou que passariam do disponível são reduzidos (em 0, ativo vira `IN_TRADE` e pausado continua pausado);
+- o quanto saiu de cada anúncio fica guardado em `TradeListingHold`, para voltar se a troca cair;
+- as outras ofertas do anúncio **não** são canceladas: as que não cabem ficam em espera (`onHold: true`). Aceitar uma oferta em espera → 422; quem ofertou pode cancelar.
 
-`GET /offers/me` separa `sent` (as que fiz) e `received` (nos meus anúncios).
+Oferta aceita não muda mais (409): para desistir, recuse ou cancele a troca. Oferta recusada ou cancelada também não muda (422). Recusar ou cancelar solta as cartas oferecidas.
 
-### 4. Criar a troca
+A oferta responde `tradeId` (ou `null`), `cancelReason` (`PROPOSER`, `LISTING_CLOSED`, `LISTING_BLOCKED`, `LISTING_TRADED`, `ACCOUNT_DEACTIVATED` ou `null`) e `onHold`.
 
-Depois que a oferta é aceita, quem fez a oferta chama `POST /trades` com `{ "offerId": "..." }`. A troca nasce como `PROPOSED` e, numa transação:
+`GET /offers/me` separa `sent` (as que fiz) e `received` (nos meus anúncios). Em `received`, primeiro as que dá para aceitar, depois as em espera, depois as respondidas.
 
-- reserva as cartas dos dois lados (`reservedQuantity` sobe), e elas não podem ser usadas em nenhuma outra negociação;
-- diminui o anúncio pela quantidade da oferta e, se chegar a 0, fecha o anúncio e cancela as ofertas abertas dele;
-- cancela as outras ofertas aceitas desse anúncio que não cabem mais;
-- reduz os anúncios de quem ofertou que passariam do disponível.
+`POST /trades` com `{ "offerId": "..." }` continua existindo (é rota do PDF): oferta que já virou troca → 409; oferta que não está aceita → 422.
 
-Só existe uma troca por oferta (409).
-
-### 5. Concluir, recusar ou cancelar a troca
+### 4. Confirmar o recebimento, recusar ou cancelar a troca
 
 | Rota | Quem | Efeito |
 |---|---|---|
-| `POST /trades/:id/accept` | dono do anúncio | as cartas mudam de dono |
-| `POST /trades/:id/reject` | dono do anúncio | a reserva é liberada |
-| `POST /trades/:id/cancel` | quem fez a oferta | a reserva é liberada |
+| `POST /trades/:id/accept` | as duas partes | a primeira grava a confirmação; a segunda conclui: as cartas mudam de dono |
+| `POST /trades/:id/reject` | dono do anúncio | a reserva é liberada e a quantidade volta aos anúncios |
+| `POST /trades/:id/cancel` | quem fez a oferta | a reserva é liberada e a quantidade volta aos anúncios |
 
-O aceite roda numa transação só. Ele trava as cartas, confere que cada uma ainda é de quem entrega e está reservada, tira de quem entrega e soma em quem recebe. Quem recebe ganha a carta no item igual em carta, condição e variante; se não tiver, o backend cria um item público. Se qualquer passo falha, nada muda. Quem entregou continua com o item, mesmo com quantidade 0.
+A troca responde `proposerConfirmedAt` e `recipientConfirmedAt`. Confirmar de novo → 409. Dá para desistir mesmo depois de ter confirmado. Não há prazo para confirmar.
 
-Troca finalizada não muda mais (409). Se duas pessoas agem ao mesmo tempo na mesma troca, uma passa e a outra recebe 409. Recusar ou cancelar a troca não devolve a quantidade que saiu dos anúncios; para tentar de novo, é preciso fazer uma oferta nova.
+A conclusão roda numa transação só. Ela trava as cartas, confere que cada uma ainda é de quem entrega e está reservada, tira de quem entrega e soma em quem recebe. Quem recebe ganha a carta no item igual em carta, condição e variante; se não tiver, o backend cria um item público. O anúncio em troca fecha (se não houver outra troca aberta nele) e as ofertas em espera dele são canceladas com o motivo `LISTING_TRADED`. Se qualquer passo falha, nada muda. Quem entregou continua com o item, mesmo com quantidade 0.
+
+Recusar ou cancelar devolve a cada anúncio a quantidade que a troca tirou, se ele ainda estiver aberto (em troca volta a ativo; pausado continua pausado). Anúncio fechado ou bloqueado no meio-tempo não reabre. As coleções ficam exatamente como antes da troca.
+
+Troca finalizada não muda mais (409). Se duas pessoas agem ao mesmo tempo na mesma troca, uma passa e a outra recebe 409.
 
 `GET /trades/me` separa `sent` e `received`. `GET /trades/:id` só é visível para as duas partes (outros, inclusive o ADMIN → 403).
 
@@ -210,7 +217,8 @@ available = quantity - reservedQuantity
 ```
 
 - Só a troca reserva. Anúncio e oferta não reservam, mas respeitam o disponível.
-- A reserva entra quando a troca nasce e sai quando ela termina, seja concluída, recusada ou cancelada.
+- A reserva entra quando a troca nasce (o dono aceita a oferta) e sai quando ela termina, seja concluída, recusada ou cancelada.
+- Dois invariantes valem sempre e são provados por teste (`tradeConservation.int.test.ts`): a reserva de cada item é a soma das trocas abertas que usam o item, e anunciado (ativo, pausado ou em troca) + reservado ≤ quantidade. A consulta de conferência para produção está em `docs/db.md`.
 - Operações que podem acontecer ao mesmo tempo no mesmo item (anunciar, ofertar, aceitar) travam a linha do item no banco e rodam uma de cada vez.
 
 ## Códigos de erro

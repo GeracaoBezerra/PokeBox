@@ -44,6 +44,11 @@
   color: var(--info);
 }
 
+.aviso {
+  background: color-mix(in srgb, var(--acento) 14%, var(--superficie));
+  color: var(--acento);
+}
+
 .erro {
   background: var(--erro-fundo);
   color: var(--erro);

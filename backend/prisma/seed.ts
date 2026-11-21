@@ -25,6 +25,7 @@ import { PrismaUnitOfWorkFactory } from '../src/repositories/PrismaUnitOfWorkFac
 import { ListingChangeApplier } from '../src/services/ListingChangeApplier.js';
 import { ListingService } from '../src/services/ListingService.js';
 import { OfferService } from '../src/services/OfferService.js';
+import { TradeOpener } from '../src/services/TradeOpener.js';
 import { TradeService } from '../src/services/TradeService.js';
 import { assertVariant, type CardVariants } from '../src/utils/collectionRules.js';
 
@@ -75,14 +76,20 @@ interface SeedOfferItem {
   quantity: number;
 }
 
+type SeedParty = 'owner' | 'proposer';
+
 interface SeedOffer {
   listing: string;
   proposer: string;
   quantity: number;
   message: string;
   items: SeedOfferItem[];
-  status: OfferStatus;
-  trade?: Extract<TradeStatus, 'PROPOSED' | 'ACCEPTED'>;
+  status: Exclude<OfferStatus, 'ACCEPTED'>;
+}
+
+interface SeedTrade extends Omit<SeedOffer, 'status'> {
+  status: Extract<TradeStatus, 'PROPOSED' | 'ACCEPTED'>;
+  confirmedBy?: SeedParty;
 }
 
 type SeedCard = Omit<Prisma.CardCreateInput, 'releaseDate' | 'marketPriceUpdatedAt'> & {
@@ -90,6 +97,29 @@ type SeedCard = Omit<Prisma.CardCreateInput, 'releaseDate' | 'marketPriceUpdated
   releaseDate?: string | null;
   marketPriceUpdatedAt?: string | null;
 };
+
+interface CatalogSetRow {
+  id: string;
+  name: string;
+  position: number;
+}
+
+interface CatalogCardRow {
+  id: string;
+  localId: string;
+  name: string;
+  setId: string;
+  setName: string;
+  imageUrl: string | null;
+  types: string[];
+  rarity: string | null;
+  category: string | null;
+}
+
+interface CatalogData {
+  sets: CatalogSetRow[];
+  cards: CatalogCardRow[];
+}
 
 type UsersByUsername = Record<string, User>;
 type ItemsByKey = Record<string, CollectionItem>;
@@ -267,6 +297,20 @@ const wishlist: SeedWishlistItem[] = [
   { username: 'lance', cardId: 'swsh7-215' },
   { username: 'lance', cardId: 'neo1-9' },
   { username: 'lance', cardId: 'sv03.5-199' },
+  { username: 'admin', cardId: 'swsh7-215' },
+  { username: 'ash', cardId: 'swsh7-215' },
+  { username: 'misty', cardId: 'swsh7-215' },
+  { username: 'gary', cardId: 'swsh7-215' },
+  { username: 'dawn', cardId: 'swsh7-215' },
+  { username: 'brock', cardId: 'base1-4' },
+  { username: 'erika', cardId: 'base1-4' },
+  { username: 'dawn', cardId: 'base1-4' },
+  { username: 'cynthia', cardId: 'base1-4' },
+  { username: 'misty', cardId: 'sv03.5-199' },
+  { username: 'brock', cardId: 'sv03.5-199' },
+  { username: 'erika', cardId: 'sv03.5-199' },
+  { username: 'brock', cardId: 'base1-2' },
+  { username: 'gary', cardId: 'base1-2' },
 ];
 
 const listings: SeedListing[] = [
@@ -351,11 +395,11 @@ const offers: SeedOffer[] = [
   },
   {
     listing: 'erika-venusaur',
-    proposer: 'brock',
+    proposer: 'gary',
     quantity: 1,
-    message: 'Meu Dialga holo pelo seu Venusaur.',
-    items: [{ item: 'brock-dialga', quantity: 1 }],
-    status: 'ACCEPTED',
+    message: 'Dois Charmander da 151 pelo Venusaur?',
+    items: [{ item: 'gary-charmander-151-normal', quantity: 2 }],
+    status: 'PROPOSED',
   },
   {
     listing: 'gary-mewtwo-base',
@@ -389,6 +433,18 @@ const offers: SeedOffer[] = [
     items: [{ item: 'misty-psyduck-151', quantity: 1 }],
     status: 'CANCELED',
   },
+];
+
+const trades: SeedTrade[] = [
+  {
+    listing: 'erika-venusaur',
+    proposer: 'brock',
+    quantity: 1,
+    message: 'Meu Dialga holo pelo seu Venusaur.',
+    items: [{ item: 'brock-dialga', quantity: 1 }],
+    status: 'PROPOSED',
+    confirmedBy: 'owner',
+  },
   {
     listing: 'brock-lucario',
     proposer: 'erika',
@@ -399,7 +455,6 @@ const offers: SeedOffer[] = [
       { item: 'erika-eevee-evs', quantity: 1 },
     ],
     status: 'ACCEPTED',
-    trade: 'ACCEPTED',
   },
   {
     listing: 'cynthia-arceus-vstar',
@@ -411,7 +466,6 @@ const offers: SeedOffer[] = [
       { item: 'gary-fire-energy', quantity: 1 },
     ],
     status: 'ACCEPTED',
-    trade: 'ACCEPTED',
   },
   {
     listing: 'cynthia-double-turbo',
@@ -419,8 +473,23 @@ const offers: SeedOffer[] = [
     quantity: 2,
     message: 'Duas Rare Candy pelas duas Double Turbo.',
     items: [{ item: 'brock-rare-candy', quantity: 2 }],
+    status: 'PROPOSED',
+  },
+  {
+    listing: 'brock-garchomp-ex',
+    proposer: 'misty',
+    quantity: 1,
+    message: 'Três Magikarp pelo Garchomp?',
+    items: [{ item: 'misty-magikarp-151', quantity: 3 }],
     status: 'ACCEPTED',
-    trade: 'PROPOSED',
+  },
+  {
+    listing: 'ash-pikachu-vmax',
+    proposer: 'gary',
+    quantity: 1,
+    message: 'Três Eevee pelo Pikachu VMAX?',
+    items: [{ item: 'gary-eevee-151', quantity: 3 }],
+    status: 'ACCEPTED',
   },
 ];
 
@@ -435,12 +504,14 @@ const listingService = new ListingService({
   transactions: new PrismaTransactionRunner(prisma),
   changes: new ListingChangeApplier(listingRepository, offerRepository),
 });
-const offerService = new OfferService({ listings: listingRepository, offers: offerRepository, unitOfWork });
+const opener = new TradeOpener();
+const offerService = new OfferService({ listings: listingRepository, offers: offerRepository, unitOfWork, opener });
 const tradeService = new TradeService({
   offers: offerRepository,
   trades: new PrismaTradeRepository(prisma),
   collection: collectionRepository,
   unitOfWork,
+  opener,
 });
 
 function daysAgo(days: number): Date {
@@ -452,9 +523,20 @@ async function loadCards(): Promise<SeedCard[]> {
   return JSON.parse(file);
 }
 
-function validateSeedData(cards: SeedCard[]) {
+async function loadCatalogPt(): Promise<CatalogData> {
+  const file = await readFile(new URL('./seed-data/catalog-pt.json', import.meta.url), 'utf8');
+  return JSON.parse(file);
+}
+
+function validateSeedData(cards: SeedCard[], catalogPt: CatalogData) {
   const cardsById = new Map(cards.map((card) => [card.id, card]));
   const owned = new Set<string>();
+
+  const setsPt = new Set(catalogPt.sets.map((set) => set.id));
+  for (const { id, setId } of catalogPt.cards) {
+    if (!cardsById.has(id)) throw new Error(`Catálogo pt: carta ${id} não está em seed-data/cards.json`);
+    if (!setsPt.has(setId)) throw new Error(`Catálogo pt: set ${setId} da carta ${id} não está em seed-data/catalog-pt.json`);
+  }
 
   for (const { key, username, cardId, finish, firstEdition = false } of collection) {
     const card = cardsById.get(cardId);
@@ -505,6 +587,69 @@ async function seedCards(cards: SeedCard[]) {
   }
 }
 
+function normalizedName(name: string): string {
+  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function seedTypes(card: SeedCard): string[] {
+  return Array.isArray(card.types) ? card.types.filter((type): type is string => typeof type === 'string') : [];
+}
+
+function catalogEn(cards: SeedCard[]): CatalogData {
+  const sets = [
+    ...new Map(
+      cards.map((card) => [
+        card.setId,
+        { id: card.setId, name: card.setName, releaseDate: card.releaseDate ?? '0000-00-00' },
+      ]),
+    ).values(),
+  ].sort((a, b) => a.releaseDate.localeCompare(b.releaseDate) || a.id.localeCompare(b.id));
+
+  return {
+    sets: sets.map((set, position) => ({ id: set.id, name: set.name, position })),
+    cards: cards.map((card) => ({
+      id: card.id,
+      localId: String(card.number).split('/')[0],
+      name: card.name,
+      setId: card.setId,
+      setName: card.setName,
+      imageUrl: card.imageUrl ?? null,
+      types: seedTypes(card),
+      rarity: card.rarity ?? null,
+      category: card.category ?? null,
+    })),
+  };
+}
+
+async function saveCatalog(lang: string, { sets, cards }: CatalogData) {
+  await prisma.catalogSet.createMany({
+    data: sets.map((set) => ({ id: set.id, lang, name: set.name, position: set.position })),
+    skipDuplicates: true,
+  });
+
+  for (const { id, ...card } of cards) {
+    const data = { ...card, nameNormalized: normalizedName(card.name) };
+    await prisma.catalogCard.upsert({
+      where: { id_lang: { id, lang } },
+      update: data,
+      create: { id, lang, ...data },
+    });
+  }
+
+  const distinct = (values: (string | null)[]) => [...new Set(values.filter((value): value is string => Boolean(value)))];
+  const filterRows = [
+    ...distinct(cards.flatMap((card) => card.types)).map((value) => ({ lang, kind: 'type', value })),
+    ...distinct(cards.map((card) => card.rarity)).map((value) => ({ lang, kind: 'rarity', value })),
+    ...distinct(cards.map((card) => card.category)).map((value) => ({ lang, kind: 'category', value })),
+  ];
+  await prisma.catalogFilterValue.createMany({ data: filterRows, skipDuplicates: true });
+}
+
+async function seedCatalog(cards: SeedCard[], catalogPt: CatalogData) {
+  await saveCatalog('en', catalogEn(cards));
+  await saveCatalog('pt', catalogPt);
+}
+
 async function seedCollection(byUsername: UsersByUsername) {
   const items: ItemsByKey = {};
 
@@ -524,7 +669,7 @@ async function removeRetiredItems(byUsername: UsersByUsername) {
   for (const { username, cardId } of RETIRED_ITEMS) {
     const retired = await prisma.collectionItem.findMany({
       where: { userId: byUsername[username].id, cardId },
-      include: { _count: { select: { listings: true, offerItems: true } } },
+      include: { _count: { select: { listings: true, offerItems: { where: { offer: { status: 'PROPOSED' } } } } } },
     });
 
     for (const item of retired) {
@@ -582,60 +727,74 @@ async function seedListings(byUsername: UsersByUsername, items: ItemsByKey) {
   return byItem;
 }
 
-function offerLabel(offer: SeedOffer): string {
+function offerLabel(offer: Pick<SeedOffer, 'proposer' | 'listing'>): string {
   return `oferta de ${offer.proposer} no anúncio ${offer.listing}`;
+}
+
+async function canReopenListing(listing: Listing, quantity: number): Promise<boolean> {
+  if (listing.status === 'ACTIVE' && listing.quantity >= quantity) return true;
+
+  const openHolds = await prisma.tradeListingHold.count({ where: { listingId: listing.id, trade: { status: 'PROPOSED' } } });
+  if (openHolds > 0) return false;
+
+  const item = await prisma.collectionItem.findUniqueOrThrow({ where: { id: listing.collectionItemId } });
+  const otherListed = await listingRepository.sumOpenByItem(item.id, prisma, listing.id);
+  return quantity + otherListed + item.reservedQuantity <= item.quantity;
 }
 
 async function reopenOffer(offerId: string, offer: SeedOffer, listing: Listing, items: ItemsByKey) {
   const seedListing = listings.find((entry) => entry.item === offer.listing);
-  await prisma.listing.update({
-    where: { id: listing.id },
-    data: { status: 'ACTIVE', quantity: seedListing?.quantity ?? listing.quantity },
-  });
+  const quantity = seedListing?.quantity ?? listing.quantity;
+
+  if (!(await canReopenListing(listing, quantity))) {
+    console.log(
+      `A ${offerLabel(offer)} não foi reaberta: o anúncio está em troca ou a carta não está mais disponível. Para voltar ao estado inicial: npx prisma migrate reset (apaga o banco local)`,
+    );
+    return;
+  }
+
+  if (listing.status !== 'ACTIVE' || listing.quantity < quantity) {
+    await prisma.listing.update({ where: { id: listing.id }, data: { status: 'ACTIVE', quantity } });
+  }
   await prisma.offer.update({
     where: { id: offerId },
-    data: { status: 'PROPOSED', respondedAt: null, message: offer.message, quantity: offer.quantity },
+    data: { status: 'PROPOSED', cancelReason: null, respondedAt: null, message: offer.message, quantity: offer.quantity },
   });
 
-  for (const { item, quantity } of offer.items) {
-    const collectionItemId = items[item].id;
+  for (const { item, quantity: offered } of offer.items) {
+    const { id: collectionItemId, cardId, condition, finish, firstEdition } = items[item];
     await prisma.offerItem.upsert({
       where: { offerId_collectionItemId: { offerId, collectionItemId } },
-      update: { quantity },
-      create: { offerId, collectionItemId, quantity },
+      update: { quantity: offered },
+      create: { offerId, collectionItemId, cardId, condition, finish, firstEdition, quantity: offered },
     });
   }
 }
 
-async function createOffer(offer: SeedOffer, proposer: User, owner: User, listing: Listing, items: ItemsByKey) {
-  const created = await offerService.create(proposer, listing.id, {
+async function createOffer(offer: Omit<SeedOffer, 'status'>, proposer: User, listing: Listing, items: ItemsByKey) {
+  return offerService.create(proposer, listing.id, {
     quantity: offer.quantity,
     message: offer.message,
     items: offer.items.map(({ item, quantity }) => ({ collectionItemId: items[item].id, quantity })),
   });
+}
 
-  if (offer.status === 'ACCEPTED' || offer.status === 'REJECTED') {
-    await offerService.changeStatus(owner.id, created.id, offer.status);
-  } else if (offer.status === 'CANCELED') {
-    await offerService.changeStatus(proposer.id, created.id, offer.status);
-  }
-
-  return { id: created.id, status: offer.status };
+function findSeedOffer(listingId: string, proposerId: string) {
+  return prisma.offer.findFirst({
+    where: { listingId, proposerId },
+    include: { trade: true },
+    orderBy: { createdAt: 'asc' },
+  });
 }
 
 async function seedOffer(offer: SeedOffer, byUsername: UsersByUsername, items: ItemsByKey, byItem: ListingsByItem) {
   const proposer = byUsername[offer.proposer];
   const owner = ownerOf(items, byUsername, offer.listing);
-  const listing = byItem[offer.listing];
+  const listing = await prisma.listing.findUniqueOrThrow({ where: { id: byItem[offer.listing].id } });
+  const existing = await findSeedOffer(listing.id, proposer.id);
 
-  const existing = await prisma.offer.findFirst({
-    where: { listingId: listing.id, proposerId: proposer.id },
-    include: { trade: { select: { id: true, status: true } } },
-    orderBy: { createdAt: 'asc' },
-  });
-
-  if (existing && !offer.trade) {
-    if (offer.status !== 'PROPOSED') return;
+  if (existing) {
+    if (offer.status !== 'PROPOSED' || existing.status === 'PROPOSED') return;
     if (existing.trade) {
       console.log(
         `A ${offerLabel(offer)} já virou troca. Para voltar ao estado inicial: npx prisma migrate reset (apaga o banco local)`,
@@ -646,20 +805,36 @@ async function seedOffer(offer: SeedOffer, byUsername: UsersByUsername, items: I
     return;
   }
 
-  const current = existing ?? (await createOffer(offer, proposer, owner, listing, items));
-  if (!offer.trade) return;
+  const created = await createOffer(offer, proposer, listing, items);
+  if (offer.status === 'REJECTED') await offerService.changeStatus(owner.id, created.id, 'REJECTED');
+  if (offer.status === 'CANCELED') await offerService.changeStatus(proposer.id, created.id, 'CANCELED');
+}
+
+async function seedTrade(entry: SeedTrade, byUsername: UsersByUsername, items: ItemsByKey, byItem: ListingsByItem) {
+  const proposer = byUsername[entry.proposer];
+  const owner = ownerOf(items, byUsername, entry.listing);
+  const listing = byItem[entry.listing];
+  const existing = await findSeedOffer(listing.id, proposer.id);
 
   let trade = existing?.trade ?? null;
   if (!trade) {
-    if (current.status !== 'ACCEPTED') {
-      console.log(`A ${offerLabel(offer)} não está mais aceita (${current.status}); a troca dela não foi criada`);
+    if (existing && existing.status !== 'PROPOSED') {
+      console.log(`A ${offerLabel(entry)} está ${existing.status} sem troca; a troca dela não foi criada`);
       return;
     }
-    trade = await tradeService.create(proposer.id, current.id);
+    const offerId = existing?.id ?? (await createOffer(entry, proposer, listing, items)).id;
+    const accepted = await offerService.changeStatus(owner.id, offerId, 'ACCEPTED');
+    if (!accepted.tradeId) return;
+    trade = await prisma.trade.findUniqueOrThrow({ where: { id: accepted.tradeId } });
   }
 
-  if (offer.trade === 'ACCEPTED' && trade.status === 'PROPOSED') {
-    await tradeService.accept(owner.id, trade.id);
+  if (trade.status !== 'PROPOSED') return;
+
+  const confirmers: SeedParty[] = entry.status === 'ACCEPTED' ? ['owner', 'proposer'] : entry.confirmedBy ? [entry.confirmedBy] : [];
+  for (const party of confirmers) {
+    const confirmed = party === 'owner' ? trade.recipientConfirmedAt : trade.proposerConfirmedAt;
+    if (confirmed) continue;
+    await tradeService.accept(party === 'owner' ? owner.id : proposer.id, trade.id);
   }
 }
 
@@ -667,14 +842,19 @@ async function seedOffers(byUsername: UsersByUsername, items: ItemsByKey, byItem
   for (const offer of offers) {
     await seedOffer(offer, byUsername, items, byItem);
   }
+  for (const entry of trades) {
+    await seedTrade(entry, byUsername, items, byItem);
+  }
 }
 
 async function main() {
   const cards = await loadCards();
-  validateSeedData(cards);
+  const catalogPt = await loadCatalogPt();
+  validateSeedData(cards, catalogPt);
 
   const byUsername = await seedUsers();
   await seedCards(cards);
+  if (process.env.NODE_ENV !== 'test') await seedCatalog(cards, catalogPt);
   const items = await seedCollection(byUsername);
   await removeRetiredItems(byUsername);
   await seedWishlist(byUsername);
@@ -682,7 +862,7 @@ async function main() {
   await seedOffers(byUsername, items, byItem);
 
   console.log(
-    `Seed ok. ${cards.length} cartas · ${collection.length} itens de coleção · ${wishlist.length} de wishlist · ${listings.length} anúncios · ${offers.length} ofertas · usuários: ${users.map((user) => user.username).join(', ')} · senhas: SEED_ADMIN_PASSWORD (admin) e SEED_DEMO_PASSWORD (demais)`,
+    `Seed ok. ${cards.length} cartas · ${collection.length} itens de coleção · ${wishlist.length} de wishlist · ${listings.length} anúncios · ${offers.length + trades.length} ofertas (${trades.length} viraram troca) · usuários: ${users.map((user) => user.username).join(', ')} · senhas: SEED_ADMIN_PASSWORD (admin) e SEED_DEMO_PASSWORD (demais)`,
   );
 }
 

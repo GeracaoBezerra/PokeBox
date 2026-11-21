@@ -16,19 +16,27 @@ afterEach(() => {
   ouvinte.mockClear();
 });
 
-function renderizar(onMudou) {
+function renderizar(onMudou, status = "ACTIVE") {
   window.addEventListener("pendencias:mudou", ouvinte);
   server.use(rota.patch(url("/listings/a1"), async ({ request }) => HttpResponse.json({ success: true, data: { listing: { id: "a1", ...(await request.json()) } } })));
   return render(
     <ToastProvider>
       <ConfirmacaoProvider>
-        <AcoesAnuncio anuncio={{ id: "a1", status: "ACTIVE" }} onMudou={onMudou} />
+        <AcoesAnuncio anuncio={{ id: "a1", status }} onMudou={onMudou} />
       </ConfirmacaoProvider>
     </ToastProvider>
   );
 }
 
 describe("AcoesAnuncio", () => {
+  it("anúncio em troca pode ser pausado ou fechado", () => {
+    renderizar(vi.fn(), "IN_TRADE");
+
+    expect(screen.getByRole("button", { name: "Pausar" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Fechar" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Ativar" })).toBeNull();
+  });
+
   it("fechar com sucesso avisa que as pendências mudaram, porque as ofertas abertas são canceladas", async () => {
     const onMudou = vi.fn();
     const pessoa = userEvent.setup();

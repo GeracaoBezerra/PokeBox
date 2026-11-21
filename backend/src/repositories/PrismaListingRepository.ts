@@ -1,4 +1,6 @@
+import type { ListingStatus } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
+import { pendingFirst } from '../utils/pendingFirst.js';
 import { USABLE_STATUSES } from '../utils/accountStatus.js';
 import type { ListingCounts } from '../utils/collectionRules.js';
 import { isOpenStatus, OPEN_STATUSES } from '../utils/listingRules.js';
@@ -8,6 +10,7 @@ import {
   listingInclude,
   type ActiveListingFilters,
   type ListingChanges,
+  type ListingRef,
   type ListingRepository,
   type ListingWithItem,
   type NewListing,
@@ -30,26 +33,33 @@ export class PrismaListingRepository implements ListingRepository {
     type,
     rarity,
     sort,
+    withInTrade = false,
     skip = 0,
     take,
   }: ActiveListingFilters): Promise<ListingWithItem[]> {
-    return this.db.listing.findMany({
-      where: {
-        status: 'ACTIVE',
-        collectionItem: {
-          cardId,
-          condition,
-          finish,
-          firstEdition,
-          card: cardWhere({ q, setId, type, rarity }),
-          user: { username, deletedAt: null, accountStatus: { in: USABLE_STATUSES } },
-        },
+    const where = (status: ListingStatus) => ({
+      status,
+      collectionItem: {
+        cardId,
+        condition,
+        finish,
+        firstEdition,
+        card: cardWhere({ q, setId, type, rarity }),
+        user: { username, deletedAt: null, accountStatus: { in: USABLE_STATUSES } },
       },
-      include: listingInclude,
-      orderBy: listingOrderBy(sort),
-      skip,
-      take,
     });
+    const find = (status: ListingStatus, window: { skip?: number; take?: number }) =>
+      this.db.listing.findMany({ where: where(status), include: listingInclude, orderBy: listingOrderBy(sort), ...window });
+
+    if (!withInTrade) return find('ACTIVE', { skip, take });
+
+    return pendingFirst(
+      {
+        find: (active, window) => find(active ? 'ACTIVE' : 'IN_TRADE', window),
+        countPending: () => this.db.listing.count({ where: where('ACTIVE') }),
+      },
+      { skip, take },
+    );
   }
 
   findByOwner(userId: string, { skip, take }: Partial<PageWindow> = {}): Promise<ListingWithItem[]> {
@@ -111,10 +121,19 @@ export class PrismaListingRepository implements ListingRepository {
     return db.listing.update({ where: { id }, data, include: listingInclude });
   }
 
-  existsActiveByUserAndCard(userId: string, cardId: string): Promise<{ id: string } | null> {
-    return this.db.listing.findFirst({
-      where: { status: 'ACTIVE', collectionItem: { userId, cardId } },
-      select: { id: true },
+  findOpenByUserAndCard(userId: string, cardId: string): Promise<ListingRef[]> {
+    return this.db.listing.findMany({
+      where: { status: { in: [...OPEN_STATUSES] }, collectionItem: { userId, cardId } },
+      select: { id: true, status: true },
+      orderBy: [...newestFirst],
     });
+  }
+
+  async closeOpenByOwner(userId: string, db: Db = this.db): Promise<number> {
+    const { count } = await db.listing.updateMany({
+      where: { status: { in: [...OPEN_STATUSES] }, collectionItem: { userId } },
+      data: { status: 'CLOSED' },
+    });
+    return count;
   }
 }

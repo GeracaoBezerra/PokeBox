@@ -69,7 +69,7 @@ function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, onPrecisaLogin
     const { ok, erro } = await executar(
       () => (tirar ? removeFromWishlist(itemWishlist) : addToWishlist(carta.id, lang)),
       tirar ? `${carta.name} saiu da wishlist.` : `${carta.name} entrou na wishlist.`,
-      { tipo: tirar ? "info" : "sucesso" }
+      { tipo: tirar ? "aviso" : "sucesso" }
     );
     if (ok) onMudou();
     else toast.erro(mensagemAmigavel(erro));
@@ -105,15 +105,24 @@ export default function CatalogPage() {
   const opcoes = useCarregar(() => getCardFilters(lang), lang);
   const esperandoOpcoes = Object.values(filtrosPedidos).some(Boolean) && opcoes.carregando;
   const filtros = opcoes.dados ? filtrosValidos(filtrosPedidos, opcoes.dados) : filtrosPedidos;
-  const sort = params.get("sort") === "name" ? "name" : undefined;
-  const order = params.get("order") === "desc" ? "desc" : "asc";
-  const ordenacao = sort ? `name-${order}` : "relevance";
+  const sortPedido = params.get("sort");
+  const sort = ["name", "recent", "wanted", "traded"].includes(sortPedido) ? sortPedido : undefined;
+  const ordemPedida = params.get("order");
+  const order = ordemPedida === "asc" || ordemPedida === "desc"
+    ? ordemPedida
+    : sort && sort !== "name" ? "desc" : "asc";
+  const ordenacao = sort === "name" ? `name-${order}` : sort ?? "relevance";
   const busca = useCarregar(
     async () => (esperandoOpcoes ? null : searchCards({ name, lang, page, limit: 24, ...filtros, sort, order })),
     esperandoOpcoes ? "esperando" : JSON.stringify({ name, lang, page, ...filtros, sort, order })
   );
   const { dados, erro, recarregar } = busca;
   const carregando = busca.carregando || esperandoOpcoes;
+  const infoBusca = carregando ? null : dados?.search ?? null;
+  const setsReconhecidos = infoBusca?.sets ?? [];
+  const palavrasIgnoradas = infoBusca?.ignored ?? [];
+  const buscaParcial = Boolean(palavrasIgnoradas.length && infoBusca?.name && dados?.items.length);
+  const paginaVazia = Boolean(dados) && dados.items.length === 0;
   const session = useSession();
   const navigate = useNavigate();
   const location = useLocation();
@@ -159,11 +168,34 @@ export default function CatalogPage() {
   }
 
   function ordenar(valor) {
-    atualizar({ sort: valor === "relevance" ? "" : "name", order: valor === "name-desc" ? "desc" : "" });
+    if (valor === "relevance") return atualizar({ sort: "", order: "" });
+    if (valor.startsWith("name-")) {
+      return atualizar({ sort: "name", order: valor === "name-desc" ? "desc" : "asc" });
+    }
+    atualizar({ sort: valor, order: "desc" });
   }
 
   function limparFiltros() {
     atualizar(VAZIOS);
+  }
+
+  function resumoDaBusca() {
+    if (!name) return "Todas as cartas";
+    if (infoBusca && !infoBusca.name && setsReconhecidos.length) {
+      return `Cartas de ${setsReconhecidos.join(", ")}`;
+    }
+    if (infoBusca?.name && setsReconhecidos.length && !palavrasIgnoradas.length) {
+      return (
+        <>
+          Resultados para <strong>“{infoBusca.name}”</strong> em {setsReconhecidos.join(", ")}
+        </>
+      );
+    }
+    return (
+      <>
+        Resultados para <strong>“{name}”</strong>
+      </>
+    );
   }
 
   const atalhoIngles = lang === IDIOMA_PADRAO && name ? (
@@ -201,15 +233,9 @@ export default function CatalogPage() {
             <option value="relevance">Relevância</option>
             <option value="name-asc">Nome: A–Z</option>
             <option value="name-desc">Nome: Z–A</option>
-            <option value="rarity" disabled>
-              Raridade — em breve
-            </option>
-            <option value="recent" disabled>
-              Mais recentes — em breve
-            </option>
-            <option value="wanted" disabled>
-              Mais desejadas — em breve
-            </option>
+            <option value="recent">Mais recentes</option>
+            <option value="traded">Mais trocadas</option>
+            <option value="wanted">Mais desejadas</option>
           </select>
         </label>
       </div>
@@ -224,15 +250,18 @@ export default function CatalogPage() {
         <section className={s.resultados} aria-label="Resultados do catálogo">
           <div className={s.resumo} role="status">
             <p>
-              {name ? (
-                <>
-                  Resultados para <strong>“{name}”</strong>
-                </>
-              ) : (
-                "Todas as cartas"
-              )}
+              {resumoDaBusca()}
             </p>
             <span>{carregando ? "Buscando cartas…" : dados ? `${dados.items.length} cartas nesta página` : ""}</span>
+          </div>
+          <div role="status">
+            {buscaParcial && (
+              <p className={s.dicaBusca}>
+                Não achamos tudo que você digitou ({palavrasIgnoradas.join(", ")}). Mostrando resultados para{" "}
+                <strong>“{infoBusca.name}”</strong>
+                {setsReconhecidos.length > 0 && ` em ${setsReconhecidos.join(", ")}`}.
+              </p>
+            )}
           </div>
           <SelosFiltro selos={selos} onRemover={(campo) => atualizar({ [campo]: "" })} onLimpar={limparFiltros} />
           <Aviso erro={erro} onTentarDeNovo={recarregar} />
@@ -255,21 +284,35 @@ export default function CatalogPage() {
               ) : (
                 <div className={s.vazio}>
                   <SearchX size={32} aria-hidden="true" />
-                  <h2>Nenhuma carta encontrada</h2>
+                  <h2>{name ? `Nenhuma carta encontrada para “${name}”` : "Nenhuma carta encontrada"}</h2>
                   <p>Tente outro nome ou ajuste os filtros para ampliar a busca.</p>
                   {atalhoIngles}
-                  {selos.length > 0 && (
-                    <button type="button" className={s.botao} onClick={limparFiltros}>
-                      Limpar filtros
-                    </button>
-                  )}
+                  <div className={s.acoesVazio}>
+                    {name && (
+                      <button type="button" className={s.botao} onClick={() => atualizar({ name: "" })}>
+                        Limpar busca
+                      </button>
+                    )}
+                    {selos.length > 0 && (
+                      <button type="button" className={s.botao} onClick={limparFiltros}>
+                        Limpar filtros
+                      </button>
+                    )}
+                    {paginaVazia && page > 1 && (
+                      <button type="button" className={s.botao} onClick={() => atualizar({ page: "" }, false)}>
+                        Voltar para a primeira página
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
-              <Paginacao
-                pagina={page}
-                temProxima={dados.pagination?.hasNextPage}
-                onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
-              />
+              {!paginaVazia && (
+                <Paginacao
+                  pagina={page}
+                  temProxima={dados.pagination?.hasNextPage}
+                  onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
+                />
+              )}
               {dados.items.length > 0 && atalhoIngles}
             </>
           )}

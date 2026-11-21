@@ -1,14 +1,21 @@
-import type { OfferStatus, Prisma } from '../generated/prisma/index.js';
+import type { OfferCancelReason, OfferStatus, Prisma } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
 import type { OfferCounts } from '../utils/collectionRules.js';
 import type { PageWindow } from '../utils/pagination.js';
 import { listingInclude } from './ListingRepository.js';
 
 export const offerInclude = {
+  trade: {
+    select: {
+      id: true,
+      status: true,
+      items: { include: { card: true }, orderBy: { id: 'asc' } },
+    },
+  },
   proposer: { select: { username: true, name: true } },
   listing: { include: listingInclude },
   items: {
-    include: { collectionItem: { include: { card: true } } },
+    include: { card: true, collectionItem: true },
     orderBy: { id: 'asc' },
   },
 } satisfies Prisma.OfferInclude;
@@ -20,11 +27,6 @@ export interface LockedOffer {
   status: OfferStatus;
   listingId: string;
   proposerId: string;
-}
-
-export interface AcceptedOffer {
-  id: string;
-  quantity: number;
 }
 
 export interface NewOfferItem {
@@ -52,16 +54,12 @@ export interface OfferRepository {
   findSent(userId: string, options?: OfferListOptions): Promise<OfferWithDetails[]>;
   findReceived(userId: string, options?: OfferListOptions): Promise<OfferWithDetails[]>;
   countByItem(collectionItemId: string, db?: Db): Promise<OfferCounts>;
-  updateStatus(id: string, status: OfferStatus, db?: Db): Promise<OfferWithDetails>;
-  deleteItems(offerId: string, db?: Db): Promise<void>;
-  cancelByIds(ids: string[], db?: Db): Promise<number>;
-  cancelOpenByListing(listingId: string, db?: Db): Promise<number>;
-  lockAcceptedWithoutTrade(listingId: string, db?: Db): Promise<AcceptedOffer[]>;
+  updateStatus(id: string, status: OfferStatus, db?: Db, cancelReason?: OfferCancelReason | null): Promise<OfferWithDetails>;
+  cancelByIds(ids: string[], reason: OfferCancelReason, db?: Db): Promise<number>;
+  cancelOpenByListing(listingId: string, reason: OfferCancelReason, db?: Db): Promise<number>;
+  cancelOpenOfUser(userId: string, reason: OfferCancelReason, db?: Db): Promise<number>;
 }
 
 export type OfferCounter = Pick<OfferRepository, 'countByItem'>;
 
-export type ListingOfferCanceller = Pick<
-  OfferRepository,
-  'cancelOpenByListing' | 'lockAcceptedWithoutTrade' | 'cancelByIds'
->;
+export type ListingOfferCanceller = Pick<OfferRepository, 'cancelOpenByListing'>;

@@ -48,9 +48,10 @@ function Linha({ rotulo, children }) {
 //
 // lang: idioma da carta, vai na URL do detalhe (/cards/:id?lang=pt).
 // link: use só se o destino for outro.
+// estadoLink: state repassado ao Link (ex.: { deMarketplace: true }).
 // painel: passe false para esconder o painel (por exemplo, enquanto os dados
 // completos da carta ainda não chegaram).
-export default function CartaCard({ carta, lang, link, painel = true, acoes }) {
+export default function CartaCard({ carta, lang, link, estadoLink, painel = true, acoes }) {
   const { id, name: nome, rarity: raridade, illustrator: artista, types } = carta;
 
   const src = carta.image?.small ?? carta.imageUrl ?? null;
@@ -62,34 +63,33 @@ export default function CartaCard({ carta, lang, link, painel = true, acoes }) {
   const tipoInfo = acharTipo(tipoApi);
   const tipo = tipoInfo?.rotulo ?? tipoApi;
 
-  const destino = link ?? (lang ? `/cards/${id}?lang=${lang}` : `/cards/${id}`);
+  const idUrl = encodeURIComponent(id);
+  const destino = link ?? (lang ? `/cards/${idUrl}?lang=${lang}` : `/cards/${idUrl}`);
   const alt = [nome, set, numeroTexto].filter(Boolean).join(", ");
   const temDados = Boolean(tipo || raridade || set || numeroTexto || artista);
+  const wishlistCount = carta.wishlistCount;
+  const tradeCount = carta.tradeCount;
+  const temPainel = temDados || wishlistCount != null || tradeCount != null;
 
   return (
     // Sem tipo, usa o "incolor" (cinza neutro) para o painel manter fundo e borda
     <div className={styles.carta} data-tipo={tipoInfo?.chave ?? "incolor"}>
       <div className={styles.palco}>
-        <Link to={destino} className={styles.link}>
-          {src ? (
-            <img
-              className={styles.imagem}
-              src={src}
-              alt={alt}
-              width="245"
-              height="342"
-              loading="lazy"
-              decoding="async"
-              draggable={false}
-            />
-          ) : (
-            <ImagemCarta className={styles.imagem} alt={alt} />
-          )}
+        <Link to={destino} state={estadoLink} className={styles.link}>
+          <ImagemCarta
+            className={styles.imagem}
+            src={src}
+            alt={alt}
+            width="245"
+            height="342"
+            decoding="async"
+            draggable={false}
+          />
         </Link>
 
         {/* Painel de dados: é só um resumo visual, os mesmos dados estarão
             na página da carta. */}
-        {painel && temDados && (
+        {painel && temPainel && (
           <div className={styles.painel} aria-hidden="true">
             <p className={styles.nome}>{nome}</p>
 
@@ -103,6 +103,8 @@ export default function CartaCard({ carta, lang, link, painel = true, acoes }) {
               {set && <Linha rotulo="Set">{set}</Linha>}
               {numeroTexto && <Linha rotulo="Número">{numeroTexto}</Linha>}
               {artista && <Linha rotulo="Artista">{artista}</Linha>}
+              {wishlistCount != null && <Linha rotulo="Wishlists">{wishlistCount}</Linha>}
+              {tradeCount != null && <Linha rotulo="Unidades trocadas">{tradeCount}</Linha>}
             </dl>
           </div>
         )}

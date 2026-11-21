@@ -9,7 +9,7 @@ API := http://localhost:3000
 PSQL := docker compose exec -T tcg-db psql -U $(DB_USER) -d $(DB_NAME)
 
 .PHONY: help up stop down ps logs psql reset dev traces traces-down generate migrate status studio \
-        users constraints migrations schema clean-users unit test-int test-db-down coverage e2e test test-db test-collection test-profile test-wishlist test-listings test-offers \
+        seed users constraints migrations schema clean-users unit test-int test-db-down coverage e2e test test-db test-collection test-profile test-wishlist test-listings test-offers \
         prod-up prod-down prod-logs
 
 help:
@@ -96,6 +96,9 @@ generate: ## regenera o client do prisma
 
 migrate: ## aplica as migrations pendentes
 	@cd backend && npm run db:migrate
+
+seed: ## roda o seed de novo (volta os dados de exemplo; o compose so roda sozinho com o banco vazio)
+	@cd backend && npm run db:seed
 
 status: ## mostra o estado das migrations
 	@cd backend && npx prisma migrate status
@@ -276,7 +279,7 @@ test-listings: ## smoke test dos anuncios (#14, #15) com os usuarios do seed
 	ULTRA=$$(curl -s $(API)/collection -H "$$A" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "sv01-196"][0]'); \
 	MITEM=$$(curl -s $(API)/collection -H "$$M" | $(JSON) 'd["data"]["items"][0]["id"]'); \
 	printf '%-34s' "listar sem token -> 200";      curl -s -o /dev/null -w 'HTTP %{http_code}\n' $$L; \
-	VITRINE=$$($(PSQL) -tAc "SELECT LEAST(count(*), 20) FROM \"Listing\" l JOIN \"CollectionItem\" ci ON ci.id = l.\"collectionItemId\" JOIN \"User\" u ON u.id = ci.\"userId\" WHERE l.status = 'ACTIVE' AND u.\"deletedAt\" IS NULL AND u.\"accountStatus\" IN ('ACTIVE', 'PENDING_VERIFICATION');"); \
+	VITRINE=$$($(PSQL) -tAc "SELECT LEAST(count(*), 20) FROM \"Listing\" l JOIN \"CollectionItem\" ci ON ci.id = l.\"collectionItemId\" JOIN \"User\" u ON u.id = ci.\"userId\" WHERE l.status IN ('ACTIVE', 'IN_TRADE') AND u.\"deletedAt\" IS NULL AND u.\"accountStatus\" IN ('ACTIVE', 'PENDING_VERIFICATION');"); \
 	printf '%-34s' "1a pagina da vitrine -> $$VITRINE"; curl -s $$L | $(JSON) 'len(d["data"]["items"])'; \
 	printf '%-34s' "filtro cardId -> [base1-4]";   curl -s "$$L?cardId=base1-4" | $(JSON) '[i["card"]["id"] for i in d["data"]["items"]]'; \
 	printf '%-34s' "filtro username -> [misty]";   curl -s "$$L?username=misty" | $(JSON) 'sorted(set(i["owner"]["username"] for i in d["data"]["items"]))'; \
@@ -326,7 +329,7 @@ test-listings: ## smoke test dos anuncios (#14, #15) com os usuarios do seed
 test-offers: ## smoke test das ofertas (#16, #17) com os usuarios do seed
 	@echo ""
 	@echo "ofertas"
-	@$(PSQL) -c "DELETE FROM \"OfferItem\" WHERE \"offerId\" IN (SELECT o.id FROM \"Offer\" o JOIN \"Listing\" l ON l.id = o.\"listingId\" WHERE o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Offer\" o USING \"Listing\" l WHERE l.id = o.\"listingId\" AND (o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Listing\" WHERE description = 'make-test';" > /dev/null
+	@$(PSQL) -c "UPDATE \"CollectionItem\" ci SET \"reservedQuantity\" = ci.\"reservedQuantity\" - x.q FROM (SELECT ti.\"collectionItemId\" AS id, SUM(ti.quantity) AS q FROM \"TradeItem\" ti JOIN \"Trade\" t ON t.id = ti.\"tradeId\" JOIN \"Offer\" o ON o.id = t.\"offerId\" JOIN \"Listing\" l ON l.id = o.\"listingId\" WHERE t.status = 'PROPOSED' AND (o.message = 'make-test' OR l.description = 'make-test') GROUP BY 1) x WHERE ci.id = x.id; DELETE FROM \"Trade\" t USING \"Offer\" o, \"Listing\" l WHERE o.id = t.\"offerId\" AND l.id = o.\"listingId\" AND (o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"OfferItem\" WHERE \"offerId\" IN (SELECT o.id FROM \"Offer\" o JOIN \"Listing\" l ON l.id = o.\"listingId\" WHERE o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Offer\" o USING \"Listing\" l WHERE l.id = o.\"listingId\" AND (o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Listing\" WHERE description = 'make-test';" > /dev/null
 	@ASH=$$($(LOGIN) '{"email":"ash@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
 	MISTY=$$($(LOGIN) '{"email":"misty@pokebox.dev","password":"$(DEMO_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
 	ADMIN=$$($(LOGIN) '{"email":"admin@pokebox.dev","password":"$(ADMIN_PASSWORD)"}' | $(JSON) 'd["data"]["token"]'); \
@@ -376,15 +379,20 @@ test-offers: ## smoke test das ofertas (#16, #17) com os usuarios do seed
 	printf '%-42s' "pausar mantem a oferta -> PROPOSED"; curl -s $$O/$$OID3 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"]'; \
 	printf '%-42s' "aceitar com pausado -> 422";         curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X PATCH $$O/$$OID3/status -H "$$A" -H "$$J" -d '{"status":"ACCEPTED"}'; \
 	curl -s -o /dev/null -X PATCH $$L/$$UL -H "$$A" -H "$$J" -d '{"status":"ACTIVE"}'; \
-	printf '%-42s' "ash aceita -> ACCEPTED";             curl -s -X PATCH $$O/$$OID3/status -H "$$A" -H "$$J" -d '{"status":"ACCEPTED"}' | $(JSON) 'd["data"]["offer"]["status"] + " " + str(len(d["data"]["offer"]["items"]))'; \
+	T3=$$(curl -s -X PATCH $$O/$$OID3/status -H "$$A" -H "$$J" -d '{"status":"ACCEPTED"}' | $(JSON) 'd["data"]["offer"]["tradeId"]'); \
+	printf '%-42s' "ash aceita -> ACCEPTED com troca";   curl -s $$O/$$OID3 -H "$$A" | $(JSON) 'd["data"]["offer"]["status"] + " " + str(d["data"]["offer"]["tradeId"] == "'$$T3'")'; \
+	printf '%-42s' "anuncio de 1 -> IN_TRADE 0";         curl -s $$L/$$UL | $(JSON) 'd["data"]["listing"]["status"] + " " + str(d["data"]["listing"]["quantity"])'; \
 	printf '%-42s' "misty recusa aceita -> 403";         curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X PATCH $$O/$$OID3/status -H "$$M" -H "$$J" -d '{"status":"REJECTED"}'; \
 	printf '%-42s' "ash cancela aceita -> 403";          curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X PATCH $$O/$$OID3/status -H "$$A" -H "$$J" -d '{"status":"CANCELED"}'; \
-	printf '%-42s' "aceitar aceita -> 422 RN-06";        curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X PATCH $$O/$$OID3/status -H "$$A" -H "$$J" -d '{"status":"ACCEPTED"}'; \
+	printf '%-42s' "aceitar aceita -> 409";              curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X PATCH $$O/$$OID3/status -H "$$A" -H "$$J" -d '{"status":"ACCEPTED"}'; \
+	printf '%-42s' "ofertar em anuncio em troca -> 422"; curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST $$L/$$UL/offers -H "$$M" -H "$$J" -d '{"quantity":1,"message":"make-test","items":[{"collectionItemId":"'$$FIRE'","quantity":1}]}'; \
+	printf '%-42s' "misty cancela a troca -> CANCELED";  curl -s -X POST $(API)/trades/$$T3/cancel -H "$$M" | $(JSON) 'd["data"]["trade"]["status"]'; \
+	printf '%-42s' "anuncio volta -> ACTIVE 1";          curl -s $$L/$$UL | $(JSON) 'd["data"]["listing"]["status"] + " " + str(d["data"]["listing"]["quantity"])'; \
 	OID4=$$(curl -s -X POST $$L/$$UL/offers -H "$$M" -H "$$J" -d '{"quantity":1,"message":"make-test","items":[{"collectionItemId":"'$$FIRE'","quantity":1}]}' | $(JSON) 'd["data"]["offer"]["id"]'); \
 	printf '%-42s' "misty oferece de novo -> PROPOSED";  curl -s $$O/$$OID4 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"]'; \
 	curl -s -o /dev/null -X PATCH $$L/$$UL -H "$$A" -H "$$J" -d '{"status":"CLOSED"}'; \
-	printf '%-42s' "fechar cancela -> CANCELED []";      curl -s $$O/$$OID4 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"] + " " + str(d["data"]["offer"]["items"])'; \
-	printf '%-42s' "fechar cancela a aceita -> CANCELED 0"; curl -s $$O/$$OID3 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"] + " " + str(len(d["data"]["offer"]["items"]))'; \
+	printf '%-42s' "fechar cancela -> CANCELED LISTING_CLOSED"; curl -s $$O/$$OID4 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"] + " " + str(d["data"]["offer"]["cancelReason"])'; \
+	printf '%-42s' "aceita segue ACCEPTED";              curl -s $$O/$$OID3 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"]'; \
 	UL2=$$(curl -s -X POST $$L -H "$$A" -H "$$J" -d '{"collectionItemId":"'$$ULTRA'","quantity":1,"description":"make-test"}' | $(JSON) 'd["data"]["listing"]["id"]'); \
 	OID5=$$(curl -s -X POST $$L/$$UL2/offers -H "$$M" -H "$$J" -d '{"quantity":1,"message":"make-test","items":[{"collectionItemId":"'$$FIRE'","quantity":1}]}' | $(JSON) 'd["data"]["offer"]["id"]'); \
 	curl -s -o /dev/null -X PATCH $$L/$$UL2 -H "$$AD" -H "$$J" -d '{"status":"BLOCKED"}'; \
@@ -394,10 +402,11 @@ test-offers: ## smoke test das ofertas (#16, #17) com os usuarios do seed
 	curl -s -o /dev/null -X PATCH $$L/$$UL2 -H "$$A" -H "$$J" -d '{"status":"CLOSED"}'; \
 	UL4=$$(curl -s -X POST $$L -H "$$A" -H "$$J" -d '{"collectionItemId":"'$$ULTRA'","quantity":1,"description":"make-test"}' | $(JSON) 'd["data"]["listing"]["id"]'); \
 	OID7=$$(curl -s -X POST $$L/$$UL4/offers -H "$$M" -H "$$J" -d '{"quantity":1,"message":"make-test","items":[{"collectionItemId":"'$$FIRE'","quantity":1}]}' | $(JSON) 'd["data"]["offer"]["id"]'); \
-	printf '%-42s' "aceitar outra oferta -> ACCEPTED";     curl -s -X PATCH $$O/$$OID7/status -H "$$A" -H "$$J" -d '{"status":"ACCEPTED"}' | $(JSON) 'd["data"]["offer"]["status"]'; \
+	T7=$$(curl -s -X PATCH $$O/$$OID7/status -H "$$A" -H "$$J" -d '{"status":"ACCEPTED"}' | $(JSON) 'd["data"]["offer"]["tradeId"]'); \
+	printf '%-42s' "aceitar outra oferta -> ACCEPTED";     curl -s $$O/$$OID7 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"]'; \
 	MEW=$$(curl -s $(API)/collection -H "$$M" | $(JSON) '[i["id"] for i in d["data"]["items"] if i["cardId"] == "sv03.5-151"][0]'); \
 	printf '%-42s' "apagar carta em oferta aberta -> 409";  curl -s -X DELETE $(API)/collection/$$MEW -H "$$M" | $(JSON) 'd["error"][:36]'; \
-	printf '%-42s' "apagar carta em oferta aceita -> 409";  curl -s -X DELETE $(API)/collection/$$FIRE -H "$$M" | $(JSON) 'd["error"][:36]'; \
+	printf '%-42s' "apagar carta reservada -> 409";         curl -s -X DELETE $(API)/collection/$$FIRE -H "$$M" | $(JSON) 'd["error"][:36]'; \
 	curl -s -o /dev/null -X PATCH $(API)/collection/$$MEW -H "$$M" -H "$$J" -d '{"quantity":0}'; \
 	printf '%-42s' "aceitar com Mew zerado -> 422";         curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X PATCH $$O/$$SEED/status -H "$$A" -H "$$J" -d '{"status":"ACCEPTED"}'; \
 	curl -s -o /dev/null -X PATCH $(API)/collection/$$MEW -H "$$M" -H "$$J" -d '{"quantity":1}'; \
@@ -408,8 +417,11 @@ test-offers: ## smoke test das ofertas (#16, #17) com os usuarios do seed
 	printf '%-42s' "oferta segue aberta -> PROPOSED";       curl -s $$O/$$OID6 -H "$$M" | $(JSON) 'd["data"]["offer"]["status"]'; \
 	curl -s -o /dev/null -X PATCH $$L/$$UL3 -H "$$A" -H "$$J" -d '{"status":"CLOSED"}'; \
 	printf '%-42s' "filtro ACCEPTED -> so aceitas";      curl -s "$$O/me?status=ACCEPTED" -H "$$M" | $(JSON) 'sorted(set(o["status"] for o in d["data"]["sent"]))'; \
-	printf '%-42s' "misty cancela aceita presa -> CANCELED 0"; curl -s -X PATCH $$O/$$OID7/status -H "$$M" -H "$$J" -d '{"status":"CANCELED"}' | $(JSON) 'd["data"]["offer"]["status"] + " " + str(len(d["data"]["offer"]["items"]))'; \
-	printf '%-42s' "cancelar de novo -> 422 RN-06";      curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X PATCH $$O/$$OID7/status -H "$$M" -H "$$J" -d '{"status":"CANCELED"}'; \
+	printf '%-42s' "misty cancela oferta aceita -> 409"; curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X PATCH $$O/$$OID7/status -H "$$M" -H "$$J" -d '{"status":"CANCELED"}'; \
+	printf '%-42s' "misty confirma -> PROPOSED";         curl -s -X POST $(API)/trades/$$T7/accept -H "$$M" | $(JSON) 'd["data"]["trade"]["status"]'; \
+	printf '%-42s' "confirmar de novo -> 409";           curl -s -o /dev/null -w 'HTTP %{http_code}\n' -X POST $(API)/trades/$$T7/accept -H "$$M"; \
+	printf '%-42s' "ash recusa a troca -> REJECTED";     curl -s -X POST $(API)/trades/$$T7/reject -H "$$A" | $(JSON) 'd["data"]["trade"]["status"]'; \
+	printf '%-42s' "Fire Energy livre de novo -> 10";    curl -s $(API)/collection -H "$$M" | $(JSON) '[i["available"] for i in d["data"]["items"] if i["cardId"] == "base1-98"][0]'; \
 	printf '%-42s' "do seed segue aberta -> PROPOSED";   curl -s $$O/$$SEED -H "$$M" | $(JSON) 'd["data"]["offer"]["status"]'
-	@$(PSQL) -c "DELETE FROM \"OfferItem\" WHERE \"offerId\" IN (SELECT o.id FROM \"Offer\" o JOIN \"Listing\" l ON l.id = o.\"listingId\" WHERE o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Offer\" o USING \"Listing\" l WHERE l.id = o.\"listingId\" AND (o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Listing\" WHERE description = 'make-test';" > /dev/null
+	@$(PSQL) -c "UPDATE \"CollectionItem\" ci SET \"reservedQuantity\" = ci.\"reservedQuantity\" - x.q FROM (SELECT ti.\"collectionItemId\" AS id, SUM(ti.quantity) AS q FROM \"TradeItem\" ti JOIN \"Trade\" t ON t.id = ti.\"tradeId\" JOIN \"Offer\" o ON o.id = t.\"offerId\" JOIN \"Listing\" l ON l.id = o.\"listingId\" WHERE t.status = 'PROPOSED' AND (o.message = 'make-test' OR l.description = 'make-test') GROUP BY 1) x WHERE ci.id = x.id; DELETE FROM \"Trade\" t USING \"Offer\" o, \"Listing\" l WHERE o.id = t.\"offerId\" AND l.id = o.\"listingId\" AND (o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"OfferItem\" WHERE \"offerId\" IN (SELECT o.id FROM \"Offer\" o JOIN \"Listing\" l ON l.id = o.\"listingId\" WHERE o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Offer\" o USING \"Listing\" l WHERE l.id = o.\"listingId\" AND (o.message = 'make-test' OR l.description = 'make-test'); DELETE FROM \"Listing\" WHERE description = 'make-test';" > /dev/null
 	@echo ""

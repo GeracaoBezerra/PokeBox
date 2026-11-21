@@ -24,7 +24,7 @@ function setup() {
       categories: ['Pokemon'],
       sets: [{ id: 'base1', name: 'Base Set' }],
     })),
-    getUserCardInfo: jest.fn<Cards['getUserCardInfo']>(async () => ({ inCollection: 1, inWishlist: false, onTradeList: false })),
+    getUserCardInfo: jest.fn<Cards['getUserCardInfo']>(async () => ({ inCollection: 1, inWishlist: false, onTradeList: false, myListing: null })),
   };
   const listings: jest.Mocked<CardListingsReader> = { listByCard: jest.fn<CardListingsReader['listByCard']>(async () => []) };
   const auth = {
@@ -76,7 +76,7 @@ describe('CardController', () => {
 
     const res = await request(app, '/cards/base1-4', { Authorization: 'Bearer x' });
 
-    expect(res.body.data.user).toEqual({ inCollection: 1, inWishlist: false, onTradeList: false });
+    expect(res.body.data.user).toEqual({ inCollection: 1, inWishlist: false, onTradeList: false, myListing: null });
     expect(res.headers.get('cache-control')).toBe('private, no-cache');
     expect(cards.getUserCardInfo).toHaveBeenCalledWith('user-1', 'base1-4');
   });
@@ -128,6 +128,18 @@ describe('CardController', () => {
       filters: { type: 'Fire', rarity: 'Rare Holo', set: 'base1', category: 'Pokemon' },
       sort: { field: 'name', order: 'desc' },
     });
+  });
+
+  test.each(['recent', 'wanted', 'traded'] as const)('lista repassa o ranking %s', async (sort) => {
+    const { app, cards } = setup();
+
+    const res = await request(app, `/cards?sort=${sort}&order=desc`);
+
+    expect(res.status).toBe(200);
+    expect(cards.find).toHaveBeenCalledWith(expect.objectContaining({ sort: { field: sort, order: 'desc' } }));
+    expect(res.headers.get('cache-control')).toBe(
+      sort === 'recent' ? 'public, max-age=300' : 'public, no-cache',
+    );
   });
 
   test('GET /cards/filters devolve as opções do idioma com cache de 1 hora', async () => {
