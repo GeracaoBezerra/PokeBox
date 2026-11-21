@@ -16,11 +16,12 @@ export class UserService {
 
   async deactivateMe(userId: string): Promise<void> {
     await this.unitOfWork.run(async (uow) => {
+      await uow.offers.cancelOpenOfUser(userId, 'ACCOUNT_DEACTIVATED');
+
       if (await uow.trades.hasOpenFor(userId)) {
         throw new ConflictError('Conclua ou cancele suas trocas antes de desativar a conta.');
       }
 
-      await uow.offers.cancelOpenOfUser(userId, 'ACCOUNT_DEACTIVATED');
       await uow.listings.closeOpenByOwner(userId);
       await uow.users.deactivate(userId);
     });

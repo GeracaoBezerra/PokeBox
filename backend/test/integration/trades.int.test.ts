@@ -217,6 +217,18 @@ describe('recusar, cancelar e ver a troca', () => {
     expect(await listingOf(owner, listing.id)).toMatchObject({ status: 'PAUSED', quantity: 1 });
   });
 
+  test('anúncio pausado no meio-tempo fecha quando a troca conclui', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const { listing, tradeId } = await acceptedOffer(ctx.app, owner, proposer);
+    await request(ctx.app).patch(`/listings/${listing.id}`).set(bearer(owner)).send({ status: 'PAUSED' }).expect(200);
+
+    await confirmTrade(ctx.app, owner, tradeId);
+    await confirmTrade(ctx.app, proposer, tradeId);
+
+    expect(await listingOf(owner, listing.id)).toMatchObject({ status: 'CLOSED', quantity: 0 });
+  });
+
   test('GET /trades/:id: as duas partes veem; terceiro e ADMIN → 403', async () => {
     const owner = await registerUser(ctx.app);
     const proposer = await registerUser(ctx.app);

@@ -303,10 +303,11 @@ export function closesAfterTrade({
   listing,
   otherOpenHolds,
 }: {
-  listing: { status: ListingStatus };
+  listing: { status: ListingStatus; quantity: number };
   otherOpenHolds: number;
 }): boolean {
-  return listing.status === 'IN_TRADE' && otherOpenHolds === 0;
+  if (otherOpenHolds > 0) return false;
+  return listing.status === 'IN_TRADE' || (listing.status === 'PAUSED' && listing.quantity === 0);
 }
 
 export function toTradeResponse<C extends PricedCard>(trade: TradeSource<C>): TradeResponse<C> {

@@ -253,15 +253,20 @@ describe('returnedListingState', () => {
 
 describe('closesAfterTrade', () => {
   it('Em troca sem outra troca aberta fecha', () => {
-    expect(closesAfterTrade({ listing: { status: 'IN_TRADE' }, otherOpenHolds: 0 })).toBe(true);
+    expect(closesAfterTrade({ listing: { status: 'IN_TRADE', quantity: 0 }, otherOpenHolds: 0 })).toBe(true);
   });
 
   it('Em troca com outra troca aberta continua', () => {
-    expect(closesAfterTrade({ listing: { status: 'IN_TRADE' }, otherOpenHolds: 1 })).toBe(false);
+    expect(closesAfterTrade({ listing: { status: 'IN_TRADE', quantity: 0 }, otherOpenHolds: 1 })).toBe(false);
   });
 
-  it.each<ListingStatus>(['ACTIVE', 'PAUSED', 'CLOSED'])('%s não muda', (status) => {
-    expect(closesAfterTrade({ listing: { status }, otherOpenHolds: 0 })).toBe(false);
+  it('pausado que ficou com 0 fecha; com outra troca aberta continua', () => {
+    expect(closesAfterTrade({ listing: { status: 'PAUSED', quantity: 0 }, otherOpenHolds: 0 })).toBe(true);
+    expect(closesAfterTrade({ listing: { status: 'PAUSED', quantity: 0 }, otherOpenHolds: 1 })).toBe(false);
+  });
+
+  it.each<ListingStatus>(['ACTIVE', 'PAUSED', 'CLOSED'])('%s com quantidade não muda', (status) => {
+    expect(closesAfterTrade({ listing: { status, quantity: 1 }, otherOpenHolds: 0 })).toBe(false);
   });
 });
 

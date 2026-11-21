@@ -67,6 +67,21 @@ describe('DELETE /user/me com negociações', () => {
     expect(stillThere.body.data.listing.status).toBe('IN_TRADE');
   });
 
+  test('com troca aberta, o 409 desfaz o cancelamento das outras ofertas', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const other = await registerUser(ctx.app);
+    await acceptedOffer(ctx.app, owner, proposer);
+    const theirs = await createListing(ctx.app, other, (await addItem(ctx.app, other)).id);
+    const oak = (await addItem(ctx.app, owner, { cardId: PROFESSOR_OAK, finish: 'NORMAL' })).id;
+    const pending = await makeOffer(ctx.app, owner, theirs.id, [{ collectionItemId: oak, quantity: 1 }]);
+
+    await request(ctx.app).delete('/user/me').set(bearer(owner)).expect(409);
+
+    const offer = (await request(ctx.app).get(`/offers/${pending.id}`).set(bearer(other))).body.data.offer;
+    expect(offer).toMatchObject({ status: 'PROPOSED', cancelReason: null });
+  });
+
   test('sem troca aberta: cancela as ofertas feitas e recebidas e fecha os anúncios', async () => {
     const leaving = await registerUser(ctx.app);
     const other = await registerUser(ctx.app);
