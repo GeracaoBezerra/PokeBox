@@ -1,5 +1,5 @@
 import { temPalavra } from "./filtrosMarketplace";
-import { LIMITE_BUSCA } from "./perfilPublico";
+import { LIMITE_BUSCA } from "./busca";
 import { TIPOS } from "./rotulos";
 
 export const POR_PAGINA = 23;

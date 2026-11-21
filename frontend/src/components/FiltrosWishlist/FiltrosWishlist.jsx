@@ -1,5 +1,5 @@
 import s from "../../styles/vitrine.module.css";
-import { LIMITE_BUSCA } from "../../utils/perfilPublico";
+import { LIMITE_BUSCA } from "../../utils/busca";
 import { TIPOS } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
 import CampoBusca from "../CampoBusca/CampoBusca";

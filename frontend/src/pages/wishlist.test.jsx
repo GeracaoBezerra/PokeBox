@@ -360,6 +360,77 @@ describe("Página da wishlist", () => {
     expect(pedidos.map((pedido) => pedido.page)).toEqual(["2", "1"]);
   });
 
+  describe("com mais de uma página, a carta que sobe da página seguinte não some", () => {
+    function servidorDe25Cartas() {
+      const cartas = Array.from({ length: 25 }, (_, indice) => {
+        const numero = String(indice + 1).padStart(2, "0");
+        return {
+          id: `item-${numero}`,
+          cardId: `base1-${numero}`,
+          opportunities: 0,
+          card: { id: `base1-${numero}`, name: `Carta ${numero}`, setName: "Base", number: numero, imageUrl: null },
+        };
+      });
+      const pedidos = servidor({
+        pagina: (params) => {
+          const page = Number(params.get("page"));
+          const limit = Number(params.get("limit"));
+          const inicio = (page - 1) * limit;
+          return lista(cartas.slice(inicio, inicio + limit), { page, hasNextPage: inicio + limit < cartas.length });
+        },
+      });
+      const tirar = (cardId) => cartas.splice(cartas.findIndex((carta) => carta.cardId === cardId), 1);
+      server.use(
+        rota.delete(url("/wishlist/:id"), ({ params }) => {
+          tirar(cartas.find((carta) => carta.id === params.id).cardId);
+          return new HttpResponse(null, { status: 204 });
+        }),
+        rota.get(url("/cards/:id"), ({ params }) => {
+          if (params.id === "filters") return undefined;
+          return HttpResponse.json({ success: true, data: { card: { id: params.id, name: "Carta 01", variants: { normal: true } } } });
+        }),
+        rota.post(url("/collection"), async ({ request }) => {
+          tirar((await request.json()).cardId);
+          return HttpResponse.json({ success: true, data: { item: { id: "c1" }, removedFromWishlist: true } }, { status: 201 });
+        }),
+      );
+      return pedidos;
+    }
+
+    async function conferirPaginas(pedidos) {
+      expect(await screen.findByRole("heading", { name: "Carta 24" })).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Carta 01" })).not.toBeInTheDocument();
+      expect(screen.getAllByRole("heading", { level: 2, name: /^Carta \d+$/ })).toHaveLength(23);
+      await userEvent.click(screen.getByRole("button", { name: "Próxima" }));
+      expect(await screen.findByRole("heading", { name: "Carta 25" })).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Carta 24" })).not.toBeInTheDocument();
+      expect(pedidos.map((pedido) => pedido.page)).toEqual(["1", "1", "2"]);
+    }
+
+    it("ao remover", async () => {
+      const pedidos = servidorDe25Cartas();
+      renderizar();
+
+      const carta = (await screen.findByRole("heading", { name: "Carta 01" })).closest("article");
+      await userEvent.click(within(carta).getByRole("button", { name: "Remover" }));
+      await userEvent.click(within(screen.getByRole("dialog", { name: "Remover Carta 01 da wishlist?" })).getByRole("button", { name: "Remover carta" }));
+
+      await conferirPaginas(pedidos);
+    });
+
+    it("ao usar Já consegui", async () => {
+      const pedidos = servidorDe25Cartas();
+      renderizar();
+
+      const carta = (await screen.findByRole("heading", { name: "Carta 01" })).closest("article");
+      await userEvent.click(within(carta).getByRole("button", { name: "Já consegui" }));
+      const dialogo = within(screen.getByRole("dialog", { name: "Adicionar Carta 01 à coleção" }));
+      await userEvent.click(await dialogo.findByRole("button", { name: "Adicionar à coleção" }));
+
+      await conferirPaginas(pedidos);
+    });
+  });
+
   it("com filtro ativo, adicionar pelo modal recarrega a página da lista", async () => {
     const pedidos = servidor({ pagina: () => lista([charizard]) });
     server.use(

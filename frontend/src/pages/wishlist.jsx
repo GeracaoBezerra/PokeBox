@@ -17,7 +17,7 @@ import { useAcao } from "../hooks/useAcao";
 import { useCarregar } from "../hooks/useCarregar";
 import { useConfirmacao } from "../hooks/useConfirmacao";
 import s from "../styles/vitrine.module.css";
-import { LIMITE_BUSCA } from "../utils/perfilPublico";
+import { LIMITE_BUSCA } from "../utils/busca";
 import {
   CAMPOS_FILTRO_WISHLIST,
   ORDENACOES_WISHLIST,
@@ -117,6 +117,10 @@ export default function WishlistPage() {
     await animarSaida(elemento);
     const foco = document.activeElement;
     if (elemento?.contains(foco) || foco === document.body) adicionar.current?.focus();
+    if (temProxima) {
+      recarregar();
+      return;
+    }
     atualizarGrade((atuais) => atuais.filter((atual) => atual.id !== item.id));
   }
 
