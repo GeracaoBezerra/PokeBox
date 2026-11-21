@@ -190,7 +190,7 @@ describe('toOfferResponse', () => {
   const card = { id: 'base1-4', name: 'Charizard', marketPrice: '312.50' };
   const offer = {
     id: 'offer-1',
-    trade: null as { id: string } | null,
+    trade: null as { id: string; items?: { collectionItemId: string | null; fromUserId: string; quantity: number; condition: 'LIGHT_PLAYED' | 'NEAR_MINT'; finish: 'HOLO'; firstEdition: boolean; card: { id: string; name: string; marketPrice: string } }[] } | null,
     cancelReason: null as OfferCancelReason | null,
     listingId: 'listing-1',
     proposerId: PROPOSER_ID,
@@ -248,6 +248,32 @@ describe('toOfferResponse', () => {
   it('informa o id da troca vinculada à oferta', () => {
     expect(response.tradeId).toBeNull();
     expect(toOfferResponse({ ...offer, status: 'ACCEPTED', trade: { id: 'trade-1' } }).tradeId).toBe('trade-1');
+  });
+
+  it('oferta que virou troca mostra as cartas de quem ofertou a partir da troca', () => {
+    const tradeItem = {
+      collectionItemId: null,
+      quantity: 1,
+      condition: 'LIGHT_PLAYED' as const,
+      finish: 'HOLO' as const,
+      firstEdition: false,
+    };
+    const accepted = toOfferResponse({
+      ...offer,
+      status: 'ACCEPTED',
+      items: [],
+      trade: {
+        id: 'trade-1',
+        items: [
+          { ...tradeItem, fromUserId: PROPOSER_ID, card: { id: 'base1-10', name: 'Mew', marketPrice: '20.00' } },
+          { ...tradeItem, fromUserId: OWNER_ID, card },
+        ],
+      },
+    });
+
+    expect(accepted.items).toEqual([
+      expect.objectContaining({ collectionItemId: null, quantity: 1, card: expect.objectContaining({ id: 'base1-10' }) }),
+    ]);
   });
 
   it('traz o motivo do cancelamento e se a oferta está em espera', () => {

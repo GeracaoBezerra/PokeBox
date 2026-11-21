@@ -52,9 +52,20 @@ export interface FulfillableCheck {
   offeredItems: OfferedItemCheck[];
 }
 
+export interface OfferTradeItemSource<C extends PricedCard = PricedCard> {
+  collectionItemId: string | null;
+  fromUserId: string;
+  quantity: number;
+  condition: CardCondition;
+  finish: CardFinish;
+  firstEdition: boolean;
+  card: C;
+}
+
 export interface OfferSource<C extends PricedCard = PricedCard> {
   id: string;
-  trade: { id: string } | null;
+  proposerId?: string;
+  trade: { id: string; items?: OfferTradeItemSource<C>[] } | null;
   status: OfferStatus;
   cancelReason: OfferCancelReason | null;
   quantity: number;
@@ -70,7 +81,7 @@ export interface OfferSource<C extends PricedCard = PricedCard> {
 }
 
 export interface OfferItemResponse<C extends PricedCard = PricedCard> {
-  collectionItemId: string;
+  collectionItemId: string | null;
   quantity: number;
   condition: CardCondition;
   finish: CardFinish;
@@ -185,13 +196,26 @@ export function toOfferResponse<C extends PricedCard>(offer: OfferSource<C>): Of
     respondedAt: offer.respondedAt,
     proposer: { username: offer.proposer.username, name: offer.proposer.name },
     listing: toListingResponse(offer.listing),
-    items: offer.items.map(({ quantity, collectionItem }) => ({
+    items: offer.items.length > 0 ? offer.items.map(({ quantity, collectionItem }) => ({
       collectionItemId: collectionItem.id,
       quantity,
       condition: collectionItem.condition,
       finish: collectionItem.finish,
       firstEdition: collectionItem.firstEdition,
       card: toCardResponse(collectionItem.card),
-    })),
+    })) : proposerTradeItems(offer),
   };
+}
+
+function proposerTradeItems<C extends PricedCard>(offer: OfferSource<C>): OfferItemResponse<C>[] {
+  return (offer.trade?.items ?? [])
+    .filter((item) => item.fromUserId === offer.proposerId)
+    .map(({ collectionItemId, quantity, condition, finish, firstEdition, card }) => ({
+      collectionItemId,
+      quantity,
+      condition,
+      finish,
+      firstEdition,
+      card: toCardResponse(card),
+    }));
 }

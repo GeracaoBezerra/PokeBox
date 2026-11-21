@@ -5,7 +5,12 @@ import type { PageWindow } from '../utils/pagination.js';
 import { listingInclude } from './ListingRepository.js';
 
 export const offerInclude = {
-  trade: { select: { id: true } },
+  trade: {
+    select: {
+      id: true,
+      items: { include: { card: true }, orderBy: { id: 'asc' } },
+    },
+  },
   proposer: { select: { username: true, name: true } },
   listing: { include: listingInclude },
   items: {
