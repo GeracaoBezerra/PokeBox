@@ -1,5 +1,5 @@
 import { AppError } from '../errors/AppError.js';
-import type { CardCondition, CardFinish, ListingStatus, OfferCancelReason, OfferStatus } from '../generated/prisma/index.js';
+import type { CardCondition, CardFinish, ListingStatus, OfferCancelReason, OfferStatus, TradeStatus } from '../generated/prisma/index.js';
 import { toCardResponse } from './cardRecord.js';
 import { toListingResponse, type ListingResponse, type ListingSource } from './listingRules.js';
 
@@ -65,7 +65,7 @@ export interface OfferTradeItemSource<C extends PricedCard = PricedCard> {
 export interface OfferSource<C extends PricedCard = PricedCard> {
   id: string;
   proposerId?: string;
-  trade: { id: string; items?: OfferTradeItemSource<C>[] } | null;
+  trade: { id: string; status?: TradeStatus; items?: OfferTradeItemSource<C>[] } | null;
   status: OfferStatus;
   cancelReason: OfferCancelReason | null;
   quantity: number;
@@ -92,6 +92,7 @@ export interface OfferItemResponse<C extends PricedCard = PricedCard> {
 export interface OfferResponse<C extends PricedCard = PricedCard> {
   id: string;
   tradeId: string | null;
+  tradeStatus: TradeStatus | null;
   status: OfferStatus;
   cancelReason: OfferCancelReason | null;
   onHold: boolean;
@@ -187,6 +188,7 @@ export function toOfferResponse<C extends PricedCard>(offer: OfferSource<C>): Of
   return {
     id: offer.id,
     tradeId: offer.trade?.id ?? null,
+    tradeStatus: offer.trade?.status ?? null,
     status: offer.status,
     cancelReason: offer.cancelReason,
     onHold: isOnHold(offer),

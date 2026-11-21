@@ -102,7 +102,9 @@ export function textoEmEspera({ recebida, statusDoAnuncio }) {
   return "Em espera: este anúncio está em troca com outra pessoa.";
 }
 
-export function proximoPassoOferta({ status, recebida, virouTroca, emEspera, statusDoAnuncio, cancelReason, dono, proponente }) {
+export function proximoPassoOferta({ status, recebida, virouTroca, statusDaTroca, emEspera, statusDoAnuncio, cancelReason, dono, proponente }) {
+  if (statusDaTroca === "ACCEPTED") return "Troca concluída: as cartas já mudaram de dono.";
+  if (statusDaTroca === "REJECTED" || statusDaTroca === "CANCELED") return "Troca desfeita: as cartas voltaram para cada um.";
   if (virouTroca) return "Virou troca: as cartas estão reservadas. Confirme o recebimento em Trocas.";
   if (status === "PROPOSED" && emEspera) return textoEmEspera({ recebida, statusDoAnuncio });
   if (status === "PROPOSED") return recebida ? "Aceite ou recuse esta oferta." : `Aguardando @${dono} responder.`;

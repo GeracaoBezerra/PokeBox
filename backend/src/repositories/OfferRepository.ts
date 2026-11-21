@@ -8,6 +8,7 @@ export const offerInclude = {
   trade: {
     select: {
       id: true,
+      status: true,
       items: { include: { card: true }, orderBy: { id: 'asc' } },
     },
   },

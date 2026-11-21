@@ -191,6 +191,20 @@ it("oferta recebida que virou troca mostra Ver troca e não deixa recusar", asyn
   expect(within(cartao).queryByRole("button", { name: "Aceitar" })).toBeNull();
 });
 
+it("oferta cuja troca já concluiu diz Troca concluída e leva às trocas concluídas", async () => {
+  server.use(
+    http.get(url("/offers/me"), () => ofertas([{ ...oferta, status: "ACCEPTED", tradeId: "t1", tradeStatus: "ACCEPTED" }])),
+  );
+
+  renderWithProviders(<MyOffersPage />, { rota: "/propostas" });
+
+  const cartao = (await screen.findByRole("heading", { name: "De @misty" })).closest("article");
+  expect(within(cartao).getByText("Troca concluída")).toBeVisible();
+  expect(within(cartao).getByText("Troca concluída: as cartas já mudaram de dono.")).toBeVisible();
+  expect(within(cartao).queryByText(/Confirme o recebimento/)).toBeNull();
+  expect(within(cartao).getByRole("link", { name: "Ver troca" })).toHaveAttribute("href", "/trocas?aba=recebidas&status=ACCEPTED");
+});
+
 it("oferta recebida em espera não deixa aceitar e diz por quê", async () => {
   const emEspera = { ...oferta, onHold: true, listing: { ...oferta.listing, status: "IN_TRADE" } };
   server.use(http.get(url("/offers/me"), () => ofertas([emEspera])));

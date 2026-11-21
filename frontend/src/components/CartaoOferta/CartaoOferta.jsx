@@ -74,7 +74,9 @@ function LadoOferta({ titulo, itens, virouTroca }) {
   );
 }
 
-function rotuloDoStatus({ virouTroca, emEspera, status }) {
+function rotuloDoStatus({ virouTroca, statusDaTroca, emEspera, status }) {
+  if (statusDaTroca === "ACCEPTED") return { chave: "ACCEPTED", texto: "Troca concluída" };
+  if (statusDaTroca === "REJECTED" || statusDaTroca === "CANCELED") return { chave: "UNDONE", texto: "Troca desfeita" };
   if (virouTroca) return { chave: "TRADE", texto: "Virou troca" };
   if (emEspera) return { chave: "ON_HOLD", texto: "Em espera" };
   return { chave: status, texto: STATUS_NEGOCIACAO[status] };
@@ -91,8 +93,9 @@ export default function CartaoOferta({ oferta, recebida, atualizando, onMudou })
   const parceiro = recebida ? oferta.proposer : listing.owner;
   const anunciada = [{ ...listing.item, card: listing.card, quantity: oferta.quantity }];
   const ocupado = acao.ocupado || atualizando;
-  const selo = rotuloDoStatus({ virouTroca, emEspera, status: oferta.status });
-  const linkDaTroca = `/trocas?aba=${recebida ? "recebidas" : "enviadas"}`;
+  const statusDaTroca = oferta.tradeStatus ?? null;
+  const selo = rotuloDoStatus({ virouTroca, statusDaTroca, emEspera, status: oferta.status });
+  const linkDaTroca = `/trocas?aba=${recebida ? "recebidas" : "enviadas"}${statusDaTroca ? `&status=${statusDaTroca}` : ""}`;
 
   async function responder(status, mensagem) {
     const { ok } = await acao.executar(() => updateOfferStatus(oferta.id, status), mensagem);
@@ -176,6 +179,7 @@ export default function CartaoOferta({ oferta, recebida, atualizando, onMudou })
               status: oferta.status,
               recebida,
               virouTroca,
+              statusDaTroca,
               emEspera,
               statusDoAnuncio: listing.status,
               cancelReason: oferta.cancelReason,

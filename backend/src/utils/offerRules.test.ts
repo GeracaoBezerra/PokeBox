@@ -190,7 +190,7 @@ describe('toOfferResponse', () => {
   const card = { id: 'base1-4', name: 'Charizard', marketPrice: '312.50' };
   const offer = {
     id: 'offer-1',
-    trade: null as { id: string; items?: { collectionItemId: string | null; fromUserId: string; quantity: number; condition: 'LIGHT_PLAYED' | 'NEAR_MINT'; finish: 'HOLO'; firstEdition: boolean; card: { id: string; name: string; marketPrice: string } }[] } | null,
+    trade: null as { id: string; status?: 'PROPOSED' | 'ACCEPTED' | 'REJECTED' | 'CANCELED'; items?: { collectionItemId: string | null; fromUserId: string; quantity: number; condition: 'LIGHT_PLAYED' | 'NEAR_MINT'; finish: 'HOLO'; firstEdition: boolean; card: { id: string; name: string; marketPrice: string } }[] } | null,
     cancelReason: null as OfferCancelReason | null,
     listingId: 'listing-1',
     proposerId: PROPOSER_ID,
@@ -248,6 +248,8 @@ describe('toOfferResponse', () => {
   it('informa o id da troca vinculada à oferta', () => {
     expect(response.tradeId).toBeNull();
     expect(toOfferResponse({ ...offer, status: 'ACCEPTED', trade: { id: 'trade-1' } }).tradeId).toBe('trade-1');
+    expect(response.tradeStatus).toBeNull();
+    expect(toOfferResponse({ ...offer, status: 'ACCEPTED', trade: { id: 'trade-1', status: 'ACCEPTED' } }).tradeStatus).toBe('ACCEPTED');
   });
 
   it('oferta que virou troca mostra as cartas de quem ofertou a partir da troca', () => {

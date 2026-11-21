@@ -142,6 +142,15 @@ describe("proximoPassoOferta", () => {
     );
   });
 
+  it("oferta cuja troca já concluiu ou foi desfeita", () => {
+    const troca = { ...base, status: "ACCEPTED", recebida: true, virouTroca: true };
+    expect(proximoPassoOferta({ ...troca, statusDaTroca: "PROPOSED" })).toBe(
+      "Virou troca: as cartas estão reservadas. Confirme o recebimento em Trocas."
+    );
+    expect(proximoPassoOferta({ ...troca, statusDaTroca: "ACCEPTED" })).toBe("Troca concluída: as cartas já mudaram de dono.");
+    expect(proximoPassoOferta({ ...troca, statusDaTroca: "CANCELED" })).toBe("Troca desfeita: as cartas voltaram para cada um.");
+  });
+
   it("oferta recusada ou cancelada sem motivo", () => {
     expect(proximoPassoOferta({ ...base, status: "REJECTED", recebida: true })).toBe("Encerrada.");
     expect(proximoPassoOferta({ ...base, status: "CANCELED", recebida: false })).toBe("Encerrada.");
