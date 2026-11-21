@@ -1,6 +1,6 @@
 import request from 'supertest';
 
-import { addItem, bearer, createListing, PROFESSOR_OAK } from './support/flows.js';
+import { acceptedOffer, addItem, bearer, createListing, makeOffer, PROFESSOR_OAK } from './support/flows.js';
 import { loginSeedUser, registerUser, startTestApp, type TestApp } from './support/testApp.js';
 
 let ctx: TestApp;
@@ -156,5 +156,75 @@ describe('GET /listings (marketplace, #76)', () => {
     const res = await request(ctx.app).get('/listings/me').set(bearer(user));
 
     expect(res.body.data.items).toEqual([expect.objectContaining({ id: listing.id, status: 'PAUSED' })]);
+  });
+});
+
+describe('anúncio Em troca', () => {
+  test('marketplace: Em troca vem depois de todos os ativos, inclusive entre páginas', async () => {
+    const owner = await registerUser(ctx.app, 'emt');
+    const proposer = await registerUser(ctx.app);
+    const { listing: busy } = await acceptedOffer(ctx.app, owner, proposer);
+    const active = await createListing(
+      ctx.app,
+      owner,
+      (await addItem(ctx.app, owner, { cardId: PROFESSOR_OAK, finish: 'NORMAL' })).id,
+    );
+
+    const all = await request(ctx.app).get('/listings').query({ username: owner.username });
+    const first = await request(ctx.app).get('/listings').query({ username: owner.username, limit: 1 });
+    const second = await request(ctx.app).get('/listings').query({ username: owner.username, limit: 1, page: 2 });
+
+    expect(all.body.data.items.map((l: { id: string; status: string }) => [l.id, l.status])).toEqual([
+      [active.id, 'ACTIVE'],
+      [busy.id, 'IN_TRADE'],
+    ]);
+    expect(first.body.data.items.map((l: { id: string }) => l.id)).toEqual([active.id]);
+    expect(first.body.pagination.hasNextPage).toBe(true);
+    expect(second.body.data.items.map((l: { id: string }) => l.id)).toEqual([busy.id]);
+  });
+
+  test('detalhe é público e sem dados da negociação', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const { listing } = await acceptedOffer(ctx.app, owner, proposer);
+
+    const res = await request(ctx.app).get(`/listings/${listing.id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.listing).toMatchObject({ status: 'IN_TRADE', quantity: 0 });
+    expect(JSON.stringify(res.body)).not.toContain(proposer.username);
+    expect(JSON.stringify(res.body)).not.toMatch(/"(proposer|offers?|offerId|trades?|tradeId)"/);
+  });
+
+  test('dono não muda a quantidade (409); pausa; fechar cancela as ofertas em espera', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const waiting = await registerUser(ctx.app);
+    const ownerItem = await addItem(ctx.app, owner);
+    const listing = await createListing(ctx.app, owner, ownerItem.id);
+    const oakOf = async (user: typeof owner) => addItem(ctx.app, user, { cardId: PROFESSOR_OAK, finish: 'NORMAL' });
+    const first = await makeOffer(ctx.app, proposer, listing.id, [{ collectionItemId: (await oakOf(proposer)).id, quantity: 1 }]);
+    const held = await makeOffer(ctx.app, waiting, listing.id, [{ collectionItemId: (await oakOf(waiting)).id, quantity: 1 }]);
+    await request(ctx.app).patch(`/offers/${first.id}/status`).set(bearer(owner)).send({ status: 'ACCEPTED' }).expect(200);
+
+    await request(ctx.app).patch(`/listings/${listing.id}`).set(bearer(owner)).send({ quantity: 1 }).expect(409);
+    await request(ctx.app).patch(`/listings/${listing.id}`).set(bearer(owner)).send({ status: 'ACTIVE' }).expect(409);
+    await request(ctx.app).patch(`/listings/${listing.id}`).set(bearer(owner)).send({ status: 'PAUSED' }).expect(200);
+    await request(ctx.app).patch(`/listings/${listing.id}`).set(bearer(owner)).send({ status: 'CLOSED' }).expect(200);
+    const offer = await request(ctx.app).get(`/offers/${held.id}`).set(bearer(waiting));
+
+    expect(offer.body.data.offer).toMatchObject({ status: 'CANCELED', cancelReason: 'LISTING_CLOSED' });
+  });
+
+  test('ADMIN bloqueia anúncio Em troca', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const admin = await loginSeedUser(ctx.app, 'admin');
+    const { listing } = await acceptedOffer(ctx.app, owner, proposer);
+
+    const res = await request(ctx.app).patch(`/listings/${listing.id}`).set(bearer(admin)).send({ status: 'BLOCKED' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.listing.status).toBe('BLOCKED');
   });
 });

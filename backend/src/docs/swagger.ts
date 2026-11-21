@@ -1,4 +1,4 @@
-import { CardCondition, CardFinish, ListingStatus, OfferStatus, TradeStatus } from "../generated/prisma/index.js";
+import { CardCondition, CardFinish, ListingStatus, OfferCancelReason, OfferStatus, TradeStatus } from "../generated/prisma/index.js";
 import { LANGS } from "../middlewares/validateCardParams.js";
 import { ITEM_SORTS } from "../utils/itemSort.js";
 import { CARD_TYPES } from "../utils/listingSearch.js";
@@ -163,6 +163,7 @@ const cardConditions = Object.values(CardCondition);
 const cardFinishes = Object.values(CardFinish);
 const listingStatuses = Object.values(ListingStatus);
 const offerStatuses = Object.values(OfferStatus);
+const offerCancelReasons = Object.values(OfferCancelReason);
 const tradeStatuses = Object.values(TradeStatus);
 
 const optionalPaginationNote = `Paginação opcional (#77): sem nenhum dos parâmetros abaixo, responde a lista inteira como antes, sem o bloco pagination. Qualquer um deles (page, limit, filtro ou sort) ativa a paginação: no máximo limit itens (padrão ${DEFAULT_PAGE_LIMIT}, máximo ${MAX_PAGE_LIMIT}) e o bloco pagination, sem total.`;
@@ -341,8 +342,8 @@ export const swaggerSpec = {
     { name: "Users", description: "Perfil público dos colecionadores" },
     { name: "Wishlist", description: "Cartas que o usuário autenticado quer ter" },
     { name: "Listings", description: "Anúncios de troca (RN-05: só anuncia o que tem)" },
-    { name: "Offers", description: "Ofertas de troca em anúncios (RN-06: oferta finalizada não volta para PROPOSED; aceita sem troca ainda pode ser encerrada)" },
-    { name: "Trades", description: "Trocas: oferta aceita vira troca (RN-07: tudo ou nada no aceite; RN-08: cartas reservadas)" },
+    { name: "Offers", description: "Ofertas de troca em anúncios (RN-06: aceitar cria a troca; oferta finalizada não muda mais)" },
+    { name: "Trades", description: "Trocas em 3 passos: o dono aceita a oferta (a troca nasce e reserva as cartas, RN-08), as duas partes confirmam o recebimento e a segunda confirmação troca as cartas de dono (RN-07, tudo ou nada). Até concluir, qualquer parte desiste." },
   ],
   paths: {
     "/health": {
@@ -688,10 +689,11 @@ export const swaggerSpec = {
         tags: ["User"],
         summary: "Desativa a conta do usuário autenticado",
         description:
-          "Soft delete: a conta fica INACTIVE e o registro continua no banco. Depois disso o token deixa de funcionar e o login retorna 403.",
+          "Soft delete: a conta fica INACTIVE e o registro continua no banco. Depois disso o token deixa de funcionar e o login retorna 403. Com troca aberta (PROPOSED) como qualquer parte, 409: conclua ou cancele antes. Sem troca aberta, na mesma transação: as ofertas PROPOSED feitas e recebidas viram CANCELED (cancelReason ACCOUNT_DEACTIVATED) e os anúncios abertos (ACTIVE, PAUSED, IN_TRADE) viram CLOSED.",
         security: [{ bearerAuth: [] }],
         responses: {
           204: { description: "Conta desativada" },
+          409: errorResponse("Conclua ou cancele suas trocas antes de desativar a conta."),
           401: {
             description:
               "Token ausente, inválido, expirado ou sessão encerrada",
@@ -1208,7 +1210,7 @@ export const swaggerSpec = {
         tags: ["Listings"],
         summary: "Vitrine de anúncios",
         description:
-          "Anúncios ACTIVE. Não precisa de login. Donos com conta apagada, suspensa ou inativa não aparecem. Os filtros se somam (E). Exemplos: `?q=charizard`, `?q=charizard base`, `?type=Fire&condition=NEAR_MINT&sort=name`.",
+          "Anúncios ACTIVE e, no fim da lista, os IN_TRADE (Em troca: todas as unidades estão numa troca em andamento; não recebem oferta). A ordenação pedida vale dentro de cada grupo e a paginação segue a lista inteira. Não precisa de login. Donos com conta apagada, suspensa ou inativa não aparecem. Os filtros se somam (E). Exemplos: `?q=charizard`, `?q=charizard base`, `?type=Fire&condition=NEAR_MINT&sort=name`.",
         security: [],
         parameters: [
           {
@@ -1337,7 +1339,7 @@ export const swaggerSpec = {
       get: {
         tags: ["Listings"],
         summary: "Anúncios do usuário autenticado",
-        description: `Todos os status (ACTIVE, PAUSED, CLOSED, BLOCKED), mais recentes primeiro. ${optionalPaginationNote}`,
+        description: `Todos os status (ACTIVE, PAUSED, IN_TRADE, CLOSED, BLOCKED), mais recentes primeiro. ${optionalPaginationNote}`,
         security: [{ bearerAuth: [] }],
         parameters: [...optionalPageParams],
         responses: {
@@ -1352,7 +1354,7 @@ export const swaggerSpec = {
         tags: ["Listings"],
         summary: "Um anúncio",
         description:
-          "Login opcional. ACTIVE aparece para qualquer um; os outros status só para o dono ou ADMIN (senão 404).",
+          "Login opcional. ACTIVE e IN_TRADE aparecem para qualquer um (IN_TRADE sem nenhum dado da negociação); os outros status só para o dono ou ADMIN (senão 404).",
         security: [{}, { bearerAuth: [] }],
         parameters: [listingIdParam],
         responses: {
@@ -1367,7 +1369,7 @@ export const swaggerSpec = {
         tags: ["Listings"],
         summary: "Altera um anúncio",
         description:
-          "Dono: quantity, description e status (ACTIVE, PAUSED, CLOSED). ADMIN: só status, para BLOCKED ou de BLOCKED para PAUSED. CLOSED é final. Aumentar quantity ou sair de BLOCKED revalida a RN-05. Fechar (CLOSED) ou bloquear (BLOCKED) cancela as ofertas PROPOSED do anúncio e as ACCEPTED que ainda não viraram troca, soltando as cartas oferecidas. Diminuir quantity cancela as ACCEPTED sem troca que pedem mais do que a nova quantidade (cada uma comparada sozinha). Pausar não mexe nelas. Oferta que já virou troca não muda. Desbloquear não reabre ofertas canceladas.",
+          "Dono: quantity, description e status (ACTIVE, PAUSED, CLOSED). ADMIN: só status, para BLOCKED ou de BLOCKED para PAUSED. CLOSED é final. IN_TRADE só o sistema põe (422 se pedir). Anúncio IN_TRADE: o dono pausa ou fecha, mas não muda a quantidade nem reativa (409); o ADMIN bloqueia. Anúncio PAUSED com quantidade 0 só volta a ACTIVE informando a quantidade (422). Aumentar quantity ou sair de BLOCKED revalida a RN-05. Fechar (CLOSED) ou bloquear (BLOCKED) cancela as ofertas PROPOSED do anúncio (cancelReason LISTING_CLOSED ou LISTING_BLOCKED), soltando as cartas oferecidas. Diminuir ou pausar não cancela nada: a oferta que pede mais do que o anúncio tem fica em espera (onHold). Troca em andamento não muda. Desbloquear não reabre ofertas canceladas.",
         security: [{ bearerAuth: [] }],
         parameters: [listingIdParam],
         requestBody: {
@@ -1383,7 +1385,8 @@ export const swaggerSpec = {
           400: errorResponse("Corpo ou id inválido", "ApiValidationError"),
           403: errorResponse("Anúncio de outro usuário, bloqueado pela moderação, ou ADMIN mudando quantidade/descrição"),
           404: errorResponse("Anúncio não encontrado"),
-          422: errorResponse("Anúncio fechado, transição de status não permitida ou quantidade acima do disponível"),
+          409: errorResponse("Anúncio em troca: o dono não muda a quantidade nem reativa"),
+          422: errorResponse("Anúncio fechado, transição de status não permitida (inclui pedir IN_TRADE), reativar com quantidade 0 ou quantidade acima do disponível"),
           ...authErrors,
         },
       },
@@ -1393,7 +1396,7 @@ export const swaggerSpec = {
         tags: ["Offers"],
         summary: "Faz uma oferta de troca num anúncio",
         description:
-          "Diz quantas cartas do anúncio quer (quantity) e quais cartas da própria coleção dá em troca (items). O anúncio tem que estar ACTIVE e ser de outro usuário. Cada item oferecido tem que ser do proponente e caber no disponível (quantity - reservedQuantity). Só uma oferta PROPOSED por proponente em cada anúncio. A oferta não reserva unidades.",
+          "Diz quantas cartas do anúncio quer (quantity) e quais cartas da própria coleção dá em troca (items). O anúncio tem que estar ACTIVE e ser de outro usuário (IN_TRADE dá 422). Cada item oferecido tem que ser do proponente e caber no disponível (quantity - reservedQuantity). Só uma oferta PROPOSED por proponente em cada anúncio. A oferta não reserva unidades.",
         security: [{ bearerAuth: [] }],
         parameters: [listingIdParam],
         requestBody: {
@@ -1410,7 +1413,7 @@ export const swaggerSpec = {
           403: errorResponse("Item oferecido pertence a outro usuário"),
           404: errorResponse("Anúncio inexistente ou que não aceita ofertas (pausado, fechado, bloqueado), ou item oferecido inexistente"),
           409: errorResponse("Você já tem uma oferta aberta neste anúncio"),
-          422: errorResponse("Oferta no próprio anúncio, quantidade acima da do anúncio ou item oferecido acima do disponível"),
+          422: errorResponse("Anúncio em troca (IN_TRADE), oferta no próprio anúncio, quantidade acima da do anúncio ou item oferecido acima do disponível"),
           ...authErrors,
         },
       },
@@ -1419,7 +1422,7 @@ export const swaggerSpec = {
       get: {
         tags: ["Offers"],
         summary: "Ofertas feitas e recebidas pelo usuário autenticado",
-        description: "sent: ofertas que o usuário fez. received: ofertas nos anúncios dele. Mais recentes primeiro; em received sem status, as PROPOSED vêm antes das outras, inclusive entre páginas. Sem side, page nem limit, responde { sent, received } inteiros, no mesmo formato de antes (received também com as PROPOSED primeiro quando não há status); status sozinho não pagina.",
+        description: "sent: ofertas que o usuário fez. received: ofertas nos anúncios dele. Mais recentes primeiro; em received sem status, primeiro as PROPOSED que dá para aceitar agora, depois as em espera (onHold) e depois as outras, inclusive entre páginas. Sem side, page nem limit, responde { sent, received } inteiros, no mesmo formato de antes (received com a mesma ordem quando não há status); status sozinho não pagina.",
         security: [{ bearerAuth: [] }],
         parameters: [
           {
@@ -1457,9 +1460,9 @@ export const swaggerSpec = {
     "/offers/{id}/status": {
       patch: {
         tags: ["Offers"],
-        summary: "Aceita, recusa ou cancela uma oferta",
+        summary: "Aceita (e cria a troca), recusa ou cancela uma oferta",
         description:
-          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED). Oferta finalizada não muda mais de status nem volta para PROPOSED, com uma exceção: oferta ACCEPTED que ainda não virou troca pode ser recusada pelo dono (REJECTED) ou cancelada por quem ofertou (CANCELED); se já virou troca, dá 409 e quem age é a troca (POST /trades/{id}/reject ou /cancel). Recusar ou cancelar apaga os itens oferecidos (items vem vazio). Aceitar exige o anúncio ACTIVE e confere de novo se a oferta ainda dá para cumprir: o anúncio tem a quantidade pedida e quem ofertou ainda tem as cartas oferecidas disponíveis. Aceitar só muda o status: depois, quem ofertou cria a troca em POST /trades.",
+          "RN-06: só o dono do anúncio aceita (ACCEPTED) ou recusa (REJECTED); só o proponente cancela (CANCELED, cancelReason PROPOSER). Aceitar cria a troca na mesma transação, como o POST /trades: confere de novo se a oferta dá para cumprir (anúncio ACTIVE com a quantidade pedida e cartas oferecidas disponíveis), reserva as cartas dos dois lados (RN-08), copia os itens da oferta para a troca, tira do anúncio só a quantidade da oferta (em 0, vira IN_TRADE) e reduz os anúncios abertos de quem ofertou que passariam do disponível (em 0, ACTIVE vira IN_TRADE e PAUSED continua PAUSED). Quanto saiu de cada anúncio fica guardado para voltar se a troca cair. As outras ofertas do anúncio não são canceladas: as que não cabem ficam em espera (onHold) e aceitar uma delas dá 422. Se a troca não puder nascer, nada muda (422). A resposta traz tradeId. Oferta ACCEPTED não muda mais (409): para desistir, recuse ou cancele a troca. REJECTED e CANCELED não mudam mais (422). Recusar ou cancelar mantém os itens oferecidos (histórico): cada item traz a cópia da carta, e collectionItemId fica null se o item sair da coleção.",
         security: [{ bearerAuth: [] }],
         parameters: [offerIdParam],
         requestBody: {
@@ -1475,8 +1478,8 @@ export const swaggerSpec = {
           400: errorResponse("Corpo ou id inválido (inclui status PROPOSED)", "ApiValidationError"),
           403: errorResponse("Não participa da oferta (inclui ADMIN) ou papel errado para o status"),
           404: errorResponse("Oferta não encontrada"),
-          409: errorResponse("Oferta aceita que já virou troca"),
-          422: errorResponse("Oferta já finalizada (RN-06); no aceite, anúncio fora de ACTIVE, anúncio com menos unidades do que a oferta pede ou carta oferecida que não está mais disponível"),
+          409: errorResponse("Oferta aceita já virou troca e não muda mais"),
+          422: errorResponse("Oferta recusada ou cancelada (RN-06); no aceite, oferta em espera (anúncio IN_TRADE ou com menos unidades do que a oferta pede), anúncio fora de ACTIVE ou carta oferecida que não está mais disponível"),
           ...authErrors,
         },
       },
@@ -1484,9 +1487,9 @@ export const swaggerSpec = {
     "/trades": {
       post: {
         tags: ["Trades"],
-        summary: "Cria a troca a partir de uma oferta aceita",
+        summary: "Cria a troca a partir de uma oferta aceita (rota do PDF)",
         description:
-          "Só quem fez a oferta cria a troca, depois que o dono do anúncio aceitou (PATCH /offers/{id}/status). Na mesma transação: as cartas dos dois lados ficam reservadas (reservedQuantity), os itens da oferta passam para a troca (a oferta fica ACCEPTED e com items vazio), o anúncio baixa a quantidade da oferta (se chegar a 0, fecha e cancela as ofertas abertas dele) e anúncios abertos de quem ofertou que ficarem acima do disponível são reduzidos ou fechados. Em cada anúncio que fecha ou diminui, as ofertas ACCEPTED que ainda não viraram troca e não cabem mais (anúncio fechado, ou oferta pedindo mais do que sobrou) viram CANCELED e soltam as cartas oferecidas. O anúncio pode estar ACTIVE ou PAUSED.",
+          "Desde a #213 aceitar a oferta (PATCH /offers/{id}/status) já cria a troca, então esta rota normalmente responde 409. Continua existindo porque o PDF pede. Só quem fez a oferta chama. Oferta que já virou troca: 409. Oferta que não está ACCEPTED: 422. Para uma oferta ACCEPTED sem troca (dado antigo), faz o mesmo que o aceite: reserva, tira do anúncio só a quantidade da oferta (em 0, IN_TRADE) e guarda quanto saiu de cada anúncio.",
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -1550,15 +1553,19 @@ export const swaggerSpec = {
     "/trades/{id}/accept": {
       post: {
         tags: ["Trades"],
-        summary: "Conclui a troca (RN-07)",
+        summary: "Confirma o recebimento; a segunda confirmação conclui a troca (RN-07)",
         description:
-          "Só o dono do anúncio. Numa transação só: trava os itens, confere de novo que cada carta ainda é de quem entrega e tem quantidade e reserva suficientes, tira as cartas de quem entrega (quantity e reservedQuantity juntas) e soma em quem recebe (no item igual: carta, condição, acabamento e 1ª edição; se não houver, cria um item público). Cada carta recebida sai da wishlist de quem recebe (RN-11). Qualquer erro no meio desfaz tudo. Quem entrega fica com o item, mesmo que chegue a 0.",
+          "Vale para as duas partes. A primeira confirmação só grava a data de quem chamou (proposerConfirmedAt ou recipientConfirmedAt) e nada muda nas coleções. A segunda conclui numa transação só: trava os itens, confere de novo que cada carta ainda é de quem entrega e tem quantidade e reserva suficientes, tira as cartas de quem entrega (quantity e reservedQuantity juntas) e soma em quem recebe (no item igual: carta, condição, acabamento e 1ª edição; se não houver, cria um item público). Cada carta recebida sai da wishlist de quem recebe (RN-11). Anúncio IN_TRADE da troca vira CLOSED se não houver outra troca aberta nele (as ofertas em espera viram CANCELED, cancelReason LISTING_TRADED); com outra troca aberta, continua IN_TRADE. Qualquer erro no meio desfaz tudo. Quem entrega fica com o item, mesmo que chegue a 0. Confirmar de novo: 409. Não há prazo para confirmar.",
         security: [{ bearerAuth: [] }],
         parameters: [tradeIdParam],
         responses: {
-          200: tradeResponse("Troca concluída (ACCEPTED, completedAt preenchido)"),
-          ...tradeActionErrors("quem chamou fez a oferta"),
+          200: tradeResponse("Confirmação gravada (PROPOSED) ou troca concluída (ACCEPTED, completedAt preenchido)"),
+          400: errorResponse("Id inválido", "ApiValidationError"),
+          403: errorResponse("Não faz parte da troca (inclui ADMIN)"),
+          404: errorResponse("Troca não encontrada"),
+          409: errorResponse("Troca já finalizada ou você já confirmou o recebimento"),
           422: errorResponse("As cartas desta troca não estão mais disponíveis"),
+          ...authErrors,
         },
       },
     },
@@ -1566,7 +1573,7 @@ export const swaggerSpec = {
       post: {
         tags: ["Trades"],
         summary: "Recusa a troca",
-        description: "Só o dono do anúncio. Libera a reserva dos dois lados. Os anúncios reduzidos quando a troca nasceu não voltam. A oferta continua ACCEPTED e não gera outra troca.",
+        description: "Só o dono do anúncio, mesmo depois de ter confirmado. Libera a reserva dos dois lados e devolve a cada anúncio a quantidade que a troca tirou, se ele ainda estiver ACTIVE, PAUSED ou IN_TRADE (IN_TRADE volta a ACTIVE; PAUSED continua PAUSED). Anúncio fechado ou bloqueado no meio-tempo não reabre. As ofertas em espera do anúncio voltam a valer. A oferta continua ACCEPTED e não gera outra troca.",
         security: [{ bearerAuth: [] }],
         parameters: [tradeIdParam],
         responses: {
@@ -1579,7 +1586,7 @@ export const swaggerSpec = {
       post: {
         tags: ["Trades"],
         summary: "Cancela a troca",
-        description: "Só quem fez a oferta. Libera a reserva dos dois lados. Os anúncios reduzidos quando a troca nasceu não voltam. A oferta continua ACCEPTED e não gera outra troca.",
+        description: "Só quem fez a oferta, mesmo depois de ter confirmado. Libera a reserva dos dois lados e devolve a cada anúncio a quantidade que a troca tirou, como no /reject. A oferta continua ACCEPTED e não gera outra troca.",
         security: [{ bearerAuth: [] }],
         parameters: [tradeIdParam],
         responses: {
@@ -1956,10 +1963,10 @@ export const swaggerSpec = {
           myListing: {
             type: "object",
             nullable: true,
-            description: "Seu anúncio aberto dessa carta (ACTIVE ou PAUSED), para abrir em GET /listings/{id}. Com mais de um, vem o ACTIVE; no empate, o mais recente. null quando não há anúncio aberto.",
+            description: "Seu anúncio aberto dessa carta (ACTIVE, PAUSED ou IN_TRADE), para abrir em GET /listings/{id}. Com mais de um, vem o ACTIVE; senão, o PAUSED ou IN_TRADE mais recente. null quando não há anúncio aberto.",
             properties: {
               id: { type: "string", format: "uuid", example: "5b1f0c9e-2d6a-4f3b-9a51-7c2e8d4b6a10" },
-              status: { type: "string", enum: ["ACTIVE", "PAUSED"], example: "PAUSED" },
+              status: { type: "string", enum: ["ACTIVE", "PAUSED", "IN_TRADE"], example: "PAUSED" },
             },
             example: { id: "5b1f0c9e-2d6a-4f3b-9a51-7c2e8d4b6a10", status: "PAUSED" },
           },
@@ -1976,9 +1983,14 @@ export const swaggerSpec = {
         description: "Anúncio de troca. Nunca traz userId, e-mail, reservedQuantity nem isPublic.",
         properties: {
           id: { type: "string", format: "uuid" },
-          quantity: { type: "integer", minimum: 1, example: 1 },
+          quantity: { type: "integer", minimum: 0, example: 1, description: "0 só fora de ACTIVE (IN_TRADE, ou PAUSED/CLOSED depois de uma troca)" },
           description: { type: "string", nullable: true, example: "Charizard Base Set 1ª edição, sem marcas na frente." },
-          status: { type: "string", enum: listingStatuses, example: "ACTIVE" },
+          status: {
+            type: "string",
+            enum: listingStatuses,
+            example: "ACTIVE",
+            description: "IN_TRADE (Em troca): todas as unidades estão numa troca em andamento. Volta a ACTIVE se a troca cair; fecha quando a troca conclui.",
+          },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
           owner: {
@@ -2006,8 +2018,21 @@ export const swaggerSpec = {
         description: "Oferta de troca. Nunca traz userId, proposerId, e-mail, reservedQuantity nem isPublic.",
         properties: {
           id: { type: "string", format: "uuid" },
-          hasTrade: { type: "boolean", description: "Indica se já foi criada uma troca para esta oferta." },
+          tradeId: { type: "string", format: "uuid", nullable: true, description: "Troca criada quando a oferta foi aceita (GET /trades/{id}). null enquanto não virou troca.", example: null },
+          tradeStatus: { type: "string", enum: ["PROPOSED", "ACCEPTED", "REJECTED", "CANCELED"], nullable: true, description: "Situação da troca da oferta: PROPOSED em andamento, ACCEPTED concluída, REJECTED ou CANCELED desfeita. null enquanto não virou troca.", example: null },
           status: { type: "string", enum: offerStatuses, example: "PROPOSED" },
+          cancelReason: {
+            type: "string",
+            enum: offerCancelReasons,
+            nullable: true,
+            example: null,
+            description: "Só em CANCELED: PROPOSER (quem ofertou cancelou), LISTING_CLOSED (anúncio fechado), LISTING_BLOCKED (anúncio bloqueado), LISTING_TRADED (anúncio trocado com outra pessoa), ACCOUNT_DEACTIVATED (uma das contas foi desativada). null nas outras e nos cancelamentos antigos. Recusa do dono é REJECTED, sem motivo.",
+          },
+          onHold: {
+            type: "boolean",
+            example: false,
+            description: "Em espera: PROPOSED, mas não dá para aceitar agora (anúncio IN_TRADE ou com menos unidades do que a oferta pede). Volta a valer se a troca do anúncio cair ou o dono aumentar o anúncio.",
+          },
           quantity: { type: "integer", minimum: 1, description: "Quantas cartas do anúncio o proponente quer", example: 1 },
           message: { type: "string", nullable: true, example: "Troco meu Mew holo pelo seu Charizard?" },
           createdAt: { type: "string", format: "date-time" },
@@ -2022,11 +2047,11 @@ export const swaggerSpec = {
           listing: { $ref: "#/components/schemas/Listing" },
           items: {
             type: "array",
-            description: "Cartas oferecidas em troca. Vazio quando a oferta foi recusada, cancelada ou já virou troca (os itens passam para a troca).",
+            description: "Cartas oferecidas em troca, com a cópia da carta feita na oferta. Continuam depois que a oferta encerra ou vira troca (histórico).",
             items: {
               type: "object",
               properties: {
-                collectionItemId: { type: "string", format: "uuid" },
+                collectionItemId: { type: "string", format: "uuid", nullable: true, description: "Item da coleção de quem ofertou; null se ele saiu da coleção depois." },
                 quantity: { type: "integer", minimum: 1, example: 1 },
                 condition: { type: "string", enum: cardConditions, example: "NEAR_MINT" },
                 finish: { type: "string", enum: cardFinishes, example: "HOLO" },
@@ -2081,6 +2106,8 @@ export const swaggerSpec = {
           status: { type: "string", enum: tradeStatuses, example: "PROPOSED" },
           createdAt: { type: "string", format: "date-time" },
           completedAt: { type: "string", format: "date-time", nullable: true, description: "Preenchido só quando ACCEPTED" },
+          proposerConfirmedAt: { type: "string", format: "date-time", nullable: true, example: "2026-11-20T15:04:05.000Z", description: "Quando quem ofertou confirmou o recebimento" },
+          recipientConfirmedAt: { type: "string", format: "date-time", nullable: true, example: null, description: "Quando o dono do anúncio confirmou o recebimento" },
           offerId: { type: "string", format: "uuid", nullable: true },
           proposer: {
             type: "object",
@@ -2120,7 +2147,7 @@ export const swaggerSpec = {
         required: ["offerId"],
         additionalProperties: false,
         properties: {
-          offerId: { type: "string", format: "uuid", description: "Oferta ACCEPTED feita por quem chama (pegue em GET /offers/me?status=ACCEPTED, em sent)" },
+          offerId: { type: "string", format: "uuid", description: "Oferta ACCEPTED feita por quem chama. Desde a #213 o aceite já cria a troca, então normalmente responde 409." },
         },
       },
       CreateListingRequest: {
@@ -2143,7 +2170,7 @@ export const swaggerSpec = {
           status: {
             type: "string",
             enum: listingStatuses,
-            description: "Dono: ACTIVE, PAUSED ou CLOSED. ADMIN: BLOCKED, ou PAUSED para desbloquear.",
+            description: "Dono: ACTIVE, PAUSED ou CLOSED (de IN_TRADE, só PAUSED ou CLOSED). ADMIN: BLOCKED, ou PAUSED para desbloquear. IN_TRADE ninguém pede.",
           },
         },
       },

@@ -1,6 +1,6 @@
 import request from 'supertest';
 
-import { addItem, bearer, CHARIZARD, createListing } from './support/flows.js';
+import { acceptedOffer, addItem, bearer, CHARIZARD, createListing } from './support/flows.js';
 import { registerUser, startTestApp, type TestApp } from './support/testApp.js';
 
 let ctx: TestApp;
@@ -79,6 +79,16 @@ describe('GET /cards/:id', () => {
     const res = await request(ctx.app).get(`/cards/${CHARIZARD}`).set(bearer(user));
 
     expect(res.body.data.user).toMatchObject({ onTradeList: false, myListing: { id: listing.id, status: 'PAUSED' } });
+  });
+
+  test('com login: anúncio Em troca aparece em myListing, mas não conta como onTradeList', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const { listing } = await acceptedOffer(ctx.app, owner, proposer);
+
+    const res = await request(ctx.app).get(`/cards/${CHARIZARD}`).set(bearer(owner));
+
+    expect(res.body.data.user).toMatchObject({ onTradeList: false, myListing: { id: listing.id, status: 'IN_TRADE' } });
   });
 
   test('com login: anúncio ativo aparece em myListing e em onTradeList', async () => {

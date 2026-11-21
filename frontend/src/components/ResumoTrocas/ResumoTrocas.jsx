@@ -35,8 +35,8 @@ export default function ResumoTrocas({ resumo }) {
           ))}
         </dl>
         {resumo.esperandoVoce > 0 && (
-          <Link className={styles.destaque} to="/trocas?aba=recebidas&status=PROPOSED">
-            {resumo.esperandoVoce === 1 ? "1 troca esperando você concluir" : `${resumo.esperandoVoce} trocas esperando você concluir`}
+          <Link className={styles.destaque} to={`/trocas?aba=${resumo.abaEsperando}&status=PROPOSED`}>
+            {resumo.esperandoVoce === 1 ? "1 troca esperando sua confirmação" : `${resumo.esperandoVoce} trocas esperando sua confirmação`}
           </Link>
         )}
         <Link className={styles.link} to="/trocas">

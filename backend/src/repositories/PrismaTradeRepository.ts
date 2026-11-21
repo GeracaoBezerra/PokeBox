@@ -1,6 +1,7 @@
 import type { TradeStatus } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
 import { pendingFirst } from '../utils/pendingFirst.js';
+import type { ListingHold, TradeRole } from '../utils/tradeRules.js';
 import {
   tradeInclude,
   type LockedTrade,
@@ -29,7 +30,7 @@ export class PrismaTradeRepository implements TradeRepository {
 
   async lockById(id: string, db: Db = this.db): Promise<LockedTrade | null> {
     const rows = await db.$queryRaw<LockedTrade[]>`
-      SELECT "id", "status", "proposerId", "recipientId"
+      SELECT "id", "status", "proposerId", "recipientId", "proposerConfirmedAt", "recipientConfirmedAt"
       FROM "Trade"
       WHERE "id" = ${id}
       FOR UPDATE
@@ -75,5 +76,41 @@ export class PrismaTradeRepository implements TradeRepository {
       data: { status, completedAt: status === 'ACCEPTED' ? new Date() : null },
       include: tradeInclude,
     });
+  }
+
+  confirm(id: string, role: TradeRole, completes: boolean, db: Db = this.db): Promise<TradeWithItems> {
+    const now = new Date();
+    const confirmation = role === 'recipient' ? { recipientConfirmedAt: now } : { proposerConfirmedAt: now };
+
+    return db.trade.update({
+      where: { id },
+      data: { ...confirmation, ...(completes ? { status: 'ACCEPTED', completedAt: now } : {}) },
+      include: tradeInclude,
+    });
+  }
+
+  async addHolds(tradeId: string, holds: ListingHold[], db: Db = this.db): Promise<void> {
+    if (holds.length === 0) return;
+    await db.tradeListingHold.createMany({ data: holds.map((hold) => ({ tradeId, ...hold })) });
+  }
+
+  findHolds(tradeId: string, db: Db = this.db): Promise<ListingHold[]> {
+    return db.tradeListingHold.findMany({
+      where: { tradeId },
+      select: { listingId: true, quantity: true },
+      orderBy: { listingId: 'asc' },
+    });
+  }
+
+  countOpenHolds(listingId: string, db: Db = this.db): Promise<number> {
+    return db.tradeListingHold.count({ where: { listingId, trade: { status: 'PROPOSED' } } });
+  }
+
+  async hasOpenFor(userId: string, db: Db = this.db): Promise<boolean> {
+    const open = await db.trade.findFirst({
+      where: { status: 'PROPOSED', OR: [{ proposerId: userId }, { recipientId: userId }] },
+      select: { id: true },
+    });
+    return open !== null;
   }
 }

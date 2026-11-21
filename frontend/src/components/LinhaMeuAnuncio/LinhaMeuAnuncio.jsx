@@ -71,6 +71,7 @@ export default function LinhaMeuAnuncio({ anuncio, onMudou }) {
               <AcoesAnuncio anuncio={anuncio} onMudou={onMudou} acao={acao} />
             </div>
           )}
+          {anuncio.status === "IN_TRADE" && <AcoesAnuncio anuncio={anuncio} onMudou={onMudou} acao={acao} />}
         </td>
       </tr>
       {acao.erro && (

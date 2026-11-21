@@ -38,7 +38,7 @@ export default function ModeracaoAnuncio({ anuncio, onMudou, atualizando = false
       <h3>Moderação</h3>
       <p className={s.suave}>Bloquear retira o anúncio da comunidade. Desbloquear devolve o anúncio como pausado.</p>
       <div className={s.acoes}>
-        {(anuncio.status === "ACTIVE" || anuncio.status === "PAUSED") && (
+        {["ACTIVE", "PAUSED", "IN_TRADE"].includes(anuncio.status) && (
           <button
             className={s.botaoPerigo}
             disabled={acao.ocupado || atualizando}

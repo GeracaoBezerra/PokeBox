@@ -1,8 +1,9 @@
 import {
+  assertActivatable,
   assertListingQuantity,
   assertListingUpdate,
+  cancelReasonFor,
   isListingVisible,
-  mayCancelAccepted,
   needsStockCheck,
   toListingResponse,
   type ListingUpdateInput,
@@ -116,21 +117,38 @@ describe('needsStockCheck', () => {
   });
 });
 
-describe('mayCancelAccepted', () => {
-  it('fechar ou bloquear pode cancelar ofertas aceitas', () => {
-    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 2 }, { status: 'CLOSED', quantity: 2 })).toBe(true);
-    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 2 }, { status: 'BLOCKED', quantity: 2 })).toBe(true);
+describe('anúncio em troca', () => {
+  const owner = { from: 'IN_TRADE' as ListingStatus, isOwner: true, isAdmin: false };
+
+  it('dono pausa, fecha ou muda a descrição', () => {
+    expect(statusOf(() => assertListingUpdate({ ...owner, input: { status: 'PAUSED' } }))).toBeNull();
+    expect(statusOf(() => assertListingUpdate({ ...owner, input: { status: 'CLOSED' } }))).toBeNull();
+    expect(statusOf(() => assertListingUpdate({ ...owner, input: { description: 'ok' } }))).toBeNull();
   });
 
-  it('diminuir a quantidade pode cancelar ofertas aceitas', () => {
-    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 3 }, { status: 'ACTIVE', quantity: 1 })).toBe(true);
+  it('dono não muda a quantidade nem reativa: 409', () => {
+    expect(statusOf(() => assertListingUpdate({ ...owner, input: { quantity: 2 } }))).toBe(409);
+    expect(statusOf(() => assertListingUpdate({ ...owner, input: { status: 'ACTIVE' } }))).toBe(409);
   });
 
-  it('pausar, desbloquear, aumentar ou mudar só a descrição não cancela', () => {
-    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 2 }, { status: 'PAUSED', quantity: 2 })).toBe(false);
-    expect(mayCancelAccepted({ status: 'BLOCKED', quantity: 2 }, { status: 'PAUSED', quantity: 2 })).toBe(false);
-    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 1 }, { status: 'ACTIVE', quantity: 2 })).toBe(false);
-    expect(mayCancelAccepted({ status: 'ACTIVE', quantity: 2 }, { status: 'ACTIVE', quantity: 2 })).toBe(false);
+  it('ninguém põe Em troca à mão: 422', () => {
+    expect(statusOf(() => assertListingUpdate({ ...owner, from: 'ACTIVE', input: { status: 'IN_TRADE' } }))).toBe(422);
+    expect(statusOf(() => assertListingUpdate({ ...owner, isOwner: false, isAdmin: true, input: { status: 'IN_TRADE' } }))).toBe(422);
+  });
+
+  it('ADMIN bloqueia', () => {
+    expect(statusOf(() => assertListingUpdate({ ...owner, isOwner: false, isAdmin: true, input: { status: 'BLOCKED' } }))).toBeNull();
+  });
+
+  it('ativo precisa de quantidade', () => {
+    expect(statusOf(() => assertActivatable({ status: 'ACTIVE', quantity: 0 }))).toBe(422);
+    expect(statusOf(() => assertActivatable({ status: 'PAUSED', quantity: 0 }))).toBeNull();
+    expect(statusOf(() => assertActivatable({ status: 'ACTIVE', quantity: 1 }))).toBeNull();
+  });
+
+  it('motivo do cancelamento das ofertas segue a situação nova', () => {
+    expect(cancelReasonFor('CLOSED')).toBe('LISTING_CLOSED');
+    expect(cancelReasonFor('BLOCKED')).toBe('LISTING_BLOCKED');
   });
 });
 
@@ -176,6 +194,10 @@ describe('isListingVisible', () => {
   it('dono e ADMIN veem qualquer status', () => {
     expect(isListingVisible(paused, { id: 'ash-id', role: 'USER' })).toBe(true);
     expect(isListingVisible(paused, { id: 'admin-id', role: 'ADMIN' })).toBe(true);
+  });
+
+  it('anúncio em troca é público', () => {
+    expect(isListingVisible({ ...listing, status: 'IN_TRADE' }, undefined)).toBe(true);
   });
 
   it('dono suspenso esconde o anúncio', () => {

@@ -57,11 +57,6 @@ const lockedItem: LockedCollectionItem = {
   condition: 'NEAR_MINT',
 };
 
-const accepted = [
-  { id: 'pede-1', quantity: 1 },
-  { id: 'pede-2', quantity: 2 },
-];
-
 function setup() {
   const listings = {
     findActive: jest.fn<ListingStore['findActive']>(async () => [listing]),
@@ -73,8 +68,6 @@ function setup() {
   };
   const offers = {
     cancelOpenByListing: jest.fn<ListingOfferCanceller['cancelOpenByListing']>(async () => 0),
-    lockAcceptedWithoutTrade: jest.fn<ListingOfferCanceller['lockAcceptedWithoutTrade']>(async () => accepted),
-    cancelByIds: jest.fn<ListingOfferCanceller['cancelByIds']>(async (ids) => ids.length),
   };
   const collection = {
     lockById: jest.fn<ListingServiceDeps['collection']['lockById']>(async () => lockedItem),
@@ -90,50 +83,71 @@ function setup() {
   return { service, listings, offers, collection };
 }
 
-describe('update cancela ofertas aceitas sem troca', () => {
-  it('fechar cancela as abertas e todas as aceitas', async () => {
+describe('update cancela ofertas abertas só quando o anúncio fecha ou é bloqueado', () => {
+  it('fechar cancela as abertas com o motivo anúncio fechado', async () => {
     const { service, offers } = setup();
 
     await service.update(owner, LISTING_ID, { status: 'CLOSED' });
 
-    expect(offers.cancelOpenByListing).toHaveBeenCalledWith(LISTING_ID, tx);
-    expect(offers.lockAcceptedWithoutTrade).toHaveBeenCalledWith(LISTING_ID, tx);
-    expect(offers.cancelByIds).toHaveBeenCalledWith(['pede-1', 'pede-2'], tx);
+    expect(offers.cancelOpenByListing).toHaveBeenCalledWith(LISTING_ID, 'LISTING_CLOSED', tx);
   });
 
-  it('bloquear (ADMIN) cancela todas as aceitas', async () => {
+  it('bloquear (ADMIN) cancela as abertas com o motivo anúncio bloqueado', async () => {
     const { service, offers } = setup();
 
     await service.update(admin, LISTING_ID, { status: 'BLOCKED' });
 
-    expect(offers.cancelByIds).toHaveBeenCalledWith(['pede-1', 'pede-2'], tx);
+    expect(offers.cancelOpenByListing).toHaveBeenCalledWith(LISTING_ID, 'LISTING_BLOCKED', tx);
   });
 
-  it('diminuir cancela só as aceitas que pedem mais do que a nova quantidade', async () => {
+  it.each([
+    ['diminuir', { quantity: 1 }],
+    ['pausar', { status: 'PAUSED' as const }],
+    ['mudar só a descrição', { description: 'troco por Blastoise' }],
+  ])('%s não cancela nada', async (_, input) => {
     const { service, offers } = setup();
 
-    await service.update(owner, LISTING_ID, { quantity: 1 });
+    await service.update(owner, LISTING_ID, input);
 
     expect(offers.cancelOpenByListing).not.toHaveBeenCalled();
-    expect(offers.cancelByIds).toHaveBeenCalledWith(['pede-2'], tx);
   });
+});
 
-  it('pausar não mexe nas aceitas', async () => {
-    const { service, offers } = setup();
+describe('update: anúncio em troca', () => {
+  const inTrade = { ...listing, status: 'IN_TRADE' as const, quantity: 0 };
+
+  it('dono pausa ou fecha', async () => {
+    const { service, listings } = setup();
+    listings.findById.mockResolvedValue(inTrade);
 
     await service.update(owner, LISTING_ID, { status: 'PAUSED' });
+    await service.update(owner, LISTING_ID, { status: 'CLOSED' });
 
-    expect(offers.lockAcceptedWithoutTrade).not.toHaveBeenCalled();
-    expect(offers.cancelByIds).not.toHaveBeenCalled();
+    expect(listings.update).toHaveBeenCalledTimes(2);
   });
 
-  it('mudar só a descrição não trava as aceitas', async () => {
-    const { service, offers } = setup();
+  it('dono não muda a quantidade nem reativa (409)', async () => {
+    const { service, listings } = setup();
+    listings.findById.mockResolvedValue(inTrade);
 
-    await service.update(owner, LISTING_ID, { description: 'troco por Blastoise' });
+    await expect(service.update(owner, LISTING_ID, { quantity: 1 })).rejects.toMatchObject({ statusCode: 409 });
+    await expect(service.update(owner, LISTING_ID, { status: 'ACTIVE' })).rejects.toMatchObject({ statusCode: 409 });
+    expect(listings.update).not.toHaveBeenCalled();
+  });
 
-    expect(offers.lockAcceptedWithoutTrade).not.toHaveBeenCalled();
-    expect(offers.cancelByIds).not.toHaveBeenCalled();
+  it('ninguém põe Em troca à mão (422)', async () => {
+    const { service } = setup();
+
+    await expect(service.update(owner, LISTING_ID, { status: 'IN_TRADE' })).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  it('pausado com 0 só reativa com quantidade (422)', async () => {
+    const { service, listings } = setup();
+    listings.findById.mockResolvedValue({ ...listing, status: 'PAUSED', quantity: 0 });
+
+    await expect(service.update(owner, LISTING_ID, { status: 'ACTIVE' })).rejects.toMatchObject({ statusCode: 422 });
+    await service.update(owner, LISTING_ID, { status: 'ACTIVE', quantity: 1 });
+    expect(listings.update).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -207,7 +221,7 @@ describe('leituras', () => {
 
     const result = await service.list({ page: 2, limit: 2, sort: 'recent', q: 'charizard' });
 
-    expect(listings.findActive).toHaveBeenCalledWith({ sort: 'recent', q: 'charizard', skip: 2, take: 3 });
+    expect(listings.findActive).toHaveBeenCalledWith({ sort: 'recent', q: 'charizard', withInTrade: true, skip: 2, take: 3 });
     expect(result.items).toHaveLength(2);
     expect(result.hasNextPage).toBe(true);
   });
@@ -245,5 +259,16 @@ describe('leituras', () => {
     listings.findById.mockResolvedValueOnce({ ...listing, status: 'PAUSED' });
 
     await expect(service.getById(undefined, LISTING_ID)).rejects.toMatchObject({ statusCode: 404 });
+  });
+});
+
+describe('getById: anúncio em troca', () => {
+  it('é visível para qualquer pessoa, sem login', async () => {
+    const { service, listings } = setup();
+    listings.findById.mockResolvedValueOnce({ ...listing, status: 'IN_TRADE', quantity: 0 });
+
+    const result = await service.getById(undefined, LISTING_ID);
+
+    expect(result.status).toBe('IN_TRADE');
   });
 });

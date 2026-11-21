@@ -26,6 +26,7 @@ export interface ActiveListingFilters {
   type?: CardType;
   rarity?: string;
   sort?: ListingSort;
+  withInTrade?: boolean;
   skip?: number;
   take?: number;
 }
@@ -60,6 +61,7 @@ export interface ListingRepository {
   create(data: NewListing, db?: Db): Promise<ListingWithItem>;
   update(id: string, data: ListingChanges, db?: Db): Promise<ListingWithItem>;
   findOpenByUserAndCard(userId: string, cardId: string): Promise<ListingRef[]>;
+  closeOpenByOwner(userId: string, db?: Db): Promise<number>;
 }
 
 export type ListingCounter = Pick<ListingRepository, 'sumOpenByItem' | 'countByItem'>;

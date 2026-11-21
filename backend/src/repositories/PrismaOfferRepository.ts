@@ -1,10 +1,9 @@
-import type { OfferStatus } from '../generated/prisma/index.js';
+import { Prisma, type OfferCancelReason, type OfferStatus } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
-import { pendingFirst } from '../utils/pendingFirst.js';
+import { NotFoundError } from '../errors/domainErrors.js';
 import type { OfferCounts } from '../utils/collectionRules.js';
 import {
   offerInclude,
-  type AcceptedOffer,
   type LockedOffer,
   type NewOffer,
   type OfferListOptions,
@@ -17,8 +16,26 @@ const newestFirst = [{ createdAt: 'desc' }, { id: 'asc' }] as const;
 export class PrismaOfferRepository implements OfferRepository {
   constructor(private readonly db: Db) {}
 
-  create({ items, ...data }: NewOffer, db: Db = this.db): Promise<OfferWithDetails> {
-    return db.offer.create({ data: { ...data, items: { create: items } }, include: offerInclude });
+  async create({ items, ...data }: NewOffer, db: Db = this.db): Promise<OfferWithDetails> {
+    const copies = await db.collectionItem.findMany({
+      where: { id: { in: items.map((item) => item.collectionItemId) } },
+      select: { id: true, cardId: true, condition: true, finish: true, firstEdition: true },
+    });
+    const byId = new Map(copies.map(({ id, ...copy }) => [id, copy]));
+
+    return db.offer.create({
+      data: {
+        ...data,
+        items: {
+          create: items.map(({ collectionItemId, quantity }) => {
+            const copy = byId.get(collectionItemId);
+            if (!copy) throw new NotFoundError('Item da coleção não encontrado');
+            return { collectionItemId, quantity, ...copy };
+          }),
+        },
+      },
+      include: offerInclude,
+    });
   }
 
   findById(id: string, db: Db = this.db): Promise<OfferWithDetails | null> {
@@ -53,59 +70,74 @@ export class PrismaOfferRepository implements OfferRepository {
     });
   }
 
-  findReceived(userId: string, { status, skip, take }: OfferListOptions = {}): Promise<OfferWithDetails[]> {
-    const where = { listing: { collectionItem: { userId } } };
+  async findReceived(userId: string, { status, skip = 0, take }: OfferListOptions = {}): Promise<OfferWithDetails[]> {
     if (status) {
-      return this.db.offer.findMany({ where: { ...where, status }, include: offerInclude, orderBy: [...newestFirst], skip, take });
+      return this.db.offer.findMany({
+        where: { status, listing: { collectionItem: { userId } } },
+        include: offerInclude,
+        orderBy: [...newestFirst],
+        skip,
+        take,
+      });
     }
 
-    return pendingFirst(
-      {
-        find: (pending, window) =>
-          this.db.offer.findMany({
-            where: { ...where, status: pending ? 'PROPOSED' : { not: 'PROPOSED' } },
-            include: offerInclude,
-            orderBy: [...newestFirst],
-            ...window,
-          }),
-        countPending: () => this.db.offer.count({ where: { ...where, status: 'PROPOSED' } }),
-      },
-      { skip, take },
-    );
+    const limit = take === undefined ? Prisma.empty : Prisma.sql`LIMIT ${take}`;
+    const ranked = await this.db.$queryRaw<{ id: string }[]>`
+      SELECT o."id"
+      FROM "Offer" o
+      JOIN "Listing" l ON l."id" = o."listingId"
+      JOIN "CollectionItem" ci ON ci."id" = l."collectionItemId"
+      WHERE ci."userId" = ${userId}
+      ORDER BY
+        CASE
+          WHEN o."status" = 'PROPOSED' AND l."status" <> 'IN_TRADE' AND o."quantity" <= l."quantity" THEN 0
+          WHEN o."status" = 'PROPOSED' THEN 1
+          ELSE 2
+        END,
+        o."createdAt" DESC,
+        o."id" ASC
+      OFFSET ${skip}
+      ${limit}
+    `;
+
+    const ids = ranked.map((row) => row.id);
+    const rows = await this.db.offer.findMany({ where: { id: { in: ids } }, include: offerInclude });
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    return ids.flatMap((id) => byId.get(id) ?? []);
   }
 
   async countByItem(collectionItemId: string, db: Db = this.db): Promise<OfferCounts> {
     const open = await db.offerItem.count({ where: { collectionItemId, offer: { status: 'PROPOSED' } } });
-    const accepted = await db.offerItem.count({ where: { collectionItemId, offer: { status: 'ACCEPTED' } } });
+    const accepted = await db.offerItem.count({ where: { collectionItemId, offer: { status: 'ACCEPTED', trade: null } } });
 
     return { open, accepted };
   }
 
-  updateStatus(id: string, status: OfferStatus, db: Db = this.db): Promise<OfferWithDetails> {
+  updateStatus(
+    id: string,
+    status: OfferStatus,
+    db: Db = this.db,
+    cancelReason: OfferCancelReason | null = null,
+  ): Promise<OfferWithDetails> {
     return db.offer.update({
       where: { id },
-      data: { status, respondedAt: new Date() },
+      data: { status, cancelReason, respondedAt: new Date() },
       include: offerInclude,
     });
   }
 
-  async deleteItems(offerId: string, db: Db = this.db): Promise<void> {
-    await db.offerItem.deleteMany({ where: { offerId } });
-  }
-
-  async cancelByIds(ids: string[], db: Db = this.db): Promise<number> {
+  async cancelByIds(ids: string[], reason: OfferCancelReason, db: Db = this.db): Promise<number> {
     if (ids.length === 0) return 0;
 
-    await db.offerItem.deleteMany({ where: { offerId: { in: ids } } });
     await db.offer.updateMany({
       where: { id: { in: ids } },
-      data: { status: 'CANCELED', respondedAt: new Date() },
+      data: { status: 'CANCELED', cancelReason: reason, respondedAt: new Date() },
     });
 
     return ids.length;
   }
 
-  async cancelOpenByListing(listingId: string, db: Db = this.db): Promise<number> {
+  async cancelOpenByListing(listingId: string, reason: OfferCancelReason, db: Db = this.db): Promise<number> {
     const open = await db.$queryRaw<{ id: string }[]>`
       SELECT "id"
       FROM "Offer"
@@ -116,19 +148,26 @@ export class PrismaOfferRepository implements OfferRepository {
 
     return this.cancelByIds(
       open.map((offer) => offer.id),
+      reason,
       db,
     );
   }
 
-  lockAcceptedWithoutTrade(listingId: string, db: Db = this.db): Promise<AcceptedOffer[]> {
-    return db.$queryRaw<AcceptedOffer[]>`
-      SELECT o."id", o."quantity"
+  async cancelOpenOfUser(userId: string, reason: OfferCancelReason, db: Db = this.db): Promise<number> {
+    const open = await db.$queryRaw<{ id: string }[]>`
+      SELECT o."id"
       FROM "Offer" o
-      WHERE o."listingId" = ${listingId}
-        AND o."status" = 'ACCEPTED'
-        AND NOT EXISTS (SELECT 1 FROM "Trade" t WHERE t."offerId" = o."id")
+      JOIN "Listing" l ON l."id" = o."listingId"
+      JOIN "CollectionItem" ci ON ci."id" = l."collectionItemId"
+      WHERE o."status" = 'PROPOSED' AND (o."proposerId" = ${userId} OR ci."userId" = ${userId})
       ORDER BY o."id"
-      FOR UPDATE
+      FOR UPDATE OF o
     `;
+
+    return this.cancelByIds(
+      open.map((offer) => offer.id),
+      reason,
+      db,
+    );
   }
 }

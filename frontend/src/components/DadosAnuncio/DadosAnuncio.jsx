@@ -21,7 +21,11 @@ export default function DadosAnuncio({ anuncio }) {
       <dl className={s.especificacoes}>
         <div><dt>Versão</dt><dd>{variante(anuncio.item)}</dd></div>
         <div><dt>Condição</dt><dd>{CONDICOES[anuncio.item.condition]}</dd></div>
-        <div><dt>{anuncio.status === "ACTIVE" ? "Disponíveis" : "Quantidade anunciada"}</dt><dd>{anuncio.quantity} {anuncio.quantity === 1 ? "cópia" : "cópias"}</dd></div>
+        {anuncio.status === "IN_TRADE" ? (
+          <div><dt>Disponíveis</dt><dd>Nenhuma no momento</dd></div>
+        ) : (
+          <div><dt>{anuncio.status === "ACTIVE" ? "Disponíveis" : "Quantidade anunciada"}</dt><dd>{anuncio.quantity} {anuncio.quantity === 1 ? "cópia" : "cópias"}</dd></div>
+        )}
       </dl>
       {anuncio.description && <div className={s.descricaoAnuncio}><h2>Sobre esta carta</h2><p>{anuncio.description}</p></div>}
       <p className={s.suave}>Anúncio publicado em {formatarData(anuncio.createdAt)}</p>

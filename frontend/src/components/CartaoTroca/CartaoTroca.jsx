@@ -3,7 +3,15 @@ import { useAcao } from "../../hooks/useAcao";
 import { useConfirmacao } from "../../hooks/useConfirmacao";
 import { avisarQuePendenciasMudaram } from "../../hooks/usePendencias";
 import s from "../../styles/paginas.module.css";
-import { CONDICOES, STATUS_TROCA, descreverCartas, formatarData, proximoPassoTroca, variante } from "../../utils/rotulos";
+import {
+  CONDICOES,
+  STATUS_TROCA,
+  confirmacoesDaTroca,
+  descreverCartas,
+  formatarData,
+  proximoPassoTroca,
+  variante,
+} from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
 import MiniaturaCarta from "../MiniaturaCarta/MiniaturaCarta";
 
@@ -32,6 +40,8 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
   const dou = troca.items.filter((item) => item.from === eu.username);
   const recebo = troca.items.filter((item) => item.to === eu.username);
   const emAndamento = troca.status === "PROPOSED";
+  const { euConfirmei, parceiroConfirmou } = confirmacoesDaTroca(troca, souDonoDoAnuncio);
+  const podeConfirmar = emAndamento && !euConfirmei;
 
   async function agir(fn, mensagem) {
     const { ok } = await acao.executar(() => fn(troca.id), mensagem);
@@ -40,20 +50,24 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
     onMudou();
   }
 
-  async function concluir() {
+  async function confirmarRecebimento() {
     const confirmou = await pedir({
-      titulo: `Concluir a troca com @${parceiro.username}?`,
-      mensagem: `As cartas mudam de dono agora e não dá para desfazer. Você dá: ${descreverCartas(dou)}. Você recebe: ${descreverCartas(recebo)}.`,
-      textoConfirmar: "Concluir troca",
+      titulo: "Confirmar que recebeu as cartas?",
+      mensagem: `Você dá: ${descreverCartas(dou)}. Você recebe: ${descreverCartas(recebo)}. Quando você e @${parceiro.username} confirmarem, as cartas mudam de dono e não dá para desfazer.`,
+      textoConfirmar: "Confirmar recebimento",
       textoCancelar: "Voltar",
     });
-    if (confirmou) agir(acceptTrade, "Troca concluída: as cartas mudaram de dono.");
+    if (!confirmou) return;
+    const mensagem = parceiroConfirmou
+      ? "Troca concluída: as cartas mudaram de dono."
+      : `Recebimento confirmado. Aguardando @${parceiro.username} confirmar.`;
+    agir(acceptTrade, mensagem);
   }
 
   async function recusar() {
     const confirmou = await pedir({
       titulo: "Recusar a troca?",
-      mensagem: "As cartas reservadas voltam a ficar disponíveis.",
+      mensagem: "As cartas reservadas voltam a ficar disponíveis e ninguém recebe nada.",
       textoConfirmar: "Recusar troca",
       textoCancelar: "Voltar",
       perigo: true,
@@ -64,7 +78,7 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
   async function cancelar() {
     const confirmou = await pedir({
       titulo: "Cancelar a troca?",
-      mensagem: "As cartas reservadas voltam a ficar disponíveis.",
+      mensagem: "As cartas reservadas voltam a ficar disponíveis e ninguém recebe nada.",
       textoConfirmar: "Cancelar troca",
       textoCancelar: "Voltar",
       perigo: true,
@@ -73,7 +87,7 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
   }
 
   return (
-    <div className={s.cartaoNegociacao} data-pendente={souDonoDoAnuncio && emAndamento} data-cy="cartao-troca">
+    <div className={s.cartaoNegociacao} data-pendente={podeConfirmar} data-cy="cartao-troca">
       <div className={s.acoes}>
         <span className={s.status}>{STATUS_TROCA[troca.status]}</span>
         <span className={s.suave}>
@@ -82,7 +96,7 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
         </span>
       </div>
       <p className={s.proximoPasso}>
-        {proximoPassoTroca({ status: troca.status, souDonoDoAnuncio, parceiro: parceiro.username })}
+        {proximoPassoTroca({ status: troca.status, euConfirmei, parceiroConfirmou, parceiro: parceiro.username })}
       </p>
 
       <div className={s.linhaCartas}>
@@ -92,30 +106,18 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
       </div>
 
       <div className={s.acoes}>
+        {podeConfirmar && (
+          <button className={s.botao} disabled={acao.ocupado} onClick={confirmarRecebimento}>
+            Confirmar recebimento
+          </button>
+        )}
         {souDonoDoAnuncio && emAndamento && (
-          <>
-            <button
-              className={s.botao}
-              disabled={acao.ocupado}
-              onClick={concluir}
-            >
-              Concluir troca
-            </button>
-            <button
-              className={s.botaoPerigo}
-              disabled={acao.ocupado}
-              onClick={recusar}
-            >
-              Recusar
-            </button>
-          </>
+          <button className={s.botaoPerigo} disabled={acao.ocupado} onClick={recusar}>
+            Recusar troca
+          </button>
         )}
         {!souDonoDoAnuncio && emAndamento && (
-          <button
-            className={s.botaoPerigo}
-            disabled={acao.ocupado}
-            onClick={cancelar}
-          >
+          <button className={s.botaoPerigo} disabled={acao.ocupado} onClick={cancelar}>
             Cancelar troca
           </button>
         )}

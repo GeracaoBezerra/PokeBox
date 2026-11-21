@@ -123,26 +123,43 @@ describe('PATCH /offers/:id/status (RN-06)', () => {
     expect(again.status).toBe(422);
   });
 
-  test('oferta aceita que não virou troca pode ser cancelada por quem fez', async () => {
+  test('fechar o anúncio cancela as ofertas abertas com o motivo anúncio fechado', async () => {
     const owner = await registerUser(ctx.app);
     const proposer = await registerUser(ctx.app);
-    const { offer } = await acceptedOffer(ctx.app, owner, proposer);
-
-    const res = await request(ctx.app).patch(`/offers/${offer.id}/status`).set(bearer(proposer)).send({ status: 'CANCELED' });
-
-    expect(res.status).toBe(200);
-    expect(res.body.data.offer.status).toBe('CANCELED');
-  });
-
-  test('fechar o anúncio cancela as ofertas abertas e as aceitas sem troca', async () => {
-    const owner = await registerUser(ctx.app);
-    const proposer = await registerUser(ctx.app);
-    const { listing, offer } = await acceptedOffer(ctx.app, owner, proposer);
+    const listing = await openListing(owner);
+    const offer = await makeOffer(ctx.app, proposer, listing.id, [{ collectionItemId: (await oakOf(proposer)).id, quantity: 1 }]);
 
     await request(ctx.app).patch(`/listings/${listing.id}`).set(bearer(owner)).send({ status: 'CLOSED' }).expect(200);
     const res = await request(ctx.app).get(`/offers/${offer.id}`).set(bearer(proposer));
 
-    expect(res.body.data.offer.status).toBe('CANCELED');
+    expect(res.body.data.offer).toMatchObject({ status: 'CANCELED', cancelReason: 'LISTING_CLOSED', onHold: false });
+  });
+
+  test('bloquear o anúncio (ADMIN) cancela as abertas com o motivo anúncio bloqueado', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const admin = await loginSeedUser(ctx.app, 'admin');
+    const listing = await openListing(owner);
+    const offer = await makeOffer(ctx.app, proposer, listing.id, [{ collectionItemId: (await oakOf(proposer)).id, quantity: 1 }]);
+
+    await request(ctx.app).patch(`/listings/${listing.id}`).set(bearer(admin)).send({ status: 'BLOCKED' }).expect(200);
+    const res = await request(ctx.app).get(`/offers/${offer.id}`).set(bearer(proposer));
+
+    expect(res.body.data.offer).toMatchObject({ status: 'CANCELED', cancelReason: 'LISTING_BLOCKED' });
+  });
+
+  test('anúncio em troca não recebe oferta nova (422)', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const late = await registerUser(ctx.app);
+    const { listing } = await acceptedOffer(ctx.app, owner, proposer);
+
+    const res = await request(ctx.app)
+      .post(`/listings/${listing.id}/offers`)
+      .set(bearer(late))
+      .send({ quantity: 1, items: [{ collectionItemId: (await oakOf(late)).id, quantity: 1 }] });
+
+    expect(res.status).toBe(422);
   });
 });
 
@@ -181,5 +198,22 @@ describe('GET /offers', () => {
     await makeOffer(ctx.app, proposer, listing.id, [{ collectionItemId: oak.id, quantity: 1 }]);
 
     await request(ctx.app).delete(`/collection/${oak.id}`).set(bearer(proposer)).expect(409);
+  });
+
+  test('oferta recusada guarda as cartas oferecidas, mesmo depois de o item sair da coleção', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const listing = await openListing(owner);
+    const oak = await oakOf(proposer);
+    const offer = await makeOffer(ctx.app, proposer, listing.id, [{ collectionItemId: oak.id, quantity: 1 }]);
+
+    await request(ctx.app).patch(`/offers/${offer.id}/status`).set(bearer(owner)).send({ status: 'REJECTED' }).expect(200);
+    await request(ctx.app).delete(`/collection/${oak.id}`).set(bearer(proposer)).expect(204);
+
+    const after = (await request(ctx.app).get(`/offers/${offer.id}`).set(bearer(owner))).body.data.offer;
+    expect(after.status).toBe('REJECTED');
+    expect(after.items).toEqual([
+      expect.objectContaining({ collectionItemId: null, quantity: 1, card: expect.objectContaining({ id: PROFESSOR_OAK }) }),
+    ]);
   });
 });

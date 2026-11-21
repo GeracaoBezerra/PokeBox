@@ -85,7 +85,6 @@ function ListaPropostas({ filtros, painel }) {
             <CartaoOferta
               oferta={oferta}
               recebida={aba === "recebidas"}
-              virouTroca={oferta.hasTrade}
               atualizando={atualizando}
               onMudou={lista.atualizarCarregadas}
             />
@@ -135,7 +134,8 @@ export default function MyOffersPage() {
   return (
     <div className={s.pagina}>
       <CabecalhoPagina titulo="Propostas">
-        Acompanhe as ofertas de cartas que você recebeu e enviou.
+        Acompanhe as ofertas de cartas que você recebeu e enviou. Quando o dono aceita, a troca nasce e as cartas ficam
+        reservadas.
       </CabecalhoPagina>
 
       <Aviso sucesso={aviso} />

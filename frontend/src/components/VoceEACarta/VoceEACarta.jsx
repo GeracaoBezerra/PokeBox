@@ -8,6 +8,12 @@ import Aviso from "../Aviso/Aviso";
 import AnunciarCarta from "../AnunciarCarta/AnunciarCarta";
 import ConfirmModal from "../ConfirmModal/ConfirmModal";
 
+const FRASE_MEU_ANUNCIO = {
+  ACTIVE: "Você tem um anúncio ativo desta carta.",
+  PAUSED: "Você tem um anúncio pausado desta carta.",
+  IN_TRADE: "Você tem um anúncio em troca desta carta.",
+};
+
 export default function VoceEACarta({ card, lang, user, onMudou, atualizando = false }) {
   const [modalAberto, setModalAberto] = useState(false);
   const wishlist = useAcao();
@@ -40,7 +46,7 @@ export default function VoceEACarta({ card, lang, user, onMudou, atualizando = f
       </div>
       {meuAnuncio && (
         <p className={s.suave}>
-          {meuAnuncio.status === "PAUSED" ? "Você tem um anúncio pausado desta carta." : "Você tem um anúncio ativo desta carta."}
+          {FRASE_MEU_ANUNCIO[meuAnuncio.status] ?? FRASE_MEU_ANUNCIO.ACTIVE}
         </p>
       )}
       <div className={s.acoes}>

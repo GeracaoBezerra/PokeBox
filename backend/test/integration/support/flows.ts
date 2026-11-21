@@ -62,18 +62,25 @@ export async function createTrade(app: Express, user: TestUser, offerId: string)
   return res.body.data.trade;
 }
 
+export async function confirmTrade(app: Express, user: TestUser, tradeId: string) {
+  const res = await request(app).post(`/trades/${tradeId}/accept`).set(bearer(user));
+  expectStatus(res, 200, 'POST /trades/:id/accept');
+  return res.body.data.trade;
+}
+
 export interface Negotiation {
   ownerItem: { id: string };
   proposerItem: { id: string };
   listing: { id: string };
-  offer: { id: string };
+  offer: { id: string; tradeId: string };
+  tradeId: string;
 }
 
 export async function acceptedOffer(app: Express, owner: TestUser, proposer: TestUser): Promise<Negotiation> {
   const ownerItem = await addItem(app, owner, { cardId: CHARIZARD });
   const proposerItem = await addItem(app, proposer, { cardId: PROFESSOR_OAK, finish: 'NORMAL', quantity: 2 });
   const listing = await createListing(app, owner, ownerItem.id);
-  const offer = await makeOffer(app, proposer, listing.id, [{ collectionItemId: proposerItem.id, quantity: 2 }]);
-  await setOfferStatus(app, owner, offer.id, 'ACCEPTED');
-  return { ownerItem, proposerItem, listing, offer };
+  const proposed = await makeOffer(app, proposer, listing.id, [{ collectionItemId: proposerItem.id, quantity: 2 }]);
+  const offer = await setOfferStatus(app, owner, proposed.id, 'ACCEPTED');
+  return { ownerItem, proposerItem, listing, offer, tradeId: offer.tradeId };
 }

@@ -14,12 +14,12 @@ import { STATUS_TROCA } from "../utils/rotulos";
 
 const VAZIO = {
   recebidas: {
-    texto: "Nenhuma troca recebida. Elas aparecem quando alguém cria a troca a partir de uma oferta que você aceitou.",
+    texto: "Nenhuma troca recebida. Elas aparecem quando você aceita uma oferta num anúncio seu.",
     para: "/propostas",
     link: "Ver propostas",
   },
   enviadas: {
-    texto: "Você ainda não criou trocas. Crie a partir de uma oferta aceita.",
+    texto: "Nenhuma troca enviada. Elas aparecem quando o dono aceita uma oferta sua.",
     para: "/propostas?aba=enviadas",
     link: "Ver propostas enviadas",
   },
@@ -40,8 +40,8 @@ export default function SwitchNegociationPage() {
   return (
     <div className={s.pagina}>
       <CabecalhoPagina titulo="Trocas">
-        Recebidas: trocas nos seus anúncios (você conclui ou recusa). Enviadas: trocas que você criou a partir de uma
-        oferta aceita (você pode cancelar). Enquanto a troca está em andamento, as cartas ficam reservadas.
+        Recebidas: trocas nos seus anúncios (você pode recusar). Enviadas: trocas das suas ofertas aceitas (você pode
+        cancelar). As cartas ficam reservadas até os dois confirmarem o recebimento; aí elas mudam de dono.
       </CabecalhoPagina>
 
       <AbasNegociacao

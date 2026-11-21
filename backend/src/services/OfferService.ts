@@ -1,8 +1,9 @@
+import { AppError } from '../errors/AppError.js';
 import { ConflictError, NotFoundError } from '../errors/domainErrors.js';
 import type { OfferStatus } from '../generated/prisma/index.js';
 import type { ListingReader, ListingWithItem } from '../repositories/ListingRepository.js';
 import type { OfferRepository, OfferWithDetails } from '../repositories/OfferRepository.js';
-import type { UnitOfWorkFactory } from '../repositories/UnitOfWork.js';
+import type { TradeUnitOfWork, UnitOfWorkFactory } from '../repositories/UnitOfWork.js';
 import type { CreateOfferInput, OfferStatusChange } from '../schemas/offer.schema.js';
 import { isListingVisible, type ListingViewer } from '../utils/listingRules.js';
 import { toPage, toSkipTake, type ListSide, type Page, type PageParams } from '../utils/pagination.js';
@@ -11,10 +12,10 @@ import {
   assertListingActive,
   assertOfferItem,
   assertStatusChange,
-  assertStillFulfillable,
   toOfferResponse,
   type OfferResponse,
 } from '../utils/offerRules.js';
+import type { OpenTradeInput, TradeOpener } from './TradeOpener.js';
 
 export type OfferReader = Pick<OfferRepository, 'findById' | 'findSent' | 'findReceived'>;
 
@@ -22,6 +23,7 @@ export interface OfferServiceDeps {
   listings: ListingReader;
   offers: OfferReader;
   unitOfWork: UnitOfWorkFactory;
+  opener: Pick<TradeOpener, 'open'>;
 }
 
 export type OfferView = OfferResponse<OfferWithDetails['listing']['collectionItem']['card']>;
@@ -31,7 +33,6 @@ export interface MyOffers {
   received: OfferView[];
 }
 
-const RELEASES_ITEMS: readonly OfferStatus[] = ['REJECTED', 'CANCELED'];
 const OFFER_NOT_FOUND = 'Oferta não encontrada';
 const LISTING_NOT_FOUND = 'Anúncio não encontrado';
 const ITEM_NOT_FOUND = 'Item da coleção não encontrado';
@@ -44,9 +45,11 @@ function assertCanReceiveOffers(
   listing: ListingWithItem | null,
   user: ListingViewer,
 ): asserts listing is ListingWithItem {
-  if (!listing || !isListingVisible(listing, user) || listing.status !== 'ACTIVE') {
-    throw new NotFoundError(LISTING_NOT_FOUND);
+  if (!listing || !isListingVisible(listing, user)) throw new NotFoundError(LISTING_NOT_FOUND);
+  if (listing.status === 'IN_TRADE') {
+    throw new AppError(422, 'Este anúncio está em troca com outra pessoa e não recebe ofertas agora');
   }
+  if (listing.status !== 'ACTIVE') throw new NotFoundError(LISTING_NOT_FOUND);
 }
 
 export class OfferService {
@@ -125,7 +128,7 @@ export class OfferService {
         nextStatus === 'ACCEPTED'
           ? await uow.lockItemsInOrder([
               found.listing.collectionItemId,
-              ...found.items.map((item) => item.collectionItemId),
+              ...found.items.flatMap((item) => (item.collectionItemId ? [item.collectionItemId] : [])),
             ])
           : null;
 
@@ -140,27 +143,29 @@ export class OfferService {
         nextStatus,
         isProposer: locked.proposerId === userId,
         isListingOwner: listing.collectionItem.userId === userId,
-        hasTrade: locked.status === 'ACCEPTED' && Boolean(await uow.trades.findByOfferId(id)),
       });
 
-      if (lockedItems) {
-        assertListingActive(listing);
-        assertStillFulfillable({
-          offerQuantity: found.quantity,
-          listing,
-          offeredItems: found.items.map((item) => {
-            const lockedItem = lockedItems.get(item.collectionItemId);
-            if (!lockedItem) throw new NotFoundError(ITEM_NOT_FOUND);
-            return { item: lockedItem, requested: item.quantity };
-          }),
-        });
-      }
+      if (lockedItems) return this.acceptIntoTrade(uow, id, listing, lockedItems);
 
-      if (RELEASES_ITEMS.includes(nextStatus)) await uow.offers.deleteItems(id);
-
-      return uow.offers.updateStatus(id, nextStatus);
+      return uow.offers.updateStatus(id, nextStatus, undefined, nextStatus === 'CANCELED' ? 'PROPOSER' : null);
     });
 
     return toOfferResponse(offer);
+  }
+
+  private async acceptIntoTrade(
+    uow: TradeUnitOfWork,
+    id: string,
+    listing: ListingWithItem,
+    locked: OpenTradeInput['locked'],
+  ): Promise<OfferWithDetails> {
+    assertListingActive(listing);
+
+    const accepted = await uow.offers.updateStatus(id, 'ACCEPTED');
+    await this.deps.opener.open(uow, { offer: accepted, listing, locked });
+
+    const offer = await uow.offers.findById(id);
+    if (!offer) throw new NotFoundError(OFFER_NOT_FOUND);
+    return offer;
   }
 }
