@@ -90,6 +90,17 @@ describe("Catálogo: mensagens da busca", () => {
     expect(await screen.findByText("Cartas de Base Set, Base Set 2")).toBeInTheDocument();
   });
 
+  it("nome do set com palavra ignorada avisa o que ficou de fora e mostra as cartas do set", async () => {
+    apiDoCatalogo(() => ({ ...pagina([charizard]), search: { name: null, sets: ["Base Set"], ignored: ["xyz"] } }));
+
+    renderizar("/catalogo?name=base%20xyz");
+
+    const aviso = await screen.findByText(/Não achamos tudo que você digitou \(xyz\)/);
+    expect(aviso).toHaveTextContent("Não achamos tudo que você digitou (xyz). Mostrando as cartas de Base Set.");
+    expect(aviso.closest('[role="status"]')).not.toBeNull();
+    expect(screen.getByText("Cartas de Base Set")).toBeInTheDocument();
+  });
+
   it("sem resultado: mostra o termo, Limpar busca volta para Todas as cartas e não mostra a paginação", async () => {
     const pedidos = apiDoCatalogo((params) =>
       params.get("name") ? { ...pagina([]), search: { name: null, sets: [], ignored: ["pipipopo"] } } : pagina([charizard])
