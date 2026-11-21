@@ -121,7 +121,7 @@ export default function CatalogPage() {
   const infoBusca = carregando ? null : dados?.search ?? null;
   const setsReconhecidos = infoBusca?.sets ?? [];
   const palavrasIgnoradas = infoBusca?.ignored ?? [];
-  const buscaParcial = Boolean(palavrasIgnoradas.length && infoBusca?.name && dados?.items.length);
+  const buscaParcial = Boolean(palavrasIgnoradas.length && (infoBusca?.name || setsReconhecidos.length) && dados?.items.length);
   const paginaVazia = Boolean(dados) && dados.items.length === 0;
   const session = useSession();
   const navigate = useNavigate();
@@ -257,9 +257,15 @@ export default function CatalogPage() {
           <div role="status">
             {buscaParcial && (
               <p className={s.dicaBusca}>
-                Não achamos tudo que você digitou ({palavrasIgnoradas.join(", ")}). Mostrando resultados para{" "}
-                <strong>“{infoBusca.name}”</strong>
-                {setsReconhecidos.length > 0 && ` em ${setsReconhecidos.join(", ")}`}.
+                Não achamos tudo que você digitou ({palavrasIgnoradas.join(", ")}).{" "}
+                {infoBusca.name ? (
+                  <>
+                    Mostrando resultados para <strong>“{infoBusca.name}”</strong>
+                    {setsReconhecidos.length > 0 && ` em ${setsReconhecidos.join(", ")}`}.
+                  </>
+                ) : (
+                  `Mostrando as cartas de ${setsReconhecidos.join(", ")}.`
+                )}
               </p>
             )}
           </div>
