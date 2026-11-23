@@ -2,10 +2,12 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Heart, Plus, X } from "lucide-react";
 import { searchCards } from "../../api/cards";
 import { addToWishlist } from "../../api/wishlist";
+import { useSession } from "../../auth/useSession";
 import blastoise from "../../assets/cards/blastoise.webp";
 import charizard from "../../assets/cards/charizard.webp";
 import { useAcao } from "../../hooks/useAcao";
 import { useListaPaginada } from "../../hooks/useListaPaginada";
+import { useMinhasCartas } from "../../hooks/useMinhasCartas";
 import { IDIOMAS, IDIOMA_PADRAO } from "../../utils/idioma";
 import v from "../../styles/vitrine.module.css";
 import Aviso from "../Aviso/Aviso";
@@ -25,7 +27,9 @@ function BuscaCartas({ itens, onAdicionar, acao, inputRef }) {
     (page) => buscar ? searchCards({ name: termo, lang, page, limit: 15 }) : Promise.resolve(null),
     JSON.stringify({ termo, lang }),
   );
-  const cadastradas = new Set(itens.map((item) => item.cardId));
+  const { minhas } = useMinhasCartas(useSession());
+  const cadastradas = new Set([...itens.map((item) => item.cardId), ...(minhas?.naWishlist.keys() ?? [])]);
+  const comUnidade = minhas?.comUnidade ?? new Set();
 
   useEffect(() => {
     if (typeof ResizeObserver !== "function") return undefined;
@@ -71,6 +75,7 @@ function BuscaCartas({ itens, onAdicionar, acao, inputRef }) {
               <ul className={s.resultados} role="list">
                 {lista.itens.map((carta) => {
                   const naWishlist = cadastradas.has(carta.id);
+                  const jaTem = !naWishlist && comUnidade.has(carta.id);
                   const expansao = [carta.set?.name, carta.number].filter(Boolean).join(" · ");
                   return (
                     <li className={s.resultado} key={carta.id}>
@@ -84,14 +89,20 @@ function BuscaCartas({ itens, onAdicionar, acao, inputRef }) {
                       <button
                         type="button"
                         className={s.acao}
-                        disabled={naWishlist || acao.ocupado}
-                        aria-label={naWishlist ? `${carta.name} já está na wishlist` : `Adicionar ${carta.name} à wishlist`}
+                        disabled={naWishlist || jaTem || acao.ocupado}
+                        aria-label={
+                          naWishlist
+                            ? `${carta.name} já está na wishlist`
+                            : jaTem
+                              ? `Você já tem ${carta.name} na coleção`
+                              : `Adicionar ${carta.name} à wishlist`
+                        }
                         onClick={() => {
                           setTentouAdicionar(true);
                           onAdicionar(carta.id, lang);
                         }}
                       >
-                        {naWishlist ? "Na wishlist" : "Adicionar"}
+                        {naWishlist ? "Na wishlist" : jaTem ? "Você já tem" : "Adicionar"}
                       </button>
                     </li>
                   );

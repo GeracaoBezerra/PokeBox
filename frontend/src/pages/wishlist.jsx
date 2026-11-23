@@ -1,35 +1,94 @@
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
+import { useSearchParams } from "react-router-dom";
+import { SearchX } from "lucide-react";
+import { getCardFilters } from "../api/cards";
 import { listWishlist, removeFromWishlist } from "../api/wishlist";
+import AdicionarNaColecao from "../components/AdicionarNaColecao/AdicionarNaColecao";
 import AdicionarWishlist from "../components/AdicionarWishlist/AdicionarWishlist";
 import Aviso from "../components/Aviso/Aviso";
-import CabecalhoPagina from "../components/CabecalhoPagina/CabecalhoPagina";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import FiltrosWishlist from "../components/FiltrosWishlist/FiltrosWishlist";
 import GradeCartas, { ItemGrade } from "../components/GradeCartas/GradeCartas";
 import ItemWishlist from "../components/ItemWishlist/ItemWishlist";
+import Paginacao from "../components/Paginacao/Paginacao";
+import SelosFiltro from "../components/SelosFiltro/SelosFiltro";
 import { useAcao } from "../hooks/useAcao";
 import { useCarregar } from "../hooks/useCarregar";
 import { useConfirmacao } from "../hooks/useConfirmacao";
-import s from "../styles/paginas.module.css";
+import s from "../styles/vitrine.module.css";
+import { LIMITE_BUSCA } from "../utils/busca";
+import {
+  CAMPOS_FILTRO_WISHLIST,
+  ORDENACOES_WISHLIST,
+  POR_PAGINA,
+  filtrosDaWishlist,
+  rotuloDoSeloWishlist,
+} from "../utils/wishlist";
 
 const porNome = new Intl.Collator("pt-BR");
+const VAZIOS = Object.fromEntries(CAMPOS_FILTRO_WISHLIST.map((campo) => [campo, ""]));
 
 function podeAnimar(elemento) {
   return typeof elemento?.animate === "function" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+async function animarSaida(elemento) {
+  if (!elemento?.isConnected || !podeAnimar(elemento)) return;
+  const saida = elemento.animate(
+    [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.96)" }],
+    { duration: 180, easing: "ease-in", fill: "forwards" },
+  );
+  await saida.finished.catch(() => {});
+}
+
 export default function WishlistPage() {
-  const { dados, erro, carregando, recarregar } = useCarregar(listWishlist);
-  const [itensAtualizados, setItensAtualizados] = useState(null);
-  const itens = itensAtualizados ?? dados;
+  const [params, setParams] = useSearchParams();
+  const { q, type, rarity, sort, page, buscaCurta, buscaLonga, qApi } = filtrosDaWishlist(params);
+  const filtrosApi = { q: qApi, type, rarity, sort };
+  const { dados, erro, carregando: buscando, recarregando, recarregar } = useCarregar(
+    () => listWishlist({ ...filtrosApi, page, limit: POR_PAGINA }),
+    JSON.stringify({ ...filtrosApi, page }),
+  );
+  const raridades = useCarregar(async () => (await getCardFilters("en")).rarities ?? [], "en");
+  const [local, setLocal] = useState({ base: null, itens: null });
+  const itens = dados ? (local.base === dados ? local.itens : dados.items) : null;
+  const carregando = buscando && !(recarregando && itens);
+  const [conseguiu, setConseguiu] = useState(null);
   const acao = useAcao();
   const { pedir } = useConfirmacao();
   const grade = useRef(null);
   const adicionar = useRef(null);
 
+  const painel = { q, type, rarity };
+  const selos = CAMPOS_FILTRO_WISHLIST.filter((campo) => painel[campo]).map((campo) => ({
+    campo,
+    rotulo: rotuloDoSeloWishlist(campo, painel[campo]),
+  }));
+  const temFiltro = Boolean(qApi || type || rarity);
+  const temProxima = Boolean(dados?.pagination?.hasNextPage);
+  const vazia = Boolean(itens) && itens.length === 0;
+  const paginaVazia = vazia && page > 1;
+  const semResultado = vazia && temFiltro && !paginaVazia;
+
+  function atualizar(mudancas, reiniciarPagina = true) {
+    const novos = new URLSearchParams(params);
+    for (const [campo, valor] of Object.entries(mudancas)) {
+      if (valor) novos.set(campo, String(valor));
+      else novos.delete(campo);
+    }
+    if (reiniciarPagina) novos.delete("page");
+    setParams(novos);
+  }
+
+  function limparFiltros() {
+    atualizar(VAZIOS);
+  }
+
   function atualizarGrade(atualizar) {
     const elemento = grade.current;
-    const atualizarItens = () => setItensAtualizados((atuais) => atualizar(atuais ?? dados));
+    const atualizarItens = () =>
+      setLocal((atual) => ({ base: dados, itens: atualizar(atual.base === dados ? atual.itens : dados.items) }));
     if (!podeAnimar(elemento)) {
       atualizarItens();
       return;
@@ -51,6 +110,18 @@ export default function WishlistPage() {
     }
   }
 
+  async function tirarDaGrade(item, elemento) {
+    if (page > 1 && itens.every((atual) => atual.id === item.id)) {
+      atualizar({ page: page - 1 }, false);
+      return;
+    }
+    await animarSaida(elemento);
+    const foco = document.activeElement;
+    if (elemento?.contains(foco) || foco === document.body) adicionar.current?.focus();
+    atualizarGrade((atuais) => atuais.filter((atual) => atual.id !== item.id));
+    if (temProxima) recarregar();
+  }
+
   async function remover(item, elemento) {
     const confirmou = await pedir({
       titulo: `Remover ${item.card.name} da wishlist?`,
@@ -61,47 +132,132 @@ export default function WishlistPage() {
 
     await acao.executar(async () => {
       await removeFromWishlist(item.id);
-      if (elemento?.isConnected && podeAnimar(elemento)) {
-        const saida = elemento.animate(
-          [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.96)" }],
-          { duration: 180, easing: "ease-in", fill: "forwards" },
-        );
-        await saida.finished.catch(() => {});
-      }
-      const foco = document.activeElement;
-      if (elemento?.contains(foco) || foco === document.body) adicionar.current?.focus();
-      atualizarGrade((atuais) => atuais.filter((atual) => atual.id !== item.id));
+      await tirarDaGrade(item, elemento);
     }, `${item.card.name} saiu da wishlist.`, { tipo: "aviso" });
   }
 
+  async function adicionouNaColecao() {
+    const { item, elemento } = conseguiu;
+    flushSync(() => setConseguiu(null));
+    await tirarDaGrade(item, elemento);
+  }
+
   function adicionou(item) {
+    if (temFiltro || sort || page > 1 || temProxima) {
+      recarregar();
+      return;
+    }
     atualizarGrade((atuais) => [item, ...atuais.filter((atual) => atual.id !== item.id)]
       .sort((a, b) => porNome.compare(a.card.name, b.card.name)));
   }
 
   return (
     <div className={s.pagina}>
-      <CabecalhoPagina titulo="Wishlist">
-        Cartas que você procura. As oportunidades indicam quantos outros colecionadores têm a carta pública e disponível.
-      </CabecalhoPagina>
+      <header className={s.cabecalho}>
+        <span className={s.eyebrow}>Cartas que você procura</span>
+        <h1>Wishlist</h1>
+        <p>Salve as cartas que você quer e veja quantos colecionadores têm cada uma pública e disponível para troca.</p>
+      </header>
+      <div className={s.barra}>
+        <label className={s.campo}>
+          Ordenar por
+          <select value={sort} onChange={(evento) => atualizar({ sort: evento.target.value })}>
+            <option value="">{ORDENACOES_WISHLIST.name}</option>
+            <option value="recent">{ORDENACOES_WISHLIST.recent}</option>
+          </select>
+        </label>
+      </div>
+      <div className={s.layout}>
+        <FiltrosWishlist
+          filtros={painel}
+          raridades={raridades}
+          onAlterar={(campo, valor) => atualizar({ [campo]: valor })}
+          onLimpar={limparFiltros}
+          onAplicar={atualizar}
+        />
+        <section className={s.resultados} aria-label="Cartas da wishlist">
+          <div className={s.resumo}>
+            <p>
+              {qApi ? (
+                <>
+                  Resultados para <strong>“{qApi}”</strong>
+                </>
+              ) : (
+                "Todas as cartas da wishlist"
+              )}
+            </p>
+            <span>
+              {buscando
+                ? "Carregando a wishlist…"
+                : itens
+                  ? `${itens.length} ${itens.length === 1 ? "carta" : "cartas"} nesta página`
+                  : ""}
+            </span>
+          </div>
+          {buscaCurta && <p className={s.dica}>Digite pelo menos 2 letras ou números para buscar pelo nome.</p>}
+          {buscaLonga && <p className={s.dica}>A busca aceita até {LIMITE_BUSCA} caracteres.</p>}
+          <SelosFiltro selos={selos} onRemover={(campo) => atualizar({ [campo]: "" })} onLimpar={limparFiltros} />
+          <Aviso erro={erro} onTentarDeNovo={recarregar} />
+          <Aviso erro={acao.erro} />
+          {carregando && <GradeCartas carregando total={POR_PAGINA + 1} variante="catalogo" />}
 
-      <Aviso erro={erro} onTentarDeNovo={recarregar} />
-      <Aviso erro={acao.erro} />
-      {carregando && <CarregandoCartas />}
-      {!carregando && itens && itens.length === 0 && <p className={s.suave}>Sua wishlist está vazia.</p>}
+          {!carregando && semResultado && (
+            <div className={s.vazio}>
+              <SearchX size={32} aria-hidden="true" />
+              <h2>Nenhuma carta da wishlist bate com esses filtros</h2>
+              <p>Tente outro nome ou tire algum filtro.</p>
+              <button type="button" className={s.botao} onClick={limparFiltros}>
+                Limpar filtros
+              </button>
+            </div>
+          )}
 
-      {!carregando && itens && (
-        <GradeCartas ref={grade}>
-          <ItemGrade>
-            <AdicionarWishlist botaoRef={adicionar} itens={itens} onAdicionou={adicionou} />
-          </ItemGrade>
-          {itens.map((item) => (
-            <ItemGrade key={item.id}>
-              <ItemWishlist item={item} ocupado={acao.ocupado} onRemover={remover} />
-            </ItemGrade>
-          ))}
-        </GradeCartas>
-      )}
+          {!carregando && paginaVazia && (
+            <div className={s.vazio}>
+              <SearchX size={32} aria-hidden="true" />
+              <h2>Não há cartas nesta página</h2>
+              <button type="button" className={s.botao} onClick={() => atualizar({ page: "" }, false)}>
+                Voltar para a primeira página
+              </button>
+            </div>
+          )}
+
+          {!carregando && itens && !semResultado && !paginaVazia && (
+            <>
+              {vazia && <p className={s.dicaBusca}>Sua wishlist está vazia. Adicione uma carta para começar.</p>}
+              <GradeCartas ref={grade} variante="catalogo">
+                <ItemGrade>
+                  <AdicionarWishlist botaoRef={adicionar} itens={itens} onAdicionou={adicionou} />
+                </ItemGrade>
+                {itens.map((item) => (
+                  <ItemGrade key={item.id}>
+                    <ItemWishlist
+                      item={item}
+                      ocupado={acao.ocupado}
+                      onRemover={remover}
+                      onJaConsegui={(alvo, elemento) => setConseguiu({ item: alvo, elemento })}
+                    />
+                  </ItemGrade>
+                ))}
+              </GradeCartas>
+              {(page > 1 || temProxima) && (
+                <Paginacao pagina={page} temProxima={temProxima} onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)} />
+              )}
+            </>
+          )}
+        </section>
+      </div>
+      <ConfirmModal
+        aberto={Boolean(conseguiu)}
+        titulo={conseguiu ? `Adicionar ${conseguiu.item.card.name} à coleção` : ""}
+        mensagem="A carta entra na sua coleção e sai da wishlist."
+        textoCancelar="Fechar"
+        onCancelar={() => setConseguiu(null)}
+      >
+        {conseguiu && (
+          <AdicionarNaColecao carta={conseguiu.item.card} onAdicionado={adicionouNaColecao} />
+        )}
+      </ConfirmModal>
     </div>
   );
 }
