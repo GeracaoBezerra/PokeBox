@@ -11,3 +11,4 @@ export { default as MyListingsPage } from "./myListings.jsx";
 export { default as MyOffersPage } from "./myOffers.jsx";
 export { default as SwitchNegociationPage } from "./switchNegociation.jsx";
 export { default as UserPerfilPage } from "./userPerfil.jsx";
+export { default as NotFoundPage } from "./notFound.jsx";
