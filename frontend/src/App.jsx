@@ -11,6 +11,7 @@ import {
   MyCollectionPage,
   MyListingsPage,
   MyOffersPage,
+  NotFoundPage,
   PublicPerfilPage,
   RegisterPage,
   SwitchNegociationPage,
@@ -23,7 +24,6 @@ function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/catalogo" element={<CatalogPage />} />
@@ -41,6 +41,7 @@ function App() {
           <Route path="/trocas" element={<SwitchNegociationPage />} />
           <Route path="/perfil" element={<UserPerfilPage />} />
         </Route>
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   );
