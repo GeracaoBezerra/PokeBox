@@ -241,6 +241,7 @@ describe("Página da wishlist", () => {
     expect(screen.queryByRole("dialog", { name: "Adicionar Pikachu à coleção" })).not.toBeInTheDocument();
     expect(adicoes).toEqual([expect.objectContaining({ cardId: "base1-58", quantity: 1, lang: "pt" })]);
     expect(pedidos).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Adicionar carta à wishlist" })).toHaveFocus();
   });
 
   it("Já consegui em carta que não existe em português usa a versão em inglês", async () => {

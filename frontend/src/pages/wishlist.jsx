@@ -138,7 +138,7 @@ export default function WishlistPage() {
 
   async function adicionouNaColecao() {
     const { item, elemento } = conseguiu;
-    setConseguiu(null);
+    flushSync(() => setConseguiu(null));
     await tirarDaGrade(item, elemento);
   }
 
