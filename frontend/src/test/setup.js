@@ -5,12 +5,14 @@ import { server } from "./server";
 
 if (!HTMLDialogElement.prototype.showModal) {
   HTMLDialogElement.prototype.showModal = function showModal() {
+    this.__focoAnterior = document.activeElement;
     this.setAttribute("open", "");
     this.addEventListener("keydown", this.__escapePolyfill ?? (this.__escapePolyfill = escapePolyfill));
   };
   HTMLDialogElement.prototype.close = function close() {
     if (!this.open) return;
     this.removeAttribute("open");
+    if (this.contains(document.activeElement) && this.__focoAnterior?.isConnected) this.__focoAnterior.focus();
     this.dispatchEvent(new Event("close"));
   };
 }

@@ -46,6 +46,27 @@ describe("useCarregar", () => {
     expect(carregar).toHaveBeenCalledTimes(2);
   });
 
+  it("recarregar a mesma chave mantém os dados antigos e avisa que é um recarregamento; chave nova não", async () => {
+    const segunda = promessaNaMao();
+    const carregar = vi.fn().mockResolvedValueOnce(["pikachu"]).mockReturnValueOnce(segunda.promessa).mockResolvedValue(["mew"]);
+    const { result, rerender } = renderHook(({ chave }) => useCarregar(carregar, chave), { initialProps: { chave: "a" } });
+    expect(result.current.recarregando).toBe(false);
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    act(() => result.current.recarregar());
+
+    expect(result.current.recarregando).toBe(true);
+    expect(result.current.dados).toEqual(["pikachu"]);
+    await act(async () => segunda.resolver(["pikachu", "eevee"]));
+    expect(result.current.recarregando).toBe(false);
+
+    rerender({ chave: "b" });
+
+    expect(result.current.carregando).toBe(true);
+    expect(result.current.recarregando).toBe(false);
+    await waitFor(() => expect(result.current.dados).toEqual(["mew"]));
+  });
+
   it("durante o recarregamento depois de um erro, o erro antigo some", async () => {
     const segunda = promessaNaMao();
     const carregar = vi.fn().mockRejectedValueOnce(new Error("fora do ar")).mockReturnValueOnce(segunda.promessa);
