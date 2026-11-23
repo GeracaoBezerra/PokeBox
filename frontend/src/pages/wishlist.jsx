@@ -46,13 +46,14 @@ export default function WishlistPage() {
   const [params, setParams] = useSearchParams();
   const { q, type, rarity, sort, page, buscaCurta, buscaLonga, qApi } = filtrosDaWishlist(params);
   const filtrosApi = { q: qApi, type, rarity, sort };
-  const { dados, erro, carregando, recarregar } = useCarregar(
+  const { dados, erro, carregando: buscando, recarregando, recarregar } = useCarregar(
     () => listWishlist({ ...filtrosApi, page, limit: POR_PAGINA }),
     JSON.stringify({ ...filtrosApi, page }),
   );
   const raridades = useCarregar(async () => (await getCardFilters("en")).rarities ?? [], "en");
   const [local, setLocal] = useState({ base: null, itens: null });
   const itens = dados ? (local.base === dados ? local.itens : dados.items) : null;
+  const carregando = buscando && !(recarregando && itens);
   const [conseguiu, setConseguiu] = useState(null);
   const acao = useAcao();
   const { pedir } = useConfirmacao();
@@ -67,8 +68,8 @@ export default function WishlistPage() {
   const temFiltro = Boolean(qApi || type || rarity);
   const temProxima = Boolean(dados?.pagination?.hasNextPage);
   const vazia = Boolean(itens) && itens.length === 0;
-  const semResultado = vazia && temFiltro;
-  const paginaVazia = vazia && !temFiltro && page > 1;
+  const paginaVazia = vazia && page > 1;
+  const semResultado = vazia && temFiltro && !paginaVazia;
 
   function atualizar(mudancas, reiniciarPagina = true) {
     const novos = new URLSearchParams(params);
@@ -117,11 +118,8 @@ export default function WishlistPage() {
     await animarSaida(elemento);
     const foco = document.activeElement;
     if (elemento?.contains(foco) || foco === document.body) adicionar.current?.focus();
-    if (temProxima) {
-      recarregar();
-      return;
-    }
     atualizarGrade((atuais) => atuais.filter((atual) => atual.id !== item.id));
+    if (temProxima) recarregar();
   }
 
   async function remover(item, elemento) {
@@ -189,7 +187,7 @@ export default function WishlistPage() {
               )}
             </p>
             <span>
-              {carregando
+              {buscando
                 ? "Carregando a wishlist…"
                 : itens
                   ? `${itens.length} ${itens.length === 1 ? "carta" : "cartas"} nesta página`

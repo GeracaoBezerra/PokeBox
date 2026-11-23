@@ -328,6 +328,21 @@ describe("Página da wishlist", () => {
     expect(pedidos.at(-1)).toEqual({ page: "1", limit: "23" });
   });
 
+  it("página que não existe, mesmo com filtro, mostra Não há cartas nesta página e volta para a primeira", async () => {
+    const pedidos = servidor({
+      pagina: (params) => (params.get("page") === "1" ? lista([charizard], { page: 1, hasNextPage: false }) : lista([], { page: 9, hasNextPage: false })),
+    });
+    renderizar("/procuro?type=Fire&page=9");
+
+    expect(await screen.findByRole("heading", { name: "Não há cartas nesta página" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Nenhuma carta da wishlist bate com esses filtros" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Voltar para a primeira página" }));
+
+    expect(await screen.findByRole("heading", { name: "Charizard" })).toBeInTheDocument();
+    expect(pedidos.at(-1)).toEqual({ type: "Fire", page: "1", limit: "23" });
+  });
+
   it("pagina pela API e mantém o card de adicionar em todas as páginas", async () => {
     const pedidos = servidor({
       pagina: (params) =>
@@ -406,6 +421,19 @@ describe("Página da wishlist", () => {
       expect(screen.queryByRole("heading", { name: "Carta 24" })).not.toBeInTheDocument();
       expect(pedidos.map((pedido) => pedido.page)).toEqual(["1", "1", "2"]);
     }
+
+    it("ao remover, a grade fica na tela enquanto a página recarrega e o foco vai para o card de adicionar", async () => {
+      servidorDe25Cartas();
+      renderizar();
+
+      const carta = (await screen.findByRole("heading", { name: "Carta 01" })).closest("article");
+      await userEvent.click(within(carta).getByRole("button", { name: "Remover" }));
+      await userEvent.click(within(screen.getByRole("dialog", { name: "Remover Carta 01 da wishlist?" })).getByRole("button", { name: "Remover carta" }));
+
+      expect(screen.getByRole("heading", { name: "Carta 02" })).toBeInTheDocument();
+      expect(await screen.findByRole("heading", { name: "Carta 24" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Adicionar carta à wishlist" })).toHaveFocus();
+    });
 
     it("ao remover", async () => {
       const pedidos = servidorDe25Cartas();
