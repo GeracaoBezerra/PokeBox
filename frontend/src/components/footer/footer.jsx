@@ -119,7 +119,7 @@ export default function Footer() {
             </SocialLink>
 
             <SocialLink
-              href="https://github.com/"
+              href="https://github.com/GeracaoBezerra/PokeBox"
               label="GitHub da PokeBox"
             >
               <GithubIcon />
