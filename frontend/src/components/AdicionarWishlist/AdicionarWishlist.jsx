@@ -1,14 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Heart, Plus, X } from "lucide-react";
+import { Heart, X } from "lucide-react";
 import { addToWishlist } from "../../api/wishlist";
 import { useSession } from "../../auth/useSession";
-import blastoise from "../../assets/cards/blastoise.webp";
-import charizard from "../../assets/cards/charizard.webp";
 import { useAcao } from "../../hooks/useAcao";
 import { useMinhasCartas } from "../../hooks/useMinhasCartas";
 import v from "../../styles/vitrine.module.css";
 import BuscaCartas from "../BuscaCartas/BuscaCartas";
-import cartao from "../ItemWishlist/ItemWishlist.module.css";
+import CartaoAdicionar from "../CartaoAdicionar/CartaoAdicionar";
 import s from "./AdicionarWishlist.module.css";
 
 function BuscaWishlist({ itens, onAdicionar, acao, inputRef }) {
@@ -44,7 +42,6 @@ export default function AdicionarWishlist({ botaoRef, itens, onAdicionou }) {
   const busca = useRef(null);
   const dialogoId = useId();
   const tituloId = useId();
-  const instrucaoId = useId();
   const acao = useAcao();
 
   useEffect(() => {
@@ -75,29 +72,15 @@ export default function AdicionarWishlist({ botaoRef, itens, onAdicionou }) {
 
   return (
     <>
-      <button
-        ref={botaoRef}
-        type="button"
-        className={`${cartao.item} ${s.adicionar}`}
-        aria-label="Adicionar carta à wishlist"
-        aria-describedby={instrucaoId}
+      <CartaoAdicionar
+        botaoRef={botaoRef}
+        titulo="Adicionar carta à wishlist"
+        instrucao="Busque no catálogo e salve as cartas que você procura."
         aria-haspopup="dialog"
         aria-expanded={aberto}
         aria-controls={dialogoId}
         onClick={() => { setSessao((valor) => valor + 1); setAberto(true); }}
-      >
-        <span className={s.arte} aria-hidden="true">
-          <span className={`${s.figura} ${s.figuraSuperior}`}><img src={charizard} alt="" /></span>
-          <span className={`${s.figura} ${s.figuraInferior}`}><img src={blastoise} alt="" /></span>
-          <span className={s.maisArte}><Plus size={32} /></span>
-        </span>
-        <span className={cartao.painel}>
-          <span className={cartao.identidade}>
-            <span className={cartao.nome}>Adicionar carta à wishlist</span>
-            <span id={instrucaoId} className={s.instrucao}>Busque no catálogo e salve as cartas que você procura.</span>
-          </span>
-        </span>
-      </button>
+      />
 
       <dialog
         ref={dialogo}

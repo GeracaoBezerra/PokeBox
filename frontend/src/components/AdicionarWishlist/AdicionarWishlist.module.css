@@ -1,85 +1,3 @@
-.adicionar {
-  width: 100%;
-  background: transparent;
-  color: var(--texto);
-  text-align: left;
-}
-
-.arte {
-  position: relative;
-  display: grid;
-  width: 100%;
-  aspect-ratio: var(--carta-proporcao);
-  place-items: center;
-  isolation: isolate;
-  overflow: hidden;
-  background: radial-gradient(ellipse at center, #505751, #272f2b 75%);
-  border: 1px solid color-mix(in srgb, var(--texto-suave) 42%, transparent);
-  border-radius: var(--raio-carta);
-  box-shadow: var(--sombra-carta);
-}
-
-.figura {
-  position: absolute;
-  width: 88%;
-  aspect-ratio: 1.45;
-  overflow: hidden;
-  border-radius: var(--raio-botao);
-  filter: grayscale(1);
-  opacity: 0.4;
-}
-
-.figura img {
-  position: absolute;
-  top: -27%;
-  left: -10%;
-  width: 120%;
-  max-width: none;
-}
-
-.figuraSuperior {
-  top: 5%;
-  left: -13%;
-  transform: rotate(-13deg);
-}
-
-.figuraInferior {
-  right: -14%;
-  bottom: 5%;
-  transform: rotate(13deg);
-}
-
-.maisArte {
-  z-index: 1;
-  display: grid;
-  width: clamp(3rem, 6vw, 4rem);
-  aspect-ratio: 1;
-  place-items: center;
-  background: var(--superficie-funda);
-  color: var(--acento);
-  border: 1px solid color-mix(in srgb, var(--acento) 72%, transparent);
-  border-radius: 50%;
-  box-shadow: var(--sombra-md);
-  transition: background-color var(--tempo-rapido), color var(--tempo-rapido);
-}
-
-.adicionar:is(:hover, :focus-visible) .arte {
-  border-color: var(--acento);
-}
-
-.adicionar:is(:hover, :focus-visible) .maisArte {
-  background: var(--acento);
-  color: var(--acento-texto);
-}
-
-.instrucao {
-  display: block;
-  margin-top: var(--esp-4);
-  color: var(--texto-suave);
-  font-size: var(--fs-sm);
-  line-height: var(--lh-xs);
-}
-
 .modal.modal {
   width: min(880px, calc(100% - var(--esp-32)));
   opacity: 0;
@@ -124,6 +42,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .modal.modal,
-  .modal::backdrop,
-  .maisArte { transition: none; }
+  .modal::backdrop { transition: none; }
 }

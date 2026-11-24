@@ -47,6 +47,9 @@
 .visao button:hover { color: var(--texto); background: var(--superficie-hover); }
 .visao button[aria-pressed="true"] { background: var(--acento); color: var(--acento-texto); }
 
+.adicionar { margin-left: auto; }
+.adicionar + .visao { margin-left: 0; }
+
 .anuncio { display: grid; gap: var(--esp-16); }
 
 .suave {
@@ -58,6 +61,6 @@
 .suave strong { color: var(--texto); }
 
 @media (max-width: 600px) {
-  .cabecalho > button { width: 100%; }
   .visao { margin-left: 0; }
+  .adicionar { order: 1; width: 100%; }
 }

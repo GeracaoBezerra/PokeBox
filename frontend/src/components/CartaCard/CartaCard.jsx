@@ -51,7 +51,7 @@ function Linha({ rotulo, children }) {
 // estadoLink: state repassado ao Link (ex.: { deMarketplace: true }).
 // painel: passe false para esconder o painel (por exemplo, enquanto os dados
 // completos da carta ainda não chegaram).
-export default function CartaCard({ carta, lang, link, estadoLink, painel = true, acoes }) {
+export default function CartaCard({ carta, lang, link, estadoLink, painel = true, detalhes = [], acoes }) {
   const { id, name: nome, rarity: raridade, illustrator: artista, types } = carta;
 
   const src = carta.image?.small ?? carta.imageUrl ?? null;
@@ -69,7 +69,7 @@ export default function CartaCard({ carta, lang, link, estadoLink, painel = true
   const temDados = Boolean(tipo || raridade || set || numeroTexto || artista);
   const wishlistCount = carta.wishlistCount;
   const tradeCount = carta.tradeCount;
-  const temPainel = temDados || wishlistCount != null || tradeCount != null;
+  const temPainel = temDados || wishlistCount != null || tradeCount != null || detalhes.length > 0;
 
   return (
     // Sem tipo, usa o "incolor" (cinza neutro) para o painel manter fundo e borda
@@ -90,7 +90,7 @@ export default function CartaCard({ carta, lang, link, estadoLink, painel = true
         {/* Painel de dados: é só um resumo visual, os mesmos dados estarão
             na página da carta. */}
         {painel && temPainel && (
-          <div className={styles.painel} aria-hidden="true">
+          <div className={`${styles.painel} ${detalhes.length > 0 ? styles.denso : ""}`} aria-hidden="true">
             <p className={styles.nome}>{nome}</p>
 
             <dl className={styles.lista}>
@@ -105,6 +105,11 @@ export default function CartaCard({ carta, lang, link, estadoLink, painel = true
               {artista && <Linha rotulo="Artista">{artista}</Linha>}
               {wishlistCount != null && <Linha rotulo="Wishlists">{wishlistCount}</Linha>}
               {tradeCount != null && <Linha rotulo="Unidades trocadas">{tradeCount}</Linha>}
+              {detalhes.map(([rotulo, valor]) => (
+                <Linha key={rotulo} rotulo={rotulo}>
+                  {valor}
+                </Linha>
+              ))}
             </dl>
           </div>
         )}

@@ -7,8 +7,10 @@ import { idDaAba } from "../components/Abas/idDaAba";
 import Atualizando from "../components/Atualizando/Atualizando";
 import Aviso from "../components/Aviso/Aviso";
 import CabecalhoPagina from "../components/CabecalhoPagina/CabecalhoPagina";
-import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import CartaMeuAnuncio from "../components/CartaMeuAnuncio/CartaMeuAnuncio";
+import EditarAnuncio from "../components/EditarAnuncio/EditarAnuncio";
+import GradeCartas, { ItemGrade } from "../components/GradeCartas/GradeCartas";
+import ModalColecao from "../components/ModalColecao/ModalColecao";
 import NovoAnuncio from "../components/NovoAnuncio/NovoAnuncio";
 import { useCarregar } from "../hooks/useCarregar";
 import s from "../styles/paginas.module.css";
@@ -56,6 +58,7 @@ export default function MyListingsPage() {
   const { dados: anuncios, erro, carregando, primeiraCarga, recarregar } = useCarregar(listMyListings);
   const [params, setParams] = useSearchParams();
   const [criando, setCriando] = useState(false);
+  const [editando, setEditando] = useState(null);
   const aba = abaDaUrl(params.get("status"));
   const contagem = anuncios ? contagemPorAba(anuncios) : {};
   const daAba = anuncios ? anunciosDaAba(anuncios, aba) : [];
@@ -91,20 +94,33 @@ export default function MyListingsPage() {
 
       <section id={PAINEL} role="tabpanel" aria-labelledby={idDaAba(PAINEL, aba)} className={m.painel}>
         <Aviso erro={erro} onTentarDeNovo={recarregar} />
-        {primeiraCarga && <CarregandoCartas formato="tabela" total={4} />}
+        {primeiraCarga && <GradeCartas carregando total={4} />}
         {!primeiraCarga && anuncios && daAba.length === 0 && <SemAnuncios aba={aba} onNovo={() => setCriando(true)} />}
         {!primeiraCarga && daAba.length > 0 && (
           <Atualizando atualizando={carregando}>
-            <ul className={m.lista} role="list" aria-label="Lista de anúncios">
+            <GradeCartas>
               {daAba.map((anuncio) => (
-                <li key={chaveDoAnuncio(anuncio)}>
-                  <CartaMeuAnuncio anuncio={anuncio} onMudou={recarregar} />
-                </li>
+                <ItemGrade key={chaveDoAnuncio(anuncio)}>
+                  <CartaMeuAnuncio anuncio={anuncio} onEditar={setEditando} onMudou={recarregar} />
+                </ItemGrade>
               ))}
-            </ul>
+            </GradeCartas>
           </Atualizando>
         )}
       </section>
+
+      <ModalColecao aberto={Boolean(editando)} titulo="Editar anúncio" onFechar={() => setEditando(null)}>
+        {editando && (
+          <EditarAnuncio
+            key={chaveDoAnuncio(editando)}
+            anuncio={editando}
+            onSalvo={() => {
+              setEditando(null);
+              recarregar();
+            }}
+          />
+        )}
+      </ModalColecao>
 
       <NovoAnuncio aberto={criando} anuncios={anuncios ?? []} onFechar={() => setCriando(false)} onCriado={criou} />
     </div>

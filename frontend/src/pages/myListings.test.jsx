@@ -101,7 +101,7 @@ describe("Página Meus anúncios", () => {
     expect(screen.getByRole("tab", { name: "Pausados (1)" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Encerrados (2)" })).toBeInTheDocument();
     expect(await cartao("Starmie")).toBeInTheDocument();
-    expect(within(await cartao("Venusaur")).getByText("Em troca")).toBeInTheDocument();
+    expect(within(await cartao("Venusaur")).getByText("Em troca", { selector: "span" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Psyduck" })).not.toBeInTheDocument();
     expect(screen.getByRole("tabpanel", { name: "Ativos (2)" })).toBeInTheDocument();
   });
@@ -130,45 +130,48 @@ describe("Página Meus anúncios", () => {
     expect(await screen.findByRole("tab", { name: "Ativos (2)" })).toHaveAttribute("aria-selected", "true");
   });
 
-  it("mostra o card com variante, condição, data, quantidade e descrição com rótulos", async () => {
+  it("mostra o card no padrão do marketplace e leva os dados do anúncio para o painel", async () => {
     servidor();
 
     renderizar();
 
     const card = within(await cartao("Starmie"));
-    expect(card.getByRole("link", { name: "Starmie" })).toHaveAttribute("href", "/marketplace/a1");
+    expect(within(card.getByRole("heading", { name: "Starmie" })).getByRole("link")).toHaveAttribute("href", "/marketplace/a1");
     expect(card.getByText("Normal · Near Mint")).toBeInTheDocument();
-    expect(card.getByText("Ativo")).toBeInTheDocument();
-    expect(card.getByText(`Criado em ${new Date("2026-11-20T10:00:00.000Z").toLocaleDateString("pt-BR")}`)).toBeInTheDocument();
-    expect(card.getByRole("spinbutton", { name: "Quantidade do anúncio de Starmie" })).toHaveValue(2);
-    expect(card.getByRole("textbox", { name: "Descrição do anúncio de Starmie" })).toHaveValue("Starmie em bom estado");
-    expect(card.getByRole("button", { name: "Salvar" })).toBeDisabled();
+    expect(card.getByText("2 para troca")).toBeInTheDocument();
+    expect(card.queryByRole("spinbutton")).not.toBeInTheDocument();
+    expect(card.queryByRole("textbox")).not.toBeInTheDocument();
+    const painel = (rotulo) => card.getByText(rotulo, { selector: "dt" }).nextElementSibling;
+    expect(painel("Situação")).toHaveTextContent("Ativo");
+    expect(painel("Para troca")).toHaveTextContent("2");
+    expect(painel("Criado em")).toHaveTextContent(new Date("2026-11-20T10:00:00.000Z").toLocaleDateString("pt-BR"));
+    expect(card.getByRole("button", { name: "Editar" })).toBeEnabled();
+    expect(card.getByRole("button", { name: "Pausar" })).toBeEnabled();
+    expect(card.getByRole("button", { name: "Fechar" })).toBeEnabled();
   });
 
-  it("anúncio em troca só mostra quantidade e descrição, com Pausar e Fechar", async () => {
+  it("anúncio em troca não edita: mostra Em negociação, com Pausar e Fechar", async () => {
     servidor();
 
     renderizar();
 
     const card = within(await cartao("Venusaur"));
-    expect(card.queryByRole("spinbutton")).not.toBeInTheDocument();
-    expect(card.queryByRole("textbox")).not.toBeInTheDocument();
-    expect(card.queryByRole("button", { name: "Salvar" })).not.toBeInTheDocument();
-    expect(card.getByText("Venusaur em bom estado")).toBeInTheDocument();
+    expect(card.getByText("Em troca", { selector: "span" })).toBeInTheDocument();
+    expect(card.getByText("Em negociação")).toBeInTheDocument();
+    expect(card.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
     expect(card.getByRole("button", { name: "Pausar" })).toBeEnabled();
     expect(card.getByRole("button", { name: "Fechar" })).toBeEnabled();
   });
 
-  it("anúncio bloqueado mostra o selo da moderação e que volta como pausado", async () => {
+  it("anúncio bloqueado mostra o selo e que volta como pausado, sem botões", async () => {
     servidor();
 
     renderizar("/anuncios?status=encerrados");
 
     const card = within(await cartao("Mewtwo"));
-    expect(card.getByText("Bloqueado pela moderação")).toBeInTheDocument();
+    expect(card.getByText("Bloqueado", { selector: "span" })).toBeInTheDocument();
     expect(card.getByText(/Se a moderação desbloquear, ele volta como pausado/)).toBeInTheDocument();
     expect(card.queryByRole("button")).not.toBeInTheDocument();
-    expect(card.queryByRole("spinbutton")).not.toBeInTheDocument();
   });
 
   it("anúncio fechado é só leitura", async () => {
@@ -177,104 +180,137 @@ describe("Página Meus anúncios", () => {
     renderizar("/anuncios?status=encerrados");
 
     const card = within(await cartao("Gyarados"));
-    expect(card.getByText("Fechado")).toBeInTheDocument();
+    expect(card.getByText("Fechado", { selector: "span" })).toBeInTheDocument();
+    expect(card.getByText("Não pode ser reaberto.")).toBeInTheDocument();
     expect(card.queryByRole("button")).not.toBeInTheDocument();
-    expect(card.queryByRole("textbox")).not.toBeInTheDocument();
   });
 
-  it("pausado sem unidades pede a quantidade antes de reativar", async () => {
+  it("pausado mostra o selo e Ativar no lugar de Pausar", async () => {
+    servidor();
+
+    renderizar("/anuncios?status=pausados");
+
+    const card = within(await cartao("Psyduck"));
+    expect(card.getByText("Pausado", { selector: "span" })).toBeInTheDocument();
+    expect(card.getByRole("button", { name: "Ativar" })).toBeEnabled();
+    expect(card.queryByRole("button", { name: "Pausar" })).not.toBeInTheDocument();
+  });
+
+  it("pausado sem unidades explica no card e pede a quantidade no modal antes de reativar", async () => {
     servidor({ anuncios: [anuncio("p0", "Bulbasaur", { status: "PAUSED", quantity: 0 })] });
 
     renderizar("/anuncios?status=pausados");
 
     const card = within(await cartao("Bulbasaur"));
-    expect(card.getByText(/Informe a quantidade e salve para poder reativar/)).toBeInTheDocument();
     expect(card.getByRole("button", { name: "Ativar" })).toBeDisabled();
-    expect(card.getByRole("spinbutton", { name: "Quantidade do anúncio de Bulbasaur" })).toHaveAccessibleDescription("A quantidade mínima é 1.");
+    expect(card.getByRole("button", { name: "Ativar" })).toHaveAccessibleDescription("Sem unidades: edite a quantidade para reativar.");
+    await userEvent.click(card.getByRole("button", { name: "Editar" }));
+
+    const dialogo = within(screen.getByRole("dialog", { name: "Editar anúncio" }));
+    expect(dialogo.getByText(/Informe a quantidade e salve para poder reativar/)).toBeInTheDocument();
+    expect(dialogo.getByRole("spinbutton", { name: "Quantidade do anúncio de Bulbasaur" })).toHaveAccessibleDescription("A quantidade mínima é 1.");
   });
 
-  it("aumentar a quantidade salva sem pedir confirmação", async () => {
+  it("Editar abre o modal com quantidade e descrição; aumentar salva sem pedir confirmação e fecha", async () => {
     const pedidos = servidor();
 
     renderizar();
 
-    const card = within(await cartao("Starmie"));
-    const quantidade = card.getByRole("spinbutton", { name: "Quantidade do anúncio de Starmie" });
+    await userEvent.click(within(await cartao("Starmie")).getByRole("button", { name: "Editar" }));
+    const dialogo = within(screen.getByRole("dialog", { name: "Editar anúncio" }));
+    expect(dialogo.getByRole("textbox", { name: "Descrição do anúncio de Starmie" })).toHaveValue("Starmie em bom estado");
+    expect(dialogo.getByRole("button", { name: "Salvar" })).toBeDisabled();
+    const quantidade = dialogo.getByRole("spinbutton", { name: "Quantidade do anúncio de Starmie" });
+    expect(quantidade).toHaveValue(2);
     await userEvent.clear(quantidade);
     await userEvent.type(quantidade, "3");
-    await userEvent.click(card.getByRole("button", { name: "Salvar" }));
+    await userEvent.click(dialogo.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() => expect(pedidos.editados).toEqual([{ id: "a1", quantity: 3 }]));
     expect(screen.queryByRole("dialog", { name: "Diminuir a quantidade?" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Anúncio atualizado.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar anúncio" })).not.toBeInTheDocument());
+    await waitFor(() => expect(pedidos.lista).toBe(2));
   });
 
-  it("diminuir a quantidade pede confirmação avisando das ofertas em espera", async () => {
+  it("diminuir a quantidade no modal pede confirmação avisando das ofertas em espera", async () => {
     const pedidos = servidor();
 
     renderizar();
 
-    const card = within(await cartao("Starmie"));
-    const quantidade = card.getByRole("spinbutton", { name: "Quantidade do anúncio de Starmie" });
+    await userEvent.click(within(await cartao("Starmie")).getByRole("button", { name: "Editar" }));
+    const dialogo = within(screen.getByRole("dialog", { name: "Editar anúncio" }));
+    const quantidade = dialogo.getByRole("spinbutton", { name: "Quantidade do anúncio de Starmie" });
     await userEvent.clear(quantidade);
     await userEvent.type(quantidade, "1");
-    await userEvent.click(card.getByRole("button", { name: "Salvar" }));
+    await userEvent.click(dialogo.getByRole("button", { name: "Salvar" }));
 
     const confirmacao = within(await screen.findByRole("dialog", { name: "Diminuir a quantidade?" }));
     expect(confirmacao.getByText(/pedem mais de 1 unidade ficam em espera/)).toBeInTheDocument();
     await userEvent.click(confirmacao.getByRole("button", { name: "Cancelar" }));
     expect(pedidos.editados).toEqual([]);
+    expect(screen.getByRole("dialog", { name: "Editar anúncio" })).toBeInTheDocument();
 
-    await userEvent.click(card.getByRole("button", { name: "Salvar" }));
+    await userEvent.click(dialogo.getByRole("button", { name: "Salvar" }));
     await userEvent.click(within(await screen.findByRole("dialog", { name: "Diminuir a quantidade?" })).getByRole("button", { name: "Diminuir" }));
 
     await waitFor(() => expect(pedidos.editados).toEqual([{ id: "a1", quantity: 1 }]));
   });
 
-  it("o card mostra os dados novos depois de recarregar e o erro da ação fica no próprio card", async () => {
+  it("o erro ao salvar fica no modal e o card mostra os dados novos depois de recarregar", async () => {
     const pedidos = servidor({
       aoEditar: (atuais, id, corpo) => atuais.map((a) => (a.id === id ? { ...a, ...corpo, updatedAt: "2026-11-21T00:00:00.000Z" } : a)),
     });
 
     renderizar();
 
-    const card = within(await cartao("Starmie"));
-    const descricao = card.getByRole("textbox", { name: "Descrição do anúncio de Starmie" });
-    await userEvent.clear(descricao);
-    await userEvent.type(descricao, "Nova descrição");
-    await userEvent.click(card.getByRole("button", { name: "Salvar" }));
+    await userEvent.click(within(await cartao("Starmie")).getByRole("button", { name: "Editar" }));
+    let dialogo = within(screen.getByRole("dialog", { name: "Editar anúncio" }));
+    const quantidade = dialogo.getByRole("spinbutton", { name: "Quantidade do anúncio de Starmie" });
+    await userEvent.clear(quantidade);
+    await userEvent.type(quantidade, "5");
+    await userEvent.click(dialogo.getByRole("button", { name: "Salvar" }));
 
     await waitFor(() => expect(pedidos.lista).toBe(2));
-    await waitFor(() => expect(within(screen.getByRole("heading", { name: "Starmie" }).closest("article")).getByRole("button", { name: "Salvar" })).toBeDisabled());
-    const atualizado = within(await cartao("Starmie"));
-    expect(atualizado.getByRole("textbox", { name: "Descrição do anúncio de Starmie" })).toHaveValue("Nova descrição");
+    await waitFor(async () => expect(within(await cartao("Starmie")).getByText("5 para troca")).toBeInTheDocument());
 
     server.use(
       rota.patch(url("/listings/a1"), () =>
         HttpResponse.json({ success: false, error: "Quantidade acima do que você tem" }, { status: 422 }),
       ),
     );
-    const quantidade = atualizado.getByRole("spinbutton", { name: "Quantidade do anúncio de Starmie" });
-    await userEvent.clear(quantidade);
-    await userEvent.type(quantidade, "9");
-    await userEvent.click(atualizado.getByRole("button", { name: "Salvar" }));
+    await userEvent.click(within(await cartao("Starmie")).getByRole("button", { name: "Editar" }));
+    dialogo = within(screen.getByRole("dialog", { name: "Editar anúncio" }));
+    expect(dialogo.getByRole("spinbutton", { name: "Quantidade do anúncio de Starmie" })).toHaveValue(5);
+    await userEvent.type(dialogo.getByRole("textbox", { name: "Descrição do anúncio de Starmie" }), "!");
+    await userEvent.click(dialogo.getByRole("button", { name: "Salvar" }));
 
-    expect(await atualizado.findByRole("alert")).toHaveTextContent("Quantidade acima do que você tem");
-    expect(within(await cartao("Venusaur")).queryByRole("alert")).not.toBeInTheDocument();
+    expect(await dialogo.findByRole("alert")).toHaveTextContent("Quantidade acima do que você tem");
+    expect(screen.getByRole("dialog", { name: "Editar anúncio" })).toBeInTheDocument();
   });
 
-  it("quando o anúncio muda por fora, o campo mostra o valor novo depois de recarregar", async () => {
-    servidor({
-      aoEditar: (atuais) => atuais.map((a) => (a.id === "a1" ? { ...a, quantity: 1, updatedAt: "2026-11-22T00:00:00.000Z" } : a)),
-    });
+  it("Pausar no card muda o status e recarrega a lista", async () => {
+    const pedidos = servidor();
 
     renderizar();
 
-    expect(within(await cartao("Starmie")).getByRole("spinbutton", { name: "Quantidade do anúncio de Starmie" })).toHaveValue(2);
     await userEvent.click(within(await cartao("Venusaur")).getByRole("button", { name: "Pausar" }));
 
-    await waitFor(() =>
-      expect(within(screen.getByRole("heading", { name: "Starmie" }).closest("article")).getByRole("spinbutton", { name: "Quantidade do anúncio de Starmie" })).toHaveValue(1),
-    );
+    await waitFor(() => expect(pedidos.editados).toEqual([{ id: "a2", status: "PAUSED" }]));
+    expect(await screen.findByText("Anúncio pausado.")).toBeInTheDocument();
+    await waitFor(() => expect(pedidos.lista).toBe(2));
+  });
+
+  it("Fechar pede confirmação antes de encerrar", async () => {
+    const pedidos = servidor();
+
+    renderizar();
+
+    await userEvent.click(within(await cartao("Starmie")).getByRole("button", { name: "Fechar" }));
+    const confirmacao = within(await screen.findByRole("dialog", { name: "Fechar anúncio?" }));
+    await userEvent.click(confirmacao.getByRole("button", { name: "Fechar anúncio" }));
+
+    await waitFor(() => expect(pedidos.editados).toEqual([{ id: "a1", status: "CLOSED" }]));
   });
 
   it("cada aba vazia tem a sua mensagem e Ativos oferece o Novo anúncio", async () => {

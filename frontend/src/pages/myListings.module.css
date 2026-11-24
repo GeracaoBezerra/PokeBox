@@ -12,17 +12,6 @@
 
 .painel { margin-top: var(--esp-24); }
 
-.lista {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
-  gap: var(--esp-16);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.lista > li { min-width: 0; }
-
 @media (max-width: 600px) {
   .cabecalho > button { width: 100%; }
 }

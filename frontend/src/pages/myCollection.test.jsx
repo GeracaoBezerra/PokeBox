@@ -223,7 +223,7 @@ describe("Página Minha coleção", () => {
     renderizar();
 
     await cartao("Pikachu");
-    await userEvent.click(screen.getByRole("button", { name: "Adicionar carta" }));
+    await userEvent.click(screen.getByRole("button", { name: "Adicionar carta à coleção" }));
     const dialogo = within(screen.getByRole("dialog", { name: "Adicionar carta" }));
     await userEvent.type(dialogo.getByRole("searchbox", { name: "Buscar cartas" }), "pika{Enter}");
     await userEvent.click(await dialogo.findByRole("button", { name: "Escolher Pikachu" }));
@@ -256,7 +256,7 @@ describe("Página Minha coleção", () => {
     renderizar();
 
     await cartao("Pikachu");
-    await userEvent.click(screen.getByRole("button", { name: "Adicionar carta" }));
+    await userEvent.click(screen.getByRole("button", { name: "Adicionar carta à coleção" }));
     const dialogo = within(screen.getByRole("dialog", { name: "Adicionar carta" }));
     await userEvent.type(dialogo.getByRole("searchbox", { name: "Buscar cartas" }), "char{Enter}");
     await userEvent.click(await dialogo.findByRole("button", { name: "Escolher Charizard" }));
@@ -339,7 +339,7 @@ describe("Página Minha coleção", () => {
 
     expect(await screen.findByText("Pikachu saiu da sua coleção.")).toBeInTheDocument();
     expect(removidos).toEqual(["58"]);
-    expect(await screen.findByRole("heading", { name: "Sua coleção está vazia" })).toBeInTheDocument();
+    expect(await screen.findByText(/Sua coleção está vazia/)).toBeInTheDocument();
     await waitFor(() => expect(resumos).toHaveLength(2));
   });
 
@@ -388,12 +388,70 @@ describe("Página Minha coleção", () => {
     await waitFor(() => expect(pedidos).toHaveLength(2));
   });
 
-  it("coleção vazia chama para adicionar a primeira carta", async () => {
+  it("coleção vazia mostra a dica e o quadro de adicionar como primeiro da grade", async () => {
     servidor({ pagina: () => lista([]), resumo: { totalUnits: 0, distinctCards: 0, listedItems: 0 } });
     renderizar();
 
-    expect(await screen.findByRole("heading", { name: "Sua coleção está vazia" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Adicionar sua primeira carta" }));
+    expect(await screen.findByText(/Sua coleção está vazia/)).toBeInTheDocument();
+    const quadro = screen.getByRole("button", { name: "Adicionar carta à coleção" });
+    expect(quadro).toHaveAccessibleDescription("Busque no catálogo e adicione as cartas que você tem.");
+    expect(quadro.closest("li")).toBe(screen.getAllByRole("listitem")[0]);
+    await userEvent.click(quadro);
+
+    expect(screen.getByRole("dialog", { name: "Adicionar carta" })).toBeInTheDocument();
+  });
+
+  it("o card resume o item embaixo da carta e leva os dados do item para o painel", async () => {
+    servidor({
+      pagina: () =>
+        lista([
+          item("4", "Charizard", {
+            quantity: 3,
+            reservedQuantity: 1,
+            available: 2,
+            finish: "HOLO",
+            firstEdition: true,
+            isPublic: false,
+            card: { id: "base1-4", name: "Charizard", setName: "Base Set", number: "4/102", rarity: "Rare Holo", imageUrl: null },
+          }),
+          pikachu,
+        ]),
+    });
+    renderizar();
+
+    const charizard = within(await cartao("Charizard"));
+    expect(charizard.getByRole("link", { name: "Charizard" })).toHaveAttribute("href", "/cards/base1-4");
+    expect(charizard.getByText("Holo · 1ª edição · Near Mint")).toBeInTheDocument();
+    expect(charizard.getByText("3 cópias · 2 disponíveis")).toBeInTheDocument();
+    expect(charizard.getByText("Privada", { selector: "span" })).toBeInTheDocument();
+    expect(charizard.queryByRole("term")).not.toBeInTheDocument();
+    const painel = (rotulo) => charizard.getByText(rotulo, { selector: "dt" }).nextElementSibling;
+    expect(painel("Raridade")).toHaveTextContent("Rare Holo");
+    expect(painel("Quantidade")).toHaveTextContent("3");
+    expect(painel("Reservada")).toHaveTextContent("1");
+    expect(painel("Disponível")).toHaveTextContent("2");
+    expect(painel("Visibilidade")).toHaveTextContent("Privada");
+    expect(within(await cartao("Pikachu")).queryByText("Privada", { selector: "span" })).not.toBeInTheDocument();
+    expect(within(await cartao("Pikachu")).getByText("2 cópias · 2 disponíveis")).toBeInTheDocument();
+  });
+
+  it("Editar e Anunciar ficam lado a lado e Anunciar some sem cópia disponível", async () => {
+    servidor({ pagina: () => lista([item("9", "Onix", { reservedQuantity: 2, available: 0, deleteBlockedBy: "RESERVED" })]) });
+    renderizar();
+
+    const onix = within(await cartao("Onix"));
+    expect(onix.getByRole("button", { name: "Editar Onix" })).toBeEnabled();
+    expect(onix.queryByRole("button", { name: "Anunciar" })).not.toBeInTheDocument();
+    expect(onix.getByText("2 cópias · 0 disponíveis")).toBeInTheDocument();
+  });
+
+  it("na lista, o botão Adicionar carta abre o modal", async () => {
+    servidor();
+    renderizar("/colecao?visao=lista");
+
+    await screen.findByRole("table", { name: "Cartas da sua coleção" });
+    expect(screen.queryByRole("button", { name: "Adicionar carta à coleção" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Adicionar carta" }));
 
     expect(screen.getByRole("dialog", { name: "Adicionar carta" })).toBeInTheDocument();
   });

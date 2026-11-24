@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { LayoutGrid, List, Plus, SearchX, Store } from "lucide-react";
+import { LayoutGrid, List, Plus, SearchX } from "lucide-react";
 import { getCollectionSummary, listCollection, removeCollectionItem, updateCollectionItem } from "../api/collection";
 import { createListing } from "../api/listings";
 import { errosPorCampo } from "../api/mensagens";
@@ -9,6 +9,7 @@ import AdicionarCartaColecao from "../components/AdicionarCartaColecao/Adicionar
 import Atualizando from "../components/Atualizando/Atualizando";
 import Aviso from "../components/Aviso/Aviso";
 import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
+import CartaoAdicionar from "../components/CartaoAdicionar/CartaoAdicionar";
 import CartaColecao from "../components/CartaColecao/CartaColecao";
 import EditarItemColecao from "../components/EditarItemColecao/EditarItemColecao";
 import FiltrosColecao from "../components/FiltrosColecao/FiltrosColecao";
@@ -169,9 +170,6 @@ export default function MyCollectionPage() {
             </Link>
           </p>
         </div>
-        <button type="button" className={s.botao} onClick={() => setAdicionando(true)}>
-          <Plus size={18} aria-hidden="true" /> Adicionar carta
-        </button>
       </header>
       <div className={s.barra}>
         <label className={s.campo}>
@@ -181,6 +179,11 @@ export default function MyCollectionPage() {
             <option value="recent">{ORDENACOES_COLECAO.recent}</option>
           </select>
         </label>
+        {visao === "lista" && (
+          <button type="button" className={`${s.botao} ${c.adicionar}`} onClick={() => setAdicionando(true)}>
+            <Plus size={18} aria-hidden="true" /> Adicionar carta
+          </button>
+        )}
         <div className={c.visao} role="group" aria-label="Visão da coleção">
           <button
             type="button"
@@ -238,17 +241,6 @@ export default function MyCollectionPage() {
               <GradeCartas carregando total={6} variante="catalogo" />
             ))}
 
-          {!lista.primeiraCarga && colecaoVazia && (
-            <div className={s.vazio}>
-              <Store size={32} aria-hidden="true" />
-              <h2>Sua coleção está vazia</h2>
-              <p>Adicione as cartas que você tem para anunciar e trocar com outros colecionadores.</p>
-              <button type="button" className={s.botao} onClick={() => setAdicionando(true)}>
-                <Plus size={18} aria-hidden="true" /> Adicionar sua primeira carta
-              </button>
-            </div>
-          )}
-
           {!lista.primeiraCarga && semResultado && (
             <div className={s.vazio}>
               <SearchX size={32} aria-hidden="true" />
@@ -270,12 +262,25 @@ export default function MyCollectionPage() {
             </div>
           )}
 
-          {!lista.primeiraCarga && itens && !vazia && (
+          {!lista.primeiraCarga && colecaoVazia && (
+            <p className={s.dicaBusca}>Sua coleção está vazia. Adicione as cartas que você tem para anunciar e trocar.</p>
+          )}
+
+          {!lista.primeiraCarga && itens && (!vazia || (colecaoVazia && visao === "grade")) && (
             <Atualizando atualizando={lista.carregando}>
               {visao === "lista" ? (
                 <TabelaColecao itens={itens} onMudou={mudou} {...acoes} />
               ) : (
                 <GradeCartas variante="catalogo">
+                  <ItemGrade>
+                    <CartaoAdicionar
+                      titulo="Adicionar carta à coleção"
+                      instrucao="Busque no catálogo e adicione as cartas que você tem."
+                      aria-haspopup="dialog"
+                      aria-expanded={adicionando}
+                      onClick={() => setAdicionando(true)}
+                    />
+                  </ItemGrade>
                   {itens.map((item) => (
                     <ItemGrade key={chaveDoItem(item)}>
                       <CartaColecao item={item} onEditar={setEditando} {...acoes} />

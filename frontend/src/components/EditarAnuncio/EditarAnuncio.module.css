@@ -1,0 +1,21 @@
+.alerta {
+  padding: var(--esp-8) var(--esp-12);
+  border-left: 3px solid var(--aviso);
+  border-radius: var(--raio-botao);
+  background: var(--superficie-hover);
+  color: var(--texto);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-xs);
+}
+
+.descricao textarea {
+  width: 100%;
+  min-width: 0;
+  padding: var(--esp-8) var(--esp-12);
+  background: var(--superficie-funda);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-botao);
+  color: var(--texto);
+  font: inherit;
+  resize: vertical;
+}

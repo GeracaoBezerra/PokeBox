@@ -118,6 +118,14 @@
   border-bottom: 0;
 }
 
+.denso {
+  gap: var(--esp-4);
+}
+
+.denso .linha {
+  padding: 2px 0;
+}
+
 .linha dt {
   flex-shrink: 0;
   color: var(--texto-suave);
