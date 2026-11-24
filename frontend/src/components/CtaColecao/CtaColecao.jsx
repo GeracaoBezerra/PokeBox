@@ -100,6 +100,7 @@ export default function CtaColecao() {
 
   return (
     <section
+      id="como-funciona"
       className={styles.ctaSection}
       aria-labelledby="cta-colecao-titulo"
     >
@@ -130,7 +131,7 @@ export default function CtaColecao() {
             ))}
           </ol>
 
-          <Link to={session ? "/" : "/register"} className={styles.ctaButton}>
+          <Link to={session ? "/catalogo" : "/register"} className={styles.ctaButton}>
             Começar minha coleção
           </Link>
         </div>

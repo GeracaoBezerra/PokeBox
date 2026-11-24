@@ -2,18 +2,18 @@ import { ArrowUpRight, Home, Search, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import s from "./notFound.module.css";
 
-export default function NotFoundPage() {
+const TEXTO_PADRAO =
+  "O endereço pode ter mudado ou não existir. Você pode voltar para a página inicial ou procurar sua próxima carta no catálogo.";
+
+export default function NotFoundPage({ titulo = "Página não encontrada.", texto = TEXTO_PADRAO }) {
   return (
     <section className={s.pagina} aria-labelledby="titulo-nao-encontrado">
       <div className={s.conteudo}>
         <div className={s.texto}>
           <p className={s.selo}><span aria-hidden="true" /> Fora da coleção</p>
           <p className={s.codigo} aria-label="Erro 404">404</p>
-          <h1 id="titulo-nao-encontrado">Página não encontrada.</h1>
-          <p className={s.descricao}>
-            O endereço pode ter mudado ou não existir. Você pode voltar para a página inicial
-            ou procurar sua próxima carta no catálogo.
-          </p>
+          <h1 id="titulo-nao-encontrado">{titulo}</h1>
+          <p className={s.descricao}>{texto}</p>
           <nav className={s.acoes} aria-label="Para onde ir">
             <Link className={s.principal} to="/">
               <Home size={18} aria-hidden="true" />

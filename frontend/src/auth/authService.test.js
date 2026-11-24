@@ -196,4 +196,19 @@ describe("AuthService", () => {
 
     expect(ouvinte).not.toHaveBeenCalled();
   });
+
+  it("registra se a saída foi da própria pessoa e esquece ao entrar de novo", async () => {
+    const gateway = { login: vi.fn().mockResolvedValue({ token: "token-falso", user: ash }) };
+    const { service } = criarService({ gateway, token: "token-salvo", user: { name: "Ash Ketchum", username: "ash" } });
+
+    expect(service.saiuPorVontade()).toBe(false);
+    service.logout({ voluntaria: true });
+    expect(service.saiuPorVontade()).toBe(true);
+
+    await service.login({ email: "ash@pokebox.dev", password: "qualquer" });
+    expect(service.saiuPorVontade()).toBe(false);
+
+    service.logout();
+    expect(service.saiuPorVontade()).toBe(false);
+  });
 });

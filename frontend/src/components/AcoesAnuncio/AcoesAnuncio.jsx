@@ -50,7 +50,11 @@ export default function AcoesAnuncio({ anuncio, onMudou, acao: acaoDeFora }) {
           </button>
         )}
         {anuncio.status === "PAUSED" && (
-          <button className={s.botaoSecundario} disabled={acao.ocupado} onClick={() => mudar("ACTIVE", "Anúncio ativado.")}>
+          <button
+            className={s.botaoSecundario}
+            disabled={acao.ocupado || anuncio.quantity === 0}
+            onClick={() => mudar("ACTIVE", "Anúncio ativado.")}
+          >
             Ativar
           </button>
         )}

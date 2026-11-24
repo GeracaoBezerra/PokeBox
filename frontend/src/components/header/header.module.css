@@ -139,12 +139,26 @@
 
 .navegacao {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-evenly;
-  gap: var(--esp-32);
+  gap: var(--esp-8);
 
   padding-top: var(--esp-12);
   border-top: 1px solid var(--borda-suave);
+}
+
+.grupo {
+  display: contents;
+}
+
+.tituloGrupo {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .linkNav {
@@ -170,6 +184,10 @@
   background-color: color-mix(in srgb, var(--acento) 10%, transparent);
 }
 
+.ativo {
+  color: var(--acento);
+}
+
 .selo {
   display: inline-flex;
   align-items: center;
@@ -183,6 +201,24 @@
   font-size: 0.75rem;
   font-weight: var(--peso-medio);
   line-height: 1;
+}
+
+/* Tablet */
+
+@media (min-width: 769px) and (max-width: 960px) {
+  .navegacao {
+    flex-wrap: nowrap;
+    column-gap: var(--esp-4);
+  }
+
+  .linkNav {
+    padding-right: var(--esp-8);
+    padding-left: var(--esp-8);
+  }
+
+  .linkNav svg {
+    display: none;
+  }
 }
 
 /* Tablet e celular */
@@ -226,9 +262,6 @@
   .linkNav {
     min-height: var(--alvo-min);
     padding: var(--esp-12);
-
-    background-color: var(--fundo);
-    border: var(--borda-painel);
   }
 }
 

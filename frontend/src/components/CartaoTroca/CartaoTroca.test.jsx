@@ -32,6 +32,43 @@ function renderizar(props) {
 }
 
 describe("CartaoTroca", () => {
+  it("mostra os dois lados com as cartas, o selo de status e o próximo passo em destaque", () => {
+    const { cartao } = renderizar();
+    expect(within(cartao).getByRole("heading", { name: "Troca com @misty" })).toBeVisible();
+    expect(within(cartao).getByRole("link", { name: "Troca com @misty" })).toHaveAttribute("href", "/u/misty");
+    expect(within(cartao).getByText("Em andamento")).toHaveAttribute("data-status", "PROPOSED");
+    const dou = within(cartao).getByRole("region", { name: "Você dá" });
+    const recebo = within(cartao).getByRole("region", { name: "Você recebe" });
+    expect(within(dou).getByRole("link", { name: "Rowlet" })).toHaveAttribute("href", "/cards/sm1-9");
+    expect(within(recebo).getByRole("link", { name: "Psyduck" })).toHaveAttribute("href", "/cards/base1-53");
+    expect(within(cartao).getByText("Confirme quando receber as cartas.").closest("footer")).not.toBeNull();
+  });
+
+  it("do lado de quem ofertou, inverte os lados e mostra só Cancelar troca", () => {
+    const { cartao } = renderizar({ souDonoDoAnuncio: false });
+    expect(within(cartao).getByRole("heading", { name: "Troca com @ash" })).toBeVisible();
+    expect(within(within(cartao).getByRole("region", { name: "Você dá" })).getByRole("link", { name: "Psyduck" })).toBeVisible();
+    expect(within(within(cartao).getByRole("region", { name: "Você recebe" })).getByRole("link", { name: "Rowlet" })).toBeVisible();
+    expect(within(cartao).getByRole("button", { name: "Cancelar troca" })).toBeEnabled();
+    expect(within(cartao).queryByRole("button", { name: "Recusar troca" })).toBeNull();
+  });
+
+  it("um lado com várias cartas abre a galeria com todas", async () => {
+    const varias = ["Bulbasaur", "Squirtle"].map((name) => ({ ...troca.items[0], card: carta(name.toLowerCase(), name) }));
+    const { cartao } = renderizar({ troca: { ...troca, items: [...troca.items, ...varias] } });
+    const dou = within(cartao).getByRole("region", { name: "Você dá" });
+    await userEvent.click(within(dou).getByRole("button", { name: "Ver as 3 cartas" }));
+    const galeria = screen.getByRole("dialog", { name: "Você dá · 3 cartas" });
+    expect(within(galeria).getByRole("link", { name: "Squirtle" })).toBeInTheDocument();
+  });
+
+  it("troca concluída mostra o selo e a data em que terminou", () => {
+    const concluida = { ...troca, status: "ACCEPTED", completedAt: "2026-11-21T10:00:00Z" };
+    const { cartao } = renderizar({ troca: concluida });
+    expect(within(cartao).getByText("Concluída")).toHaveAttribute("data-status", "ACCEPTED");
+    expect(within(cartao).getByText(/finalizada em/)).toBeVisible();
+  });
+
   it("ninguém confirmou: as duas partes podem confirmar o recebimento", () => {
     const dono = renderizar();
     expect(within(dono.cartao).getByText("Confirme quando receber as cartas.")).toBeVisible();

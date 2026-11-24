@@ -38,6 +38,17 @@
   padding: 0 var(--esp-16) 0 var(--esp-12);
 }
 
+.botaoConta {
+  padding: 0 var(--esp-16) 0 var(--esp-4);
+}
+
+.primeiroNome {
+  max-width: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .painel {
   position: absolute;
   top: calc(100% + var(--esp-8));
@@ -84,6 +95,10 @@
   border-top: 1px solid var(--borda-suave);
 }
 
+.itemSair {
+  border-top-color: var(--borda);
+}
+
 .opcao {
   display: flex;
   align-items: center;
@@ -108,7 +123,8 @@
     background-color var(--tempo-rapido);
 }
 
-.opcao:hover {
+.opcao:hover,
+.opcao:focus-visible {
   color: var(--texto);
   background-color: var(--superficie-hover);
 }
@@ -118,8 +134,13 @@
 }
 
 @media (max-width: 768px) {
-  .botaoEntrar {
+  .botaoEntrar,
+  .botaoConta {
     padding: 0;
+  }
+
+  .primeiroNome {
+    display: none;
   }
 
   .textoEntrar {

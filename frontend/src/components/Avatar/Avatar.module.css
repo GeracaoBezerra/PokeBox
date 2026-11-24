@@ -1,0 +1,16 @@
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+
+  width: 32px;
+  height: 32px;
+  border-radius: var(--raio-pilula);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--texto) 25%, transparent);
+
+  font-family: var(--fonte-corpo);
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-semi);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}

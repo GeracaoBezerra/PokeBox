@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { http as rota, HttpResponse } from "msw";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { CONFIG } from "../config";
 import { renderWithProviders } from "../test/renderWithProviders";
@@ -83,5 +84,72 @@ describe("Página do anúncio", () => {
     expect(await screen.findByRole("heading", { name: "Você já fez uma oferta aqui" })).toBeInTheDocument();
     expect(screen.getByText(/Se a troca não acontecer, sua oferta volta a valer\./)).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Monte sua oferta" })).not.toBeInTheDocument();
+  });
+});
+
+function Destino() {
+  const location = useLocation();
+  return <p>Em {location.pathname} vindo de {location.state?.de}</p>;
+}
+
+function renderizarSemSessao(endereco) {
+  return renderWithProviders(
+    <Routes>
+      <Route path="/marketplace/:id" element={<ListingPage />} />
+      <Route path="/login" element={<Destino />} />
+      <Route path="/register" element={<Destino />} />
+    </Routes>,
+    { rota: endereco, service: criarSessaoFalsa(null) }
+  );
+}
+
+describe("Página do anúncio: não encontrado e voltar depois do login", () => {
+  it("anúncio que não existe mostra a página 404 com Anúncio não encontrado", async () => {
+    server.use(
+      rota.get(url("/listings/00000000-0000-0000-0000-000000000000"), () =>
+        HttpResponse.json({ success: false, error: "Anúncio não encontrado" }, { status: 404 })
+      )
+    );
+
+    renderizarSemSessao("/marketplace/00000000-0000-0000-0000-000000000000");
+
+    expect(await screen.findByRole("heading", { name: "Anúncio não encontrado." })).toBeInTheDocument();
+    expect(screen.getByLabelText("Erro 404")).toBeInTheDocument();
+  });
+
+  it("id que nem é um id válido também mostra a página 404", async () => {
+    server.use(
+      rota.get(url("/listings/id-que-nao-existe"), () =>
+        HttpResponse.json(
+          { success: false, error: "Dados inválidos", details: [{ field: "id", message: "Invalid UUID" }] },
+          { status: 400 }
+        )
+      )
+    );
+
+    renderizarSemSessao("/marketplace/id-que-nao-existe");
+
+    expect(await screen.findByRole("heading", { name: "Anúncio não encontrado." })).toBeInTheDocument();
+  });
+
+  it("outro erro continua com o aviso e o Tentar de novo", async () => {
+    server.use(rota.get(url("/listings/anuncio-1"), () => HttpResponse.json({ success: false, error: "Erro" }, { status: 503 })));
+
+    renderizarSemSessao("/marketplace/anuncio-1");
+
+    expect(await screen.findByRole("heading", { name: "Não foi possível carregar o anúncio" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["Entrar para negociar", "/login"],
+    ["Criar uma conta", "/register"],
+  ])("deslogado, %s leva junto o anúncio para voltar depois", async (rotulo, caminho) => {
+    server.use(rota.get(url("/listings/anuncio-1"), () => HttpResponse.json({ success: true, data: { listing: anuncio } })));
+
+    renderizarSemSessao("/marketplace/anuncio-1");
+    await userEvent.click(await screen.findByRole("link", { name: rotulo }));
+
+    expect(screen.getByText(`Em ${caminho} vindo de /marketplace/anuncio-1`)).toBeInTheDocument();
   });
 });

@@ -1,36 +1,19 @@
+import { Link } from "react-router-dom";
+import { ArrowRightLeft, UserRound } from "lucide-react";
 import { acceptTrade, cancelTrade, rejectTrade } from "../../api/trades";
 import { useAcao } from "../../hooks/useAcao";
 import { useConfirmacao } from "../../hooks/useConfirmacao";
 import { avisarQuePendenciasMudaram } from "../../hooks/usePendencias";
-import s from "../../styles/paginas.module.css";
 import {
-  CONDICOES,
   STATUS_TROCA,
   confirmacoesDaTroca,
   descreverCartas,
   formatarData,
   proximoPassoTroca,
-  variante,
 } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
-import MiniaturaCarta from "../MiniaturaCarta/MiniaturaCarta";
-
-function Lado({ titulo, itens }) {
-  return (
-    <div>
-      <div className={s.suave}>{titulo}</div>
-      <div className={s.linhaCartas}>
-        {itens.map((item, indice) => (
-          <MiniaturaCarta
-            key={`${item.card.id}-${indice}`}
-            card={item.card}
-            legendas={[`${item.quantity}× ${item.card.name}`, `${variante(item)} · ${CONDICOES[item.condition]}`]}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
+import LadoNegociacao from "../LadoNegociacao/LadoNegociacao";
+import s from "../../styles/cartaoNegociacao.module.css";
 
 export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
   const acao = useAcao();
@@ -87,42 +70,49 @@ export default function CartaoTroca({ troca, souDonoDoAnuncio, onMudou }) {
   }
 
   return (
-    <div className={s.cartaoNegociacao} data-pendente={podeConfirmar} data-cy="cartao-troca">
-      <div className={s.acoes}>
-        <span className={s.status}>{STATUS_TROCA[troca.status]}</span>
-        <span className={s.suave}>
-          com @{parceiro.username} · criada em {formatarData(troca.createdAt)}
-          {troca.completedAt && ` · finalizada em ${formatarData(troca.completedAt)}`}
-        </span>
-      </div>
-      <p className={s.proximoPasso}>
-        {proximoPassoTroca({ status: troca.status, euConfirmei, parceiroConfirmou, parceiro: parceiro.username })}
-      </p>
+    <article className={s.cartao} data-pendente={podeConfirmar} data-cy="cartao-troca">
+      <header className={s.cabecalho}>
+        <span className={s.avatar}><UserRound size={20} aria-hidden="true" /></span>
+        <div className={s.identidade}>
+          <h2><Link to={`/u/${parceiro.username}`}>Troca com @{parceiro.username}</Link></h2>
+          <p className={s.detalhes}>
+            Criada em <time dateTime={troca.createdAt}>{formatarData(troca.createdAt)}</time>
+            {troca.completedAt && <> · finalizada em <time dateTime={troca.completedAt}>{formatarData(troca.completedAt)}</time></>}
+          </p>
+        </div>
+        <span className={s.status} data-status={troca.status}>{STATUS_TROCA[troca.status]}</span>
+      </header>
 
-      <div className={s.linhaCartas}>
-        <Lado titulo="Você dá" itens={dou} />
-        <span aria-hidden="true">⇄</span>
-        <Lado titulo="Você recebe" itens={recebo} />
+      <div className={s.comparacao}>
+        <LadoNegociacao titulo="Você dá" itens={dou} />
+        <ArrowRightLeft className={s.setas} size={18} aria-hidden="true" />
+        <LadoNegociacao titulo="Você recebe" itens={recebo} />
       </div>
 
-      <div className={s.acoes}>
-        {podeConfirmar && (
-          <button className={s.botao} disabled={acao.ocupado} onClick={confirmarRecebimento}>
-            Confirmar recebimento
-          </button>
-        )}
-        {souDonoDoAnuncio && emAndamento && (
-          <button className={s.botaoPerigo} disabled={acao.ocupado} onClick={recusar}>
-            Recusar troca
-          </button>
-        )}
-        {!souDonoDoAnuncio && emAndamento && (
-          <button className={s.botaoPerigo} disabled={acao.ocupado} onClick={cancelar}>
-            Cancelar troca
-          </button>
-        )}
-      </div>
       <Aviso erro={acao.erro} />
-    </div>
+
+      <footer className={s.rodape}>
+        <p className={`${s.contexto} ${s.proximoPasso}`}>
+          {proximoPassoTroca({ status: troca.status, euConfirmei, parceiroConfirmou, parceiro: parceiro.username })}
+        </p>
+        <div className={s.acoes}>
+          {souDonoDoAnuncio && emAndamento && (
+            <button type="button" className={s.perigo} disabled={acao.ocupado} onClick={recusar}>
+              Recusar troca
+            </button>
+          )}
+          {!souDonoDoAnuncio && emAndamento && (
+            <button type="button" className={s.perigo} disabled={acao.ocupado} onClick={cancelar}>
+              Cancelar troca
+            </button>
+          )}
+          {podeConfirmar && (
+            <button type="button" className={s.primaria} disabled={acao.ocupado} onClick={confirmarRecebimento}>
+              Confirmar recebimento
+            </button>
+          )}
+        </div>
+      </footer>
+    </article>
   );
 }

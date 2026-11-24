@@ -78,6 +78,11 @@
 .botao,
 .botaoSecundario,
 .botaoPerigo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-8);
+  min-height: var(--alvo-min);
   border-radius: 6px;
   padding: 8px 14px;
   font: inherit;
@@ -157,12 +162,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--esp-16);
   }
-}
-
-.gradeNegociacoes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
-  gap: 16px;
 }
 
 .cartaMini {
@@ -275,34 +274,6 @@
   color: var(--texto-suave);
 }
 
-.cartaoNegociacao {
-  background: var(--superficie);
-  border: 1px solid var(--borda-suave);
-  border-radius: 10px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.cartaoNegociacao[data-pendente="true"] {
-  border-color: var(--acento);
-  box-shadow: inset 4px 0 0 var(--acento);
-}
-
-.proximoPasso {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--texto-suave);
-}
-
-.linhaCartas {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
 .abas {
   display: flex;
   flex-wrap: wrap;
@@ -320,8 +291,19 @@
 
 .link {
   color: var(--acento);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .tabela td.campo {
   display: table-cell;
+}
+
+.somenteLeitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

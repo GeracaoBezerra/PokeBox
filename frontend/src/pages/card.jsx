@@ -1,4 +1,4 @@
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowDown } from "lucide-react";
 import { getCard } from "../api/cards";
 import { useSession } from "../auth/useSession";
@@ -9,6 +9,8 @@ import FormColecao from "../components/FormColecao/FormColecao";
 import PalcoCarta from "../components/PalcoCarta/PalcoCarta";
 import VoceEACarta from "../components/VoceEACarta/VoceEACarta";
 import { useCarregar } from "../hooks/useCarregar";
+import { recursoNaoEncontrado } from "../utils/naoEncontrado";
+import NotFoundPage from "./notFound";
 import { IDIOMA_PADRAO, buscarComReserva } from "../utils/idioma";
 import s from "../styles/detalheCarta.module.css";
 
@@ -26,6 +28,17 @@ export default function CardPage() {
   const dados = resposta?.dados;
   const lang = (atual && resposta.lang) || langPedido || IDIOMA_PADRAO;
   const catalogo = `/catalogo?lang=${encodeURIComponent(lang)}`;
+  const location = useLocation();
+  const origem = { de: location.pathname + location.search };
+
+  if (recursoNaoEncontrado(erro)) {
+    return (
+      <NotFoundPage
+        titulo="Carta não encontrada."
+        texto="Esta carta não está no catálogo ou o endereço está errado. Procure por ela no catálogo ou volte para a página inicial."
+      />
+    );
+  }
 
   return (
     <div className={s.pagina}>
@@ -63,7 +76,7 @@ export default function CardPage() {
                 <div className={s.convite}>
                   <h2>Sua próxima carta começa aqui</h2>
                   <p>Entre para guardar na coleção, adicionar à wishlist e negociar com outros colecionadores.</p>
-                  <div className={s.acoes}><Link className={s.botao} to="/login">Entrar na minha conta</Link><Link className={s.link} to="/register">Criar uma conta</Link></div>
+                  <div className={s.acoes}><Link className={s.botao} to="/login" state={origem}>Entrar na minha conta</Link><Link className={s.link} to="/register" state={origem}>Criar uma conta</Link></div>
                 </div>
               )}
             </div>

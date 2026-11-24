@@ -1,0 +1,27 @@
+.acoes { display: grid; gap: var(--esp-4, 4px); min-width: 0; }
+.linha { display: flex; gap: var(--esp-8); align-items: center; }
+.motivo { margin: 0; max-width: 18ch; color: var(--texto-suave); font-size: var(--fs-xs); line-height: var(--lh-xs); }
+.semQuebra { white-space: nowrap; }
+
+.icone {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--alvo-min);
+  height: var(--alvo-min);
+  padding: 0;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-botao, 6px);
+  background: transparent;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.icone:not(:disabled):is(:hover, :focus-visible) { background: var(--superficie-hover); }
+.icone:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.salvar { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); }
+.salvar:not(:disabled):is(:hover, :focus-visible) { background: var(--acento-hover); }
+
+.perigo { color: var(--erro); border-color: color-mix(in srgb, var(--erro) 55%, transparent); }
+.perigo:not(:disabled):is(:hover, :focus-visible) { background: var(--erro-fundo); }

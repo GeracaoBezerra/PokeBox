@@ -1,0 +1,12 @@
+.area {
+  min-width: 0;
+  transition: opacity var(--tempo-rapido);
+}
+
+.area[aria-busy="true"] {
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .area { transition: none; }
+}

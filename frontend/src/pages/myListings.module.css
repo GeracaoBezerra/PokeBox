@@ -1,0 +1,17 @@
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-16) var(--esp-24);
+  margin-bottom: var(--esp-24);
+}
+
+.textos { min-width: 0; flex: 1 1 20rem; }
+.textos > p { margin-bottom: 0; }
+
+.painel { margin-top: var(--esp-24); }
+
+@media (max-width: 600px) {
+  .cabecalho > button { width: 100%; }
+}

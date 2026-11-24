@@ -132,3 +132,55 @@ describe("Catálogo: mensagens da busca", () => {
     expect(pedidos.at(-1).get("name")).toBe("pikachu");
   });
 });
+
+describe("Catálogo: recarregar sem piscar", () => {
+  const blastoise = { ...charizard, id: "base1-2", name: "Blastoise", number: "2" };
+
+  it("ao trocar de página, a lista antiga fica na tela apagada até a nova chegar", async () => {
+    let liberar;
+    const segunda = new Promise((resolver) => {
+      liberar = resolver;
+    });
+    server.use(
+      rota.get(url("/cards/filters"), () => HttpResponse.json({ success: true, data: opcoes })),
+      rota.get(url("/cards"), async ({ request }) => {
+        const params = new URL(request.url).searchParams;
+        if (params.get("page") === "2") {
+          await segunda;
+          return HttpResponse.json({ success: true, ...pagina([blastoise]) });
+        }
+        return HttpResponse.json({ success: true, ...pagina([charizard], true) });
+      })
+    );
+
+    renderizar("/catalogo");
+    await userEvent.click(await screen.findByRole("button", { name: "Próxima" }));
+
+    const antiga = screen.getByRole("link", { name: /Charizard/ });
+    expect(antiga.closest('[aria-busy="true"]')).not.toBeNull();
+    expect(screen.getAllByRole("list").filter((lista) => lista.getAttribute("aria-busy") === "true" && !lista.textContent)).toHaveLength(0);
+
+    liberar();
+
+    expect(await screen.findByRole("link", { name: /Blastoise/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Charizard/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Blastoise/ }).closest('[aria-busy="true"]')).toBeNull();
+  });
+
+  it("se a próxima página falha, avisa o erro e mantém as cartas que já estavam na tela", async () => {
+    server.use(
+      rota.get(url("/cards/filters"), () => HttpResponse.json({ success: true, data: opcoes })),
+      rota.get(url("/cards"), ({ request }) =>
+        new URL(request.url).searchParams.get("page") === "2"
+          ? HttpResponse.json({ success: false, error: "Erro interno" }, { status: 500 })
+          : HttpResponse.json({ success: true, ...pagina([charizard], true) })
+      )
+    );
+
+    renderizar("/catalogo");
+    await userEvent.click(await screen.findByRole("button", { name: "Próxima" }));
+
+    expect(await screen.findByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Charizard/ })).toBeInTheDocument();
+  });
+});

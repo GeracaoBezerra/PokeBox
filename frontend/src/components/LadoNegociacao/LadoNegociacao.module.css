@@ -1,0 +1,128 @@
+.lado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-12);
+  min-width: 0;
+  padding: var(--esp-16);
+  background: var(--fundo);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-painel);
+}
+
+.lado h3 {
+  align-self: stretch;
+  color: var(--texto);
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-md);
+  font-weight: var(--peso-semi);
+}
+
+.verPacote {
+  display: inline-flex;
+  min-height: var(--alvo-min);
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-8);
+  margin-top: auto;
+  padding-inline: var(--esp-12);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-botao);
+  background: var(--superficie);
+  color: var(--acento);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+}
+
+.verPacote:hover { background: var(--superficie-hover); }
+.verPacote[data-so-compacto="true"] { display: none; }
+
+.previa {
+  display: flex;
+  justify-content: center;
+  gap: var(--esp-12);
+  width: 100%;
+}
+
+.previa .carta { flex: 0 1 calc((100% - var(--esp-12)) / 2); max-width: 11rem; }
+
+.galeria.galeria { width: min(52rem, calc(100% - var(--esp-24))); }
+body:has(.galeria[open]) { overflow: hidden; }
+
+.cartasGaleria {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+  gap: var(--esp-12);
+}
+
+.carta {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: var(--esp-8);
+  padding: var(--esp-8);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-botao);
+  background: var(--superficie);
+}
+
+.miniatura {
+  display: block;
+  width: 100%;
+  border-radius: var(--raio-carta);
+}
+
+.imagem {
+  display: block;
+  width: 100%;
+  aspect-ratio: var(--carta-proporcao);
+  object-fit: contain;
+  border-radius: inherit;
+}
+
+.infoCarta { min-width: 0; }
+
+.linhaNome {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--esp-4);
+}
+
+.nomeCarta {
+  color: var(--texto);
+  font-weight: var(--peso-semi);
+  overflow-wrap: anywhere;
+}
+
+.detalhes {
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-xs);
+  overflow-wrap: anywhere;
+}
+
+.quantidade {
+  flex: none;
+  padding-inline: var(--esp-4);
+  border-radius: var(--raio-botao);
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: var(--fonte-dados);
+  font-size: var(--fs-sm);
+}
+
+@media (max-width: 800px) {
+  .lado { padding: var(--esp-12); }
+}
+
+@media (max-width: 680px) {
+  .lado { padding: var(--esp-8); }
+  .lado h3 { text-align: center; }
+  .previa .carta { flex-basis: 100%; background: transparent; border: 0; padding: 0; }
+  .previa .carta:nth-child(n + 2) { display: none; }
+  .verPacote, .verPacote[data-so-compacto="true"] { display: inline-flex; padding-inline: var(--esp-4); width: 100%; }
+  .verPacote svg { display: none; }
+  .cartasGaleria { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--esp-8); }
+  .galeria > div { padding: var(--esp-12); }
+}
