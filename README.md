@@ -8,8 +8,6 @@ Projeto em equipe do curso **Geração Tech**.
 
 O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nintendo ou Game Freak.
 
-> Este README descreve o que está na branch `develop`.
-
 [![CI](https://github.com/GeracaoBezerra/PokeBox/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/GeracaoBezerra/PokeBox/actions/workflows/ci.yml)
 [![Deploy](https://github.com/GeracaoBezerra/PokeBox/actions/workflows/deploy.yml/badge.svg)](https://github.com/GeracaoBezerra/PokeBox/actions/workflows/deploy.yml)
 
