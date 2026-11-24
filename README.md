@@ -218,10 +218,10 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 - As contas de Vercel, Render e Neon estão em nome de membros do time.
 - Token JWT no `localStorage`: um script injetado na página (XSS) poderia lê-lo. Não há refresh token: a sessão vale 1 dia ([decisão sobre autenticação](docs/decisoes/0011-autenticacao.md)).
 - O limite de tentativas de login é por IP + e-mail. A mesma senha testada em muitos e-mails não é barrada.
-- Não há prazo para confirmar o recebimento: uma troca em andamento segura as cartas reservadas até as duas partes confirmarem ou alguém desistir. Uma confirmação não pode ser desfeita.
-- Uma troca recusada ou cancelada não gera outra troca a partir da mesma oferta: é preciso fazer uma oferta nova. A quantidade volta só para anúncio ainda aberto.
-- Trocas abertas criadas antes da #213 não têm o registro de quanto tiraram de cada anúncio: se caírem, só a reserva volta.
-- Conta com troca em andamento não pode ser desativada (409).
+- Não há prazo para confirmar o recebimento: uma troca em andamento segura as cartas reservadas até as duas partes confirmarem ou alguém desistir (o dono recusa ou quem ofertou cancela). Também não dá para desfazer uma confirmação; quem mudou de ideia desiste da troca.
+- Uma troca recusada ou cancelada não gera outra troca a partir da mesma oferta: é preciso fazer uma oferta nova. A quantidade volta só para anúncio ainda aberto; anúncio fechado ou bloqueado no meio-tempo não reabre.
+- Trocas abertas criadas antes da #213 não têm o registro de quanto tiraram de cada anúncio: se caírem, só a reserva volta (os anúncios delas já estavam fechados).
+- Conta com troca em andamento não pode ser desativada (409); é preciso concluir ou cancelar antes.
 - Cerca de 21% das cartas da TCGdex não têm imagem; elas aparecem com uma imagem de reserva.
 - Idiomas fora do catálogo local (`en` e `pt`) ainda dependem da TCGdex. A primeira carga do catálogo (com o detalhe de ~38 mil cartas) leva de 26 min a algumas horas, conforme a máquina e a TCGdex; as seguintes, poucos minutos.
 - O Swagger é escrito à mão (`backend/src/docs/swagger.ts`) e pode ficar desatualizado se uma rota mudar sem atualizar o arquivo.
@@ -233,12 +233,13 @@ Issues abertas na entrega:
 | Issue | O que falta |
 |---|---|
 | [#229](https://github.com/GeracaoBezerra/PokeBox/issues/229) | Preview da Vercel pede login da Vercel e fica fora do CORS da API |
-| [#93](https://github.com/GeracaoBezerra/PokeBox/issues/93) | Acessibilidade: falta o `eslint-plugin-jsx-a11y` no lint do front (a versão oficial ainda não aceita o ESLint 10) |
 | [#231](https://github.com/GeracaoBezerra/PokeBox/issues/231) | Painel de filtros ocupando melhor a largura da tela |
 | [#235](https://github.com/GeracaoBezerra/PokeBox/issues/235) | Filtros mostrando só as opções que existem na lista |
 
 Outras dívidas, sem issue:
 
+- Falta o `eslint-plugin-jsx-a11y` no lint do front: a versão oficial ainda não aceita o ESLint 10. A acessibilidade da #93 foi conferida à mão e nos testes.
+- Os modais do front fecham com Esc mesmo durante um envio; a resposta ainda chega e a lista recarrega, mas a pessoa não vê o resultado no modal.
 - Refresh token com cookie `httpOnly` no lugar do JWT no `localStorage`.
 - `make test-int` falha depois de um `docker compose down`, porque o container do banco de teste fica preso à rede antiga. Contorno: `docker compose --profile test up -d --force-recreate tcg-db-test`.
 - Pontos de arquitetura listados em [`docs/arquitetura.md`](docs/arquitetura.md#pontos-fracos-conhecidos).

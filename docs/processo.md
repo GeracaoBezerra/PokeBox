@@ -9,7 +9,7 @@ Organização do board, do repositório e do fluxo de entrega. Números de 24/11
 - Cada tarefa é uma issue com contexto, o que fazer, como testar, fora do escopo e "pronto quando".
 - Labels de prioridade (`P0` para a entrega, `P1`, `P2 · pós-entrega`), de tamanho (`P` algumas horas, `M` um dia, `G` vários dias), de tipo (`melhoria`, `do zero`) e de área (Frontend, Backend, Testes, Infra/Deploy, Observabilidade, Banco de dados).
 - Milestones: MVP (20/10) e Entrega 22/11.
-- 132 issues no total: 117 fechadas e 15 abertas (14 listadas em [Limitações, dívidas e próximos passos](../README.md#limitações-dívidas-e-próximos-passos) e a #113, desta documentação).
+- As issues que seguem abertas na entrega estão em [Limitações, dívidas e próximos passos](../README.md#limitações-dívidas-e-próximos-passos).
 
 ## Branches e pull requests
 
@@ -51,6 +51,6 @@ Quem revisa roda o projeto antes de opinar: instala, roda lint, build e testes, 
 
 ## Docker Compose
 
-- `docker-compose.yml`: banco, API e front em modo desenvolvimento, com healthcheck em cada serviço e ordem de subida (front espera a API, que espera o banco). Profiles opcionais para o banco de teste (`test`) e o Jaeger (`observabilidade`).
+- `docker-compose.yml`: banco, API e front em modo desenvolvimento, com healthcheck nos bancos e na API e ordem de subida (front espera a API, que espera o banco). Profiles opcionais para o banco de teste (`test`) e o Jaeger (`observabilidade`).
 - `docker-compose.prod.yml`: sobrepõe o anterior com as imagens de produção (API sem dependências de desenvolvimento e com o usuário `node`, front compilado no nginx). `make prod-up` sobe esse modo.
 - O `Makefile` junta os comandos do dia a dia: `make up`, `make test-int`, `make coverage`, `make e2e`, `make traces`, `make seed`.
