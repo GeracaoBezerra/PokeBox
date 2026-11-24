@@ -27,14 +27,24 @@ function apiDasPendencias() {
 const navegacao = () => screen.getByRole("navigation", { name: "Navegação principal" });
 
 describe("Header", () => {
-  it("sem sessão mostra só o grupo Explorar e não busca pendências", async () => {
+  it("sem sessão mostra todos os links, sem selos, e não busca pendências", async () => {
     const pedidos = apiDasPendencias();
     renderWithProviders(<Header />, { service: criarSessaoFalsa(null) });
 
     const nav = navegacao();
     expect(within(nav).getByRole("group", { name: "Explorar" })).toBeInTheDocument();
-    expect(within(nav).queryByRole("group", { name: "Minha área" })).not.toBeInTheDocument();
-    expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home", "Cartas", "Marketplace"]);
+    expect(within(nav).getByRole("group", { name: "Minha área" })).toBeInTheDocument();
+    expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual([
+      "Home",
+      "Cartas",
+      "Marketplace",
+      "Coleção",
+      "Wishlist",
+      "Anúncios",
+      "Propostas",
+      "Trocas",
+    ]);
+    expect(within(nav).getByRole("link", { name: "Propostas" })).toHaveAttribute("href", "/propostas");
     expect(screen.getByRole("link", { name: "Entrar" })).toBeInTheDocument();
 
     await new Promise((resolve) => setTimeout(resolve, 50));

@@ -7,14 +7,34 @@ const REPOSITORIO = "https://github.com/GeracaoBezerra/PokeBox";
 const informacoes = [
   { label: "Sobre PokeBox", to: "/sobre" },
   { label: "Como funciona", to: "/#como-funciona" },
+  { label: "Segurança", to: "/seguranca" },
+  { label: "Trabalhe Conosco", to: "/trabalhe-conosco" },
   { label: "Wishlist", to: "/procuro" },
 ];
 
-const atalhos = [
-  { label: "Catálogo", to: "/catalogo" },
-  { label: "Marketplace", to: "/marketplace" },
-  { label: "Mais desejadas", to: "/catalogo?sort=wanted&order=desc" },
+const categorias = [
+  { label: "Cartas Raras", to: "/catalogo?rarity=Rara" },
+  { label: "Cartas de Treinadores", to: "/catalogo?category=Treinador" },
+  { label: "Cartas Foil", to: "/marketplace?finish=HOLO" },
 ];
+
+function InstagramIcon() {
+  return (
+    <svg className={styles.iconeContorno} viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle className={styles.iconDot} cx="17.5" cy="6.8" r="1" />
+    </svg>
+  );
+}
+
+function LinkedInIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0 0-5ZM3 10h4v11H3zM9 10h3.8v1.5h.1a4.2 4.2 0 0 1 3.8-2.1c4.1 0 4.9 2.5 4.9 5.8V21h-4v-5.2c0-1.3 0-3-1.9-3s-2.2 1.4-2.2 2.9V21H9z" />
+    </svg>
+  );
+}
 
 function GithubIcon() {
   return (
@@ -24,7 +44,15 @@ function GithubIcon() {
   );
 }
 
-function SocialLink({ href, label, children }) {
+function SocialLink({ href, to, label, children }) {
+  if (to) {
+    return (
+      <Link className={styles.socialLink} to={to} aria-label={label}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
     <a
       className={styles.socialLink}
@@ -78,6 +106,14 @@ export default function Footer() {
           </p>
 
           <div className={styles.socialLinks}>
+            <SocialLink to="/instagram" label="Instagram da PokeBox">
+              <InstagramIcon />
+            </SocialLink>
+
+            <SocialLink to="/linkedin" label="LinkedIn da PokeBox">
+              <LinkedInIcon />
+            </SocialLink>
+
             <SocialLink
               href={REPOSITORIO}
               label="GitHub da PokeBox"
@@ -89,25 +125,27 @@ export default function Footer() {
 
         <FooterLinks title="Informação" links={informacoes} />
 
-        <FooterLinks title="Explorar" links={atalhos} />
+        <FooterLinks title="Categorias" links={categorias} />
 
-        <section className={styles.column} aria-labelledby="rodape-projeto">
-          <h2 id="rodape-projeto" className={styles.columnTitle}>
-            Projeto do curso Geração Tech
+        <section className={styles.column} aria-labelledby="rodape-contato">
+          <h2 id="rodape-contato" className={styles.columnTitle}>
+            Contato
           </h2>
 
-          <p className={styles.projetoTexto}>
-            O código é aberto e está no{" "}
-            <a
-              className={styles.projetoLink}
-              href={REPOSITORIO}
-              target="_blank"
-              rel="noreferrer"
-            >
-              repositório do GitHub
-            </a>
-            .
-          </p>
+          <address className={styles.contactInfo}>
+            <p>
+              Rua dos Treinadores, 1500
+              <br />
+              Bairro Pokémon, CEP 12345-678
+              <br />
+              Cidade Kanto - SP
+            </p>
+
+            <p className={styles.phone}>
+              <strong>Tel:</strong>{" "}
+              <a href="tel:+551140028922">+55 (11) 4002-8922</a>
+            </p>
+          </address>
         </section>
       </div>
 

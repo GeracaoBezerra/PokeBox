@@ -32,9 +32,14 @@ function GrupoNav({ id, titulo, children }) {
   );
 }
 
-function MinhaArea({ aoNavegar }) {
-  const pendencias = usePendencias();
+const SEM_PENDENCIAS = { ofertas: 0, trocas: 0 };
 
+function MinhaAreaLogada({ aoNavegar }) {
+  const pendencias = usePendencias();
+  return <MinhaArea aoNavegar={aoNavegar} pendencias={pendencias} />;
+}
+
+function MinhaArea({ aoNavegar, pendencias = SEM_PENDENCIAS }) {
   return (
     <GrupoNav id="grupo-minha-area" titulo="Minha área">
       <NavLink to="/colecao" className={classeDoLink} onClick={aoNavegar}>
@@ -139,7 +144,7 @@ export default function Header() {
             </NavLink>
           </GrupoNav>
 
-          {session && <MinhaArea aoNavegar={fecharMenu} />}
+          {session ? <MinhaAreaLogada aoNavegar={fecharMenu} /> : <MinhaArea aoNavegar={fecharMenu} />}
         </nav>
       </div>
     </header>

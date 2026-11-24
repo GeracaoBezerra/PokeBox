@@ -141,24 +141,15 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: var(--esp-12) var(--esp-32);
+  justify-content: space-evenly;
+  gap: var(--esp-8);
 
   padding-top: var(--esp-12);
   border-top: 1px solid var(--borda-suave);
 }
 
 .grupo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--esp-8) var(--esp-16);
-}
-
-.grupo + .grupo {
-  padding-left: var(--esp-32);
-  border-left: 1px solid var(--borda-suave);
+  display: contents;
 }
 
 .tituloGrupo {
@@ -195,8 +186,6 @@
 
 .ativo {
   color: var(--acento);
-  background-color: color-mix(in srgb, var(--acento) 16%, transparent);
-  box-shadow: inset 0 -2px 0 var(--acento);
 }
 
 .selo {
@@ -212,6 +201,24 @@
   font-size: 0.75rem;
   font-weight: var(--peso-medio);
   line-height: 1;
+}
+
+/* Tablet */
+
+@media (min-width: 769px) and (max-width: 960px) {
+  .navegacao {
+    flex-wrap: nowrap;
+    column-gap: var(--esp-4);
+  }
+
+  .linkNav {
+    padding-right: var(--esp-8);
+    padding-left: var(--esp-8);
+  }
+
+  .linkNav svg {
+    display: none;
+  }
 }
 
 /* Tablet e celular */
@@ -252,45 +259,9 @@
     display: flex;
   }
 
-  .grupo {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--esp-8);
-  }
-
-  .grupo + .grupo {
-    padding-top: var(--esp-12);
-    padding-left: 0;
-    border-top: 1px solid var(--borda-suave);
-    border-left: 0;
-  }
-
-  .tituloGrupo {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip-path: none;
-
-    color: var(--texto-suave);
-    font-size: var(--fs-xs);
-    font-weight: var(--peso-semi);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
   .linkNav {
     min-height: var(--alvo-min);
     padding: var(--esp-12);
-
-    background-color: var(--fundo);
-    border: var(--borda-painel);
-  }
-
-  .ativo {
-    border-color: var(--acento);
-    background-color: color-mix(in srgb, var(--acento) 16%, var(--fundo));
-    box-shadow: inset 3px 0 0 var(--acento);
   }
 }
 
