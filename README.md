@@ -220,6 +220,7 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 - As contas de Vercel, Render e Neon estão em nome de membros do time.
 - Token JWT no `localStorage`: um script injetado na página (XSS) poderia lê-lo. Não há refresh token: a sessão vale 1 dia ([decisão sobre autenticação](docs/decisoes/0011-autenticacao.md)).
 - O limite de tentativas de login é por IP + e-mail. A mesma senha testada em muitos e-mails não é barrada.
+- O login é o ponto mais lento da API em produção. A senha é conferida com bcrypt no custo 12, que é lento de propósito, e a CPU do plano gratuito do Render é pequena: um login leva cerca de 2 s e, com uns 20 logins ao mesmo tempo, a fila passa de 15 s e deixa as outras rotas lentas junto. Navegar já logado aguenta 50 pessoas ao mesmo tempo sem erro ([teste de carga de 24/11](docs/observabilidade-e-performance.md#teste-de-carga-em-produção-2411)).
 - Não há prazo para confirmar o recebimento: uma troca em andamento segura as cartas reservadas até as duas partes confirmarem ou alguém desistir (o dono recusa ou quem ofertou cancela). Também não dá para desfazer uma confirmação; quem mudou de ideia desiste da troca.
 - Uma troca recusada ou cancelada não gera outra troca a partir da mesma oferta: é preciso fazer uma oferta nova. A quantidade volta só para anúncio ainda aberto; anúncio fechado ou bloqueado no meio-tempo não reabre.
 - Trocas abertas criadas antes da #213 não têm o registro de quanto tiraram de cada anúncio: se caírem, só a reserva volta (os anúncios delas já estavam fechados).
