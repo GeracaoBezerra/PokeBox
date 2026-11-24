@@ -13,7 +13,7 @@ function renderizar(inicio) {
   return render(
     <MemoryRouter initialEntries={[inicio]}>
       <BuscaGeral />
-      <Link to="/catalogo">Cards</Link>
+      <Link to="/catalogo">Cartas</Link>
       <Endereco />
     </MemoryRouter>
   );
@@ -27,7 +27,7 @@ describe("BuscaGeral", () => {
     renderizar("/");
 
     await pessoa.type(screen.getByRole("searchbox", { name: "Buscar cartas" }), "pikachu");
-    await pessoa.click(screen.getByRole("link", { name: "Cards" }));
+    await pessoa.click(screen.getByRole("link", { name: "Cartas" }));
 
     expect(screen.getByRole("searchbox", { name: "Buscar cartas" })).toHaveValue("");
     await esperar(500);

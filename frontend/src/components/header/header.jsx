@@ -11,16 +11,75 @@ import {
   Megaphone,
   Inbox,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import Logo from "../Logo/Logo";
 import MenuUsuario from "../MenuUsuario/MenuUsuario";
 import BuscaGeral from "./BuscaGeral";
+import { useSession } from "../../auth/useSession";
 import { usePendencias } from "../../hooks/usePendencias";
 import styles from "./header.module.css";
 
+function classeDoLink({ isActive }) {
+  return isActive ? `${styles.linkNav} ${styles.ativo}` : styles.linkNav;
+}
+
+function GrupoNav({ id, titulo, children }) {
+  return (
+    <div className={styles.grupo} role="group" aria-labelledby={id}>
+      <span id={id} className={styles.tituloGrupo}>{titulo}</span>
+      {children}
+    </div>
+  );
+}
+
+function MinhaArea({ aoNavegar }) {
+  const pendencias = usePendencias();
+
+  return (
+    <GrupoNav id="grupo-minha-area" titulo="Minha área">
+      <NavLink to="/colecao" className={classeDoLink} onClick={aoNavegar}>
+        <Library size={16} aria-hidden="true" />
+        <span>Coleção</span>
+      </NavLink>
+
+      <NavLink to="/procuro" className={classeDoLink} onClick={aoNavegar}>
+        <Heart size={16} aria-hidden="true" />
+        <span>Wishlist</span>
+      </NavLink>
+
+      <NavLink to="/anuncios" className={classeDoLink} onClick={aoNavegar}>
+        <Megaphone size={16} aria-hidden="true" />
+        <span>Anúncios</span>
+      </NavLink>
+
+      <NavLink
+        to={pendencias.ofertas > 0 ? "/propostas?aba=recebidas&status=PROPOSED" : "/propostas"}
+        className={classeDoLink}
+        onClick={aoNavegar}
+        aria-label={pendencias.ofertas > 0 ? `Propostas, ${pendencias.ofertas} aguardando resposta` : undefined}
+      >
+        <Inbox size={16} aria-hidden="true" />
+        <span>Propostas</span>
+        {pendencias.ofertas > 0 && <span className={styles.selo} aria-hidden="true">{pendencias.ofertas}</span>}
+      </NavLink>
+
+      <NavLink
+        to={pendencias.trocas > 0 ? `/trocas?aba=${pendencias.abaTrocas}&status=PROPOSED` : "/trocas"}
+        className={classeDoLink}
+        onClick={aoNavegar}
+        aria-label={pendencias.trocas > 0 ? `Trocas, ${pendencias.trocas} esperando sua confirmação` : undefined}
+      >
+        <ArrowLeftRight size={16} aria-hidden="true" />
+        <span>Trocas</span>
+        {pendencias.trocas > 0 && <span className={styles.selo} aria-hidden="true">{pendencias.trocas}</span>}
+      </NavLink>
+    </GrupoNav>
+  );
+}
+
 export default function Header() {
   const [menuAberto, setMenuAberto] = useState(false);
-  const pendencias = usePendencias();
+  const session = useSession();
 
   function fecharMenu() {
     setMenuAberto(false);
@@ -29,7 +88,6 @@ export default function Header() {
   return (
     <header className={styles.header}>
       <div className={styles.container}>
-        {/* Logo, busca e ações */}
         <div className={styles.topo}>
           <Link
             to="/"
@@ -57,7 +115,6 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Navegação */}
         <nav
           id="menu-navegacao"
           className={`${styles.navegacao} ${
@@ -65,57 +122,24 @@ export default function Header() {
           }`}
           aria-label="Navegação principal"
         >
-          <Link to="/" className={styles.linkNav} onClick={fecharMenu}>
-            <Home size={16} />
-            <span>Home</span>
-          </Link>
+          <GrupoNav id="grupo-explorar" titulo="Explorar">
+            <NavLink to="/" end className={classeDoLink} onClick={fecharMenu}>
+              <Home size={16} aria-hidden="true" />
+              <span>Home</span>
+            </NavLink>
 
-          <Link to="/catalogo" className={styles.linkNav} onClick={fecharMenu}>
-            <Layers size={16} />
-            <span>Cards</span>
-          </Link>
+            <NavLink to="/catalogo" className={classeDoLink} onClick={fecharMenu}>
+              <Layers size={16} aria-hidden="true" />
+              <span>Cartas</span>
+            </NavLink>
 
-          <Link to="/marketplace" className={styles.linkNav} onClick={fecharMenu}>
-            <Store size={16} />
-            <span>Marketplace</span>
-          </Link>
+            <NavLink to="/marketplace" className={classeDoLink} onClick={fecharMenu}>
+              <Store size={16} aria-hidden="true" />
+              <span>Marketplace</span>
+            </NavLink>
+          </GrupoNav>
 
-          <Link to="/colecao" className={styles.linkNav} onClick={fecharMenu}>
-            <Library size={16} />
-            <span>Coleção</span>
-          </Link>
-
-          <Link to="/procuro" className={styles.linkNav} onClick={fecharMenu}>
-            <Heart size={16} />
-            <span>Wishlist</span>
-          </Link>
-
-          <Link to="/anuncios" className={styles.linkNav} onClick={fecharMenu}>
-            <Megaphone size={16} />
-            <span>Anúncios</span>
-          </Link>
-
-          <Link
-            to={pendencias.ofertas > 0 ? "/propostas?aba=recebidas&status=PROPOSED" : "/propostas"}
-            className={styles.linkNav}
-            onClick={fecharMenu}
-            aria-label={pendencias.ofertas > 0 ? `Propostas, ${pendencias.ofertas} aguardando resposta` : undefined}
-          >
-            <Inbox size={16} />
-            <span>Propostas</span>
-            {pendencias.ofertas > 0 && <span className={styles.selo} aria-hidden="true">{pendencias.ofertas}</span>}
-          </Link>
-
-          <Link
-            to={pendencias.trocas > 0 ? `/trocas?aba=${pendencias.abaTrocas}&status=PROPOSED` : "/trocas"}
-            className={styles.linkNav}
-            onClick={fecharMenu}
-            aria-label={pendencias.trocas > 0 ? `Trocas, ${pendencias.trocas} esperando sua confirmação` : undefined}
-          >
-            <ArrowLeftRight size={16} />
-            <span>Trocas</span>
-            {pendencias.trocas > 0 && <span className={styles.selo} aria-hidden="true">{pendencias.trocas}</span>}
-          </Link>
+          {session && <MinhaArea aoNavegar={fecharMenu} />}
         </nav>
       </div>
     </header>

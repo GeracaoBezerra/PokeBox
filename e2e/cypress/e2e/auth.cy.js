@@ -12,7 +12,7 @@ describe("Autenticação", () => {
     });
 
     cy.location("pathname").should("eq", "/");
-    cy.findByRole("button", { name: /Menu do usuário/ }).should("be.visible");
+    cy.findByRole("button", { name: /Menu da conta de/ }).should("be.visible");
   });
 
   it("mostra erro com a senha errada", () => {
@@ -47,6 +47,6 @@ describe("Autenticação", () => {
     cy.login("ash@pokebox.dev");
     cy.visit("/colecao");
     cy.findByRole("heading", { name: "Minha coleção" }).should("be.visible");
-    cy.findByRole("button", { name: "Olá, Ash. Menu do usuário" }).should("be.visible");
+    cy.findByRole("button", { name: "Menu da conta de Ash Ketchum" }).should("be.visible");
   });
 });
