@@ -45,7 +45,7 @@ export default function MenuUsuario() {
 
   function sair() {
     setAberto(false);
-    auth.logout();
+    auth.logout({ voluntaria: true });
     navigate("/");
   }
 

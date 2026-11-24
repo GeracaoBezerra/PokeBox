@@ -232,7 +232,6 @@ Issues abertas na entrega:
 
 | Issue | O que falta |
 |---|---|
-| [#228](https://github.com/GeracaoBezerra/PokeBox/issues/228) | Desativar a conta leva ao login em vez da home |
 | [#229](https://github.com/GeracaoBezerra/PokeBox/issues/229) | Preview da Vercel pede login da Vercel e fica fora do CORS da API |
 | [#79](https://github.com/GeracaoBezerra/PokeBox/issues/79) | Header: link ativo, menu da conta completo e área privada escondida para quem não entrou |
 | [#83](https://github.com/GeracaoBezerra/PokeBox/issues/83) | Carregamento sem piscar, 404 de carta e anúncio, voltar à origem depois do cadastro, carregar as telas sob demanda |

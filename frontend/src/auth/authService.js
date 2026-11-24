@@ -8,17 +8,21 @@ export class AuthService {
     this.loginValidator = loginValidator;
     this.registerValidator = registerValidator;
     this.listeners = new Set();
+    this.saidaVoluntaria = false;
     this.session = tokenStore.get() ? { user: userStore.get() } : null;
   }
 
   getSession = () => this.session;
+
+  saiuPorVontade = () => this.saidaVoluntaria;
 
   subscribe = (listener) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   };
 
-  logout() {
+  logout({ voluntaria = false } = {}) {
+    this.saidaVoluntaria = voluntaria;
     this.tokenStore.clear();
     this.userStore.clear();
     this.setSession(null);
@@ -26,6 +30,7 @@ export class AuthService {
 
   startSession(token, user) {
     const sessionUser = { name: user.name, username: user.username };
+    this.saidaVoluntaria = false;
     this.tokenStore.set(token);
     this.userStore.set(sessionUser);
     this.setSession({ user: sessionUser });

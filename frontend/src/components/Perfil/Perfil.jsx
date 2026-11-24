@@ -81,7 +81,7 @@ function SecaoConta({ user }) {
   async function desativar() {
     const { ok } = await acao.executar(deactivateMe);
     if (ok) {
-      authService.logout();
+      authService.logout({ voluntaria: true });
       navigate("/");
     } else {
       fechar();
