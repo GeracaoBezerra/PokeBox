@@ -9,7 +9,7 @@ import {
 import type { CollectionService } from '../services/CollectionService.js';
 import { currentUser } from '../utils/currentUser.js';
 
-export type CollectionActions = Pick<CollectionService, 'list' | 'listPage' | 'add' | 'update' | 'remove'>;
+export type CollectionActions = Pick<CollectionService, 'list' | 'listPage' | 'summary' | 'add' | 'update' | 'remove'>;
 
 export class CollectionController {
   constructor(private readonly collection: CollectionActions) {}
@@ -26,6 +26,12 @@ export class CollectionController {
 
     const { items, hasNextPage } = await this.collection.listPage(userId, filters, page);
     res.status(200).json({ success: true, data: { items }, pagination: { ...page, hasNextPage } });
+  };
+
+  summary: RequestHandler = async (req, res) => {
+    const summary = await this.collection.summary(currentUser(req).id);
+
+    res.status(200).json({ success: true, data: summary });
   };
 
   add: RequestHandler = async (req, res) => {

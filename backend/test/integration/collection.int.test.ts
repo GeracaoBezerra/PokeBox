@@ -1,7 +1,7 @@
 import request from 'supertest';
 
 import { CARD_OUTSIDE_SEED } from './support/fakeTcgdex.js';
-import { addItem, bearer, CHARIZARD, createListing, PROFESSOR_OAK } from './support/flows.js';
+import { acceptedOffer, addItem, bearer, CHARIZARD, createListing, makeOffer, PROFESSOR_OAK } from './support/flows.js';
 import { registerUser, startTestApp, type TestApp } from './support/testApp.js';
 
 let ctx: TestApp;
@@ -200,5 +200,108 @@ describe('RN-11: coleção limpa a wishlist', () => {
     const wishlist = await request(ctx.app).get('/wishlist').set(bearer(user));
 
     expect(wishlist.body.data.items).toHaveLength(0);
+  });
+});
+
+describe('GET /collection/summary', () => {
+  test('soma unidades, conta cartas diferentes com quantidade e itens com anúncio aberto', async () => {
+    const user = await registerUser(ctx.app);
+    const charizard = await addItem(ctx.app, user, { quantity: 2 });
+    await addItem(ctx.app, user, { quantity: 1, condition: 'POOR' });
+    const oak = await addItem(ctx.app, user, { cardId: PROFESSOR_OAK, finish: 'NORMAL', quantity: 3 });
+    await createListing(ctx.app, user, charizard.id);
+    await request(ctx.app).patch(`/collection/${oak.id}`).set(bearer(user)).send({ quantity: 0 }).expect(200);
+
+    const res = await request(ctx.app).get('/collection/summary').set(bearer(user));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true, data: { totalUnits: 3, distinctCards: 1, listedItems: 1 } });
+  });
+
+  test('coleção vazia devolve zeros e não mistura a coleção de outra pessoa', async () => {
+    const user = await registerUser(ctx.app);
+    const other = await registerUser(ctx.app);
+    await addItem(ctx.app, other, { quantity: 5 });
+
+    const res = await request(ctx.app).get('/collection/summary').set(bearer(user));
+
+    expect(res.body.data).toEqual({ totalUnits: 0, distinctCards: 0, listedItems: 0 });
+  });
+
+  test('sem login → 401', async () => {
+    await request(ctx.app).get('/collection/summary').expect(401);
+  });
+});
+
+describe('GET /collection: deleteBlockedBy e withZero', () => {
+  async function blockOf(user: Parameters<typeof bearer>[0], itemId: string, query = '') {
+    const res = await request(ctx.app).get(`/collection${query}`).set(bearer(user)).expect(200);
+    return res.body.data.items.find((item: { id: string }) => item.id === itemId)?.deleteBlockedBy;
+  }
+
+  test('item livre vem com null, na lista inteira e na paginada', async () => {
+    const user = await registerUser(ctx.app);
+    const item = await addItem(ctx.app, user);
+
+    expect(await blockOf(user, item.id)).toBeNull();
+    expect(await blockOf(user, item.id, '?page=1')).toBeNull();
+  });
+
+  test('item reservado numa troca → RESERVED, e o DELETE recusa', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const { ownerItem, proposerItem } = await acceptedOffer(ctx.app, owner, proposer);
+
+    expect(await blockOf(owner, ownerItem.id)).toBe('RESERVED');
+    expect(await blockOf(proposer, proposerItem.id, '?page=1')).toBe('RESERVED');
+    await request(ctx.app).delete(`/collection/${proposerItem.id}`).set(bearer(proposer)).expect(409);
+  });
+
+  test('item com anúncio aberto → OPEN_LISTING; fechado o anúncio → LISTING_HISTORY', async () => {
+    const user = await registerUser(ctx.app);
+    const item = await addItem(ctx.app, user);
+    const listing = await createListing(ctx.app, user, item.id);
+
+    expect(await blockOf(user, item.id)).toBe('OPEN_LISTING');
+
+    await request(ctx.app).patch(`/listings/${listing.id}`).set(bearer(user)).send({ status: 'CLOSED' }).expect(200);
+
+    expect(await blockOf(user, item.id)).toBe('LISTING_HISTORY');
+    await request(ctx.app).delete(`/collection/${item.id}`).set(bearer(user)).expect(409);
+  });
+
+  test('item numa oferta aberta → OPEN_OFFER, e o DELETE recusa', async () => {
+    const owner = await registerUser(ctx.app);
+    const proposer = await registerUser(ctx.app);
+    const ownerItem = await addItem(ctx.app, owner);
+    const listing = await createListing(ctx.app, owner, ownerItem.id);
+    const offered = await addItem(ctx.app, proposer, { cardId: PROFESSOR_OAK, finish: 'NORMAL' });
+    await makeOffer(ctx.app, proposer, listing.id, [{ collectionItemId: offered.id, quantity: 1 }]);
+
+    expect(await blockOf(proposer, offered.id)).toBe('OPEN_OFFER');
+    await request(ctx.app).delete(`/collection/${offered.id}`).set(bearer(proposer)).expect(409);
+  });
+
+  test('withZero=false esconde os itens zerados; sem o filtro eles aparecem', async () => {
+    const user = await registerUser(ctx.app);
+    const kept = await addItem(ctx.app, user);
+    const zeroed = await addItem(ctx.app, user, { cardId: PROFESSOR_OAK, finish: 'NORMAL' });
+    await request(ctx.app).patch(`/collection/${zeroed.id}`).set(bearer(user)).send({ quantity: 0 }).expect(200);
+
+    const filtered = await request(ctx.app).get('/collection?withZero=false').set(bearer(user));
+    const all = await request(ctx.app).get('/collection').set(bearer(user));
+
+    expect(filtered.body.data.items.map((item: { id: string }) => item.id)).toEqual([kept.id]);
+    expect(all.body.data.items).toHaveLength(2);
+  });
+
+  test('o perfil público não expõe deleteBlockedBy', async () => {
+    const user = await registerUser(ctx.app);
+    await addItem(ctx.app, user);
+
+    const res = await request(ctx.app).get(`/users/${user.username}/collection`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.items[0]).not.toHaveProperty('deleteBlockedBy');
   });
 });

@@ -1,5 +1,6 @@
 import type { CardCondition, CardFinish, Prisma } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
+import { OPEN_STATUSES } from '../utils/listingRules.js';
 import type { ItemSort } from '../utils/itemSort.js';
 import type { CardFilters } from '../utils/listingSearch.js';
 import type { PageWindow } from '../utils/pagination.js';
@@ -7,6 +8,28 @@ import type { PageWindow } from '../utils/pagination.js';
 export const collectionItemWithCard = { card: true } satisfies Prisma.CollectionItemInclude;
 
 export type CollectionItemWithCard = Prisma.CollectionItemGetPayload<{ include: typeof collectionItemWithCard }>;
+
+export const openOfferItemWhere = {
+  offer: { OR: [{ status: 'PROPOSED' }, { status: 'ACCEPTED', trade: null }] },
+} satisfies Prisma.OfferItemWhereInput;
+
+export const collectionItemWithUsage = {
+  card: true,
+  listings: { select: { status: true } },
+  _count: { select: { offerItems: { where: openOfferItemWhere } } },
+} satisfies Prisma.CollectionItemInclude;
+
+export type CollectionItemWithUsage = Prisma.CollectionItemGetPayload<{ include: typeof collectionItemWithUsage }>;
+
+export interface CollectionSummary {
+  totalUnits: number;
+  distinctCards: number;
+  listedItems: number;
+}
+
+export const listedItemWhere = {
+  listings: { some: { status: { in: [...OPEN_STATUSES] } } },
+} satisfies Prisma.CollectionItemWhereInput;
 
 export interface LockedCollectionItem {
   id: string;
@@ -45,6 +68,7 @@ export interface CollectionFilters extends Pick<CardFilters, 'q' | 'setId' | 'ty
   condition?: CardCondition;
   finish?: CardFinish;
   isPublic?: boolean;
+  withZero?: boolean;
   sort?: ItemSort;
 }
 
@@ -56,7 +80,8 @@ export interface CardOwner {
 }
 
 export interface CollectionRepository {
-  findManyByUser(userId: string, options?: CollectionFilters & Partial<PageWindow>): Promise<CollectionItemWithCard[]>;
+  findManyByUser(userId: string, options?: CollectionFilters & Partial<PageWindow>): Promise<CollectionItemWithUsage[]>;
+  summarizeByUser(userId: string): Promise<CollectionSummary>;
   findPublicByUser(
     userId: string,
     options?: PublicCollectionFilters & Partial<PageWindow>,

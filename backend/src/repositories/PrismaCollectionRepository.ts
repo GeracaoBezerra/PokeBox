@@ -5,12 +5,16 @@ import { cardWhere } from '../utils/listingSearch.js';
 import type { PageWindow } from '../utils/pagination.js';
 import {
   collectionItemWithCard,
+  collectionItemWithUsage,
+  listedItemWhere,
   type CardOwner,
   type CollectionFilters,
   type CollectionItemChanges,
   type CollectionItemKey,
   type CollectionItemWithCard,
+  type CollectionItemWithUsage,
   type CollectionRepository,
+  type CollectionSummary,
   type LockedCollectionItem,
   type NewCollectionItem,
   type PublicCollectionFilters,
@@ -21,15 +25,32 @@ export class PrismaCollectionRepository implements CollectionRepository {
 
   findManyByUser(
     userId: string,
-    { q, setId, type, condition, finish, isPublic, sort, skip, take }: CollectionFilters & Partial<PageWindow> = {},
-  ): Promise<CollectionItemWithCard[]> {
+    { q, setId, type, condition, finish, isPublic, withZero, sort, skip, take }: CollectionFilters & Partial<PageWindow> = {},
+  ): Promise<CollectionItemWithUsage[]> {
     return this.db.collectionItem.findMany({
-      where: { userId, condition, finish, isPublic, card: cardWhere({ q, setId, type }) },
-      include: collectionItemWithCard,
+      where: {
+        userId,
+        condition,
+        finish,
+        isPublic,
+        quantity: withZero === false ? { gt: 0 } : undefined,
+        card: cardWhere({ q, setId, type }),
+      },
+      include: collectionItemWithUsage,
       orderBy: itemOrderBy(sort),
       skip,
       take,
     });
+  }
+
+  async summarizeByUser(userId: string): Promise<CollectionSummary> {
+    const [units, cards, listedItems] = await Promise.all([
+      this.db.collectionItem.aggregate({ where: { userId }, _sum: { quantity: true } }),
+      this.db.collectionItem.groupBy({ by: ['cardId'], where: { userId, quantity: { gt: 0 } } }),
+      this.db.collectionItem.count({ where: { userId, ...listedItemWhere } }),
+    ]);
+
+    return { totalUnits: units._sum.quantity ?? 0, distinctCards: cards.length, listedItems };
   }
 
   findPublicByUser(

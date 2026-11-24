@@ -2,18 +2,21 @@ import { jest } from '@jest/globals';
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
 
-import type { CollectionItemView } from '../services/CollectionService.js';
+import type { CollectionItemView, OwnCollectionItemView } from '../services/CollectionService.js';
 import type { AuthUser } from '../types/auth.js';
 import { CollectionController, type CollectionActions } from './CollectionController.js';
 
 const ash = { id: 'u-ash', username: 'ash' } as AuthUser;
 const ITEM_ID = 'f323730d-c965-42b2-b3f4-a059e009dfe7';
 const item = { id: ITEM_ID, quantity: 1, available: 1 } as CollectionItemView;
+const ownItem = { ...item, deleteBlockedBy: null } as OwnCollectionItemView;
+const summary = { totalUnits: 3, distinctCards: 2, listedItems: 1 };
 
 function setup() {
   const collection = {
-    list: jest.fn<CollectionActions['list']>(async () => [item]),
-    listPage: jest.fn<CollectionActions['listPage']>(async () => ({ items: [item], hasNextPage: true })),
+    list: jest.fn<CollectionActions['list']>(async () => [ownItem]),
+    listPage: jest.fn<CollectionActions['listPage']>(async () => ({ items: [ownItem], hasNextPage: true })),
+    summary: jest.fn<CollectionActions['summary']>(async () => summary),
     add: jest.fn<CollectionActions['add']>(async () => ({ item, removedFromWishlist: true })),
     update: jest.fn<CollectionActions['update']>(async () => item),
     remove: jest.fn<CollectionActions['remove']>(async () => undefined),
@@ -40,7 +43,7 @@ describe('CollectionController', () => {
     expect(collection.list).toHaveBeenCalledWith('u-ash');
     expect(collection.listPage).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({ success: true, data: { items: [item] } });
+    expect(res.json).toHaveBeenCalledWith({ success: true, data: { items: [ownItem] } });
   });
 
   it('list com filtro pagina mesmo sem page', async () => {
@@ -56,9 +59,27 @@ describe('CollectionController', () => {
     );
     expect(res.json).toHaveBeenCalledWith({
       success: true,
-      data: { items: [item] },
+      data: { items: [ownItem] },
       pagination: { page: 1, limit: 20, hasNextPage: true },
     });
+  });
+
+  it('list com withZero=false pagina e repassa o filtro', async () => {
+    const { collection, res, controller } = setup();
+
+    await controller.list(request({ query: { withZero: 'false' } }), res as unknown as Response, next);
+
+    expect(collection.listPage).toHaveBeenCalledWith('u-ash', { withZero: false }, { page: 1, limit: 20 });
+  });
+
+  it('summary responde 200 com os totais do usuário', async () => {
+    const { collection, res, controller } = setup();
+
+    await controller.summary(request({}), res as unknown as Response, next);
+
+    expect(collection.summary).toHaveBeenCalledWith('u-ash');
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ success: true, data: summary });
   });
 
   it('list com limit acima de 100 falha na validação', async () => {

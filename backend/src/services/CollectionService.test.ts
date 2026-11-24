@@ -3,7 +3,11 @@ import { jest } from '@jest/globals';
 import type { CardDetail } from '../cards/types.js';
 import type { Card } from '../generated/prisma/index.js';
 import type { Db } from '../lib/prisma.js';
-import type { CollectionItemWithCard, LockedCollectionItem } from '../repositories/CollectionRepository.js';
+import type {
+  CollectionItemWithCard,
+  CollectionItemWithUsage,
+  LockedCollectionItem,
+} from '../repositories/CollectionRepository.js';
 import type { TransactionRunner } from '../repositories/TransactionRunner.js';
 import type { WishlistRemover } from '../repositories/WishlistRepository.js';
 import type { CreateCollectionItemInput } from '../schemas/collection.schema.js';
@@ -55,6 +59,8 @@ const savedItem = {
   card: { id: 'base1-4', name: 'Charizard', marketPrice: null } as Card,
 } satisfies CollectionItemWithCard;
 
+const listedRow = { ...savedItem, listings: [], _count: { offerItems: 0 } } satisfies CollectionItemWithUsage;
+
 class FakeRunner implements TransactionRunner {
   calls = 0;
   readonly seenBefore: number[] = [];
@@ -79,7 +85,12 @@ const locked: LockedCollectionItem = {
 
 function setup() {
   const collection = {
-    findManyByUser: jest.fn<CollectionStore['findManyByUser']>(async () => [savedItem]),
+    findManyByUser: jest.fn<CollectionStore['findManyByUser']>(async () => [listedRow]),
+    summarizeByUser: jest.fn<CollectionStore['summarizeByUser']>(async () => ({
+      totalUnits: 0,
+      distinctCards: 0,
+      listedItems: 0,
+    })),
     findById: jest.fn<CollectionStore['findById']>(async () => savedItem),
     addOrIncrement: jest.fn<CollectionStore['addOrIncrement']>(async () => savedItem),
     lockById: jest.fn<CollectionStore['lockById']>(async () => locked),
@@ -108,25 +119,58 @@ function setup() {
 describe('CollectionService.list', () => {
   it('devolve os itens com available e preço como número', async () => {
     const { collection, service } = setup();
-    collection.findManyByUser.mockResolvedValue([{ ...savedItem, quantity: 3, reservedQuantity: 1 }]);
+    collection.findManyByUser.mockResolvedValue([{ ...listedRow, quantity: 3, reservedQuantity: 1 }]);
 
     const items = await service.list(USER_ID);
 
     expect(collection.findManyByUser).toHaveBeenCalledWith(USER_ID);
     expect(items[0]).toMatchObject({ id: ITEM_ID, available: 2, card: { marketPrice: null } });
   });
+
+  it('diz por que cada item não pode ser apagado e não expõe as contagens', async () => {
+    const { collection, service } = setup();
+    collection.findManyByUser.mockResolvedValue([
+      listedRow,
+      { ...listedRow, id: 'reservado', reservedQuantity: 1 },
+      { ...listedRow, id: 'anunciado', listings: [{ status: 'CLOSED' }, { status: 'PAUSED' }] },
+      { ...listedRow, id: 'historico', listings: [{ status: 'CLOSED' }, { status: 'BLOCKED' }] },
+      { ...listedRow, id: 'ofertado', _count: { offerItems: 1 } },
+    ]);
+
+    const items = await service.list(USER_ID);
+
+    expect(items.map((item) => item.deleteBlockedBy)).toEqual([
+      null,
+      'RESERVED',
+      'OPEN_LISTING',
+      'LISTING_HISTORY',
+      'OPEN_OFFER',
+    ]);
+    expect(items[0]).not.toHaveProperty('listings');
+    expect(items[0]).not.toHaveProperty('_count');
+  });
+});
+
+describe('CollectionService.summary', () => {
+  it('devolve os totais da coleção inteira do usuário', async () => {
+    const { collection, service } = setup();
+    collection.summarizeByUser.mockResolvedValue({ totalUnits: 7, distinctCards: 4, listedItems: 1 });
+
+    expect(await service.summary(USER_ID)).toEqual({ totalUnits: 7, distinctCards: 4, listedItems: 1 });
+    expect(collection.summarizeByUser).toHaveBeenCalledWith(USER_ID);
+  });
 });
 
 describe('CollectionService.listPage', () => {
   it('pede uma linha a mais com os filtros e corta no limite', async () => {
     const { collection, service } = setup();
-    collection.findManyByUser.mockResolvedValue([savedItem, { ...savedItem, id: 'item-2' }, { ...savedItem, id: 'item-3' }]);
+    collection.findManyByUser.mockResolvedValue([listedRow, { ...listedRow, id: 'item-2' }, { ...listedRow, id: 'item-3' }]);
 
     const result = await service.listPage(USER_ID, { q: 'charizard', isPublic: false }, { page: 2, limit: 2 });
 
     expect(collection.findManyByUser).toHaveBeenCalledWith(USER_ID, { q: 'charizard', isPublic: false, skip: 2, take: 3 });
     expect(result.items.map((item) => item.id)).toEqual([ITEM_ID, 'item-2']);
-    expect(result.items[0]).toMatchObject({ available: 1 });
+    expect(result.items[0]).toMatchObject({ available: 1, deleteBlockedBy: null });
     expect(result.hasNextPage).toBe(true);
   });
 
