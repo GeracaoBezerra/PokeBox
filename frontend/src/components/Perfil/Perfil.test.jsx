@@ -82,4 +82,27 @@ describe("Perfil", () => {
 
     expect(await screen.findByText("Em /")).toBeInTheDocument();
   });
+
+  it("enquanto carrega mostra o esqueleto com o menu, não uma tela vazia", async () => {
+    let liberar;
+    const espera = new Promise((resolver) => {
+      liberar = resolver;
+    });
+    server.use(
+      rota.get(url("/auth/me"), async () => {
+        await espera;
+        return HttpResponse.json({ success: true, data: { user } });
+      }),
+      rota.get(url("/trades/me"), () => HttpResponse.json({ success: true, data: { sent: [], received: [] } }))
+    );
+    renderWithProviders(<Perfil />, { rota: "/perfil" });
+
+    expect(screen.getByRole("status", { name: "Carregando perfil" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Minhas trocas" })).toBeInTheDocument();
+
+    liberar();
+
+    expect(await screen.findByRole("heading", { name: "Meu perfil" })).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Carregando perfil" })).not.toBeInTheDocument();
+  });
 });

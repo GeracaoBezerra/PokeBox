@@ -7,6 +7,7 @@ import { addToWishlist, removeFromWishlist } from "../api/wishlist";
 import { useSession } from "../auth/useSession";
 import AcoesRapidas from "../components/AcoesRapidas/AcoesRapidas";
 import AdicionarNaColecao from "../components/AdicionarNaColecao/AdicionarNaColecao";
+import Atualizando from "../components/Atualizando/Atualizando";
 import Aviso from "../components/Aviso/Aviso";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import FiltrosCatalogo from "../components/FiltrosCatalogo/FiltrosCatalogo";
@@ -111,6 +112,7 @@ export default function CatalogPage() {
   );
   const { dados, erro, recarregar } = busca;
   const carregando = busca.carregando || esperandoOpcoes;
+  const primeiraCarga = carregando && !dados;
   const infoBusca = carregando ? null : dados?.search ?? null;
   const setsReconhecidos = infoBusca?.sets ?? [];
   const palavrasIgnoradas = infoBusca?.ignored ?? [];
@@ -275,9 +277,9 @@ export default function CatalogPage() {
               onTentarDeNovo={minhasCartas.recarregar}
             />
           )}
-          {carregando && <GradeCartas carregando total={24} variante="catalogo" />}
-          {!carregando && dados && (
-            <>
+          {primeiraCarga && <GradeCartas carregando total={24} variante="catalogo" />}
+          {!primeiraCarga && dados && (
+            <Atualizando atualizando={carregando}>
               {dados.items.length ? (
                 <GradeCartas cartas={dados.items} lang={lang} variante="catalogo" acoes={acoesDaCarta} />
               ) : (
@@ -313,7 +315,7 @@ export default function CatalogPage() {
                 />
               )}
               {dados.items.length > 0 && atalhoIngles}
-            </>
+            </Atualizando>
           )}
         </section>
       </div>

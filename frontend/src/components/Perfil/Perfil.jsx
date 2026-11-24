@@ -13,6 +13,7 @@ import { CAMPOS_EDITAVEIS, UFS, montarMudancas, validarPerfil } from "../../util
 import Aviso from "../Aviso/Aviso";
 import ConfirmModal from "../ConfirmModal/ConfirmModal";
 import MenuPerfil from "../MenuPerfil/MenuPerfil";
+import { GruposCarregando } from "../PainelFiltros/PainelFiltros";
 import PainelPerfil from "../PainelPerfil/PainelPerfil";
 import ResumoTrocas from "../ResumoTrocas/ResumoTrocas";
 import SecaoEditavel from "../SecaoEditavel/SecaoEditavel";
@@ -153,8 +154,20 @@ export default function Perfil() {
     return ok;
   }
 
-  if (erro) return <Aviso erro={erro} onTentarDeNovo={recarregar} />;
-  if (!dados) return null;
+  if (erro && !dados) return <Aviso erro={erro} onTentarDeNovo={recarregar} />;
+
+  if (!dados) {
+    return (
+      <div className={styles.secao}>
+        <div className={styles.container}>
+          <MenuPerfil secoes={SECOES} selecionada={secaoAtiva} onSelecionar={setSecaoAtiva} />
+          <div className={styles.conteudo}>
+            <GruposCarregando grupos={3} opcoes={3} rotulo="Carregando perfil" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.secao}>
@@ -162,6 +175,7 @@ export default function Perfil() {
         <MenuPerfil secoes={SECOES} selecionada={secaoAtiva} onSelecionar={setSecaoAtiva} />
 
         <div className={styles.conteudo}>
+          <Aviso erro={erro} onTentarDeNovo={recarregar} />
           <Aviso erro={salvar.erro} campos={CAMPOS_EDITAVEIS} />
 
           {secaoAtiva === "perfil" && (

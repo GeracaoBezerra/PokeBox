@@ -1,6 +1,7 @@
 import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { listMyTrades } from "../api/trades";
 import AbasNegociacao from "../components/AbasNegociacao/AbasNegociacao";
+import Atualizando from "../components/Atualizando/Atualizando";
 import Aviso from "../components/Aviso/Aviso";
 import CabecalhoPagina from "../components/CabecalhoPagina/CabecalhoPagina";
 import CartaoTroca from "../components/CartaoTroca/CartaoTroca";
@@ -30,12 +31,14 @@ const PAINEL = "painel-trocas";
 export default function SwitchNegociationPage() {
   const { aba, side, status, page, atualizar } = useFiltrosNegociacao(STATUS_TROCA);
   const { dados, erro, carregando, recarregar } = useCarregar(
-    () => listMyTrades({ side, status, page }),
+    async () => ({ ...(await listMyTrades({ side, status, page })), side }),
     JSON.stringify({ side, status, page })
   );
 
-  const lista = carregando ? [] : dados?.items ?? [];
-  const vazia = !carregando && dados && lista.length === 0;
+  const daAba = dados?.side === side ? dados : null;
+  const primeiraCarga = carregando && !daAba;
+  const lista = primeiraCarga ? [] : daAba?.items ?? [];
+  const vazia = !carregando && daAba && lista.length === 0;
 
   return (
     <div className={s.pagina}>
@@ -56,7 +59,7 @@ export default function SwitchNegociationPage() {
 
       <div role="tabpanel" id={PAINEL} aria-labelledby={idDaAba(PAINEL, aba)}>
         <Aviso erro={erro} onTentarDeNovo={recarregar} />
-        {carregando && <CarregandoCartas formato="negociacoes" total={4} />}
+        {primeiraCarga && <CarregandoCartas formato="negociacoes" total={4} />}
         {vazia && page > 1 && <p className={s.suave}>Nenhuma troca nesta página.</p>}
         {vazia && page === 1 && status && (
           <div className={s.acoes}>
@@ -75,15 +78,17 @@ export default function SwitchNegociationPage() {
           </div>
         )}
 
-        <div className={s.gradeNegociacoes}>
-          {lista.map((troca) => (
-            <CartaoTroca key={troca.id} troca={troca} souDonoDoAnuncio={aba === "recebidas"} onMudou={recarregar} />
-          ))}
-        </div>
+        <Atualizando atualizando={carregando && !primeiraCarga}>
+          <div className={s.gradeNegociacoes}>
+            {lista.map((troca) => (
+              <CartaoTroca key={troca.id} troca={troca} souDonoDoAnuncio={aba === "recebidas"} onMudou={recarregar} />
+            ))}
+          </div>
 
-        {dados && !carregando && (lista.length > 0 || page > 1) && (
-          <Paginacao pagina={page} temProxima={dados.pagination?.hasNextPage} onIrPara={(nova) => atualizar({ page: nova }, false)} />
-        )}
+          {daAba && !primeiraCarga && (lista.length > 0 || page > 1) && (
+            <Paginacao pagina={page} temProxima={daAba.pagination?.hasNextPage} onIrPara={(nova) => atualizar({ page: nova }, false)} />
+          )}
+        </Atualizando>
       </div>
     </div>
   );

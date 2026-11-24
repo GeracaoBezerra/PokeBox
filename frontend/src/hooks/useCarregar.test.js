@@ -25,13 +25,53 @@ describe("useCarregar", () => {
     expect(carregar).toHaveBeenCalledTimes(1);
   });
 
-  it("entrega o erro quando a carga falha e os dados ficam nulos", async () => {
+  it("entrega o erro quando a primeira carga falha e os dados ficam nulos", async () => {
     const falha = new Error("fora do ar");
     const { result } = renderHook(() => useCarregar(() => Promise.reject(falha)));
 
     await waitFor(() => expect(result.current.erro).toBe(falha));
     expect(result.current.dados).toBeNull();
     expect(result.current.carregando).toBe(false);
+  });
+
+  it("erro numa recarga mantém os dados que já estavam na tela", async () => {
+    const falha = new Error("fora do ar");
+    const carregar = vi.fn().mockResolvedValueOnce(["pikachu"]).mockRejectedValueOnce(falha);
+    const { result } = renderHook(() => useCarregar(carregar));
+    await waitFor(() => expect(result.current.dados).toEqual(["pikachu"]));
+
+    act(() => result.current.recarregar());
+
+    await waitFor(() => expect(result.current.erro).toBe(falha));
+    expect(result.current.dados).toEqual(["pikachu"]);
+    expect(result.current.carregando).toBe(false);
+  });
+
+  it("primeiraCarga só vale enquanto nenhum dado chegou; recarga e chave nova não contam", async () => {
+    const carregar = vi.fn().mockResolvedValueOnce(["pikachu"]).mockReturnValue(new Promise(() => {}));
+    const { result, rerender } = renderHook(({ chave }) => useCarregar(carregar, chave), { initialProps: { chave: "a" } });
+    expect(result.current.primeiraCarga).toBe(true);
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(result.current.primeiraCarga).toBe(false);
+
+    act(() => result.current.recarregar());
+    expect(result.current.carregando).toBe(true);
+    expect(result.current.primeiraCarga).toBe(false);
+
+    rerender({ chave: "b" });
+    expect(result.current.carregando).toBe(true);
+    expect(result.current.primeiraCarga).toBe(false);
+    expect(result.current.dados).toEqual(["pikachu"]);
+  });
+
+  it("depois de um erro sem dados, tentar de novo ainda é primeira carga", async () => {
+    const carregar = vi.fn().mockRejectedValueOnce(new Error("fora do ar")).mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useCarregar(carregar));
+    await waitFor(() => expect(result.current.erro).not.toBeNull());
+
+    act(() => result.current.recarregar());
+
+    expect(result.current.primeiraCarga).toBe(true);
   });
 
   it("recarregar chama de novo, volta a mostrar carregando e entrega os dados novos", async () => {

@@ -2,6 +2,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { SearchX, UserX } from "lucide-react";
 import { getPublicCollection } from "../api/collection";
 import { listListings } from "../api/listings";
+import Atualizando from "../components/Atualizando/Atualizando";
 import Aviso from "../components/Aviso/Aviso";
 import BarraBusca from "../components/BarraBusca/BarraBusca";
 import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
@@ -31,6 +32,8 @@ export default function PublicPerfilPage() {
   const temFiltro = Boolean(q || type);
   const tipoDeErro = tipoDeErroDoPerfil(username, erro);
   const erroDeFiltro = tipoDeErro === "filtro";
+  const doPerfil = dados?.user?.username === username ? dados : null;
+  const primeiraCarga = carregando && !doPerfil;
 
   function atualizar(mudancas, reiniciarPagina = true) {
     const novos = new URLSearchParams(params);
@@ -61,7 +64,7 @@ export default function PublicPerfilPage() {
     <div className={s.pagina}>
       {!erroDeFiltro && <Aviso erro={erro} onTentarDeNovo={recarregar} />}
 
-      {dados?.user?.username === username && (
+      {doPerfil && (
         <header>
           <h1 className={s.titulo}>{dados.user.name}</h1>
           <p className={s.subtitulo}>
@@ -112,50 +115,52 @@ export default function PublicPerfilPage() {
         </div>
       )}
 
-      {carregando && <CarregandoCartas />}
+      {primeiraCarga && <CarregandoCartas />}
 
-      {!carregando && dados && (
-        <section className={s.secao} aria-label="Coleção pública">
-          {dados.items.length === 0 ? (
-            temFiltro ? (
-              <div className={v.vazio}>
-                <SearchX size={32} aria-hidden="true" />
-                <h2>Nenhuma carta com esses filtros</h2>
-                <button type="button" className={v.botao} onClick={() => atualizar({ q: "", type: "" })}>
-                  Limpar filtros
-                </button>
-              </div>
+      {!primeiraCarga && !erroDeFiltro && doPerfil && (
+        <Atualizando atualizando={carregando}>
+          <section className={s.secao} aria-label="Coleção pública">
+            {dados.items.length === 0 ? (
+              temFiltro ? (
+                <div className={v.vazio}>
+                  <SearchX size={32} aria-hidden="true" />
+                  <h2>Nenhuma carta com esses filtros</h2>
+                  <button type="button" className={v.botao} onClick={() => atualizar({ q: "", type: "" })}>
+                    Limpar filtros
+                  </button>
+                </div>
+              ) : (
+                <p className={s.suave}>Nenhuma carta pública.</p>
+              )
             ) : (
-              <p className={s.suave}>Nenhuma carta pública.</p>
-            )
-          ) : (
-            <div className={s.grade}>
-              {dados.items.map((item) => {
-                const anuncio = porItem.get(item.id);
-                return (
-                  <CartaMini key={item.id} to={`/cards/${encodeURIComponent(item.card.id)}`} carta={item.card}>
-                    <span className={s.suave}>
-                      {variante(item)} · {CONDICOES[item.condition]}
-                    </span>
-                    <span>Quantidade: {item.quantity}</span>
-                    {anuncio && (
-                      <Link className={s.seloTroca} to={`/marketplace/${anuncio.id}`}>
-                        Para troca
-                      </Link>
-                    )}
-                  </CartaMini>
-                );
-              })}
-            </div>
-          )}
-          {(dados.items.length > 0 || page > 1) && (
-            <Paginacao
-              pagina={page}
-              temProxima={dados.pagination?.hasNextPage}
-              onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
-            />
-          )}
-        </section>
+              <div className={s.grade}>
+                {dados.items.map((item) => {
+                  const anuncio = porItem.get(item.id);
+                  return (
+                    <CartaMini key={item.id} to={`/cards/${encodeURIComponent(item.card.id)}`} carta={item.card}>
+                      <span className={s.suave}>
+                        {variante(item)} · {CONDICOES[item.condition]}
+                      </span>
+                      <span>Quantidade: {item.quantity}</span>
+                      {anuncio && (
+                        <Link className={s.seloTroca} to={`/marketplace/${anuncio.id}`}>
+                          Para troca
+                        </Link>
+                      )}
+                    </CartaMini>
+                  );
+                })}
+              </div>
+            )}
+            {(dados.items.length > 0 || page > 1) && (
+              <Paginacao
+                pagina={page}
+                temProxima={dados.pagination?.hasNextPage}
+                onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
+              />
+            )}
+          </section>
+        </Atualizando>
       )}
     </div>
   );

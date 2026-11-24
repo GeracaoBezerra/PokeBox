@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import Header from "../header/header";
+import CarregandoPagina from "../CarregandoPagina/CarregandoPagina";
 import Footer from "../footer/footer";
 
 function MainLayout() {
@@ -8,7 +9,7 @@ function MainLayout() {
     <>
       <Header />
       <main>
-        <Suspense fallback={null}>
+        <Suspense fallback={<CarregandoPagina />}>
           <Outlet />
         </Suspense>
       </main>

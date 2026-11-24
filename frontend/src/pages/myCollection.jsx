@@ -2,6 +2,7 @@ import CarregandoCartas from "../components/CarregandoCartas/CarregandoCartas";
 import { Link } from "react-router-dom";
 import { listCollection } from "../api/collection";
 import { useSession } from "../auth/useSession";
+import Atualizando from "../components/Atualizando/Atualizando";
 import Aviso from "../components/Aviso/Aviso";
 import CabecalhoPagina from "../components/CabecalhoPagina/CabecalhoPagina";
 import TabelaColecao from "../components/TabelaColecao/TabelaColecao";
@@ -10,7 +11,7 @@ import s from "../styles/paginas.module.css";
 
 export default function MyCollectionPage() {
   const session = useSession();
-  const { dados: itens, erro, carregando, recarregar } = useCarregar(listCollection);
+  const { dados: itens, erro, carregando, primeiraCarga, recarregar } = useCarregar(listCollection);
 
   return (
     <div className={s.pagina}>
@@ -26,9 +27,13 @@ export default function MyCollectionPage() {
       </CabecalhoPagina>
 
       <Aviso erro={erro} onTentarDeNovo={recarregar} />
-      {carregando && <CarregandoCartas formato="tabela" total={6} />}
-      {!carregando && itens && itens.length === 0 && <p className={s.suave}>Sua coleção está vazia.</p>}
-      {!carregando && itens && itens.length > 0 && <TabelaColecao itens={itens} onMudou={recarregar} />}
+      {primeiraCarga && <CarregandoCartas formato="tabela" total={6} />}
+      {!primeiraCarga && itens && itens.length === 0 && <p className={s.suave}>Sua coleção está vazia.</p>}
+      {!primeiraCarga && itens && itens.length > 0 && (
+        <Atualizando atualizando={carregando}>
+          <TabelaColecao itens={itens} onMudou={recarregar} />
+        </Atualizando>
+      )}
     </div>
   );
 }

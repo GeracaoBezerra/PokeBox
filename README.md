@@ -233,7 +233,6 @@ Issues abertas na entrega:
 | Issue | O que falta |
 |---|---|
 | [#229](https://github.com/GeracaoBezerra/PokeBox/issues/229) | Preview da Vercel pede login da Vercel e fica fora do CORS da API |
-| [#83](https://github.com/GeracaoBezerra/PokeBox/issues/83) | Carregamento sem piscar, 404 de carta e anúncio, voltar à origem depois do cadastro, carregar as telas sob demanda |
 | [#84](https://github.com/GeracaoBezerra/PokeBox/issues/84) | Minha coleção no padrão das outras telas, com adicionar carta na própria página e filtros |
 | [#85](https://github.com/GeracaoBezerra/PokeBox/issues/85) | Meus anúncios com "Novo anúncio" e abas por status |
 | [#230](https://github.com/GeracaoBezerra/PokeBox/issues/230) | Trocas no padrão visual das outras telas |
@@ -245,7 +244,6 @@ Outras dívidas, sem issue:
 
 - Refresh token com cookie `httpOnly` no lugar do JWT no `localStorage`.
 - `make test-int` falha depois de um `docker compose down`, porque o container do banco de teste fica preso à rede antiga. Contorno: `docker compose --profile test up -d --force-recreate tcg-db-test`.
-- O build do front gera um arquivo JavaScript acima de 500 kB (carregar as telas sob demanda resolve; está na #83).
 - Pontos de arquitetura listados em [`docs/arquitetura.md`](docs/arquitetura.md#pontos-fracos-conhecidos).
 
 ### Próximos passos

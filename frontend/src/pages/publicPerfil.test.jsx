@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { http as rota, HttpResponse } from "msw";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
@@ -73,5 +74,31 @@ describe("PublicPerfilPage", () => {
     renderizar("/u/AB");
 
     expect(await screen.findByRole("heading", { name: "Colecionador não encontrado" })).toBeInTheDocument();
+  });
+
+  it("trocar de página mantém as cartas atuais apagadas, sem esqueleto, até a próxima chegar", async () => {
+    let liberar;
+    const segunda = new Promise((resolver) => {
+      liberar = resolver;
+    });
+    const item = (id, nome) => ({ id, quantity: 1, condition: "NEAR_MINT", finish: "NORMAL", card: { id: `c-${id}`, name: nome, imageUrl: null } });
+    apiDoPerfil(async ({ request }) => {
+      if (new URL(request.url).searchParams.get("page") === "2") {
+        await segunda;
+        return HttpResponse.json({ success: true, data: { user: ash, items: [item("2", "Blastoise")] }, pagination: { hasNextPage: false } });
+      }
+      return HttpResponse.json({ success: true, data: { user: ash, items: [item("1", "Charizard")] }, pagination: { hasNextPage: true } });
+    });
+
+    renderizar("/u/ash");
+    await userEvent.click(await screen.findByRole("button", { name: "Próxima" }));
+
+    expect(screen.getByRole("link", { name: /Charizard/ }).closest('[aria-busy="true"]')).not.toBeNull();
+    expect(screen.queryByRole("status", { name: "Carregando cartas" })).not.toBeInTheDocument();
+
+    liberar();
+
+    expect(await screen.findByRole("link", { name: /Blastoise/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Charizard/ })).not.toBeInTheDocument();
   });
 });
