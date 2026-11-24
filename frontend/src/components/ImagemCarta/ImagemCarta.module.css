@@ -1,3 +1,8 @@
+:where(.imagem) {
+  width: auto;
+  height: auto;
+}
+
 .semImagem {
   container-type: inline-size;
   display: flex;

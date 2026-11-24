@@ -233,7 +233,7 @@ Issues abertas na entrega:
 | Issue | O que falta |
 |---|---|
 | [#229](https://github.com/GeracaoBezerra/PokeBox/issues/229) | Preview da Vercel pede login da Vercel e fica fora do CORS da API |
-| [#93](https://github.com/GeracaoBezerra/PokeBox/issues/93) | Acessibilidade e celular: rótulos nas tabelas e tabelas que viram cards |
+| [#93](https://github.com/GeracaoBezerra/PokeBox/issues/93) | Acessibilidade: falta o `eslint-plugin-jsx-a11y` no lint do front (a versão oficial ainda não aceita o ESLint 10) |
 | [#231](https://github.com/GeracaoBezerra/PokeBox/issues/231) | Painel de filtros ocupando melhor a largura da tela |
 | [#235](https://github.com/GeracaoBezerra/PokeBox/issues/235) | Filtros mostrando só as opções que existem na lista |
 

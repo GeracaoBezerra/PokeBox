@@ -23,10 +23,13 @@ function ImagemComFallback({ src, alt, className, loading, resto }) {
 
   return (
     <img
-      className={className}
+      className={`${styles.imagem} ${className ?? ""}`}
       src={src}
       alt={alt}
       loading={loading}
+      width={245}
+      height={342}
+      decoding="async"
       {...resto}
       onError={() => setErro(true)}
     />

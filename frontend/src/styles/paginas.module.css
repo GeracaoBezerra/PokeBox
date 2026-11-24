@@ -78,6 +78,11 @@
 .botao,
 .botaoSecundario,
 .botaoPerigo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-8);
+  min-height: var(--alvo-min);
   border-radius: 6px;
   padding: 8px 14px;
   font: inherit;
@@ -286,6 +291,8 @@
 
 .link {
   color: var(--acento);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .tabela td.campo {
