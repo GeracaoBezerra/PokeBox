@@ -14,6 +14,7 @@ import {
   NotFoundPage,
   PublicPerfilPage,
   RegisterPage,
+  SobrePage,
   SwitchNegociationPage,
   UserPerfilPage,
   WishlistPage,
@@ -31,6 +32,7 @@ function App() {
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/marketplace/:id" element={<ListingPage />} />
         <Route path="/u/:username" element={<PublicPerfilPage />} />
+        <Route path="/sobre" element={<SobrePage />} />
 
         <Route element={<RotaPrivada />}>
           <Route path="/colecao" element={<MyCollectionPage />} />

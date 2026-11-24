@@ -2,39 +2,19 @@ import { Link } from "react-router-dom";
 import Logo from "../Logo/Logo";
 import styles from "./footer.module.css";
 
+const REPOSITORIO = "https://github.com/GeracaoBezerra/PokeBox";
+
 const informacoes = [
-  { label: "Sobre PokeBox", href: "/sobre" },
-  { label: "Segurança", href: "/seguranca" },
-  { label: "Trabalhe Conosco", href: "/trabalhe-conosco" },
-  { label: "Wishlist", href: "/wishlist"},
+  { label: "Sobre PokeBox", to: "/sobre" },
+  { label: "Como funciona", to: "/#como-funciona" },
+  { label: "Wishlist", to: "/procuro" },
 ];
 
-const categorias = [
-  { label: "Cartas Raras", href: "/cartas?categoria=raras" },
-  {
-    label: "Cartas de Treinadores",
-    href: "/cartas?categoria=treinadores",
-  },
-  { label: "Cartas Foil", href: "/cartas?categoria=foil" },
+const atalhos = [
+  { label: "Catálogo", to: "/catalogo" },
+  { label: "Marketplace", to: "/marketplace" },
+  { label: "Mais desejadas", to: "/catalogo?sort=wanted&order=desc" },
 ];
-
-function InstagramIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle className={styles.iconDot} cx="17.5" cy="6.8" r="1" />
-    </svg>
-  );
-}
-
-function LinkedInIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5 3.5A2.5 2.5 0 1 0 5 8.5a2.5 2.5 0 0 0 0-5ZM3 10h4v11H3zM9 10h3.8v1.5h.1a4.2 4.2 0 0 1 3.8-2.1c4.1 0 4.9 2.5 4.9 5.8V21h-4v-5.2c0-1.3 0-3-1.9-3s-2.2 1.4-2.2 2.9V21H9z" />
-    </svg>
-  );
-}
 
 function GithubIcon() {
   return (
@@ -64,16 +44,11 @@ function FooterLinks({ title, links }) {
       <h2 className={styles.columnTitle}>{title}</h2>
 
       <ul className={styles.linkList}>
-        {links.map(({ label, href, destaque }) => (
+        {links.map(({ label, to }) => (
           <li key={label}>
-            <a
-              className={`${styles.footerLink} ${
-                destaque ? styles.highlightLink : ""
-              }`}
-              href={href}
-            >
+            <Link className={styles.footerLink} to={to}>
               {label}
-            </a>
+            </Link>
           </li>
         ))}
       </ul>
@@ -103,23 +78,8 @@ export default function Footer() {
           </p>
 
           <div className={styles.socialLinks}>
-            {/* Substitua pelos endereços reais dos seus perfis. */}
             <SocialLink
-              href="https://instagram.com/"
-              label="Instagram da PokeBox"
-            >
-              <InstagramIcon />
-            </SocialLink>
-
-            <SocialLink
-              href="https://linkedin.com/"
-              label="LinkedIn da PokeBox"
-            >
-              <LinkedInIcon />
-            </SocialLink>
-
-            <SocialLink
-              href="https://github.com/GeracaoBezerra/PokeBox"
+              href={REPOSITORIO}
               label="GitHub da PokeBox"
             >
               <GithubIcon />
@@ -129,25 +89,25 @@ export default function Footer() {
 
         <FooterLinks title="Informação" links={informacoes} />
 
-        <FooterLinks title="Categorias" links={categorias} />
+        <FooterLinks title="Explorar" links={atalhos} />
 
-        <section className={styles.column}>
-          <h2 className={styles.columnTitle}>Contato</h2>
+        <section className={styles.column} aria-labelledby="rodape-projeto">
+          <h2 id="rodape-projeto" className={styles.columnTitle}>
+            Projeto do curso Geração Tech
+          </h2>
 
-          <address className={styles.contactInfo}>
-            <p>
-              Rua dos Treinadores, 1500
-              <br />
-              Bairro Pokémon, CEP 12345-678
-              <br />
-              Cidade Kanto - SP
-            </p>
-
-            <p className={styles.phone}>
-              <strong>Tel:</strong>{" "}
-              <a href="tel:+551140028922">+55 (11) 4002-8922</a>
-            </p>
-          </address>
+          <p className={styles.projetoTexto}>
+            O código é aberto e está no{" "}
+            <a
+              className={styles.projetoLink}
+              href={REPOSITORIO}
+              target="_blank"
+              rel="noreferrer"
+            >
+              repositório do GitHub
+            </a>
+            .
+          </p>
         </section>
       </div>
 

@@ -235,7 +235,6 @@ Issues abertas na entrega:
 | [#228](https://github.com/GeracaoBezerra/PokeBox/issues/228) | Desativar a conta leva ao login em vez da home |
 | [#229](https://github.com/GeracaoBezerra/PokeBox/issues/229) | Preview da Vercel pede login da Vercel e fica fora do CORS da API |
 | [#79](https://github.com/GeracaoBezerra/PokeBox/issues/79) | Header: link ativo, menu da conta completo e área privada escondida para quem não entrou |
-| [#81](https://github.com/GeracaoBezerra/PokeBox/issues/81) | Botões da home ("Ver marketplace", "Ver expansões", "Começar minha coleção" logado) e links do rodapé sem destino |
 | [#83](https://github.com/GeracaoBezerra/PokeBox/issues/83) | Carregamento sem piscar, 404 de carta e anúncio, voltar à origem depois do cadastro, carregar as telas sob demanda |
 | [#84](https://github.com/GeracaoBezerra/PokeBox/issues/84) | Minha coleção no padrão das outras telas, com adicionar carta na própria página e filtros |
 | [#85](https://github.com/GeracaoBezerra/PokeBox/issues/85) | Meus anúncios com "Novo anúncio" e abas por status |
@@ -268,7 +267,7 @@ Foto de 24/11/2026.
 | Parte | Situação |
 |---|---|
 | Backend | ✅ Todas as rotas em produção: autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas em 3 passos e moderação |
-| Frontend | 🟡 Todas as telas funcionam e conversam com a API. Coleção, Meus anúncios e Trocas ainda estão no layout do MVP (#84, #85, #230), e há botões e links sem destino na home e no rodapé (#81) |
+| Frontend | 🟡 Todas as telas funcionam e conversam com a API. Coleção, Meus anúncios e Trocas ainda estão no layout do MVP (#84, #85, #230) |
 | Testes | ✅ 927 de unidade e 173 de integração no backend (98,3% das linhas), 364 no front e 11 E2E, todos na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, publicados a cada release pela `main` |
 | Observabilidade | ✅ Logs com `x-request-id`, traces no Jaeger (local) e no Grafana Cloud (produção) |
