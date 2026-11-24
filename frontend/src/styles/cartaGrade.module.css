@@ -54,6 +54,7 @@
 
 .nota a {
   color: var(--acento);
+  white-space: nowrap;
 }
 
 .secundaria {
