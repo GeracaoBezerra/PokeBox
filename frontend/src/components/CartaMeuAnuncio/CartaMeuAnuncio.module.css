@@ -1,0 +1,132 @@
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-12);
+  height: 100%;
+  min-width: 0;
+  padding: var(--esp-16);
+  background: var(--superficie);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-painel);
+}
+
+.topo {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: var(--esp-16);
+  align-items: start;
+}
+
+.imagem {
+  display: block;
+  aspect-ratio: var(--carta-proporcao);
+  border-radius: var(--raio-carta);
+  overflow: hidden;
+  box-shadow: var(--sombra-carta);
+}
+
+.imagem img,
+.imagem > div {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.identidade {
+  display: grid;
+  align-content: start;
+  gap: var(--esp-4);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nome {
+  font-family: var(--fonte-titulo);
+  font-size: var(--fs-md);
+  font-weight: var(--peso-semi);
+  line-height: 1.25;
+}
+
+.nome a { color: var(--texto); }
+.nome a:hover { color: var(--acento); }
+
+.variante,
+.suave,
+.explicacao {
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-xs);
+}
+
+.variante { color: var(--texto); }
+
+.selo {
+  justify-self: start;
+  margin: var(--esp-4) 0;
+  padding: var(--esp-4) var(--esp-8);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-pilula);
+  background: var(--superficie-hover);
+  color: var(--texto);
+  font-size: var(--fs-xs);
+  font-weight: var(--peso-semi);
+}
+
+.selo[data-tom="ativo"] { border-color: transparent; background: var(--sucesso-fundo); color: var(--sucesso); }
+.selo[data-tom="troca"] { border-color: transparent; background: var(--info-fundo); color: var(--info); }
+.selo[data-tom="pausado"] { border-color: transparent; background: var(--aviso-fundo); color: var(--aviso); }
+.selo[data-tom="encerrado"] { color: var(--texto-suave); }
+.selo[data-tom="bloqueado"] { border-color: transparent; background: var(--erro-fundo); color: var(--erro); }
+
+.explicacao { overflow-wrap: anywhere; }
+
+.alerta {
+  padding: var(--esp-8) var(--esp-12);
+  border-left: 3px solid var(--aviso);
+  border-radius: var(--raio-botao);
+  background: var(--superficie-hover);
+  color: var(--texto);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-xs);
+}
+
+.edicao {
+  display: grid;
+  gap: var(--esp-12);
+  padding-top: var(--esp-12);
+  border-top: 1px solid var(--borda-suave);
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: var(--esp-12);
+}
+
+.edicao > button { justify-self: start; }
+
+.numeros {
+  display: grid;
+  gap: var(--esp-8);
+  padding-top: var(--esp-12);
+  border-top: 1px solid var(--borda-suave);
+  font-size: var(--fs-sm);
+}
+
+.numeros > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--esp-8);
+}
+
+.numeros dt { color: var(--texto-suave); }
+.numeros dd { font-weight: var(--peso-semi); overflow-wrap: anywhere; text-align: right; }
+.numeros .descricao dd { font-weight: normal; }
+
+@media (max-width: 600px) {
+  .cartao { padding: var(--esp-12); }
+  .topo { grid-template-columns: 72px minmax(0, 1fr); gap: var(--esp-12); }
+  .campos { grid-template-columns: minmax(0, 1fr); }
+  .edicao > button { justify-self: stretch; }
+}

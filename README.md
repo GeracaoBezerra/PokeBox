@@ -191,7 +191,7 @@ Onde ver cada regra:
 | RN-02 | `utils/collectionRules.ts` | Minha coleção | Com o token da `misty`, `PATCH /collection/<item do ash>` → 403 |
 | RN-03 | `utils/collectionRules.ts`, CHECK no banco | Minha coleção | Quantidade -1 → 400; `UPDATE` direto no SQL com valor negativo é barrado pela CHECK |
 | RN-04 | `WishlistService` | Wishlist (`/procuro`) | A `misty` vê "1 colecionador tem esta carta" no Charizard e "Ninguém tem ainda" no Pineco |
-| RN-05 | `utils/listingRules.ts`, `ListingService` | Minha coleção (Anunciar), Meus anúncios | Anunciar mais do que o disponível → erro "Quantidade acima do que você tem" |
+| RN-05 | `utils/listingRules.ts`, `ListingService` | Minha coleção (Anunciar), Meus anúncios (Novo anúncio) | Anunciar mais do que o disponível → erro "Quantidade acima do que você tem" |
 | RN-06 | `utils/offerRules.ts`, `OfferService` | Detalhe do anúncio, Propostas | Ofertar no próprio anúncio não mostra o formulário; oferta repetida → 409 |
 | RN-07 | `TradeService`, `utils/tradeRules.ts`, Unit of Work | Trocas | `brock` confirma a troca do Venusaur (a `erika` já confirmou) e as cartas mudam de dono nas duas coleções |
 | RN-08 | `TradeOpener`, `SELECT ... FOR UPDATE` | Trocas, Minha coleção (Reservada) | O Dialga do `brock` aparece com Reservada 1 e o Apagar desligado com "Está numa troca em andamento" |
@@ -233,7 +233,6 @@ Issues abertas na entrega:
 | Issue | O que falta |
 |---|---|
 | [#229](https://github.com/GeracaoBezerra/PokeBox/issues/229) | Preview da Vercel pede login da Vercel e fica fora do CORS da API |
-| [#85](https://github.com/GeracaoBezerra/PokeBox/issues/85) | Meus anúncios com "Novo anúncio" e abas por status |
 | [#230](https://github.com/GeracaoBezerra/PokeBox/issues/230) | Trocas no padrão visual das outras telas |
 | [#93](https://github.com/GeracaoBezerra/PokeBox/issues/93) | Acessibilidade e celular: rótulos nas tabelas e tabelas que viram cards |
 | [#231](https://github.com/GeracaoBezerra/PokeBox/issues/231) | Painel de filtros ocupando melhor a largura da tela |
@@ -262,7 +261,7 @@ Foto de 24/11/2026.
 | Parte | Situação |
 |---|---|
 | Backend | ✅ Todas as rotas em produção: autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas em 3 passos e moderação |
-| Frontend | 🟡 Todas as telas funcionam e conversam com a API. Meus anúncios e Trocas ainda estão no layout do MVP (#85, #230) |
+| Frontend | 🟡 Todas as telas funcionam e conversam com a API. Trocas ainda está no layout do MVP (#230) |
 | Testes | ✅ 927 de unidade e 173 de integração no backend (98,3% das linhas), 364 no front e 11 E2E, todos na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, publicados a cada release pela `main` |
 | Observabilidade | ✅ Logs com `x-request-id`, traces no Jaeger (local) e no Grafana Cloud (produção) |
