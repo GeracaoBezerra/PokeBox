@@ -24,7 +24,7 @@ flowchart LR
 
 - Uma issue, uma branch, uma PR. A PR traz `Closes #<n>` e segue o template (`.github/pull_request_template.md`): o que muda, o que o revisor precisa saber, dependências, quebra de contrato, como testar e o que ficou pendente.
 - Commits no padrão Conventional Commits em português, com o número da issue: `feat(trocas): aceitar a oferta cria a troca e as duas partes confirmam o recebimento (#213)`.
-- 95 PRs mergeadas e 481 commits na `develop`. 17 releases `develop → main`.
+- No fechamento da entrega (24/11): cerca de 100 PRs mergeadas, mais de 500 commits na `develop` e 19 releases `develop → main`.
 - Toda PR atualiza a documentação (o README ou o arquivo de `docs/` do assunto) com o que traz de novo.
 
 ## Proteção das branches

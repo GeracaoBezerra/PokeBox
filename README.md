@@ -131,6 +131,8 @@ Itens de coleção contados depois das trocas que o seed faz:
 | `cynthia` | `cynthia@pokebox.dev` | USER | Florianópolis/SC | 22 itens raros: Umbreon VMAX alt art, Lugia 1ª edição, Mew ex dourado (anunciados); troca aberta com o `brock` esperando ela aceitar |
 | `lance` | `lance@pokebox.dev` | USER | Salvador/BA | conta **desativada**: não entra, o perfil dá 404, o anúncio dele some da vitrine e as cartas dele não contam nas oportunidades da wishlist |
 
+O `admin` é um usuário como os outros, com a moderação a mais: no detalhe de um anúncio ele vê o bloco "Moderação" com **Bloquear** (o anúncio some do marketplace e o dono não consegue reativar) e, num anúncio bloqueado, **Desbloquear** (volta como pausado para o dono). Ele abre anúncios em qualquer situação, mas não mexe na quantidade nem na descrição deles, não vê ofertas nem trocas de outras pessoas e não altera a coleção de ninguém. Nada impede o admin de ter coleção e trocar cartas; no seed ele só não tem cartas. No `/perfil`, ele tem o selo "Administrador" e o botão "Testar acesso de ADMIN" (`GET /auth/admin-check`).
+
 O seed roda sozinho na primeira subida, pode rodar de novo sem duplicar nada (`make seed`) e funciona sem internet. O que ele cria e como testar pelo Swagger: [`docs/desenvolvimento.md`](docs/desenvolvimento.md#seed).
 
 ## Testes
@@ -138,11 +140,11 @@ O seed roda sozinho na primeira subida, pode rodar de novo sem duplicar nada (`m
 | Andar da pirâmide | Ferramenta | Quantidade (24/11) | Comando |
 |---|---|---|---|
 | E2E | Cypress | 11 | `make e2e` |
-| Front | Vitest + Testing Library + MSW | 488 | `cd frontend && npm test` |
+| Front | Vitest + Testing Library + MSW | 490 | `cd frontend && npm test` |
 | Integração (backend) | Jest + Supertest + PostgreSQL real | 182 | `make test-int` |
 | Unidade (backend) | Jest | 942 | `cd backend && npm test` |
 
-Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 83,6% no front (mínimo de 40%). Por que cada ferramenta: [decisão sobre testes](docs/decisoes/0009-testes.md). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](docs/ia.md).
+Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 83,7% no front (mínimo de 40%). Por que cada ferramenta: [decisão sobre testes](docs/decisoes/0009-testes.md). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](docs/ia.md).
 
 Como rodar cada tipo, o que cada arquivo cobre e a cobertura por métrica: [`docs/testes.md`](docs/testes.md).
 
@@ -260,11 +262,11 @@ Foto de 24/11/2026.
 | Parte | Situação |
 |---|---|
 | Backend | ✅ Todas as rotas em produção: autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas em 3 passos e moderação |
-| Frontend | ✅ Todas as telas funcionam, conversam com a API e seguem o mesmo padrão visual (coleção, meus anúncios e trocas entraram no padrão novo com #84, #85 e #230) |
-| Testes | ✅ 942 de unidade e 182 de integração no backend (98,3% das linhas), 488 no front (83,6% das linhas) e 11 E2E, todos na CI |
+| Frontend | ✅ Todas as telas funcionam, conversam com a API e seguem o mesmo padrão visual (coleção, meus anúncios e trocas entraram no padrão novo com #84, #85 e #230). A página Sobre (`/sobre`) resume esta documentação dentro do app (#233) |
+| Testes | ✅ 942 de unidade e 182 de integração no backend (98,3% das linhas), 490 no front (83,7% das linhas) e 11 E2E, todos na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, publicados a cada release pela `main` |
 | Observabilidade | ✅ Logs com `x-request-id`, traces no Jaeger (local) e no Grafana Cloud (produção) |
-| Bancada final (#60) | ✅ Roteiro manual completo em 23/11; duas falhas pequenas viraram #228 e #229 |
+| Bancada final (#60) | ✅ Roteiro manual completo em 23/11; duas falhas pequenas viraram #228 (corrigida) e #229. Repetida em 24/11 nas telas do segundo pacotão do front: 95 passos OK, nenhuma falha |
 
 O que falta está em [Limitações, dívidas e próximos passos](#limitações-dívidas-e-próximos-passos).
 
