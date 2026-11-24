@@ -7,11 +7,11 @@ Por que cada ferramenta: [decisão sobre testes](decisoes/0009-testes.md).
 | Andar da pirâmide | Ferramenta | Quantidade (24/11) | Comando |
 |---|---|---|---|
 | E2E | Cypress | 11 | `make e2e` |
-| Front | Vitest + Testing Library + MSW | 479 | `cd frontend && npm test` |
+| Front | Vitest + Testing Library + MSW | 488 | `cd frontend && npm test` |
 | Integração (backend) | Jest + Supertest + PostgreSQL real | 182 | `make test-int` |
 | Unidade (backend) | Jest | 942 | `cd backend && npm test` |
 
-Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 83,5% no front (mínimo de 40%). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](ia.md).
+Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 83,6% no front (mínimo de 40%). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](ia.md).
 
 ## Backend
 
