@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { LayoutGrid, List, Plus, SearchX } from "lucide-react";
 import { getCollectionSummary, listCollection, removeCollectionItem, updateCollectionItem } from "../api/collection";
-import { createListing } from "../api/listings";
+import { createListing, listMyListings } from "../api/listings";
 import { errosPorCampo } from "../api/mensagens";
 import { useSession } from "../auth/useSession";
 import AdicionarCartaColecao from "../components/AdicionarCartaColecao/AdicionarCartaColecao";
@@ -34,6 +34,7 @@ import {
   rotuloDoSeloColecao,
   textoTotais,
 } from "../utils/colecao";
+import { comLivre } from "../utils/anuncios";
 import { variante } from "../utils/rotulos";
 import c from "./myCollection.module.css";
 
@@ -53,10 +54,10 @@ function AnunciarItem({ item, onCriado }) {
   return (
     <div className={c.anuncio}>
       <p className={c.suave}>
-        <strong>{item.card.name}</strong> · {variante(item)} · {item.available}{" "}
-        {item.available === 1 ? "disponível" : "disponíveis"}
+        <strong>{item.card.name}</strong> · {variante(item)} · {item.livre}{" "}
+        {item.livre === 1 ? "livre para anunciar" : "livres para anunciar"}
       </p>
-      <FormNovoAnuncio disponivel={item.available} ocupado={ocupado} onCriar={anunciar} erros={errosPorCampo(erro?.details)} />
+      <FormNovoAnuncio disponivel={item.livre} ocupado={ocupado} onCriar={anunciar} erros={errosPorCampo(erro?.details)} />
       <Aviso erro={erro} campos={["quantity", "description"]} />
     </div>
   );
@@ -73,13 +74,15 @@ export default function MyCollectionPage() {
     JSON.stringify({ ...filtrosApi, page }),
   );
   const resumo = useCarregar(getCollectionSummary);
+  const anuncios = useCarregar(() => listMyListings());
   const acao = useAcao();
   const { pedir } = useConfirmacao();
   const [adicionando, setAdicionando] = useState(false);
   const [editando, setEditando] = useState(null);
   const [anunciando, setAnunciando] = useState(null);
 
-  const itens = lista.dados?.items ?? null;
+  const itensDaPagina = lista.dados?.items ?? null;
+  const itens = itensDaPagina && comLivre(itensDaPagina, anuncios.dados ?? []).map((item) => (anuncios.dados ? item : { ...item, livre: 0 }));
   const painel = { q, type, condition, finish, isPublic, zerados };
   const selos = CAMPOS_FILTRO_COLECAO.filter((campo) => painel[campo]).map((campo) => ({
     campo,
@@ -109,6 +112,7 @@ export default function MyCollectionPage() {
   function mudou() {
     lista.recarregar();
     resumo.recarregar();
+    anuncios.recarregar();
   }
 
   function saiuItem() {

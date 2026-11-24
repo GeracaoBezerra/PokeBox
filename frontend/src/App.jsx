@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import CarregandoPagina from "./components/CarregandoPagina/CarregandoPagina";
+import ErroDeTela from "./components/ErroDeTela/ErroDeTela";
 import MainLayout from "./components/MainLayout/MainLayout";
 import RotaPrivada from "./components/RotaPrivada/RotaPrivada";
 import RotaPublicaSo from "./components/RotaPublicaSo/RotaPublicaSo";
@@ -27,9 +28,11 @@ function App() {
     <Routes>
       <Route
         element={
-          <Suspense fallback={<CarregandoPagina />}>
-            <RotaPublicaSo />
-          </Suspense>
+          <ErroDeTela>
+            <Suspense fallback={<CarregandoPagina />}>
+              <RotaPublicaSo />
+            </Suspense>
+          </ErroDeTela>
         }
       >
         <Route path="/login" element={<LoginPage />} />

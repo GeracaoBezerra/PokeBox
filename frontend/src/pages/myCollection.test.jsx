@@ -30,7 +30,7 @@ function item(id, nome, extra = {}) {
 
 const pikachu = item("58", "Pikachu");
 
-function servidor({ pagina = () => lista([pikachu]), resumo = { totalUnits: 2, distinctCards: 1, listedItems: 0 } } = {}) {
+function servidor({ pagina = () => lista([pikachu]), resumo = { totalUnits: 2, distinctCards: 1, listedItems: 0 }, anuncios = [] } = {}) {
   const pedidos = [];
   const resumos = [];
   server.use(
@@ -39,6 +39,7 @@ function servidor({ pagina = () => lista([pikachu]), resumo = { totalUnits: 2, d
       pedidos.push(Object.fromEntries(params));
       return pagina(params, pedidos.length);
     }),
+    rota.get(url("/listings/me"), () => HttpResponse.json({ success: true, data: { items: anuncios } })),
     rota.get(url("/collection/summary"), () => {
       resumos.push(1);
       return HttpResponse.json({ success: true, data: typeof resumo === "function" ? resumo(resumos.length) : resumo });
@@ -379,13 +380,33 @@ describe("Página Minha coleção", () => {
 
     await userEvent.click(within(await cartao("Pikachu")).getByRole("button", { name: "Anunciar" }));
     const dialogo = within(screen.getByRole("dialog", { name: "Anunciar esta carta" }));
-    expect(dialogo.getByText(/2 disponíveis/)).toBeInTheDocument();
+    expect(dialogo.getByText(/2 livres para anunciar/)).toBeInTheDocument();
     await userEvent.click(dialogo.getByRole("button", { name: "Criar anúncio" }));
 
     expect(await screen.findByText("Anúncio criado. Veja em Meus anúncios.")).toBeInTheDocument();
     expect(anuncios).toEqual([{ collectionItemId: "58", quantity: 1 }]);
     expect(screen.queryByRole("dialog", { name: "Anunciar esta carta" })).not.toBeInTheDocument();
     await waitFor(() => expect(pedidos).toHaveLength(2));
+  });
+
+  it("Anunciar desconta o que já está em anúncio aberto do item", async () => {
+    const charizard = item("4", "Charizard", { quantity: 1, available: 1, deleteBlockedBy: "OPEN_LISTING" });
+    const dois = item("7", "Hitmonchan", { quantity: 3, available: 3 });
+    servidor({
+      pagina: () => lista([charizard, dois]),
+      anuncios: [
+        { id: "a1", status: "ACTIVE", quantity: 1, item: { id: "4" } },
+        { id: "a2", status: "PAUSED", quantity: 1, item: { id: "7" } },
+        { id: "a3", status: "CLOSED", quantity: 2, item: { id: "7" } },
+      ],
+    });
+    renderizar();
+
+    const hitmonchan = within(await cartao("Hitmonchan"));
+    await waitFor(() => expect(hitmonchan.getByRole("button", { name: "Anunciar" })).toBeInTheDocument());
+    expect(within(await cartao("Charizard")).queryByRole("button", { name: "Anunciar" })).not.toBeInTheDocument();
+    await userEvent.click(hitmonchan.getByRole("button", { name: "Anunciar" }));
+    expect(within(screen.getByRole("dialog", { name: "Anunciar esta carta" })).getByText(/2 livres para anunciar/)).toBeInTheDocument();
   });
 
   it("coleção vazia mostra a dica e o quadro de adicionar como primeiro da grade", async () => {

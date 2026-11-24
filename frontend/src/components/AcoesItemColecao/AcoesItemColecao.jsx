@@ -30,7 +30,7 @@ export default function AcoesItemColecao({ item, ocupado = false, podeSalvar = f
             disabled={!podeSalvar || ocupado}
           />
         )}
-        {item.available > 0 && <BotaoIcone rotulo="Anunciar" icone={Megaphone} onClick={() => onAnunciar(item)} />}
+        {item.livre > 0 && <BotaoIcone rotulo="Anunciar" icone={Megaphone} onClick={() => onAnunciar(item)} />}
         {historico && item.quantity > 0 && (
           <BotaoIcone rotulo="Tirar da coleção" icone={PackageMinus} variante={a.perigo} onClick={() => onTirar(item)} disabled={ocupado} />
         )}

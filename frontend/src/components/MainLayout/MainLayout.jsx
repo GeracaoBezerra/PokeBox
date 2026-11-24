@@ -1,12 +1,14 @@
 import { Suspense, useRef } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Header from "../header/header";
 import CarregandoPagina from "../CarregandoPagina/CarregandoPagina";
+import ErroDeTela from "../ErroDeTela/ErroDeTela";
 import Footer from "../footer/footer";
 import s from "./MainLayout.module.css";
 
 function MainLayout() {
   const conteudo = useRef(null);
+  const { pathname } = useLocation();
 
   function pularParaConteudo(evento) {
     evento.preventDefault();
@@ -20,9 +22,11 @@ function MainLayout() {
       </a>
       <Header />
       <main id="conteudo" ref={conteudo} tabIndex={-1} className={s.conteudo}>
-        <Suspense fallback={<CarregandoPagina />}>
-          <Outlet />
-        </Suspense>
+        <ErroDeTela key={pathname}>
+          <Suspense fallback={<CarregandoPagina />}>
+            <Outlet />
+          </Suspense>
+        </ErroDeTela>
       </main>
       <Footer />
     </>

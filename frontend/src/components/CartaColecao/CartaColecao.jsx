@@ -112,7 +112,7 @@ export default function CartaColecao({ item, ocupado = false, onEditar, onAnunci
           <Pencil size={18} aria-hidden="true" />
           <span aria-hidden="true">Editar</span>
         </button>
-        {item.available > 0 && (
+        {item.livre > 0 && (
           <button type="button" className={botoes.botao} aria-describedby={tituloId} onClick={() => onAnunciar(item)}>
             <Megaphone size={18} aria-hidden="true" />
             Anunciar

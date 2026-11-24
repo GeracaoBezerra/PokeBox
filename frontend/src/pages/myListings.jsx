@@ -85,7 +85,7 @@ export default function MyListingsPage() {
             quantidade deixa em espera as ofertas que pedem mais do que o novo valor.
           </CabecalhoPagina>
         </div>
-        <button type="button" className={v.botao} onClick={() => setCriando(true)}>
+        <button type="button" className={v.botao} onClick={() => setCriando(true)} disabled={!anuncios}>
           <Plus size={18} aria-hidden="true" /> Novo anúncio
         </button>
       </header>

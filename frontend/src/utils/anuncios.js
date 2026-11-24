@@ -27,15 +27,17 @@ export function editavel(anuncio) {
   return anuncio.status === "ACTIVE" || anuncio.status === "PAUSED";
 }
 
-export function livresParaAnunciar(itens, anuncios) {
+export function comLivre(itens, anuncios) {
   const anunciado = new Map();
   for (const anuncio of anuncios) {
     if (!STATUS_ABERTOS.includes(anuncio.status)) continue;
     anunciado.set(anuncio.item.id, (anunciado.get(anuncio.item.id) ?? 0) + anuncio.quantity);
   }
-  return itens
-    .map((item) => ({ ...item, livre: item.available - (anunciado.get(item.id) ?? 0) }))
-    .filter((item) => item.livre > 0);
+  return itens.map((item) => ({ ...item, livre: Math.max(0, item.available - (anunciado.get(item.id) ?? 0)) }));
+}
+
+export function livresParaAnunciar(itens, anuncios) {
+  return comLivre(itens, anuncios).filter((item) => item.livre > 0);
 }
 
 export function mudancasDoAnuncio(anuncio, form) {

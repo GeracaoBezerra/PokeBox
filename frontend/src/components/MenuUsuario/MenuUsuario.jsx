@@ -112,7 +112,7 @@ export default function MenuUsuario() {
         aria-label={nome ? `Menu da conta de ${nome}` : "Menu da conta"}
         aria-haspopup="menu"
         aria-expanded={aberto}
-        aria-controls="menu-usuario"
+        aria-controls={aberto ? "menu-usuario" : undefined}
         onClick={() => (aberto ? fechar() : abrir("primeiro"))}
         onKeyDown={teclaNoBotao}
       >

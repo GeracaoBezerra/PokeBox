@@ -12,7 +12,7 @@ export default function EditarItemColecao({ item, onSalvo }) {
   const [form, setForm] = useState({ quantity: item.quantity, condition: item.condition, isPublic: item.isPublic });
   const { erro, ocupado, executar } = useAcao();
   const idErro = useId();
-  const valida = quantidadeValida(form.quantity);
+  const valida = quantidadeValida(form.quantity) || (item.quantity === 0 && Number(form.quantity) === 0 && form.quantity !== "");
   const mudancas = mudancasDoItem(item, form);
 
   function alterar(campo, valor) {
