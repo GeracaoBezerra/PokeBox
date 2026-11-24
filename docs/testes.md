@@ -112,12 +112,12 @@ Roda os mesmos testes do `npm test` medindo a cobertura com o `@vitest/coverage-
 
 | Métrica | Medido | Mínimo exigido |
 |---|---|---|
-| Linhas | 83,5% | 40% |
-| Comandos | 81,2% | 41% |
+| Linhas | 83,6% | 40% |
+| Comandos | 81,3% | 41% |
 | Funções | 77,0% | 35% |
-| Ramos (if/else) | 76,6% | 35% |
+| Ramos (if/else) | 76,8% | 35% |
 
-Números de 24/11/2026, com 479 testes. O mínimo foi definido em 19/11 pela mesma regra do backend (o valor medido na época, 266 testes e 42,7% das linhas, menos uns 2 pontos) e pode subir. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
+Números de 24/11/2026, com 488 testes. O mínimo foi definido em 19/11 pela mesma regra do backend (o valor medido na época, 266 testes e 42,7% das linhas, menos uns 2 pontos) e pode subir. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
 
 ## Cobertura
 

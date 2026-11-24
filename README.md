@@ -262,7 +262,7 @@ Foto de 24/11/2026.
 |---|---|
 | Backend | ✅ Todas as rotas em produção: autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas em 3 passos e moderação |
 | Frontend | ✅ Todas as telas funcionam, conversam com a API e seguem o mesmo padrão visual (coleção, meus anúncios e trocas entraram no padrão novo com #84, #85 e #230) |
-| Testes | ✅ 942 de unidade e 182 de integração no backend (98,3% das linhas), 479 no front (83,5% das linhas) e 11 E2E, todos na CI |
+| Testes | ✅ 942 de unidade e 182 de integração no backend (98,3% das linhas), 488 no front (83,6% das linhas) e 11 E2E, todos na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, publicados a cada release pela `main` |
 | Observabilidade | ✅ Logs com `x-request-id`, traces no Jaeger (local) e no Grafana Cloud (produção) |
 | Bancada final (#60) | ✅ Roteiro manual completo em 23/11; duas falhas pequenas viraram #228 e #229 |
