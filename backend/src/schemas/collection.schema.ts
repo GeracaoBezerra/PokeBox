@@ -45,6 +45,7 @@ export const listCollectionQuerySchema = z
     condition: conditionFilter.optional(),
     finish: finishFilter.optional(),
     isPublic: booleanFilter('isPublic').optional(),
+    withZero: booleanFilter('withZero').optional(),
     setId: setIdFilter.optional(),
     type: typeFilter.optional(),
     sort: itemSortFilter.optional(),

@@ -1,0 +1,23 @@
+.area {
+  display: grid;
+  min-height: 50svh;
+  place-items: center;
+  padding: var(--esp-48) var(--esp-24);
+}
+
+.giro {
+  width: 32px;
+  aspect-ratio: 1;
+  border: 3px solid var(--borda-suave);
+  border-top-color: var(--acento);
+  border-radius: 50%;
+  animation: girar 800ms linear infinite;
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .giro { animation: none; }
+}

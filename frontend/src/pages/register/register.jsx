@@ -1,8 +1,10 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AuthLayout from "../../auth/authLayout";
 import RegisterForm from "../../auth/registerForm";
+
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <AuthLayout
@@ -11,7 +13,7 @@ export default function RegisterPage() {
       footerLinkTo="/login"
       footerLinkLabel="Entrar"
     >
-      <RegisterForm onSuccess={() => navigate("/")} />
+      <RegisterForm onSuccess={() => navigate(location.state?.de ?? "/", { replace: true })} />
     </AuthLayout>
   );
 }

@@ -1,29 +1,43 @@
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import CarregandoPagina from "./components/CarregandoPagina/CarregandoPagina";
+import ErroDeTela from "./components/ErroDeTela/ErroDeTela";
 import MainLayout from "./components/MainLayout/MainLayout";
 import RotaPrivada from "./components/RotaPrivada/RotaPrivada";
+import RotaPublicaSo from "./components/RotaPublicaSo/RotaPublicaSo";
 import HomePage from "./pages/home";
-import {
-  CardPage,
-  CatalogPage,
-  ListingPage,
-  LoginPage,
-  MarketplacePage,
-  MyCollectionPage,
-  MyListingsPage,
-  MyOffersPage,
-  NotFoundPage,
-  PublicPerfilPage,
-  RegisterPage,
-  SwitchNegociationPage,
-  UserPerfilPage,
-  WishlistPage,
-} from "./pages/index";
+
+const LoginPage = lazy(() => import("./pages/login/login"));
+const RegisterPage = lazy(() => import("./pages/register/register"));
+const CatalogPage = lazy(() => import("./pages/catalog"));
+const CardPage = lazy(() => import("./pages/card"));
+const MarketplacePage = lazy(() => import("./pages/marketplace"));
+const ListingPage = lazy(() => import("./pages/listing"));
+const PublicPerfilPage = lazy(() => import("./pages/publicPerfil"));
+const SobrePage = lazy(() => import("./pages/sobre"));
+const MyCollectionPage = lazy(() => import("./pages/myCollection"));
+const WishlistPage = lazy(() => import("./pages/wishlist"));
+const MyListingsPage = lazy(() => import("./pages/myListings"));
+const MyOffersPage = lazy(() => import("./pages/myOffers"));
+const SwitchNegociationPage = lazy(() => import("./pages/switchNegociation"));
+const UserPerfilPage = lazy(() => import("./pages/userPerfil"));
+const NotFoundPage = lazy(() => import("./pages/notFound"));
 
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route
+        element={
+          <ErroDeTela>
+            <Suspense fallback={<CarregandoPagina />}>
+              <RotaPublicaSo />
+            </Suspense>
+          </ErroDeTela>
+        }
+      >
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+      </Route>
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/catalogo" element={<CatalogPage />} />
@@ -31,6 +45,7 @@ function App() {
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/marketplace/:id" element={<ListingPage />} />
         <Route path="/u/:username" element={<PublicPerfilPage />} />
+        <Route path="/sobre" element={<SobrePage />} />
 
         <Route element={<RotaPrivada />}>
           <Route path="/colecao" element={<MyCollectionPage />} />

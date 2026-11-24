@@ -1,0 +1,12 @@
+.modal.modal { width: min(520px, calc(100% - var(--esp-32))); }
+.modal.larga { width: min(880px, calc(100% - var(--esp-32))); }
+
+@media (max-width: 600px) {
+  .modal.modal,
+  .modal.larga {
+    width: 100%;
+    max-height: 85dvh;
+    margin: auto 0 0;
+    border-radius: var(--raio-painel) var(--raio-painel) 0 0;
+  }
+}

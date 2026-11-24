@@ -11,7 +11,7 @@ import { useListaPaginada } from "../hooks/useListaPaginada";
 import { useFiltrosNegociacao } from "../hooks/useFiltrosNegociacao";
 import { useTransicaoPropostas } from "../hooks/useTransicaoPropostas";
 import { STATUS_NEGOCIACAO } from "../utils/rotulos";
-import s from "./myOffers.module.css";
+import s from "../styles/negociacoes.module.css";
 
 const PAINEL = "painel-propostas";
 const VAZIO = {

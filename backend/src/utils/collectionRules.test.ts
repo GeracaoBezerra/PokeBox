@@ -8,6 +8,8 @@ import {
   assertOwner,
   assertQuantity,
   assertVariant,
+  deleteBlockedBy,
+  type DeleteContext,
   toCollectionItemResponse,
   toPublicCollectionItem,
 } from './collectionRules.js';
@@ -131,6 +133,62 @@ describe('assertNoOffers', () => {
   it('bloqueia item em oferta aceita com 409', () => {
     expect(statusOf(() => assertNoOffers({ open: 0, accepted: 1 }))).toBe(409);
     expect(() => assertNoOffers({ open: 0, accepted: 1 })).toThrow(/aguardando a troca/);
+  });
+});
+
+describe('deleteBlockedBy', () => {
+  const livre: DeleteContext = { reservedQuantity: 0, listings: { open: 0, total: 0 }, offers: { open: 0, accepted: 0 } };
+
+  it('item sem reserva, anúncio nem oferta pode ser apagado', () => {
+    expect(deleteBlockedBy(livre)).toBeNull();
+  });
+
+  it.each([
+    ['RESERVED', { ...livre, reservedQuantity: 1 }],
+    ['OPEN_LISTING', { ...livre, listings: { open: 1, total: 1 } }],
+    ['LISTING_HISTORY', { ...livre, listings: { open: 0, total: 2 } }],
+    ['OPEN_OFFER', { ...livre, offers: { open: 1, accepted: 0 } }],
+    ['OPEN_OFFER', { ...livre, offers: { open: 0, accepted: 1 } }],
+  ] as const)('devolve %s', (motivo, contexto) => {
+    expect(deleteBlockedBy(contexto)).toBe(motivo);
+  });
+
+  it('segue a mesma ordem das checagens do remove', () => {
+    expect(
+      deleteBlockedBy({ reservedQuantity: 1, listings: { open: 1, total: 1 }, offers: { open: 1, accepted: 0 } }),
+    ).toBe('RESERVED');
+    expect(deleteBlockedBy({ ...livre, listings: { open: 1, total: 3 }, offers: { open: 1, accepted: 0 } })).toBe(
+      'OPEN_LISTING',
+    );
+    expect(deleteBlockedBy({ ...livre, listings: { open: 0, total: 1 }, offers: { open: 0, accepted: 1 } })).toBe(
+      'LISTING_HISTORY',
+    );
+  });
+
+  it('só libera quando nenhuma regra do remove bloqueia', () => {
+    const contextos: DeleteContext[] = [0, 1].flatMap((reservedQuantity) =>
+      [
+        { open: 0, total: 0 },
+        { open: 0, total: 1 },
+        { open: 1, total: 1 },
+      ].flatMap((listings) =>
+        [
+          { open: 0, accepted: 0 },
+          { open: 1, accepted: 0 },
+          { open: 0, accepted: 1 },
+        ].map((offers) => ({ reservedQuantity, listings, offers })),
+      ),
+    );
+
+    for (const contexto of contextos) {
+      const removeBloqueia =
+        statusOf(() => {
+          assertNotReserved(contexto);
+          assertNoListings(contexto.listings);
+          assertNoOffers(contexto.offers);
+        }) !== null;
+      expect(deleteBlockedBy(contexto) !== null).toBe(removeBloqueia);
+    }
   });
 });
 

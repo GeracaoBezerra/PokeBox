@@ -17,6 +17,6 @@ describe("Coleção", () => {
 
     cy.visit("/colecao");
     cy.findByRole("heading", { name: "Minha coleção" }).should("be.visible");
-    cy.contains("tr", "Bulbasaur").should("contain", "Base Set");
+    cy.contains("article", "Bulbasaur").should("contain", "Base Set");
   });
 });

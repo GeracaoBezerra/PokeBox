@@ -73,8 +73,7 @@
     transform var(--tempo-rapido) ease;
 }
 
-.footerLink:hover,
-.highlightLink {
+.footerLink:hover {
   color: var(--acento);
 }
 
@@ -113,6 +112,16 @@
   width: var(--icone-lg);
   height: var(--icone-lg);
 
+  fill: currentColor;
+}
+
+.socialLink:hover {
+  color: var(--acento-hover);
+  background-color: var(--superficie-hover);
+  transform: translateY(-2px);
+}
+
+.socialLink svg.iconeContorno {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -120,16 +129,9 @@
   stroke-linejoin: round;
 }
 
-.socialLink:nth-child(2) svg,
-.socialLink:nth-child(3) svg {
+.iconeContorno .iconDot {
   fill: currentColor;
   stroke: none;
-}
-
-.socialLink:hover {
-  color: var(--acento-hover);
-  background-color: var(--superficie-hover);
-  transform: translateY(-2px);
 }
 
 .contactInfo {
@@ -144,8 +146,8 @@
   margin: 0;
 }
 
-.phone {
-  margin-top: var(--esp-24) !important;
+.contactInfo .phone {
+  margin-top: var(--esp-24);
 }
 
 .phone strong {

@@ -7,7 +7,7 @@ describe("Anúncio", () => {
     cy.login("ash@pokebox.dev");
     cy.visit("/colecao");
 
-    cy.contains("tr", "Rowlet").within(() => {
+    cy.contains("article", "Rowlet").within(() => {
       cy.findByRole("button", { name: "Anunciar" }).click();
     });
     cy.findByLabelText("Quantidade para troca").clear().type("1");

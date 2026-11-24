@@ -157,6 +157,10 @@
   position: relative;
 }
 
+.login-page .field input {
+  padding-right: 80px;
+}
+
 .login-page input {
   width: 100%;
   padding: 12px 14px;
@@ -229,6 +233,8 @@
   right: 8px;
   transform: translateY(-50%);
 
+  min-width: var(--alvo-min);
+  min-height: var(--alvo-min);
   padding: 6px;
   font-size: 13px;
   color: var(--texto-suave);

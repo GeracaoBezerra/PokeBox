@@ -3,7 +3,9 @@ import type { Db } from '../lib/prisma.js';
 import type {
   CollectionFilters,
   CollectionItemWithCard,
+  CollectionItemWithUsage,
   CollectionRepository,
+  CollectionSummary,
 } from '../repositories/CollectionRepository.js';
 import type { TransactionRunner } from '../repositories/TransactionRunner.js';
 import type { WishlistRemover } from '../repositories/WishlistRepository.js';
@@ -20,7 +22,9 @@ import {
   assertQuantity,
   assertVariant,
   toCollectionItemResponse,
+  toOwnCollectionItem,
   type CollectionItemResponse,
+  type OwnCollectionItem,
   type ListingCounts,
   type OfferCounts,
 } from '../utils/collectionRules.js';
@@ -38,7 +42,7 @@ export interface ItemOfferCounter {
 
 export type CollectionStore = Pick<
   CollectionRepository,
-  'findManyByUser' | 'findById' | 'addOrIncrement' | 'lockById' | 'update' | 'remove'
+  'findManyByUser' | 'summarizeByUser' | 'findById' | 'addOrIncrement' | 'lockById' | 'update' | 'remove'
 >;
 
 export interface CollectionServiceDeps {
@@ -53,6 +57,8 @@ export interface CollectionServiceDeps {
 
 export type CollectionItemView = CollectionItemResponse<CollectionItemWithCard>;
 
+export type OwnCollectionItemView = OwnCollectionItem<CollectionItemWithUsage>;
+
 export interface AddedCollectionItem {
   item: CollectionItemView;
   removedFromWishlist: boolean;
@@ -63,16 +69,20 @@ const ITEM_NOT_FOUND = 'Item da coleção não encontrado';
 export class CollectionService {
   constructor(private readonly deps: CollectionServiceDeps) {}
 
-  async list(userId: string): Promise<CollectionItemView[]> {
+  async list(userId: string): Promise<OwnCollectionItemView[]> {
     const items = await this.deps.collection.findManyByUser(userId);
-    return items.map((item) => toCollectionItemResponse(item));
+    return items.map((item) => toOwnCollectionItem(item));
   }
 
-  async listPage(userId: string, filters: CollectionFilters, page: PageParams): Promise<Page<CollectionItemView>> {
+  async listPage(userId: string, filters: CollectionFilters, page: PageParams): Promise<Page<OwnCollectionItemView>> {
     const rows = await this.deps.collection.findManyByUser(userId, { ...filters, ...toSkipTake(page) });
     const { items, hasNextPage } = toPage(rows, page);
 
-    return { items: items.map((item) => toCollectionItemResponse(item)), hasNextPage };
+    return { items: items.map((item) => toOwnCollectionItem(item)), hasNextPage };
+  }
+
+  summary(userId: string): Promise<CollectionSummary> {
+    return this.deps.collection.summarizeByUser(userId);
   }
 
   async add(userId: string, input: CreateCollectionItemInput): Promise<AddedCollectionItem> {

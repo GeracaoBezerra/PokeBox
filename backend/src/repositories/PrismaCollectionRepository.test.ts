@@ -17,6 +17,8 @@ function fakeDb() {
   const collectionItem = {
     findMany: jest.fn<(args: unknown) => Promise<{ id: string }[]>>(async () => []),
     aggregate: jest.fn<(args: unknown) => Promise<{ _sum: { quantity: number | null } }>>(),
+    groupBy: jest.fn<(args: unknown) => Promise<{ cardId: string }[]>>(async () => []),
+    count: jest.fn<(args: unknown) => Promise<number>>(async () => 0),
   };
   const queryRaw = jest.fn<(strings: TemplateStringsArray, ...values: unknown[]) => Promise<LockedCollectionItem[]>>(
     async (_strings, id) => [row(String(id))],
@@ -59,6 +61,42 @@ describe('PrismaCollectionRepository', () => {
     expect(collectionItem.aggregate).toHaveBeenCalledWith({
       where: { userId: 'u', cardId: 'base1-4' },
       _sum: { quantity: true },
+    });
+  });
+
+  it('findManyByUser com withZero=false traz só itens com quantidade', async () => {
+    const { collectionItem, db } = fakeDb();
+
+    await new PrismaCollectionRepository(db).findManyByUser('u', { withZero: false });
+    await new PrismaCollectionRepository(db).findManyByUser('u');
+
+    const [comFiltro, semFiltro] = collectionItem.findMany.mock.calls.map(([args]) => args as { where: object });
+    expect(comFiltro?.where).toMatchObject({ userId: 'u', quantity: { gt: 0 } });
+    expect(semFiltro?.where).toMatchObject({ userId: 'u', quantity: undefined });
+  });
+
+  it('summarizeByUser soma unidades, conta cartas diferentes com quantidade e itens anunciados', async () => {
+    const { collectionItem, db } = fakeDb();
+    collectionItem.aggregate.mockResolvedValue({ _sum: { quantity: 7 } });
+    collectionItem.groupBy.mockResolvedValue([{ cardId: 'base1-4' }, { cardId: 'base1-88' }]);
+    collectionItem.count.mockResolvedValue(1);
+
+    expect(await new PrismaCollectionRepository(db).summarizeByUser('u')).toEqual({
+      totalUnits: 7,
+      distinctCards: 2,
+      listedItems: 1,
+    });
+    expect(collectionItem.groupBy).toHaveBeenCalledWith({ by: ['cardId'], where: { userId: 'u', quantity: { gt: 0 } } });
+  });
+
+  it('summarizeByUser de coleção vazia devolve zeros', async () => {
+    const { collectionItem, db } = fakeDb();
+    collectionItem.aggregate.mockResolvedValue({ _sum: { quantity: null } });
+
+    expect(await new PrismaCollectionRepository(db).summarizeByUser('u')).toEqual({
+      totalUnits: 0,
+      distinctCards: 0,
+      listedItems: 0,
     });
   });
 });

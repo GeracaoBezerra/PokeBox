@@ -1,0 +1,25 @@
+.pularConteudo {
+  position: absolute;
+  top: var(--esp-8);
+  left: var(--esp-8);
+  z-index: var(--z-tooltip);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo-min);
+  padding: var(--esp-8) var(--esp-16);
+  border-radius: var(--raio-botao);
+  background: var(--acento);
+  color: var(--acento-texto);
+  font-size: var(--fs-sm);
+  font-weight: var(--peso-semi);
+  text-decoration: none;
+  transform: translateY(calc(-100% - var(--esp-16)));
+}
+
+.pularConteudo:focus {
+  transform: none;
+}
+
+.conteudo:focus {
+  outline: none;
+}

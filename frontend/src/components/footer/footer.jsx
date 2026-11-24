@@ -2,25 +2,25 @@ import { Link } from "react-router-dom";
 import Logo from "../Logo/Logo";
 import styles from "./footer.module.css";
 
+const REPOSITORIO = "https://github.com/GeracaoBezerra/PokeBox";
+
 const informacoes = [
-  { label: "Sobre PokeBox", href: "/sobre" },
-  { label: "Segurança", href: "/seguranca" },
-  { label: "Trabalhe Conosco", href: "/trabalhe-conosco" },
-  { label: "Wishlist", href: "/wishlist"},
+  { label: "Sobre PokeBox", to: "/sobre" },
+  { label: "Como funciona", to: "/#como-funciona" },
+  { label: "Segurança", to: "/seguranca" },
+  { label: "Trabalhe Conosco", to: "/trabalhe-conosco" },
+  { label: "Wishlist", to: "/procuro" },
 ];
 
 const categorias = [
-  { label: "Cartas Raras", href: "/cartas?categoria=raras" },
-  {
-    label: "Cartas de Treinadores",
-    href: "/cartas?categoria=treinadores",
-  },
-  { label: "Cartas Foil", href: "/cartas?categoria=foil" },
+  { label: "Cartas Raras", to: "/catalogo?rarity=Rara" },
+  { label: "Cartas de Treinadores", to: "/catalogo?category=Treinador" },
+  { label: "Cartas Foil", to: "/marketplace?finish=HOLO" },
 ];
 
 function InstagramIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
+    <svg className={styles.iconeContorno} viewBox="0 0 24 24" aria-hidden="true">
       <rect x="3" y="3" width="18" height="18" rx="5" />
       <circle cx="12" cy="12" r="4" />
       <circle className={styles.iconDot} cx="17.5" cy="6.8" r="1" />
@@ -44,7 +44,15 @@ function GithubIcon() {
   );
 }
 
-function SocialLink({ href, label, children }) {
+function SocialLink({ href, to, label, children }) {
+  if (to) {
+    return (
+      <Link className={styles.socialLink} to={to} aria-label={label}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
     <a
       className={styles.socialLink}
@@ -64,16 +72,11 @@ function FooterLinks({ title, links }) {
       <h2 className={styles.columnTitle}>{title}</h2>
 
       <ul className={styles.linkList}>
-        {links.map(({ label, href, destaque }) => (
+        {links.map(({ label, to }) => (
           <li key={label}>
-            <a
-              className={`${styles.footerLink} ${
-                destaque ? styles.highlightLink : ""
-              }`}
-              href={href}
-            >
+            <Link className={styles.footerLink} to={to}>
               {label}
-            </a>
+            </Link>
           </li>
         ))}
       </ul>
@@ -103,23 +106,16 @@ export default function Footer() {
           </p>
 
           <div className={styles.socialLinks}>
-            {/* Substitua pelos endereços reais dos seus perfis. */}
-            <SocialLink
-              href="https://instagram.com/"
-              label="Instagram da PokeBox"
-            >
+            <SocialLink to="/instagram" label="Instagram da PokeBox">
               <InstagramIcon />
             </SocialLink>
 
-            <SocialLink
-              href="https://linkedin.com/"
-              label="LinkedIn da PokeBox"
-            >
+            <SocialLink to="/linkedin" label="LinkedIn da PokeBox">
               <LinkedInIcon />
             </SocialLink>
 
             <SocialLink
-              href="https://github.com/GeracaoBezerra/PokeBox"
+              href={REPOSITORIO}
               label="GitHub da PokeBox"
             >
               <GithubIcon />
@@ -131,8 +127,10 @@ export default function Footer() {
 
         <FooterLinks title="Categorias" links={categorias} />
 
-        <section className={styles.column}>
-          <h2 className={styles.columnTitle}>Contato</h2>
+        <section className={styles.column} aria-labelledby="rodape-contato">
+          <h2 id="rodape-contato" className={styles.columnTitle}>
+            Contato
+          </h2>
 
           <address className={styles.contactInfo}>
             <p>

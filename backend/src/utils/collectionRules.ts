@@ -1,6 +1,7 @@
 import { AppError } from '../errors/AppError.js';
-import type { CardCondition, CardFinish } from '../generated/prisma/index.js';
+import type { CardCondition, CardFinish, ListingStatus } from '../generated/prisma/index.js';
 import { toCardResponse } from './cardRecord.js';
+import { isOpenStatus } from './listingRules.js';
 
 const FINISH_TO_VARIANT = {
   NORMAL: 'normal',
@@ -18,6 +19,16 @@ export interface ListingCounts {
 export interface OfferCounts {
   open: number;
   accepted: number;
+}
+
+export const DELETE_BLOCKS = ['RESERVED', 'OPEN_LISTING', 'LISTING_HISTORY', 'OPEN_OFFER'] as const;
+
+export type DeleteBlock = (typeof DELETE_BLOCKS)[number];
+
+export interface DeleteContext {
+  reservedQuantity: number;
+  listings: ListingCounts;
+  offers: OfferCounts;
 }
 
 export interface ConditionChangeContext {
@@ -40,6 +51,15 @@ export type CollectionItemResponse<T extends CollectionItemSource<PricedCard>> =
   card: ResponseCard<T['card']>;
   available: number;
 };
+
+export interface CollectionItemUsage {
+  listings: { status: ListingStatus }[];
+  _count: { offerItems: number };
+}
+
+export type OwnCollectionItem<T extends CollectionItemSource<PricedCard> & CollectionItemUsage> = CollectionItemResponse<
+  Omit<T, keyof CollectionItemUsage>
+> & { deleteBlockedBy: DeleteBlock | null };
 
 export interface PublicCollectionItemSource<C extends PricedCard> {
   id: string;
@@ -115,6 +135,14 @@ export function assertNoOffers({ open, accepted }: OfferCounts): void {
   }
 }
 
+export function deleteBlockedBy({ reservedQuantity, listings, offers }: DeleteContext): DeleteBlock | null {
+  if (reservedQuantity > 0) return 'RESERVED';
+  if (listings.open > 0) return 'OPEN_LISTING';
+  if (listings.total > 0) return 'LISTING_HISTORY';
+  if (offers.open > 0 || offers.accepted > 0) return 'OPEN_OFFER';
+  return null;
+}
+
 export function assertConditionChangeable({ reservedQuantity, offers, listings }: ConditionChangeContext): void {
   if (reservedQuantity > 0) {
     throw new AppError(409, 'Este item está numa troca em andamento. A condição só pode mudar depois que a troca terminar');
@@ -150,6 +178,22 @@ export function toCollectionItemResponse<T extends CollectionItemSource<PricedCa
     ...item,
     card: toCardResponse(item.card),
     available: item.quantity - item.reservedQuantity,
+  };
+}
+
+export function toOwnCollectionItem<T extends CollectionItemSource<PricedCard> & CollectionItemUsage>(
+  item: T,
+): OwnCollectionItem<T> {
+  const { listings, _count, ...rest } = item;
+  const open = listings.filter((listing) => isOpenStatus(listing.status)).length;
+
+  return {
+    ...toCollectionItemResponse(rest),
+    deleteBlockedBy: deleteBlockedBy({
+      reservedQuantity: item.reservedQuantity,
+      listings: { open, total: listings.length },
+      offers: { open: _count.offerItems, accepted: 0 },
+    }),
   };
 }
 

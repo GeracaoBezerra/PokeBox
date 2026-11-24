@@ -7,7 +7,7 @@ describe("Troca entre dois colecionadores", () => {
     cy.login("ash@pokebox.dev");
     cy.visit("/colecao");
     cy.intercept("POST", "**/listings").as("criarAnuncio");
-    cy.contains("tr", "Rowlet").within(() => {
+    cy.contains("article", "Rowlet").within(() => {
       cy.findByRole("button", { name: "Anunciar" }).click();
     });
     cy.findByLabelText("Quantidade para troca").clear().type("1");
@@ -85,11 +85,11 @@ describe("Troca entre dois colecionadores", () => {
     cy.findByText("Troca concluída: as cartas mudaram de dono.").should("be.visible");
 
     cy.visit("/colecao");
-    cy.contains("tr", "Psyduck").should("be.visible");
+    cy.contains("article", "Psyduck").should("be.visible");
 
     cy.login("misty@pokebox.dev");
     cy.visit("/colecao");
-    cy.contains("tr", "Rowlet").should("be.visible");
+    cy.contains("article", "Rowlet").should("be.visible");
 
     cy.visit("/propostas?aba=enviadas");
     cy.contains('[data-cy="cartao-oferta"]', "Rowlet").within(() => {

@@ -12,8 +12,10 @@ import PrecoReferencia from "../components/PrecoReferencia/PrecoReferencia";
 import ModeracaoAnuncio from "../components/ModeracaoAnuncio/ModeracaoAnuncio";
 import { useCarregar } from "../hooks/useCarregar";
 import { useMe } from "../hooks/useMe";
+import { recursoNaoEncontrado } from "../utils/naoEncontrado";
 import { contarOfertasAguardando, textoOfertasAguardando } from "../utils/rotulos";
 import s from "../styles/detalheCarta.module.css";
+import NotFoundPage from "./notFound";
 
 export default function ListingPage() {
   const { id } = useParams();
@@ -27,7 +29,9 @@ export default function ListingPage() {
   const podeOfertar = me && !souDono && anuncio?.status === "ACTIVE";
   const emTroca = anuncio?.status === "IN_TRADE";
   const navigate = useNavigate();
-  const deMarketplace = useLocation().state?.deMarketplace === true;
+  const location = useLocation();
+  const deMarketplace = location.state?.deMarketplace === true;
+  const origem = { de: location.pathname + location.search };
 
   const verificarOferta = Boolean(podeOfertar || (me && !souDono && emTroca));
   const minhas = useCarregar(
@@ -44,6 +48,15 @@ export default function ListingPage() {
   const chaveOfertas = verOfertas ? `${anuncio.id}|${anuncio.status}` : "";
   const ofertas = useCarregar(async () => (verOfertas ? listMyOffers("PROPOSED") : null), chaveOfertas);
   const aguardando = ofertas.dados ? contarOfertasAguardando(ofertas.dados.received, anuncio?.id) : null;
+
+  if (recursoNaoEncontrado(erro)) {
+    return (
+      <NotFoundPage
+        titulo="Anúncio não encontrado."
+        texto="O anúncio pode ter sido fechado ou o endereço está errado. Veja outras cartas no catálogo ou volte para a página inicial."
+      />
+    );
+  }
 
   return (
     <div className={s.pagina}>
@@ -118,7 +131,7 @@ export default function ListingPage() {
               ) : !session ? (
                 <div className={s.convite}>
                   <h2>Encontre sua próxima troca</h2><p>Entre na sua conta para oferecer cartas da sua coleção.</p>
-                  <div className={s.acoes}><Link className={s.botao} to="/login">Entrar para negociar</Link><Link className={s.link} to="/register">Criar uma conta</Link></div>
+                  <div className={s.acoes}><Link className={s.botao} to="/login" state={origem}>Entrar para negociar</Link><Link className={s.link} to="/register" state={origem}>Criar uma conta</Link></div>
                 </div>
               ) : !me ? (
                 <p className={s.suave} role="status">Validando sua sessão para negociar…</p>

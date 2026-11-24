@@ -30,15 +30,19 @@ export default function ScrollAoTopo() {
 
   useLayoutEffect(() => {
     chaveRef.current = key;
-    if (hash) return undefined;
-    const alvo = tipo === "POP" ? posicoes.get(key) ?? 0 : 0;
-    window.scrollTo({ top: alvo, left: 0, behavior: "instant" });
-    if (alvo === 0) return undefined;
+    const guardada = tipo === "POP" ? posicoes.get(key) : undefined;
+    const secao = hash && guardada === undefined ? document.getElementById(hash.slice(1)) : null;
+    const alvo = guardada ?? 0;
+    const posicionar = secao
+      ? () => secao.scrollIntoView({ block: "start", behavior: "instant" })
+      : () => window.scrollTo({ top: alvo, left: 0, behavior: "instant" });
+    posicionar();
+    if (!secao && alvo === 0) return undefined;
 
     const raiz = document.documentElement;
     restaurandoRef.current = true;
     raiz.style.overflowAnchor = "none";
-    const observador = new ResizeObserver(() => window.scrollTo({ top: alvo, left: 0, behavior: "instant" }));
+    const observador = new ResizeObserver(posicionar);
     const prazo = setTimeout(parar, PRAZO_RESTAURAR);
     function parar() {
       restaurandoRef.current = false;

@@ -18,7 +18,7 @@ export default function LoginForm({ onSuccess }) {
           <input id="password" type={show ? "text" : "password"} autoComplete="current-password"
             placeholder="••••••••" value={values.password} onChange={setField("password")}
             aria-invalid={!!errors.password} aria-describedby={errors.password ? "password-erro" : undefined} />
-          <button type="button" className="eye" onClick={() => setShow((s) => !s)}>
+          <button type="button" className="eye" aria-pressed={show} aria-label="Mostrar senha" onClick={() => setShow((s) => !s)}>
             {show ? "ocultar" : "mostrar"}
           </button>
         </div>

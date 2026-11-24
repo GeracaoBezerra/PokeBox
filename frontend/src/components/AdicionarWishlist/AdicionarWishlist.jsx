@@ -1,123 +1,37 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Heart, Plus, X } from "lucide-react";
-import { searchCards } from "../../api/cards";
+import { Heart, X } from "lucide-react";
 import { addToWishlist } from "../../api/wishlist";
 import { useSession } from "../../auth/useSession";
-import blastoise from "../../assets/cards/blastoise.webp";
-import charizard from "../../assets/cards/charizard.webp";
 import { useAcao } from "../../hooks/useAcao";
-import { useListaPaginada } from "../../hooks/useListaPaginada";
 import { useMinhasCartas } from "../../hooks/useMinhasCartas";
-import { IDIOMAS, IDIOMA_PADRAO } from "../../utils/idioma";
 import v from "../../styles/vitrine.module.css";
-import Aviso from "../Aviso/Aviso";
-import BarraBusca from "../BarraBusca/BarraBusca";
-import ImagemCarta from "../ImagemCarta/ImagemCarta";
-import cartao from "../ItemWishlist/ItemWishlist.module.css";
+import BuscaCartas from "../BuscaCartas/BuscaCartas";
+import CartaoAdicionar from "../CartaoAdicionar/CartaoAdicionar";
 import s from "./AdicionarWishlist.module.css";
 
-function BuscaCartas({ itens, onAdicionar, acao, inputRef }) {
-  const [termo, setTermo] = useState("");
-  const [lang, setLang] = useState(IDIOMA_PADRAO);
-  const [tentouAdicionar, setTentouAdicionar] = useState(false);
-  const expansivel = useRef(null);
-  const conteudo = useRef(null);
-  const buscar = termo.length >= 2;
-  const lista = useListaPaginada(
-    (page) => buscar ? searchCards({ name: termo, lang, page, limit: 15 }) : Promise.resolve(null),
-    JSON.stringify({ termo, lang }),
-  );
+function BuscaWishlist({ itens, onAdicionar, acao, inputRef }) {
   const { minhas } = useMinhasCartas(useSession());
   const cadastradas = new Set([...itens.map((item) => item.cardId), ...(minhas?.naWishlist.keys() ?? [])]);
   const comUnidade = minhas?.comUnidade ?? new Set();
 
-  useEffect(() => {
-    if (typeof ResizeObserver !== "function") return undefined;
-    const area = expansivel.current;
-    const corpo = conteudo.current;
-    const medir = () => area.style.setProperty("--altura-resultados", `${corpo.offsetHeight}px`);
-    medir();
-    const observador = new ResizeObserver(medir);
-    observador.observe(corpo);
-    return () => observador.disconnect();
-  }, []);
-
-  function rolar({ currentTarget }) {
-    const falta = currentTarget.scrollHeight - currentTarget.clientHeight - currentTarget.scrollTop;
-    if (lista.temMais && falta <= 32) lista.carregarMais();
+  function botao(carta) {
+    if (cadastradas.has(carta.id)) {
+      return { texto: "Na wishlist", rotulo: `${carta.name} já está na wishlist`, desativado: true };
+    }
+    if (comUnidade.has(carta.id)) {
+      return { texto: "Você já tem", rotulo: `Você já tem ${carta.name} na coleção`, desativado: true };
+    }
+    return { texto: "Adicionar", rotulo: `Adicionar ${carta.name} à wishlist`, desativado: false };
   }
 
   return (
-    <>
-      <div className={s.campos}>
-        <BarraBusca rotulo="Buscar cartas" placeholder="Nome da carta…" valor={termo} onBuscar={setTermo} inputRef={inputRef} />
-        <label className={v.campo}>
-          Idioma das cartas
-          <select value={lang} onChange={(evento) => setLang(evento.target.value)}>
-            {Object.entries(IDIOMAS).map(([valor, nome]) => <option key={valor} value={valor}>{nome}</option>)}
-          </select>
-        </label>
-      </div>
-
-      <div className={s.expansivel} ref={expansivel}>
-        <div ref={conteudo}>
-          {tentouAdicionar && <Aviso erro={acao.erro} />}
-          <Aviso erro={lista.erro} onTentarDeNovo={lista.recarregar} />
-
-          {(!buscar || lista.carregando || (!lista.erro && lista.itens.length === 0)) && (
-            <p className={s.estado} role="status">
-              {!buscar ? "Digite pelo menos 2 caracteres para buscar." : lista.carregando ? "Buscando cartas…" : "Nenhuma carta encontrada."}
-            </p>
-          )}
-
-          {buscar && lista.itens.length > 0 && (
-            <div className={s.rolagem} role="region" aria-label="Resultados da busca" tabIndex={0} onScroll={rolar}>
-              <ul className={s.resultados} role="list">
-                {lista.itens.map((carta) => {
-                  const naWishlist = cadastradas.has(carta.id);
-                  const jaTem = !naWishlist && comUnidade.has(carta.id);
-                  const expansao = [carta.set?.name, carta.number].filter(Boolean).join(" · ");
-                  return (
-                    <li className={s.resultado} key={carta.id}>
-                      <div className={s.visual} aria-hidden="true">
-                        <ImagemCarta className={s.miniatura} src={carta.image?.large ?? carta.image?.small} alt="" />
-                      </div>
-                      <div className={s.dados}>
-                        <strong title={carta.name}>{carta.name}</strong>
-                        {expansao && <p title={expansao}>{expansao}</p>}
-                      </div>
-                      <button
-                        type="button"
-                        className={s.acao}
-                        disabled={naWishlist || jaTem || acao.ocupado}
-                        aria-label={
-                          naWishlist
-                            ? `${carta.name} já está na wishlist`
-                            : jaTem
-                              ? `Você já tem ${carta.name} na coleção`
-                              : `Adicionar ${carta.name} à wishlist`
-                        }
-                        onClick={() => {
-                          setTentouAdicionar(true);
-                          onAdicionar(carta.id, lang);
-                        }}
-                      >
-                        {naWishlist ? "Na wishlist" : jaTem ? "Você já tem" : "Adicionar"}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-              {(lista.temMais || lista.carregandoMais) && (
-                <button type="button" className={s.mais} onClick={lista.carregarMais} disabled={lista.carregandoMais}>
-                  {lista.carregandoMais ? "Carregando…" : "Ver mais cartas"}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </>
+    <BuscaCartas
+      botao={botao}
+      erro={acao.erro}
+      ocupado={acao.ocupado}
+      inputRef={inputRef}
+      onEscolher={(carta, lang) => onAdicionar(carta.id, lang)}
+    />
   );
 }
 
@@ -128,7 +42,6 @@ export default function AdicionarWishlist({ botaoRef, itens, onAdicionou }) {
   const busca = useRef(null);
   const dialogoId = useId();
   const tituloId = useId();
-  const instrucaoId = useId();
   const acao = useAcao();
 
   useEffect(() => {
@@ -159,29 +72,15 @@ export default function AdicionarWishlist({ botaoRef, itens, onAdicionou }) {
 
   return (
     <>
-      <button
-        ref={botaoRef}
-        type="button"
-        className={`${cartao.item} ${s.adicionar}`}
-        aria-label="Adicionar carta à wishlist"
-        aria-describedby={instrucaoId}
+      <CartaoAdicionar
+        botaoRef={botaoRef}
+        titulo="Adicionar carta à wishlist"
+        instrucao="Busque no catálogo e salve as cartas que você procura."
         aria-haspopup="dialog"
         aria-expanded={aberto}
         aria-controls={dialogoId}
         onClick={() => { setSessao((valor) => valor + 1); setAberto(true); }}
-      >
-        <span className={s.arte} aria-hidden="true">
-          <span className={`${s.figura} ${s.figuraSuperior}`}><img src={charizard} alt="" /></span>
-          <span className={`${s.figura} ${s.figuraInferior}`}><img src={blastoise} alt="" /></span>
-          <span className={s.maisArte}><Plus size={32} /></span>
-        </span>
-        <span className={cartao.painel}>
-          <span className={cartao.identidade}>
-            <span className={cartao.nome}>Adicionar carta à wishlist</span>
-            <span id={instrucaoId} className={s.instrucao}>Busque no catálogo e salve as cartas que você procura.</span>
-          </span>
-        </span>
-      </button>
+      />
 
       <dialog
         ref={dialogo}
@@ -199,7 +98,7 @@ export default function AdicionarWishlist({ botaoRef, itens, onAdicionou }) {
           </button>
         </header>
         <div className={v.modalConteudo}>
-          {sessao > 0 && <BuscaCartas key={sessao} itens={itens} onAdicionar={adicionar} acao={acao} inputRef={busca} />}
+          {sessao > 0 && <BuscaWishlist key={sessao} itens={itens} onAdicionar={adicionar} acao={acao} inputRef={busca} />}
         </div>
       </dialog>
     </>

@@ -4,6 +4,7 @@ import { getCardFilters } from "../api/cards";
 import { listListings } from "../api/listings";
 import { listWishlist } from "../api/wishlist";
 import { useSession } from "../auth/useSession";
+import Atualizando from "../components/Atualizando/Atualizando";
 import Aviso from "../components/Aviso/Aviso";
 import CartaAnuncio from "../components/CartaAnuncio/CartaAnuncio";
 import FiltrosMarketplace from "../components/FiltrosMarketplace/FiltrosMarketplace";
@@ -107,6 +108,7 @@ export default function MarketplacePage() {
   const erroWishlist = querWishlist ? wishlist.erro : null;
   const soWishlist = querWishlist && Boolean(idsWishlist);
   const mostrarCarregando = carregando || esperandoWishlist;
+  const primeiraCarga = mostrarCarregando && !dados;
   const nomeDaCarta = dados?.items.find((anuncio) => anuncio.card.id === filtros.cardId)?.card.name;
   const selos = CAMPOS_FILTRO.filter((campo) => filtros[campo] && (campo !== "wishlist" || sessao)).map((campo) => ({
     campo,
@@ -169,9 +171,9 @@ export default function MarketplacePage() {
               onTentarDeNovo={wishlist.recarregar}
             />
           )}
-          {mostrarCarregando && <GradeCartas carregando total={24} variante="catalogo" />}
-          {!mostrarCarregando && !erroWishlist && dados && (
-            <>
+          {primeiraCarga && <GradeCartas carregando total={24} variante="catalogo" />}
+          {!primeiraCarga && !erroWishlist && dados && (
+            <Atualizando atualizando={mostrarCarregando}>
               {anuncios.length ? (
                 <GradeCartas variante="catalogo">
                   {anuncios.map((anuncio) => (
@@ -207,7 +209,7 @@ export default function MarketplacePage() {
                   onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
                 />
               )}
-            </>
+            </Atualizando>
           )}
         </section>
       </div>

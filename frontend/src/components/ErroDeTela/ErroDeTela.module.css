@@ -1,0 +1,36 @@
+.area {
+  display: grid;
+  justify-items: center;
+  gap: var(--esp-12);
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: var(--esp-48, 48px) var(--esp-16);
+  text-align: center;
+}
+
+.titulo {
+  margin: 0;
+  color: var(--texto);
+  font-size: var(--fs-xl, 1.5rem);
+}
+
+.texto {
+  margin: 0;
+  color: var(--texto-suave);
+}
+
+.botao {
+  min-height: var(--alvo-min);
+  padding: 0 var(--esp-16);
+  border: 0;
+  border-radius: var(--raio-botao);
+  background: var(--acento);
+  color: var(--acento-texto);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.botao:is(:hover, :focus-visible) {
+  background: var(--acento-hover);
+}

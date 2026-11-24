@@ -1,10 +1,12 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http as rota, HttpResponse } from "msw";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { CONFIG } from "../../config";
 import { renderWithProviders } from "../../test/renderWithProviders";
 import { server } from "../../test/server";
+import RotaPrivada from "../RotaPrivada/RotaPrivada";
 import Perfil from "./Perfil";
 
 const url = (caminho) => `${CONFIG.apiBaseUrl}${caminho}`;
@@ -16,6 +18,11 @@ function preparar(trocas = { sent: [], received: [] }) {
     rota.get(url("/auth/me"), () => HttpResponse.json({ success: true, data: { user } })),
     rota.get(url("/trades/me"), () => HttpResponse.json({ success: true, data: trocas }))
   );
+}
+
+function Endereco() {
+  const location = useLocation();
+  return <p>Em {location.pathname}{location.state?.de ? ` vindo de ${location.state.de}` : ""}</p>;
 }
 
 describe("Perfil", () => {
@@ -51,5 +58,51 @@ describe("Perfil", () => {
 
     expect(await screen.findByText("Conclua ou cancele suas trocas antes de desativar a conta.")).toBeVisible();
     expect(screen.getByRole("button", { name: "Desativar minha conta" })).toBeEnabled();
+  });
+
+  it("desativar a conta encerra a sessão e leva à home, não ao login", async () => {
+    preparar();
+    server.use(rota.delete(url("/user/me"), () => new HttpResponse(null, { status: 204 })));
+    renderWithProviders(
+      <Routes>
+        <Route path="/" element={<Endereco />} />
+        <Route path="/login" element={<Endereco />} />
+        <Route element={<RotaPrivada />}>
+          <Route path="/perfil" element={<Perfil />} />
+        </Route>
+      </Routes>,
+      { rota: "/perfil" }
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Conta" }));
+    await userEvent.click(screen.getByRole("button", { name: "Desativar minha conta" }));
+    const modal = screen.getByRole("dialog", { name: "Desativar sua conta?" });
+    await userEvent.type(within(modal).getByRole("textbox"), "ash");
+    await userEvent.click(within(modal).getByRole("button", { name: "Desativar conta" }));
+
+    expect(await screen.findByText("Em /")).toBeInTheDocument();
+  });
+
+  it("enquanto carrega mostra o esqueleto com o menu, não uma tela vazia", async () => {
+    let liberar;
+    const espera = new Promise((resolver) => {
+      liberar = resolver;
+    });
+    server.use(
+      rota.get(url("/auth/me"), async () => {
+        await espera;
+        return HttpResponse.json({ success: true, data: { user } });
+      }),
+      rota.get(url("/trades/me"), () => HttpResponse.json({ success: true, data: { sent: [], received: [] } }))
+    );
+    renderWithProviders(<Perfil />, { rota: "/perfil" });
+
+    expect(screen.getByRole("status", { name: "Carregando perfil" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Minhas trocas" })).toBeInTheDocument();
+
+    liberar();
+
+    expect(await screen.findByRole("heading", { name: "Meu perfil" })).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Carregando perfil" })).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import BackgroundVideo from "../components/ui/backGroundVideo";
 import Logo from "../components/Logo/Logo";
 import "../styles/login.css";
@@ -10,6 +10,8 @@ export default function AuthLayout({
   footerLinkLabel,
   children,
 }) {
+  const location = useLocation();
+
   return (
     <div className="login-page">
       <BackgroundVideo />
@@ -23,7 +25,7 @@ export default function AuthLayout({
         {children}
 
         <div className="foot">
-          {footerText} <Link to={footerLinkTo}>{footerLinkLabel}</Link>
+          {footerText} <Link to={footerLinkTo} state={location.state}>{footerLinkLabel}</Link>
         </div>
       </main>
     </div>

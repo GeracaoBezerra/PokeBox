@@ -918,7 +918,7 @@ export const swaggerSpec = {
         tags: ["Collection"],
         summary: "Lista a coleção do usuário autenticado",
         description:
-          `Traz os itens, inclusive os com quantidade 0, ordenados pelo nome da carta. available = quantity - reservedQuantity. ${optionalPaginationNote}`,
+          `Traz os itens, inclusive os com quantidade 0 (withZero=false esconde), ordenados pelo nome da carta. available = quantity - reservedQuantity. deleteBlockedBy diz por que o DELETE recusaria o item, na mesma ordem das checagens dele: RESERVED, OPEN_LISTING, LISTING_HISTORY, OPEN_OFFER, ou null quando dá para apagar. ${optionalPaginationNote}`,
         security: [{ bearerAuth: [] }],
         parameters: [
           cardQueryParam,
@@ -941,6 +941,13 @@ export const swaggerSpec = {
             in: "query",
             required: false,
             description: "Só os itens públicos (true) ou só os privados (false)",
+            schema: { type: "string", enum: ["true", "false"] },
+          },
+          {
+            name: "withZero",
+            in: "query",
+            required: false,
+            description: "false esconde os itens com quantidade 0. Sem o filtro (ou com true), eles vêm",
             schema: { type: "string", enum: ["true", "false"] },
           },
           {
@@ -968,7 +975,7 @@ export const swaggerSpec = {
                       properties: {
                         items: {
                           type: "array",
-                          items: { $ref: "#/components/schemas/CollectionItem" },
+                          items: { $ref: "#/components/schemas/OwnCollectionItem" },
                         },
                       },
                     },
@@ -1003,6 +1010,32 @@ export const swaggerSpec = {
           422: errorResponse("A carta não existe nesse finish ou em 1ª edição"),
           ...authErrors,
           ...tcgdexErrors,
+        },
+      },
+    },
+    "/collection/summary": {
+      get: {
+        tags: ["Collection"],
+        summary: "Totais da coleção do usuário autenticado",
+        description:
+          "Sempre da coleção inteira, sem filtros. totalUnits soma as quantidades; distinctCards conta as cartas diferentes com quantidade maior que 0 (variantes da mesma carta contam uma vez); listedItems conta os itens com pelo menos um anúncio aberto (ACTIVE, PAUSED ou IN_TRADE).",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: "Totais da coleção",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: { $ref: "#/components/schemas/CollectionSummary" },
+                  },
+                },
+              },
+            },
+          },
+          ...authErrors,
         },
       },
     },
@@ -2244,6 +2277,42 @@ export const swaggerSpec = {
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
           card: { $ref: "#/components/schemas/StoredCard" },
+        },
+      },
+      OwnCollectionItem: {
+        allOf: [
+          { $ref: "#/components/schemas/CollectionItem" },
+          {
+            type: "object",
+            properties: {
+              deleteBlockedBy: {
+                type: "string",
+                nullable: true,
+                enum: ["RESERVED", "OPEN_LISTING", "LISTING_HISTORY", "OPEN_OFFER", null],
+                description:
+                  "Por que o DELETE recusaria o item: RESERVED (unidades reservadas numa troca), OPEN_LISTING (anúncio ACTIVE, PAUSED ou IN_TRADE), LISTING_HISTORY (já foi anunciado e os anúncios terminaram; zere a quantidade), OPEN_OFFER (numa oferta PROPOSED ou ACCEPTED sem troca). null: pode apagar.",
+                example: null,
+              },
+            },
+          },
+        ],
+      },
+      CollectionSummary: {
+        type: "object",
+        properties: {
+          totalUnits: { type: "integer", minimum: 0, example: 7, description: "Soma das quantidades" },
+          distinctCards: {
+            type: "integer",
+            minimum: 0,
+            example: 5,
+            description: "Cartas diferentes com quantidade maior que 0",
+          },
+          listedItems: {
+            type: "integer",
+            minimum: 0,
+            example: 1,
+            description: "Itens com pelo menos um anúncio aberto",
+          },
         },
       },
       PublicProfile: {
