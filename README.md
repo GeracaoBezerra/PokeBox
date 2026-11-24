@@ -233,7 +233,6 @@ Issues abertas na entrega:
 | Issue | O que falta |
 |---|---|
 | [#229](https://github.com/GeracaoBezerra/PokeBox/issues/229) | Preview da Vercel pede login da Vercel e fica fora do CORS da API |
-| [#230](https://github.com/GeracaoBezerra/PokeBox/issues/230) | Trocas no padrão visual das outras telas |
 | [#93](https://github.com/GeracaoBezerra/PokeBox/issues/93) | Acessibilidade e celular: rótulos nas tabelas e tabelas que viram cards |
 | [#231](https://github.com/GeracaoBezerra/PokeBox/issues/231) | Painel de filtros ocupando melhor a largura da tela |
 | [#235](https://github.com/GeracaoBezerra/PokeBox/issues/235) | Filtros mostrando só as opções que existem na lista |
@@ -261,7 +260,7 @@ Foto de 24/11/2026.
 | Parte | Situação |
 |---|---|
 | Backend | ✅ Todas as rotas em produção: autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas em 3 passos e moderação |
-| Frontend | 🟡 Todas as telas funcionam e conversam com a API. Trocas ainda está no layout do MVP (#230) |
+| Frontend | ✅ Todas as telas funcionam, conversam com a API e seguem o mesmo padrão visual (coleção, meus anúncios e trocas entraram no padrão novo com #84, #85 e #230) |
 | Testes | ✅ 927 de unidade e 173 de integração no backend (98,3% das linhas), 364 no front e 11 E2E, todos na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, publicados a cada release pela `main` |
 | Observabilidade | ✅ Logs com `x-request-id`, traces no Jaeger (local) e no Grafana Cloud (produção) |

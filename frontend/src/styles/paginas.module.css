@@ -159,12 +159,6 @@
   }
 }
 
-.gradeNegociacoes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
-  gap: 16px;
-}
-
 .cartaMini {
   min-width: 0;
   display: flex;
@@ -273,34 +267,6 @@
 
 .lista dt {
   color: var(--texto-suave);
-}
-
-.cartaoNegociacao {
-  background: var(--superficie);
-  border: 1px solid var(--borda-suave);
-  border-radius: 10px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.cartaoNegociacao[data-pendente="true"] {
-  border-color: var(--acento);
-  box-shadow: inset 4px 0 0 var(--acento);
-}
-
-.proximoPasso {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--texto-suave);
-}
-
-.linhaCartas {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
 }
 
 .abas {

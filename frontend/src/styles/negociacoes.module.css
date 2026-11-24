@@ -1,5 +1,5 @@
 .pagina {
-  composes: pagina from "../styles/paginas.module.css";
+  composes: pagina from "./paginas.module.css";
   padding-top: var(--esp-32);
 }
 
@@ -64,7 +64,7 @@
 .vazio p { color: var(--texto-suave); }
 
 .atalho {
-  composes: botaoSecundario from "../styles/paginas.module.css";
+  composes: botaoSecundario from "./paginas.module.css";
   display: inline-flex;
   min-height: var(--alvo-min);
   align-items: center;

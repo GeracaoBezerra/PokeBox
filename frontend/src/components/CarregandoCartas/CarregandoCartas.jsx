@@ -15,19 +15,8 @@ export default function CarregandoCartas({ formato = "grade", total = 12 }) {
           ))}
         </div>
       ) : (
-        <div className={formato === "negociacoes" ? s.gradeNegociacoes : s.grade} aria-hidden="true">
-          {Array.from({ length: total }, (_, indice) => (
-            formato === "negociacoes" ? (
-              <div className={s.cartaoNegociacao} key={indice}>
-                <div className={styles.texto} />
-                <div className={styles.troca}>
-                  <div className={styles.cartaTroca}><SkeletonCard /></div>
-                  <span className={s.suave}>⇄</span>
-                  <div className={styles.cartaTroca}><SkeletonCard /></div>
-                </div>
-              </div>
-            ) : <SkeletonCard key={indice} />
-          ))}
+        <div className={s.grade} aria-hidden="true">
+          {Array.from({ length: total }, (_, indice) => <SkeletonCard key={indice} />)}
         </div>
       )}
     </div>

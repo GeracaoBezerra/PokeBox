@@ -16,14 +16,3 @@
   background-color: var(--skeleton-base);
   border-radius: var(--raio-botao);
 }
-
-.troca {
-  display: flex;
-  align-items: center;
-  gap: var(--esp-16);
-}
-
-.cartaTroca {
-  width: var(--carta-medium);
-  max-width: 40%;
-}
