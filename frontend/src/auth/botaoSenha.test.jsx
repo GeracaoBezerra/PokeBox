@@ -10,7 +10,7 @@ describe.each([
   ["login", LoginForm],
   ["cadastro", RegisterForm],
 ])("botão de mostrar senha no %s", (_, Formulario) => {
-  it("diz se está ligado com aria-pressed e mantém o texto visível", async () => {
+  it("mantém o nome fixo, diz se está ligado com aria-pressed e mantém o texto visível", async () => {
     const usuario = userEvent.setup();
     renderWithProviders(<Formulario onSuccess={() => {}} />, { service: criarSessaoFalsa(null) });
 
@@ -21,7 +21,7 @@ describe.each([
 
     await usuario.click(botao);
 
-    const ligado = screen.getByRole("button", { name: "Ocultar senha" });
+    const ligado = screen.getByRole("button", { name: "Mostrar senha" });
     expect(ligado).toHaveAttribute("aria-pressed", "true");
     expect(ligado).toHaveTextContent("ocultar");
     expect(screen.getByLabelText("Senha")).toHaveAttribute("type", "text");

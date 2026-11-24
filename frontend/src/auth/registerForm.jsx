@@ -64,7 +64,7 @@ export default function RegisterForm({ onSuccess }) {
             type="button"
             className="eye"
             aria-pressed={show}
-            aria-label={show ? "Ocultar senha" : "Mostrar senha"}
+            aria-label="Mostrar senha"
             onClick={() => setShow((s) => !s)}
           >
             {show ? "ocultar" : "mostrar"}
