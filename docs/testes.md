@@ -7,11 +7,11 @@ Por que cada ferramenta: [decisão sobre testes](decisoes/0009-testes.md).
 | Andar da pirâmide | Ferramenta | Quantidade (24/11) | Comando |
 |---|---|---|---|
 | E2E | Cypress | 11 | `make e2e` |
-| Front | Vitest + Testing Library + MSW | 488 | `cd frontend && npm test` |
+| Front | Vitest + Testing Library + MSW | 490 | `cd frontend && npm test` |
 | Integração (backend) | Jest + Supertest + PostgreSQL real | 182 | `make test-int` |
 | Unidade (backend) | Jest | 942 | `cd backend && npm test` |
 
-Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 83,6% no front (mínimo de 40%). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](ia.md).
+Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 83,7% no front (mínimo de 40%). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](ia.md).
 
 ## Backend
 
@@ -112,12 +112,12 @@ Roda os mesmos testes do `npm test` medindo a cobertura com o `@vitest/coverage-
 
 | Métrica | Medido | Mínimo exigido |
 |---|---|---|
-| Linhas | 83,6% | 40% |
-| Comandos | 81,3% | 41% |
-| Funções | 77,0% | 35% |
+| Linhas | 83,7% | 40% |
+| Comandos | 81,5% | 41% |
+| Funções | 77,3% | 35% |
 | Ramos (if/else) | 76,8% | 35% |
 
-Números de 24/11/2026, com 488 testes. O mínimo foi definido em 19/11 pela mesma regra do backend (o valor medido na época, 266 testes e 42,7% das linhas, menos uns 2 pontos) e pode subir. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
+Números de 24/11/2026, com 490 testes. O mínimo foi definido em 19/11 pela mesma regra do backend (o valor medido na época, 266 testes e 42,7% das linhas, menos uns 2 pontos) e pode subir. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
 
 ## Cobertura
 
