@@ -20,7 +20,7 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 
 ## Para a avaliação
 
-Onde está cada critério do projeto final:
+Onde está cada critério do projeto final. O mesmo resumo aparece no próprio app, na página [Sobre o PokeBox](https://poke-box-gt.vercel.app/sobre?aba=projeto), aba "Como foi feito".
 
 | Critério | Onde ver |
 |---|---|
@@ -247,7 +247,6 @@ Outras dívidas, sem issue:
 ### Próximos passos
 
 - Buscar colecionadores por nome ([#232](https://github.com/GeracaoBezerra/PokeBox/issues/232)).
-- Página "Sobre o PokeBox" com esta documentação dentro do app ([#233](https://github.com/GeracaoBezerra/PokeBox/issues/233)).
 - Anúncio em formato de leilão, quando várias pessoas querem a mesma carta ([#234](https://github.com/GeracaoBezerra/PokeBox/issues/234)).
 - Chat entre colecionadores e notificações em tempo real.
 - Tratamento melhor das cartas sem imagem na TCGdex.
