@@ -20,7 +20,7 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 
 ## Para a avaliação
 
-Onde está cada critério do projeto final. O mesmo resumo aparece no próprio app, na página [Sobre o PokeBox](https://poke-box-gt.vercel.app/sobre?aba=projeto), aba "Como foi feito".
+Onde está cada critério do projeto final. A documentação inteira também está num PDF só: [`docs/PokeBox-documentacao.pdf`](docs/PokeBox-documentacao.pdf). O mesmo resumo aparece no próprio app, na página [Sobre o PokeBox](https://poke-box-gt.vercel.app/sobre?aba=projeto), aba "Como foi feito".
 
 | Critério | Onde ver |
 |---|---|
@@ -297,6 +297,7 @@ Respostas e erros da API seguem o contrato `{ success, data }` / `{ success: fal
 
 | Arquivo | O que tem |
 |---|---|
+| [`docs/PokeBox-documentacao.pdf`](docs/PokeBox-documentacao.pdf) | Toda a documentação da avaliação num PDF só (28 páginas, com sumário e diagramas), para ler ou imprimir |
 | [`docs/arquitetura.md`](docs/arquitetura.md) | Camadas, POO, SOLID, padrões de projeto e pontos fracos |
 | [`docs/decisoes/`](docs/decisoes/README.md) | Decisões técnicas e o que ficou de fora |
 | [`docs/processo.md`](docs/processo.md) | Board, branches, revisão de PR, workflows e Docker |
