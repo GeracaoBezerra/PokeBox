@@ -1,43 +1,48 @@
+import { Check, Megaphone, PackageMinus, Trash2 } from "lucide-react";
 import { useId } from "react";
 import { Link } from "react-router-dom";
 import s from "../../styles/paginas.module.css";
 import { motivoDeNaoApagar } from "../../utils/colecao";
 import a from "./AcoesItemColecao.module.css";
 
-export default function AcoesItemColecao({ item, ocupado = false, onEditar, onAnunciar, onApagar, onTirar }) {
+function BotaoIcone({ rotulo, icone: Icone, variante = "", ...resto }) {
+  return (
+    <button type="button" className={`${a.icone} ${variante}`} aria-label={rotulo} title={rotulo} {...resto}>
+      <Icone size={18} aria-hidden="true" />
+    </button>
+  );
+}
+
+export default function AcoesItemColecao({ item, ocupado = false, podeSalvar = false, onSalvar, onAnunciar, onApagar, onTirar }) {
   const motivoId = useId();
-  const nome = item.card.name;
   const motivo = motivoDeNaoApagar(item.deleteBlockedBy);
   const historico = item.deleteBlockedBy === "LISTING_HISTORY";
 
   return (
     <div className={a.acoes}>
-      <div className={s.acoes}>
-        {onEditar && (
-          <button type="button" className={s.botaoSecundario} aria-label={`Editar ${nome}`} onClick={() => onEditar(item)}>
-            Editar
-          </button>
+      <div className={a.linha}>
+        {onSalvar && (
+          <BotaoIcone
+            rotulo="Salvar"
+            icone={Check}
+            variante={podeSalvar ? a.salvar : ""}
+            onClick={onSalvar}
+            disabled={!podeSalvar || ocupado}
+          />
         )}
-        {item.available > 0 && (
-          <button type="button" className={s.botaoSecundario} onClick={() => onAnunciar(item)}>
-            Anunciar
-          </button>
-        )}
+        {item.available > 0 && <BotaoIcone rotulo="Anunciar" icone={Megaphone} onClick={() => onAnunciar(item)} />}
         {historico && item.quantity > 0 && (
-          <button type="button" className={s.botaoPerigo} onClick={() => onTirar(item)} disabled={ocupado}>
-            Tirar da coleção
-          </button>
+          <BotaoIcone rotulo="Tirar da coleção" icone={PackageMinus} variante={a.perigo} onClick={() => onTirar(item)} disabled={ocupado} />
         )}
         {!historico && (
-          <button
-            type="button"
-            className={s.botaoPerigo}
+          <BotaoIcone
+            rotulo="Apagar"
+            icone={Trash2}
+            variante={a.perigo}
             onClick={() => onApagar(item)}
             disabled={ocupado || Boolean(motivo)}
             aria-describedby={motivo ? motivoId : undefined}
-          >
-            Apagar
-          </button>
+          />
         )}
       </div>
       {motivo && (
@@ -46,7 +51,7 @@ export default function AcoesItemColecao({ item, ocupado = false, onEditar, onAn
           {item.deleteBlockedBy === "OPEN_LISTING" && (
             <>
               {" · "}
-              <Link className={s.link} to="/anuncios">
+              <Link className={`${s.link} ${a.semQuebra}`} to="/anuncios">
                 Ver anúncios
               </Link>
             </>

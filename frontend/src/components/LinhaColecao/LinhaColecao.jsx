@@ -77,12 +77,15 @@ export default function LinhaColecao({ item, ocupado, onMudou, onAnunciar, onApa
           />
         </td>
         <td>
-          <div className={s.acoes}>
-            <button type="button" className={s.botao} onClick={salvar} disabled={!podeSalvar || acao.ocupado}>
-              Salvar
-            </button>
-            <AcoesItemColecao item={item} ocupado={ocupado} onAnunciar={onAnunciar} onApagar={onApagar} onTirar={onTirar} />
-          </div>
+          <AcoesItemColecao
+            item={item}
+            ocupado={ocupado || acao.ocupado}
+            podeSalvar={podeSalvar}
+            onSalvar={salvar}
+            onAnunciar={onAnunciar}
+            onApagar={onApagar}
+            onTirar={onTirar}
+          />
         </td>
       </tr>
       {acao.erro && (
