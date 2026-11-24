@@ -15,7 +15,7 @@ Datas: 29/10 a 20/11/2026 · Issues #106, #109, #179 a #182
 - Vitest no front porque reaproveita a configuração do Vite.
 - Cypress porque é a ferramenta da aula. O Playwright seria a alternativa (mais rápido e com vários navegadores).
 - O E2E reseta o banco por uma task do Cypress, sem rota na API: uma rota que apaga o banco seria perigosa se chegasse à produção.
-- Cobertura mínima na CI igual ao valor medido menos uns 2 pontos (backend: 95% das linhas). 100% não é meta, porque incentiva teste que só pinta linha.
+- Cobertura mínima na CI igual ao valor medido menos uns 2 pontos (backend: 95% das linhas, em `backend/jest.coverage.config.js`; front: 40%, em `frontend/vite.config.js`, definido quando o front media 42,7%). 100% não é meta, porque incentiva teste que só pinta linha.
 
 ## Consequências
 

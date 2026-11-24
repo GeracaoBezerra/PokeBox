@@ -21,5 +21,5 @@ Na apresentação do MVP, a busca foi o ponto mais criticado (`charizard base` n
 ## Consequências
 
 - `charzard` passou de 33,4 ms para 1,5 ms, e o app funciona com a TCGdex fora do ar em `en` e `pt`.
-- O sync completo é demorado (de 26 min a algumas horas, conforme a máquina e a TCGdex).
+- A primeira carga do catálogo é demorada (de 26 min a algumas horas, conforme a máquina e a TCGdex); as semanais levam poucos minutos.
 - Idiomas fora do sync ainda dependem da TCGdex.

@@ -1,6 +1,6 @@
 # Deploy
 
-Por que Vercel, Render e Neon: [decisão 0008](decisoes/0008-deploy.md).
+Por que Vercel, Render e Neon: [decisão sobre o deploy](decisoes/0008-deploy.md).
 
 ```mermaid
 flowchart LR
@@ -32,7 +32,7 @@ PR para a develop  ->  CI (testes)  ->  merge
 release develop -> main  ->  Deploy: CI de novo  ->  API no Render  ->  front na Vercel
 ```
 
-O workflow `.github/workflows/deploy.yml` roda a cada push na `main` e também pode ser disparado à mão na aba Actions. Se algum teste falhar, nada é publicado. Ele só publica o front depois que o `/health` da API responde com o commit novo (`data.version`), para o front nunca chegar antes da API de que precisa.
+O workflow `.github/workflows/deploy.yml` roda a cada push na `main` e também pode ser disparado à mão na aba Actions. Se algum teste falhar, nada é publicado. Ele só publica o front depois que o `/health` da API responde com o commit novo (`data.version`), ou um mais novo que o inclua, para o front nunca chegar antes da API de que precisa. Se a versão não subir em 15 min, o job falha e o front não sai.
 
 Configuração de produção no código:
 
@@ -43,5 +43,22 @@ Configuração de produção no código:
 
 Catálogo da busca em produção (#78):
 
-- Uma vez, depois do deploy que traz a tabela `CatalogCard`, da sua máquina: `cd backend && DATABASE_URL="<URL do Neon>" npm run catalog:sync`. Para trazer o português (#157) sem refazer o inglês: `npm run catalog:sync -- pt`. Depois do deploy da #158 (migration `catalog_filtros`), rodar o sync completo de novo para preencher sets, filtros e o tipo, a raridade e a categoria das cartas. Depois do deploy da #192, rodar o sync de novo para guardar o detalhe de todas as cartas. O melhor é disparar o workflow (Actions > Catalog sync > Run workflow, na `main`): ele roda perto do Neon, cabe no limite de 120 min e não precisa da URL do banco no terminal; se ninguém disparar, o agendamento de segunda faz a carga completa sozinho. A partir daí, o workflow semanal só busca o detalhe das cartas novas. Como o seed, o script não roda dentro da imagem de produção, que não tem o `tsx`.
+- Primeira carga: Actions > Catalog sync > Run workflow, na `main`. Ele roda perto do Neon, cabe no limite de 120 min e não precisa da URL do banco no terminal. Também dá para rodar da máquina: `cd backend && DATABASE_URL="<URL do Neon>" npm run catalog:sync` (`-- pt` para um idioma só; `--refresh-details` busca de novo o detalhe de todas as cartas). Depois, o workflow semanal só busca o detalhe das cartas novas. Como o seed, o script não roda dentro da imagem de produção, que não tem o `tsx`.
 - Depois, o workflow `.github/workflows/catalog-sync.yml` roda o mesmo script toda segunda às 06:00 UTC (e à mão, em Actions > Catalog sync > Run workflow, escolhendo a `main`). Ele usa o secret `DATABASE_URL` do environment `production`, com a URL do Neon. Sets novos saem poucas vezes por ano, então uma vez por semana basta; se o GitHub atrasar ou pular um agendamento, nada quebra, a busca só demora mais para ver o set novo.
+
+## API acordada no plano gratuito
+
+O plano gratuito do Render dorme depois de 15 min sem uso, e a primeira chamada seguinte leva cerca de 2 min. Um monitor externo gratuito (UptimeRobot) chama `GET /health` a cada 5 min e avisa por e-mail se a API cair. Antes era um workflow agendado do GitHub Actions; ele foi removido porque o GitHub atrasa e descarta agendamentos (rodou 1 vez em 5 horas). O `/health` não toca no banco, então o Neon continua dormindo.
+
+## Segredos e variáveis do pipeline
+
+Ficam no environment `production` do repositório:
+
+| Nome | Tipo | Usado por |
+|---|---|---|
+| `RENDER_DEPLOY_HOOK_URL` | secret | `deploy.yml`, para publicar a API |
+| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | secret | `deploy.yml`, para publicar o front |
+| `API_URL`, `APP_URL` | variável | `deploy.yml`, para conferir a API e o site depois do deploy |
+| `DATABASE_URL` | secret | `catalog-sync.yml` (URL pooled do Neon) |
+
+No Render, `RENDER_GIT_COMMIT` (do próprio Render) vira o `version` do `/health`.

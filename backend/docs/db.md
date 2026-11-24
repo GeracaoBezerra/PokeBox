@@ -1,13 +1,13 @@
 # Banco de dados
 
-PostgreSQL 17 + Prisma 7. Schema em `prisma/schema.prisma`, migrations em `prisma/migrations/`.
+PostgreSQL (17 no Docker local, 18 no Neon) + Prisma 7. Schema em `prisma/schema.prisma`, migrations em `prisma/migrations/`.
 
 ## Modelo
 
 ```
 User ─┬─< CollectionItem >── Card ──< WishlistItem >── User
       │        │  │
-      │        │  └─< OfferItem >── Offer
+      │        │  └─< OfferItem >── Offer, Card
       │        │
       │        └─< Listing ──< Offer >── User (proposer)
       │              │           │
@@ -15,6 +15,8 @@ User ─┬─< CollectionItem >── Card ──< WishlistItem >── User
               ├─< TradeItem >── Card, CollectionItem?, User (from / to)
               └─< TradeListingHold >── Listing
 ```
+
+`CardCache`, `CatalogCard`, `CatalogSet` e `CatalogFilterValue` não têm FK e ficam fora do diagrama.
 
 | Tabela | Papel | Regras ligadas |
 |---|---|---|
@@ -37,6 +39,7 @@ User ─┬─< CollectionItem >── Card ──< WishlistItem >── User
 
 - **Catálogo × coleção (RN-01):** `CollectionItem.cardId` aponta para `Card`. Adicionar à coleção nunca duplica a carta: a linha de `Card` é criada uma vez (upsert com os dados da TCGdex) e reaproveitada.
 - **Item de coleção único por `(userId, cardId, condition, finish, firstEdition)`:** a mesma carta em condição ou variante diferente é outro item; igual em tudo, soma em `quantity`.
+- **Condição (`CardCondition`):** `MINT`, `NEAR_MINT` (padrão), `EXCELLENT`, `GOOD`, `LIGHT_PLAYED`, `PLAYED` e `POOR`.
 - **Variante:** `finish` (`NORMAL`, `HOLO`, `REVERSE`) é o acabamento; `firstEdition` é o carimbo de 1ª edição, que combina com qualquer acabamento (existe "holo 1ª edição"). As combinações válidas de cada carta vêm de `variants` da TCGdex e são validadas no service. A wishlist não tem variante: quem deseja uma carta aceita qualquer versão.
 - **Idioma da coleção:** fora do escopo. Todas as cartas da coleção são da edição em inglês.
 - **Catálogo local da busca (#78):** a `CatalogCard` é separada da `Card`. A `Card` tem o detalhe completo de poucas cartas (as que alguém usa); a `CatalogCard` tem o resumo das ~24 mil cartas em inglês e ~14 mil em português, só com o que a lista da busca mostra. A lista de cartas do set da TCGdex não traz tipo, raridade nem categoria; desde a #158, o sync preenche esses campos pelas listas filtradas da TCGdex (`/en/cards?types=eq:Fire`, uma chamada por valor de filtro, cerca de 60 por idioma) e grava os valores em `CatalogFilterValue` só no fim. Assim, a busca com filtro só passa a usar o banco quando todos os campos já foram gravados. A chave é `(id, lang)` e não só `id`, para um segundo idioma não sobrescrever o primeiro (hoje `en` e `pt` são sincronizados, #157).
@@ -49,9 +52,11 @@ User ─┬─< CollectionItem >── Card ──< WishlistItem >── User
 - **Só trocas (D-08):** o PokeBox não tem venda, preço nem pagamento. Todo anúncio é de troca (não há tipo de anúncio) e a oferta diz o que o proponente dá em troca por meio de `OfferItem`. Quando a troca nasce (aceite da oferta), os `OfferItem` são copiados para `TradeItem` junto com o item do anúncio e continuam na oferta. O `marketPrice` do detalhe da carta vem da TCGdex e é só informativo.
 - **Preço de referência (#53):** `Card.marketPrice` (`Decimal(10,2)`) é o preço da TCGdex (TCGplayer em USD ou, sem ele, Cardmarket em EUR), guardado só para exibir nas listas (coleção, perfil, wishlist) e ajudar a comparar o que se dá e o que se recebe numa troca. Não é preço de venda. É gravado quando a carta entra em `Card` e atualizado sempre que a TCGdex é consultada de novo (cache de 24h vencido). `marketPriceUpdatedAt` é a data do preço na fonte (`updated` da TCGdex), não a data em que a carta entrou na coleção. O preço é de uma variante só (holo, depois normal, depois reverse, no TCGplayer): é referência da carta, não do item específico. Rodar o seed de novo volta o preço das cartas do seed para o valor de `cards.json`. Carta sem preço na TCGdex fica com as quatro colunas nulas. Na resposta da API sai como número.
 - **`TradeItem` guarda cópia de `cardId`, `condition`, `finish`, `firstEdition`, `fromUserId` e `toUserId`:** o histórico da troca continua legível mesmo se o item de coleção for removido depois (`collectionItemId` vira `NULL`).
-- **Exclusão:** usuário, carta e item de coleção com dependentes não podem ser apagados (FK `RESTRICT`); usuário é desativado por soft delete. Item de coleção oferecido numa proposta aberta também não pode ser apagado (409). Itens de troca são apagados junto com a troca e itens oferecidos junto com a oferta (`CASCADE`); apagar o item da coleção deixa `collectionItemId` `null` no `TradeItem` e no `OfferItem` (`SET NULL`), e a cópia da carta continua.
+- **Exclusão:** usuário, carta, anúncio com oferta ou hold e item de coleção com anúncio não podem ser apagados (FK `RESTRICT`); usuário é desativado por soft delete. Item de coleção oferecido numa proposta aberta também não pode ser apagado (409, regra do service). Itens de troca e holds são apagados junto com a troca e itens oferecidos junto com a oferta (`CASCADE`); apagar o item da coleção deixa `collectionItemId` `null` no `TradeItem` e no `OfferItem` (`SET NULL`), e a cópia da carta continua; apagar a oferta deixa `Trade.offerId` `null`.
 
 ## Constraints no banco
+
+Únicos: `User.username`, `User.email`, `CollectionItem (userId, cardId, condition, finish, firstEdition)`, `WishlistItem (userId, cardId)`, `Trade.offerId`, `OfferItem (offerId, collectionItemId)`, `TradeListingHold (tradeId, listingId)` e `CardCache (cardId, lang)`.
 
 Além de PK, FK, `NOT NULL` e `UNIQUE`, existem estas CHECK constraints:
 
@@ -105,6 +110,11 @@ Além dos índices que o Postgres cria para PK e `UNIQUE`:
 | `CollectionItem` e `WishlistItem` por `cardId` | achar quem tem ou quer uma carta (oportunidades da wishlist, detalhe da carta). A busca por dono usa a chave única, que começa por `userId` |
 | `Listing` por `collectionItemId` | anúncios abertos de um item (RN-05, `GET /listings/me`) |
 | `Listing` por `(status, createdAt DESC, id)` (#112) | `GET /listings`: o banco lê os anúncios ativos já na ordem de "mais recentes" e para no fim da página, em vez de ordenar todos. Também atende filtro só por `status` (o grupo `IN_TRADE` do fim da lista usa o mesmo índice) |
+| `Offer` por `listingId` e por `proposerId` | ofertas de um anúncio; ofertas que a pessoa fez |
+| `Trade` por `proposerId` e por `recipientId` | trocas de um usuário, dos dois lados |
+| `TradeItem` por `tradeId` e por `collectionItemId` | itens de uma troca; reserva de um item da coleção |
+| `OfferItem` por `collectionItemId` e por `cardId` (#217) | ofertas que usam um item; cartas oferecidas |
+| `CardCache` por `updatedAt` | achar cópias vencidas |
 | `TradeListingHold` por `listingId` (#213) | conferir se ainda há troca aberta com hold no anúncio antes de fechá-lo |
 | `CatalogCard` por `setId` | cartas de um set reconhecido na busca (`charizard base`) |
 | `CatalogCard` por `(lang, rarity)` e `(lang, category)`, e GIN em `types` (#158) | busca e lista com filtro de raridade, categoria e tipo (`types @> ARRAY['Fire']`, o operador que o GIN atende) |
@@ -112,7 +122,7 @@ Além dos índices que o Postgres cria para PK e `UNIQUE`:
 | `CatalogSet` por `(lang, position)` | lista de sets na ordem de lançamento |
 | `CatalogCard_nameNormalized_trgm_idx`: GIN com `gin_trgm_ops` em `nameNormalized` (#78) | busca tolerante a erro de digitação. Atende os operadores `<<%` (semelhança por palavra) e `LIKE '%texto%'` do `pg_trgm` |
 
-O índice de `Listing` por `(status, createdAt DESC, id)` substituiu o que era só por `status`, que ficou redundante. Medido com o `EXPLAIN ANALYZE` num banco com 100 mil anúncios (20 mil ativos): a primeira página caiu de 6,3 ms para 0,3 ms. Detalhes e números no README, em "Performance".
+O índice de `Listing` por `(status, createdAt DESC, id)` substituiu o que era só por `status`, que ficou redundante. Medido com o `EXPLAIN ANALYZE` num banco com 100 mil anúncios (20 mil ativos): a primeira página caiu de 6,3 ms para 0,3 ms. Detalhes e números em [`docs/observabilidade-e-performance.md`](../../docs/observabilidade-e-performance.md).
 
 ### Índice de trigramas da busca (#78)
 
@@ -147,7 +157,7 @@ O `npm run catalog:sync` (`backend/scripts/sync-catalog.ts`) preenche a tabela: 
 | `20261118001906_catalog_filtros` | `types`, `rarity` e `category` em `CatalogCard` com seus índices; cria `CatalogSet` e `CatalogFilterValue`; a CHECK `catalog_filter_value_kind_check` foi acrescentada à mão (#158) |
 | `20261119120000_trade_item_card_ranking` | índice de `TradeItem.cardId` usado pelo ranking de cartas mais trocadas (#92) |
 | `20261120194650_troca_redonda` | troca redonda (#213): `IN_TRADE` em `ListingStatus`, enum `OfferCancelReason` e `Offer.cancelReason`, `Trade.proposerConfirmedAt` e `recipientConfirmedAt`, tabela `TradeListingHold`. Escrito à mão no fim: as trocas `ACCEPTED` que já existem recebem as duas confirmações com a data de conclusão; `listing_quantity_check` passa a aceitar 0 fora de `ACTIVE`; CHECKs `trade_accepted_confirmed_check`, `trade_listing_hold_quantity_check` e `offer_cancel_reason_check` |
-| `20261121015726_oferta_guarda_cartas` | oferta guarda as cartas (#217): `OfferItem` ganha `cardId`, `condition`, `finish` e `firstEdition` (preenchidos à mão a partir do item da coleção), `collectionItemId` opcional com FK `SET NULL` e FK para `Card` |
+| `20261121015726_oferta_guarda_cartas` | oferta guarda as cartas (#217): `OfferItem` ganha `cardId`, `condition`, `finish` e `firstEdition` (padrão `false`), preenchidos à mão a partir do item da coleção; `collectionItemId` fica opcional com FK `SET NULL`; FK `RESTRICT` para `Card` e índice em `OfferItem.cardId` |
 
 Nova tabela ou coluna: altere o `schema.prisma`, rode `npx prisma migrate dev --name <descricao>` e atualize este arquivo no mesmo PR.
 
@@ -179,7 +189,7 @@ Senhas pelo `.env`: `SEED_ADMIN_PASSWORD` para o `admin` e `SEED_DEMO_PASSWORD` 
 | Tabela | O que o seed cria |
 |---|---|
 | `Card` | 87 cartas reais de 22 coleções (Base Set a Surging Sparks): 65 Pokémon, 12 Treinador, 10 Energia, todas com imagem |
-| `CollectionItem` | 111 itens (20 privados), de 10 a 22 por usuário, com quantidade maior que 1 e variantes holo, reverse e 1ª edição; as trocas concluídas criam mais 10 (121 no total) |
+| `CollectionItem` | 111 itens (20 privados), de 10 a 20 por usuário (o `admin` não tem coleção), com quantidade maior que 1 e variantes holo, reverse e 1ª edição; as trocas concluídas criam mais 10 (121 no total) |
 | `WishlistItem` | 44 itens, de 1 a 7 por usuário, nenhum de carta que a pessoa já tem (RN-12); vários cruzam com cartas e anúncios de outros usuários, e alguns só têm dono desativado (0 oportunidades). Alguns repetem a mesma carta para o ranking de mais desejadas (#92): Umbreon VMAX `swsh7-215` em 7 wishlists de contas ativas, Charizard `base1-4` em 6, Charizard ex `sv03.5-199` em 5 e Blastoise `base1-2` em 4. As 3 do `lance` (desativado) não contam |
 | `Listing` | 30 anúncios com `createdAt` espalhado em 45 dias: 19 `ACTIVE` (18 na vitrine, o do `lance` some), 2 `IN_TRADE` (Venusaur da erika e Double Turbo da cynthia, no fim da vitrine), 2 `PAUSED`, 1 `BLOCKED`, 6 `CLOSED` (2 fechados pelo dono e 4 pelas trocas concluídas, com quantidade 0) |
 | `Offer` | 16 ofertas: 6 `PROPOSED` (1 em espera: a do gary no Venusaur da erika, que está em troca), 6 `ACCEPTED` (todas viraram troca), 2 `REJECTED`, 2 `CANCELED`. Nenhuma oferta aceita sem troca |
@@ -194,7 +204,7 @@ Como fica idempotente:
 - ofertas são procuradas pelo par anúncio + quem ofertou. As que o seed deixa em aberto voltam para `PROPOSED` a cada execução se alguém as encerrou, como a da misty pelo Charizard do ash, que o `make test` usa; o anúncio volta para `ACTIVE` só se não estiver em troca e a carta ainda couber (senão o seed avisa e não mexe). Se uma delas já virou troca, o seed avisa e não mexe: para voltar ao estado inicial, `npx prisma migrate reset` (apaga o banco local). Ofertas recusadas ou canceladas não são refeitas;
 - as trocas do seed são criadas como na API: oferta, aceite do dono (a troca nasce) e as confirmações. Rodar de novo só completa a confirmação que faltar; troca concluída, recusada ou cancelada não é refeita. Oferta aceita sem troca (dado antigo) não vira troca: o seed avisa (em produção ela é apagada antes, ver "Produção" abaixo);
 - item que saiu do seed é apagado: hoje só a Fire Energy `sve-002` da `misty` (o set `sve` não tem imagem; ela passou a ter a `base1-98`). Vale para bancos populados pelo seed antigo, como o de produção. Se o item estiver num anúncio, numa oferta ou reservado, o seed avisa e mantém;
-- anúncios, ofertas e trocas são criados pelos services da API (`ListingService`, `OfferService`, `TradeService`), com as mesmas regras e transações (RN-05 a RN-08). Só duas coisas vão direto no banco: a data de criação dos anúncios (a API não deixa escolher) e a volta das ofertas em aberto para `PROPOSED` (a API não deixa uma oferta finalizada voltar).
+- anúncios, ofertas e trocas são criados pelos services da API (`ListingService`, `OfferService`, `TradeService`), com as mesmas regras e transações (RN-05 a RN-08). Vão direto no banco só a data de criação dos anúncios (a API não deixa escolher), a volta das ofertas em aberto para `PROPOSED`, com o anúncio de volta a `ACTIVE` e os `OfferItem` refeitos (a API não deixa uma oferta finalizada voltar), e a remoção do item que saiu do seed.
 
 Antes de gravar, o seed confere os próprios dados: toda carta existe no `cards.json` (inclusive as do catálogo em português), toda variante existe na carta e nenhuma wishlist pede carta que a pessoa já tem.
 

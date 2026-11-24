@@ -16,5 +16,5 @@ Manter venda e troca juntas, como no enunciado. Exigiria fluxo de pagamento ou d
 
 ## Consequências
 
-- A RN-05 virou "só anuncia o que tem disponível para troca". O desvio está explicado no README ("Adaptação: só trocas").
+- A RN-05 virou "só anuncia o que tem disponível para troca". O desvio está explicado no [README](../../README.md#adaptação-só-trocas).
 - O preço da TCGdex continua visível, só como referência para comparar o que se dá e o que se recebe.

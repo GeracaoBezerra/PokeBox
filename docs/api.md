@@ -15,6 +15,13 @@ Todas as respostas seguem o mesmo formato:
 
 **Paginação opcional nas listas (#77).** `GET /collection`, `GET /wishlist`, `GET /users/:username/collection`, `GET /listings/me`, `GET /offers/me` e `GET /trades/me` respondem como sempre quando não recebem nenhum parâmetro novo: a lista inteira, no mesmo formato. Qualquer parâmetro novo (`page`, `limit`, um filtro, `sort` ou `side`) liga a paginação, mesmo sem `page` (aí vem a página 1). A resposta paginada é igual à do `GET /listings`: `{ "success": true, "data": { "items": [] }, "pagination": { "page": 1, "limit": 20, "hasNextPage": false } }`, sem total. `limit` padrão 20, máximo 100 (acima disso → **400** com `details`). Sem `sort`, a ordem é a de antes, com uma exceção: em `GET /offers/me` e `GET /trades/me`, as recebidas sem `status` trazem as pendentes primeiro, paginadas ou não (#199); o `id` desempata para nenhum item repetir ou sumir entre as páginas.
 
+### Saúde
+
+| Rota | | O que faz |
+|---|---|---|
+| `GET /health` | | processo de pé, não toca no banco; devolve `{ status, version }` (o commit) |
+| `GET /health/ready` | | faz `SELECT 1` no banco; **503** se ele estiver fora |
+
 ### Autenticação e conta
 
 | Rota | | O que faz |
@@ -77,12 +84,12 @@ A troca tem 3 passos (#213): **1.** quem quer a carta faz a oferta; **2.** o don
 
 | Rota | | O que faz |
 |---|---|---|
-| `POST /trades` | 🔒 | `{ offerId }` (rota do PDF). Como o aceite já cria a troca, oferta que já virou troca → **409**; oferta que não está aceita → **422** |
+| `POST /trades` | 🔒 | `{ offerId }` (rota do PDF). Só quem fez a oferta chama (outro → **403**). Como o aceite já cria a troca, oferta que já virou troca → **409**; oferta que não está aceita → **422** |
 | `GET /trades/me?status=&side=&page=&limit=` | 🔒 | minhas trocas: `sent` (fiz a oferta) e `received` (meus anúncios), mais novas primeiro. `side` e as pendentes primeiro em `received` funcionam como em `GET /offers/me` |
 | `GET /trades/:id` | 🔒 | detalhe; só as duas partes veem (outros, inclusive ADMIN → 403) |
 | `POST /trades/:id/accept` | 🔒 | confirma o recebimento, para as **duas partes**: a primeira só grava a data (`proposerConfirmedAt` ou `recipientConfirmedAt`); a segunda conclui e as cartas trocam de dono, tudo ou nada. Confirmar de novo ou troca finalizada → **409** |
-| `POST /trades/:id/reject` | 🔒 | o dono do anúncio recusa (mesmo depois de confirmar); a reserva é liberada e a quantidade volta aos anúncios ainda abertos |
-| `POST /trades/:id/cancel` | 🔒 | quem fez a oferta cancela (mesmo depois de confirmar); a reserva é liberada e a quantidade volta aos anúncios ainda abertos |
+| `POST /trades/:id/reject` | 🔒 | o dono do anúncio recusa (mesmo depois de confirmar; outro → **403**); a reserva é liberada e a quantidade volta aos anúncios ainda abertos |
+| `POST /trades/:id/cancel` | 🔒 | quem fez a oferta cancela (mesmo depois de confirmar; outro → **403**); a reserva é liberada e a quantidade volta aos anúncios ainda abertos |
 
 A documentação completa, com exemplos de corpo e resposta, está no **Swagger (`/docs`)**.
 
@@ -91,13 +98,13 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | Código | Quando |
 |---|---|
 | 400 | dados inválidos (campo faltando, formato errado, campo a mais) ou JSON inválido no corpo (`"JSON inválido"`) |
-| 401 | sem token, token inválido ou expirado, senha errada |
-| 403 | logado, mas sem permissão (item de outra pessoa, rota de admin, conta suspensa) |
+| 401 | sem token, token inválido ou expirado, senha errada, ou conta desativada ou suspensa usando um token ainda válido |
+| 403 | logado, mas sem permissão (item de outra pessoa, rota de admin) ou login de conta suspensa ou inativa |
 | 404 | não encontrado (inclui perfil de conta desativada) |
 | 409 | conflito (e-mail/username já usados, carta repetida na wishlist, apagar item com reserva, que já foi anunciado ou que está numa oferta, segunda oferta aberta no mesmo anúncio, oferta que já virou troca, troca já finalizada) |
-| 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem, oferta no próprio anúncio, mudar oferta já finalizada, troca de oferta não aceita, cartas da troca indisponíveis) |
 | 413 | corpo da requisição acima do limite (100 KB) |
-| 429 | muitas tentativas de login ou cadastro sem sucesso para o mesmo e-mail (20 em 15 minutos); o header `Retry-After` diz quantos segundos esperar |
+| 422 | regra de negócio violada (ex.: quantidade abaixo da reservada ou anunciada, anunciar mais do que tem, variante que a carta não tem, oferta no próprio anúncio, mudar oferta já finalizada, troca de oferta não aceita, cartas da troca indisponíveis) |
+| 429 | muitas tentativas de login ou cadastro sem sucesso para o mesmo e-mail a partir do mesmo IP (20 em 15 minutos); o header `Retry-After` diz quantos segundos esperar |
 | 500 | erro inesperado (o stack vai para o log com o `x-request-id`) |
 | 502 | serviço de cartas (TCGdex) fora do ar, sem conexão ou respondendo errado, e sem cópia da carta guardada: "tente novamente em instantes" |
 | 503 | `GET /health/ready` com o banco fora do ar |

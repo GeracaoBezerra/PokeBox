@@ -1,6 +1,6 @@
 # Logs, traces e performance
 
-Decisões e números resumidos: [decisão 0010](decisoes/0010-observabilidade-e-performance.md).
+Decisões e números resumidos: [decisão sobre observabilidade e performance](decisoes/0010-observabilidade-e-performance.md).
 
 ## Logs e saúde da API
 
@@ -25,10 +25,10 @@ Duas rotas dizem se a API está bem:
 
 | Rota | Confere | Quem usa |
 |---|---|---|
-| `GET /health` | o processo está de pé (não toca no banco); devolve o commit em `version` | Health Check do Render e o pipeline de deploy |
+| `GET /health` | o processo está de pé (não toca no banco); devolve o commit em `version` | Health Check do Render, o pipeline de deploy e o monitor externo (UptimeRobot, a cada 5 min) |
 | `GET /health/ready` | o banco responde (`SELECT 1`); 503 se não | para conferir à mão ou num monitor externo |
 
-As duas ficam fora do log automático, porque o Render e o pipeline chamam o tempo todo. O preflight do CORS (`OPTIONS`, que o navegador manda antes de cada `POST`) também fica fora.
+As duas ficam fora do log automático, porque o Render, o pipeline e o monitor chamam o tempo todo. O preflight do CORS (`OPTIONS`, que o navegador manda antes de cada `POST`) também fica fora.
 
 ## Traces
 
@@ -82,7 +82,7 @@ Sem essas variáveis, a API roda sem traces. Os traces saem em lotes a cada pouc
 - Cache das cartas da TCGdex em camadas (padrão Decorator, em `backend/src/cards/catalog/`): memória (1 h, até 500 cartas), depois junção de pedidos iguais em andamento, depois a tabela `CardCache` no banco (responde sempre que tem a carta; passadas 24 h, a cópia é atualizada por trás, sem o usuário esperar), e só então a chamada HTTP.
 - Cache em memória da busca de cartas (10 min) e da lista de sets (1 dia), e timeout de 8 s nas chamadas à TCGdex.
 - A TCGdex falha por alguns segundos com frequência (#145). Quando ela responde 502, 503 ou 504, ou a conexão cai, a API tenta de novo até 2 vezes (espera de 200 ms e 600 ms, sem passar dos 8 s do timeout); 404, outros erros e timeout não são repetidos. Cada nova tentativa aparece no log (`warn`) e como span próprio nos traces. Se mesmo assim ela não responder, a busca, a lista de sets, os filtros e as cartas de um set usam o último resultado guardado em memória, mesmo vencido. Nos idiomas sincronizados (`en` e `pt`), a lista de sets, os filtros e todas as buscas já saem do banco (#158) e não dependem dessa memória.
-- `Cache-Control` nas cartas: a lista é `public, max-age=300`; o detalhe é `private`, porque traz os anúncios da carta e, com login, os dados da pessoa.
+- `Cache-Control` nas cartas: a lista é `public, max-age=300` (os rankings `wanted` e `traded`, `public, no-cache`); os filtros, `public, max-age=3600`; o detalhe é `private` (`max-age=60` sem login, `no-cache` com login), porque traz os anúncios da carta e, com login, os dados da pessoa.
 - Paginação, busca e filtros no `GET /listings`.
 
 ### O que a #112 acrescentou
@@ -108,7 +108,7 @@ Sobre o limite de tentativas:
 
 Máquina: Apple M4 Pro (12 núcleos), Node 24, Postgres 17 no Docker. API em modo produção (`NODE_ENV=production`, `LOG_LEVEL=warn`), aquecida com uma chamada antes de cada rota. Cada linha: `npx autocannon -c 20 -d 15 <url>` (20 conexões ao mesmo tempo, por 15 segundos). Latência média, p99 (99% das requisições ficam abaixo dele) e requisições por segundo.
 
-**Com o banco do seed (10 cartas, poucos anúncios):**
+**Com o banco do seed da época da #112 (10 cartas, poucos anúncios):**
 
 | Rota | Antes | Depois |
 |---|---|---|
@@ -152,7 +152,7 @@ Medido com `EXPLAIN ANALYZE` no banco local com o catálogo inteiro (23.912 cart
 | `pikachu`, segunda página | 2,0 ms | 26,7 ms |
 | a palavra `pipi` acha alguma carta? | 0,1 ms | 22,7 ms |
 
-Pela API, na máquina local: `GET /cards?name=charizard base` responde em 5 a 10 ms. A mesma busca de `pikachu` em `lang=pt`, que ainda vai à TCGdex, levou 2 s na primeira chamada (depois fica 10 min em memória). Detalhes do índice em [`backend/docs/db.md`](../backend/docs/db.md#índice-de-trigramas-da-busca-78).
+Pela API, na máquina local: `GET /cards?name=charizard base` responde em 5 a 10 ms. Antes da #157, a busca de `pikachu` em `lang=pt` ainda ia à TCGdex e levou 2 s na primeira chamada; hoje `en` e `pt` saem do banco, e só um idioma não sincronizado vai à TCGdex. Detalhes do índice em [`backend/docs/db.md`](../backend/docs/db.md#índice-de-trigramas-da-busca-78).
 
 ### Decisões que ficaram como estão
 
@@ -160,7 +160,7 @@ Pela API, na máquina local: `GET /cards?name=charizard base` responde em 5 a 10
 - **O cache em memória some quando o Render dorme ou reinicia.** O cache no banco (`CardCache`) segura, e a TCGdex não é chamada de novo à toa. Com mais de uma instância, cada uma teria a própria memória; o próximo passo seria um Redis.
 - **Loops com `await` dentro das transações de troca e oferta** (`TradeService`, `OfferService`, `lockInOrder` no `PrismaCollectionRepository`). São em sequência de propósito: as travas em ordem evitam deadlock (RN-08), e o tamanho é o número de cartas de uma troca. Não paralelizar.
 - **Páginas muito fundas no `GET /listings`** ainda custam: com `OFFSET 1000`, a consulta leva 5,5 ms, porque o banco percorre as 1.000 linhas antes. Paginação por cursor resolveria; não vale agora.
-- **Coleção, wishlist, ofertas e trocas:** paginação opcional desde a #77 (sem parâmetro, ainda devolvem a lista inteira, para o front migrar aos poucos na #147).
+- **Coleção, wishlist, ofertas e trocas:** paginação opcional desde a #77 (sem parâmetro, ainda devolvem a lista inteira por compatibilidade; o front já pede paginado desde a #174 e a #175).
 
 ### Como repetir
 

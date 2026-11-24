@@ -9,7 +9,7 @@ Organização do board, do repositório e do fluxo de entrega. Números de 24/11
 - Cada tarefa é uma issue com contexto, o que fazer, como testar, fora do escopo e "pronto quando".
 - Labels de prioridade (`P0` para a entrega, `P1`, `P2 · pós-entrega`), de tamanho (`P` algumas horas, `M` um dia, `G` vários dias), de tipo (`melhoria`, `do zero`) e de área (Frontend, Backend, Testes, Infra/Deploy, Observabilidade, Banco de dados).
 - Milestones: MVP (20/10) e Entrega 22/11.
-- 132 issues no total: 117 fechadas e 15 abertas. As abertas estão em [Limitações, dívidas e próximos passos](../README.md#limitações-dívidas-e-próximos-passos).
+- 132 issues no total: 117 fechadas e 15 abertas (14 listadas em [Limitações, dívidas e próximos passos](../README.md#limitações-dívidas-e-próximos-passos) e a #113, desta documentação).
 
 ## Branches e pull requests
 
@@ -22,10 +22,10 @@ flowchart LR
   M -->|deploy.yml| P[Produção]
 ```
 
-- Uma issue, uma branch, uma PR. A PR traz `Closes #<n>` e segue o template (`.github/pull_request_template.md`): o que muda, o que o revisor precisa saber, quebra de contrato, como testar e o que ficou pendente.
+- Uma issue, uma branch, uma PR. A PR traz `Closes #<n>` e segue o template (`.github/pull_request_template.md`): o que muda, o que o revisor precisa saber, dependências, quebra de contrato, como testar e o que ficou pendente.
 - Commits no padrão Conventional Commits em português, com o número da issue: `feat(trocas): aceitar a oferta cria a troca e as duas partes confirmam o recebimento (#213)`.
 - 95 PRs mergeadas e 481 commits na `develop`. 17 releases `develop → main`.
-- Toda PR atualiza o README com o que traz de novo.
+- Toda PR atualiza a documentação (o README ou o arquivo de `docs/` do assunto) com o que traz de novo.
 
 ## Proteção das branches
 

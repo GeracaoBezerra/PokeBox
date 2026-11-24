@@ -58,7 +58,7 @@ Números da bancada final (23/11, [#60](https://github.com/GeracaoBezerra/PokeBo
 | Parte | Tecnologia |
 |---|---|
 | Backend | Node.js (LTS), TypeScript 6, Express 5, Prisma 7 (`@prisma/adapter-pg`), zod 4, JWT, bcrypt |
-| Banco | PostgreSQL 17 |
+| Banco | PostgreSQL 17 (local) e 18 (Neon, produção) |
 | Frontend | React 19, Vite, React Router, axios |
 | Dados das cartas | API pública [TCGdex](https://tcgdex.dev), com cache no banco e uma cópia resumida de todas as cartas para a busca (`pg_trgm` + `unaccent`) |
 | Testes | Jest com ts-jest (backend), Vitest com jsdom, Testing Library e MSW (frontend), Cypress com Testing Library (E2E) |
@@ -117,13 +117,15 @@ Outros jeitos de rodar (backend e front fora do Docker, modo produção local co
 
 As senhas não ficam no repositório: vêm do `.env`. `SEED_ADMIN_PASSWORD` é a do `admin`; `SEED_DEMO_PASSWORD` é a de todos os outros usuários. As duas são obrigatórias, têm de 8 a 72 caracteres e precisam ser diferentes; sem elas o seed para e diz o que falta. Peça os valores ao time ou escolha os seus no seu `.env`. Rodar o seed de novo aplica as senhas atuais do `.env` a todos os usuários do seed.
 
+Itens de coleção contados depois das trocas que o seed faz:
+
 | Usuário | E-mail | Papel | Cidade | O que tem |
 |---|---|---|---|---|
 | `admin` | `admin@pokebox.dev` | ADMIN | | nada na coleção; serve para a moderação (há um anúncio do `gary` bloqueado) |
 | `ash` | `ash@pokebox.dev` | USER | São Paulo/SP | 13 itens: Charizard holo 1ª edição (anunciado), Pikachus, Ultra Ball (4), Furret e Lightning Energy (privados); trocou o Pikachu VMAX anunciado por 3 Eevee do `gary` (troca concluída) |
-| `misty` | `misty@pokebox.dev` | USER | Rio de Janeiro/RJ | 12 itens: Blastoise holo e Gyarados (anunciados), Greninja ex (anúncio pausado), Mew ex holo, Fire Energy (10), cartas de água; troca concluída com o `brock` (3 Magikarp pelo Garchomp ex) |
-| `brock` | `brock@pokebox.dev` | USER | Belo Horizonte/MG | 17 itens: Palkia, Garchomp ex, Snorlax VMAX, Iono (anunciados); trocas concluídas com a `erika` e com a `misty` (o Garchomp ex anunciado) e uma troca **aberta** com a `cynthia` |
-| `gary` | `gary@pokebox.dev` | USER | Curitiba/PR | 18 itens: vários Charizard (anunciados, um **bloqueado** pelo admin); trocas concluídas com a `cynthia` e com o `ash` (3 Eevee pelo Pikachu VMAX) |
+| `misty` | `misty@pokebox.dev` | USER | Rio de Janeiro/RJ | 13 itens: Blastoise holo e Gyarados (anunciados), Greninja ex (anúncio pausado), Mew ex holo, Fire Energy (10), cartas de água; troca concluída com o `brock` (3 Magikarp pelo Garchomp ex) |
+| `brock` | `brock@pokebox.dev` | USER | Belo Horizonte/MG | 18 itens: Palkia, Garchomp ex, Snorlax VMAX, Iono (anunciados); trocas concluídas com a `erika` e com a `misty` (o Garchomp ex anunciado) e uma troca **aberta** com a `cynthia` |
+| `gary` | `gary@pokebox.dev` | USER | Curitiba/PR | 19 itens: vários Charizard (anunciados, um **bloqueado** pelo admin); trocas concluídas com a `cynthia` e com o `ash` (3 Eevee pelo Pikachu VMAX) |
 | `erika` | `erika@pokebox.dev` | USER | Porto Alegre/RS | 15 itens: Venusaur, Celebi V, Sylveon VMAX (anunciados), Nest Ball (pausado); troca em andamento com o `brock`, já confirmada por ela |
 | `dawn` | `dawn@pokebox.dev` | USER | Recife/PE | 10 itens, todos **privados**: o perfil público dela aparece vazio |
 | `cynthia` | `cynthia@pokebox.dev` | USER | Florianópolis/SC | 22 itens raros: Umbreon VMAX alt art, Lugia 1ª edição, Mew ex dourado (anunciados); troca aberta com o `brock` esperando ela aceitar |
@@ -140,7 +142,7 @@ O seed roda sozinho na primeira subida, pode rodar de novo sem duplicar nada (`m
 | Integração (backend) | Jest + Supertest + PostgreSQL real | 173 | `make test-int` |
 | Unidade (backend) | Jest | 927 | `cd backend && npm test` |
 
-Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 68% no front (mínimo de 40%). Por que cada ferramenta: [decisão 0009](docs/decisoes/0009-testes.md). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](docs/ia.md).
+Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 68% no front (mínimo de 40%). Por que cada ferramenta: [decisão sobre testes](docs/decisoes/0009-testes.md). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](docs/ia.md).
 
 Como rodar cada tipo, o que cada arquivo cobre e a cobertura por métrica: [`docs/testes.md`](docs/testes.md).
 
@@ -214,14 +216,14 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 - Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time. O login e o cadastro param depois de 20 tentativas sem sucesso para o mesmo e-mail em 15 minutos.
 - Neon gratuito: 0,5 GB e só 6 horas de histórico para restaurar o banco.
 - As contas de Vercel, Render e Neon estão em nome de membros do time.
-- Token JWT no `localStorage`: um script injetado na página (XSS) poderia lê-lo. Não há refresh token: a sessão vale 1 dia ([decisão 0011](docs/decisoes/0011-autenticacao.md)).
+- Token JWT no `localStorage`: um script injetado na página (XSS) poderia lê-lo. Não há refresh token: a sessão vale 1 dia ([decisão sobre autenticação](docs/decisoes/0011-autenticacao.md)).
 - O limite de tentativas de login é por IP + e-mail. A mesma senha testada em muitos e-mails não é barrada.
 - Não há prazo para confirmar o recebimento: uma troca em andamento segura as cartas reservadas até as duas partes confirmarem ou alguém desistir. Uma confirmação não pode ser desfeita.
 - Uma troca recusada ou cancelada não gera outra troca a partir da mesma oferta: é preciso fazer uma oferta nova. A quantidade volta só para anúncio ainda aberto.
 - Trocas abertas criadas antes da #213 não têm o registro de quanto tiraram de cada anúncio: se caírem, só a reserva volta.
 - Conta com troca em andamento não pode ser desativada (409).
 - Cerca de 21% das cartas da TCGdex não têm imagem; elas aparecem com uma imagem de reserva.
-- Idiomas fora do catálogo local (`en` e `pt`) ainda dependem da TCGdex. O sync completo do catálogo leva de 26 min a algumas horas, conforme a máquina e a TCGdex.
+- Idiomas fora do catálogo local (`en` e `pt`) ainda dependem da TCGdex. A primeira carga do catálogo (com o detalhe de ~38 mil cartas) leva de 26 min a algumas horas, conforme a máquina e a TCGdex; as seguintes, poucos minutos.
 - O Swagger é escrito à mão (`backend/src/docs/swagger.ts`) e pode ficar desatualizado se uma rota mudar sem atualizar o arquivo.
 
 ### Dívidas técnicas
@@ -312,3 +314,4 @@ Respostas e erros da API seguem o contrato `{ success, data }` / `{ success: fal
 | [`docs/regras.md`](docs/regras.md) | Regras de negócio em detalhe |
 | [`docs/front.md`](docs/front.md) | Telas do front |
 | [`backend/docs/db.md`](backend/docs/db.md) | Modelo de dados, constraints, migrations e seed |
+| [`backend/docs/guia-backend.md`](backend/docs/guia-backend.md) | Guia do backend e do fluxo de troca para quem está começando (também em PDF) |

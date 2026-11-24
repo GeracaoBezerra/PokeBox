@@ -17,4 +17,4 @@ Prisma 7 com `@prisma/adapter-pg`. As CHECKs (19 no total, como quantidade nunca
 
 - Falha de CHECK vira 422 e conflito de unique ou FK vira 409, pelo tradutor de erros do Prisma.
 - Os índices criados à mão precisam ser repetidos no `schema.prisma`, senão o Prisma acusa diferença entre schema e banco.
-- As interfaces de repositório ainda usam tipos do Prisma (ver "Pontos fracos" em `docs/arquitetura.md`).
+- As interfaces de repositório ainda usam tipos do Prisma (ver [Pontos fracos conhecidos](../arquitetura.md#pontos-fracos-conhecidos)).

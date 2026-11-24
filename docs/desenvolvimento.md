@@ -10,10 +10,12 @@ Guia para quem vai rodar e mexer no código. O caminho rápido (tudo no Docker) 
 │   ├── prisma/            schema, migrations, seed e cartas do seed (seed-data/cards.json e catalog-pt.json)
 │   ├── docs/db.md         modelo de dados, constraints, migrations e seed
 │   ├── docs/guia-backend  guia do backend e das regras de negócio (.md e .pdf)
-│   ├── scripts/           seed-cards.ts (regera as cartas do seed), seed-if-empty.ts (seed só com o banco vazio, usado pelo Compose), sync-catalog.ts (catálogo da busca), clean-dist.mjs e copy-generated.mjs (build)
+│   ├── scripts/           seed-cards.ts (regera as cartas do seed), seed-if-empty.ts (seed só com o banco vazio, usado pelo Compose), sync-catalog.ts (catálogo da busca), clean-dist.mjs e copy-generated.mjs (build), bench-listings.sql (volume para medir o GET /listings), coverage-summary.mjs (tabela de cobertura no resumo da CI)
+│   ├── test/integration/  testes de integração (*.int.test.ts) e support/ (app de teste, TCGdex falsa, globalSetup)
 │   ├── Dockerfile         estágios dev e prod da API
 │   └── src/
 │       ├── server.ts      sobe a API: valida o env, monta o container e o app
+│       ├── instrumentation.ts liga o OpenTelemetry (carregado com node --import)
 │       ├── container.ts   raiz de composição: cria a infraestrutura e chama um build<Modulo>Module por módulo
 │       ├── app.ts         createApp(container): middlewares, rotas dos módulos e tratador de erros
 │       ├── modules/       um arquivo por módulo (auth, cards, collection, wishlist, listings, trading) que dá new nas classes
@@ -24,17 +26,21 @@ Guia para quem vai rodar e mexer no código. O caminho rápido (tudo no Docker) 
 │       ├── cards/         catálogo de cartas em camadas (decorators de cache), busca no catálogo local e busca esperta na TCGdex
 │       ├── security/      PasswordHasher (bcrypt) e TokenSigner (JWT)
 │       ├── errors/        AppError, erros de domínio e tradutores de erro
+│       ├── lib/           logger (pino), prisma, tracing (withSpan) e seedIfEmpty
+│       ├── mocks/ e types/ catálogo falso (USE_MOCK) e tipos do Express
 │       ├── config/        env.ts (variáveis validadas com zod) e cors.ts (quem pode chamar a API pelo navegador)
 │       ├── schemas/       validação de entrada (zod) e tipos de entrada
-│       ├── middlewares/   autenticação, papéis, validação e tratador de erros
+│       ├── middlewares/   autenticação e papéis, validação de cartas, limite de tentativas (rateLimit), log por requisição (requestLogger) e tratador de erros
 │       ├── utils/         regras puras (testadas com jest)
 │       └── docs/          especificação do Swagger
 ├── frontend/              app React (Vite), Dockerfile (dev, build, prod com nginx), nginx.conf e vercel.json
 ├── e2e/                   testes E2E com Cypress (package.json próprio, reset do banco e login rápido)
-├── docs/                  arquitetura (POO, SOLID, padrões), decisões técnicas (decisoes/), processo do time e uso de IA
+├── docs/                  arquitetura, API, regras, telas, testes, deploy, observabilidade, desenvolvimento, decisões técnicas (decisoes/), processo e uso de IA
 ├── .github/workflows/     ci.yml (testes), e2e.yml (Cypress), deploy.yml (testes, depois Render e Vercel) e catalog-sync.yml (catálogo da busca, toda segunda)
-├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento
+├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento, mais o banco de teste (profile test) e o Jaeger (profile observabilidade)
 ├── docker-compose.prod.yml o que muda no modo produção local
+├── Makefile               atalhos do dia a dia (make help)
+├── LICENSE
 └── .env.example           variáveis de ambiente
 ```
 
@@ -48,9 +54,11 @@ O backend segue as camadas **routes → controllers → services → repositorie
   - `JWT_SECRET` tem menos de 16 caracteres (quem tinha um segredo curto no `.env` precisa trocar);
   - `JWT_EXPIRES_IN` não é um prazo como `1d`, `12h` ou `30m`;
   - `NODE_ENV` não é `development`, `test` ou `production`;
-  - `USE_MOCK` não é `true` ou `false`.
+  - `USE_MOCK` não é `true` ou `false`;
+  - `PORT`, `TCGDEX_BASE_URL`, `AUTH_RATE_LIMIT` (inteiro ≥ 0) ou `LOG_LEVEL` são inválidos;
+  - um item de `CORS_ORIGIN` não é URL ou `CORS_ORIGIN_REGEX` não é uma regex válida.
 
-  O seed (`npm run db:seed`) só exige `DATABASE_URL`.
+  O seed (`npm run db:seed`) exige `DATABASE_URL`, `SEED_ADMIN_PASSWORD` e `SEED_DEMO_PASSWORD` (8 a 72 caracteres, diferentes entre si).
 - **Docker:** o container roda as migrations e depois troca o shell pelo `node` (`exec`). Assim o `docker stop` chega à API, que fecha o servidor e a conexão com o banco antes de sair.
 - **Raiz de composição:** `src/container.ts` cria o Prisma, o middleware de autenticação e o tratador de erros, e chama um `build<Modulo>Module(infra)` por módulo (`src/modules/`). Cada módulo dá `new` nos seus repositórios, services e controllers. Não usamos framework de DI (tsyringe, inversify): eles exigem decorators e `reflect-metadata` e escondem de onde vem cada dependência, sem ganho num backend deste tamanho.
 - **Interfaces pequenas:** cada service depende só do que usa (ex.: o `WishlistService` recebe um `CollectionQuantityReader`, não o repositório inteiro). Nos testes, as dependências são objetos falsos passados no construtor, sem banco.
@@ -95,7 +103,12 @@ CORS_ORIGIN=http://localhost:5173,http://localhost:8080
 
 JWT_SECRET=troque-por-um-segredo-com-16-ou-mais-caracteres
 JWT_EXPIRES_IN=1d
+
+SEED_ADMIN_PASSWORD=<8 a 72 caracteres>
+SEED_DEMO_PASSWORD=<outra senha, diferente da do admin>
 ```
+
+As outras variáveis (`USE_MOCK`, `AUTH_RATE_LIMIT`, `LOG_LEVEL`, `OTEL_*`, `CORS_ORIGIN_REGEX`) estão comentadas no `.env.example`; vazias, usam o padrão.
 
 Use `localhost` nas URLs: dentro do Docker o `docker-compose.yml` troca o host para `tcg-db` sozinho.
 
@@ -109,7 +122,7 @@ Com o ambiente de desenvolvimento já rodando, execute `docker compose watch --n
 
 O projeto do Compose se chama sempre `pokebox` (`name: pokebox` no `docker-compose.yml`), de qualquer pasta em que o repositório esteja. Assim, `docker compose ps`, `logs` e `exec` enxergam os mesmos containers mesmo com mais de uma cópia do repositório (por exemplo, `git worktree`), e o banco fica sempre no volume `pokebox_postgres_data`. Se você já tinha subido os containers de uma pasta com outro nome, o `docker compose up` reclama que o nome do container já está em uso: remova os antigos com `docker compose -p <nome-antigo> down` (sem `-v`, os dados do volume antigo continuam guardados) e suba de novo. O nome antigo aparece em `docker inspect tcg-db-banco --format '{{index .Config.Labels "com.docker.compose.project"}}'`.
 
-## 2b. Banco no Docker, backend e frontend na máquina
+## Banco no Docker, backend e frontend na máquina
 
 Bom para desenvolver, porque o backend reinicia sozinho a cada alteração.
 
@@ -134,7 +147,7 @@ npm run dev
 
 O frontend chama a API em `http://localhost:3000`. Para outro endereço, defina `VITE_API_URL`.
 
-## 2c. Modo produção no seu computador
+## Modo produção no seu computador
 
 Sobe as mesmas imagens que vão para a nuvem: API sem dependências de desenvolvimento, rodando com o usuário `node`, e front compilado servido pelo nginx.
 
@@ -186,11 +199,11 @@ cd backend
 npm run catalog:sync
 ```
 
-Sincroniza inglês e português (#157) e leva perto de 3 minutos: busca os ~220 sets em inglês (cerca de 24 mil cartas) e os ~126 em português (cerca de 14 mil), com uma pausa de 200 ms entre os sets para não sobrecarregar a TCGdex. Para um idioma só: `npm run catalog:sync -- pt` (aceita `en` e `pt`). Rodar de novo atualiza, não duplica. A TCGdex responde 502 e 503 em rajadas: o script segue com os outros sets e, no fim de cada idioma, tenta de novo os que falharam, em até três voltas (depois de 5, 15 e 30 s); a lista de sets de cada idioma ganha as mesmas voltas. Se um idioma falhar, o outro roda do mesmo jeito. O que ainda falhar é listado e o script termina com erro; basta rodar de novo.
+Sincroniza inglês e português (#157). Nesta etapa, busca os ~220 sets em inglês (cerca de 24 mil cartas) e os ~126 em português (93 com carta) (cerca de 14 mil), com uma pausa de 200 ms entre os sets para não sobrecarregar a TCGdex. Para um idioma só: `npm run catalog:sync -- pt` (aceita `en` e `pt`). Rodar de novo atualiza, não duplica. A TCGdex responde 502 e 503 em rajadas: o script segue com os outros sets e, no fim de cada idioma, tenta de novo os que falharam, em até três voltas (depois de 5, 15 e 30 s); a lista de sets de cada idioma ganha as mesmas voltas. Se um idioma falhar, o outro roda do mesmo jeito. O que ainda falhar é listado e o script termina com erro; basta rodar de novo.
 
 Além das cartas, o sync grava a lista de sets na ordem da TCGdex (`CatalogSet`), os valores dos filtros (`CatalogFilterValue`) e o tipo, a raridade e a categoria de cada carta (#158), pelas listas filtradas da TCGdex (`/en/cards?types=eq:Fire`, cerca de 60 chamadas por idioma). Com isso, o painel de filtros, a busca com filtro e a lista sem nome respondem pelo banco, mesmo com a TCGdex fora e a API recém-reiniciada. Sync completo medido na máquina local: cerca de 3 min 40 s.
 
-Por último, o sync guarda no `CardCache` o detalhe completo de cada carta (ataques, habilidades, variantes, preço de referência) (#192). Com isso, a página de detalhe e o adicionar à coleção ou à wishlist também respondem pelo banco em `en` e `pt`, mesmo para uma carta que ninguém abriu e com a TCGdex fora. São uma chamada por carta (a TCGdex não devolve o detalhe de várias de uma vez), quatro ao mesmo tempo, com as mesmas três voltas de nova tentativa. Por padrão, só busca o detalhe das cartas que ainda não têm: a primeira vez é longa (26 min para as ~38 mil cartas com o banco na própria máquina, e o `CardCache` ficou com 63 MB; com um banco remoto, como o Neon, demora mais, porque cada carta faz duas gravações), e as seguintes só pegam as cartas de sets novos (sync completo de novo: cerca de 3 min 40 s). Para buscar o detalhe de todas de novo: `npm run catalog:sync -- --refresh-details` (dá para combinar com o idioma: `npm run catalog:sync -- pt --refresh-details`). Os dados de uma carta quase nunca mudam depois do lançamento; o que muda é o preço, que é atualizado por trás quando alguém abre a carta (veja "Cache das cartas"). Carta que a TCGdex lista mas não tem detalhe aparece no fim do log e não conta como falha; para as que falham, o log mostra o motivo das 10 primeiras.
+Por último, o sync guarda no `CardCache` o detalhe completo de cada carta (ataques, habilidades, variantes, preço de referência) (#192). Com isso, a página de detalhe e o adicionar à coleção ou à wishlist também respondem pelo banco em `en` e `pt`, mesmo para uma carta que ninguém abriu e com a TCGdex fora. São uma chamada por carta (a TCGdex não devolve o detalhe de várias de uma vez), quatro ao mesmo tempo, com as mesmas três voltas de nova tentativa. Por padrão, só busca o detalhe das cartas que ainda não têm: a primeira vez é longa (26 min para as ~38 mil cartas com o banco na própria máquina, e o `CardCache` ficou com 63 MB; com um banco remoto, como o Neon, demora mais, porque cada carta faz duas gravações), e as seguintes só pegam as cartas de sets novos (sync completo de novo: cerca de 3 min 40 s). Para buscar o detalhe de todas de novo: `npm run catalog:sync -- --refresh-details` (dá para combinar com o idioma: `npm run catalog:sync -- pt --refresh-details`). Os dados de uma carta quase nunca mudam depois do lançamento; o que muda é o preço, que é atualizado por trás quando alguém abre a carta (veja "Cache das cartas" em [`regras.md`](regras.md)). Carta que a TCGdex lista mas não tem detalhe aparece no fim do log e não conta como falha; para as que falham, o log mostra o motivo das 10 primeiras.
 
 Sem o sync (banco novo), nada quebra: a busca usa a TCGdex, como antes. Depois do sync, a busca local já vale na próxima chamada, sem reiniciar a API.
 
@@ -201,7 +214,7 @@ Sem o sync (banco novo), nada quebra: a busca usa a TCGdex, como antes. Depois d
 
 ## Seed
 
-O seed cria 87 cartas reais (todas com imagem), 111 itens de coleção, que viram 121 depois das trocas concluídas (alguns privados, com quantidade maior que 1 e variantes holo, reverse e 1ª edição), 44 itens de wishlist (vários com cartas que outros têm), 30 anúncios (20 na vitrine com datas espalhadas: 18 ativos e, no fim, 2 **Em troca**, o Venusaur da `erika` e a Double Turbo da `cynthia`; 2 pausados, 1 bloqueado, 6 fechados, 4 deles pelas trocas concluídas), 16 ofertas (6 em aberto, uma delas **em espera**: a do `gary` no Venusaur da `erika`; 6 aceitas, todas com troca; 2 recusadas, 2 canceladas) e 6 trocas (4 concluídas e 2 em andamento, com as cartas reservadas: `brock` ↔ `erika`, já confirmada pela `erika` e esperando o `brock`, e `brock` ↔ `cynthia`, sem confirmação). Não há oferta aceita sem troca. Ofertas e trocas são criadas pelos mesmos services da API e pelo mesmo fluxo da tela (oferta, aceite que cria a troca, confirmações), então reservas e quantidades seguem as regras (RN-07 e RN-08).
+O seed cria 87 cartas reais (todas com imagem), 111 itens de coleção, que viram 121 depois das trocas concluídas (alguns privados, com quantidade maior que 1 e variantes holo, reverse e 1ª edição), 44 itens de wishlist (vários com cartas que outros têm), 30 anúncios (20 na vitrine com datas espalhadas: 18 ativos e, no fim, 2 **Em troca**, o Venusaur da `erika` e a Double Turbo da `cynthia`; 1 ativo do `lance`, que some da vitrine; 2 pausados, 1 bloqueado, 6 fechados, 4 deles pelas trocas concluídas), 16 ofertas (6 em aberto, uma delas **em espera**: a do `gary` no Venusaur da `erika`; 6 aceitas, todas com troca; 2 recusadas, 2 canceladas) e 6 trocas (4 concluídas e 2 em andamento, com as cartas reservadas: `brock` ↔ `erika`, já confirmada pela `erika` e esperando o `brock`, e `brock` ↔ `cynthia`, sem confirmação). Não há oferta aceita sem troca. Ofertas e trocas são criadas pelos mesmos services da API e pelo mesmo fluxo da tela (oferta, aceite que cria a troca, confirmações), então reservas e quantidades seguem as regras (RN-07 e RN-08).
 
 Para a home e os rankings (#92), o seed também grava um mini catálogo nos dois idiomas, como o `catalog:sync`: em `en` as 87 cartas e em `pt` as 62 que existem em português na TCGdex (as coleções a partir de Black & White; as de Base Set a Diamond & Pearl só existem em inglês), com nomes, sets e filtros em português (`backend/prisma/seed-data/catalog-pt.json`). O ranking já sai claro: Umbreon VMAX em 7 wishlists, Charizard (Base Set) em 6, Charizard ex em 5 e Blastoise em 4 (a wishlist do `lance`, desativado, não conta); em português, sem as cartas antigas, fica Umbreon VMAX (7), Charizard ex (5) e Sylveon VMAX (2). Até rodar `npm run catalog:sync`, os filtros e a busca mostram só essas cartas. A seção "Mais desejadas" da home continua com o inglês de reserva (como na #185): se o ranking em português vier vazio, ela mostra o mesmo ranking em inglês, com as cartas e o "Ver todas" abrindo em `lang=en`. Erro na busca em português não dispara a reserva: aparece o aviso de sempre.
 
