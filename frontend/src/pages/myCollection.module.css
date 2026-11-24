@@ -1,0 +1,63 @@
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--esp-16) var(--esp-24);
+}
+
+.textos { min-width: 0; flex: 1 1 20rem; }
+
+.textos .totais {
+  margin-bottom: var(--esp-8);
+  color: var(--texto);
+  font-size: var(--fs-md);
+  font-weight: var(--peso-semi);
+}
+
+.link {
+  color: var(--acento);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.visao {
+  display: inline-flex;
+  margin-left: auto;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-botao);
+  overflow: hidden;
+}
+
+.visao button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-8);
+  min-height: var(--altura-controle);
+  padding: var(--esp-8) var(--esp-16);
+  border: 0;
+  background: var(--superficie-funda);
+  color: var(--texto-suave);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.visao button + button { border-left: 1px solid var(--borda); }
+.visao button:hover { color: var(--texto); background: var(--superficie-hover); }
+.visao button[aria-pressed="true"] { background: var(--acento); color: var(--acento-texto); }
+
+.anuncio { display: grid; gap: var(--esp-16); }
+
+.suave {
+  color: var(--texto-suave);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+
+.suave strong { color: var(--texto); }
+
+@media (max-width: 600px) {
+  .cabecalho > button { width: 100%; }
+  .visao { margin-left: 0; }
+}

@@ -194,7 +194,7 @@ Onde ver cada regra:
 | RN-05 | `utils/listingRules.ts`, `ListingService` | Minha coleção (Anunciar), Meus anúncios | Anunciar mais do que o disponível → erro "Quantidade acima do que você tem" |
 | RN-06 | `utils/offerRules.ts`, `OfferService` | Detalhe do anúncio, Propostas | Ofertar no próprio anúncio não mostra o formulário; oferta repetida → 409 |
 | RN-07 | `TradeService`, `utils/tradeRules.ts`, Unit of Work | Trocas | `brock` confirma a troca do Venusaur (a `erika` já confirmou) e as cartas mudam de dono nas duas coleções |
-| RN-08 | `TradeOpener`, `SELECT ... FOR UPDATE` | Trocas, Minha coleção (coluna Reservada) | O Dialga do `brock` aparece com Reservada 1 e sem o botão Apagar |
+| RN-08 | `TradeOpener`, `SELECT ... FOR UPDATE` | Trocas, Minha coleção (Reservada) | O Dialga do `brock` aparece com Reservada 1 e o Apagar desligado com "Está numa troca em andamento" |
 | RN-09 | `DbCachedCatalog`, tabela `Card` | Coleção e wishlist mostram nome, imagem e preço | Com a TCGdex fora do ar, coleção e detalhe de carta continuam respondendo |
 | RN-10 | `ProfileService` | Perfil público (`/u/:username`) | `/u/ash` não mostra o Furret (privado); `/u/dawn` mostra "Nenhuma carta pública." |
 | RN-11 | `CollectionService`, `TradeService` | Wishlist (Já consegui), catálogo (Tenho) | A `misty` adiciona à coleção uma carta da wishlist e ela sai da wishlist |
@@ -233,7 +233,6 @@ Issues abertas na entrega:
 | Issue | O que falta |
 |---|---|
 | [#229](https://github.com/GeracaoBezerra/PokeBox/issues/229) | Preview da Vercel pede login da Vercel e fica fora do CORS da API |
-| [#84](https://github.com/GeracaoBezerra/PokeBox/issues/84) | Minha coleção no padrão das outras telas, com adicionar carta na própria página e filtros |
 | [#85](https://github.com/GeracaoBezerra/PokeBox/issues/85) | Meus anúncios com "Novo anúncio" e abas por status |
 | [#230](https://github.com/GeracaoBezerra/PokeBox/issues/230) | Trocas no padrão visual das outras telas |
 | [#93](https://github.com/GeracaoBezerra/PokeBox/issues/93) | Acessibilidade e celular: rótulos nas tabelas e tabelas que viram cards |
@@ -263,7 +262,7 @@ Foto de 24/11/2026.
 | Parte | Situação |
 |---|---|
 | Backend | ✅ Todas as rotas em produção: autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas em 3 passos e moderação |
-| Frontend | 🟡 Todas as telas funcionam e conversam com a API. Coleção, Meus anúncios e Trocas ainda estão no layout do MVP (#84, #85, #230) |
+| Frontend | 🟡 Todas as telas funcionam e conversam com a API. Meus anúncios e Trocas ainda estão no layout do MVP (#85, #230) |
 | Testes | ✅ 927 de unidade e 173 de integração no backend (98,3% das linhas), 364 no front e 11 E2E, todos na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, publicados a cada release pela `main` |
 | Observabilidade | ✅ Logs com `x-request-id`, traces no Jaeger (local) e no Grafana Cloud (produção) |

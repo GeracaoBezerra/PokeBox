@@ -10,9 +10,14 @@ export async function listCollection(opcoes) {
   return { items: body.data.items, pagination: body.pagination };
 }
 
+export async function getCollectionSummary() {
+  const body = await http.get("/collection/summary");
+  return body.data;
+}
+
 export async function addToCollection(data) {
   const body = await http.post("/collection", data);
-  return body.data.item;
+  return body.data;
 }
 
 export async function updateCollectionItem(id, data) {

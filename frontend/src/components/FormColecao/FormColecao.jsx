@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 import { addToCollection } from "../../api/collection";
 import { errosPorCampo } from "../../api/mensagens";
 import { useAcao } from "../../hooks/useAcao";
+import { useToast } from "../../hooks/useToast";
 import s from "../../styles/detalheCarta.module.css";
 import { CONDICOES, variante } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
@@ -16,7 +17,9 @@ function acabamentosDisponiveis(variants = {}) {
   return lista.length ? lista : ["NORMAL", "HOLO", "REVERSE"];
 }
 
-export default function FormColecao({ card, lang, onAdicionado }) {
+const MENSAGEM_PADRAO = () => "Carta adicionada à coleção.";
+
+export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSAGEM_PADRAO }) {
   const acabamentos = acabamentosDisponiveis(card.variants);
   const [form, setForm] = useState({
     finish: acabamentos[0],
@@ -26,6 +29,7 @@ export default function FormColecao({ card, lang, onAdicionado }) {
     isPublic: true,
   });
   const { erro, ocupado, executar } = useAcao();
+  const toast = useToast();
   const idErroQuantidade = useId();
   const erroQuantidade = errosPorCampo(erro?.details).quantity;
 
@@ -35,11 +39,11 @@ export default function FormColecao({ card, lang, onAdicionado }) {
 
   async function enviar(evento) {
     evento.preventDefault();
-    const { ok } = await executar(
-      () => addToCollection({ cardId: card.id, ...form, quantity: Number(form.quantity), lang }),
-      "Carta adicionada à coleção."
-    );
-    if (ok) onAdicionado();
+    const quantidade = Number(form.quantity);
+    const { ok, resultado } = await executar(() => addToCollection({ cardId: card.id, ...form, quantity: quantidade, lang }));
+    if (!ok) return;
+    toast.sucesso(mensagem(resultado, quantidade));
+    onAdicionado(resultado);
   }
 
   return (

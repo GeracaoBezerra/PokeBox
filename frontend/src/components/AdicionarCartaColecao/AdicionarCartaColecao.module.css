@@ -1,0 +1,34 @@
+.passo { display: grid; gap: var(--esp-16); }
+
+.escolhida {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-12);
+  padding: var(--esp-12) var(--esp-16);
+  border: 1px solid var(--borda-suave);
+  border-radius: var(--raio-painel);
+  background: var(--fundo);
+}
+
+.escolhida p { display: grid; gap: var(--esp-4); min-width: 0; overflow-wrap: anywhere; }
+.escolhida span { color: var(--texto-suave); font-size: var(--fs-sm); }
+
+.trocar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-8);
+  min-height: var(--alvo-min);
+  padding: var(--esp-8) var(--esp-12);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-botao);
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.trocar:hover { background: var(--superficie-hover); }
+.passo form { padding: 0; }

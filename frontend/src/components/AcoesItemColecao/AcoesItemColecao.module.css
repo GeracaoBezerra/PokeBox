@@ -1,0 +1,2 @@
+.acoes { display: grid; gap: var(--esp-8); }
+.motivo { color: var(--texto-suave); font-size: var(--fs-xs); line-height: var(--lh-xs); overflow-wrap: anywhere; }
