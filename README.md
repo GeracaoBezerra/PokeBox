@@ -10,9 +10,39 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 
 > Este README descreve o que está na branch `develop`.
 
+[![CI](https://github.com/GeracaoBezerra/PokeBox/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/GeracaoBezerra/PokeBox/actions/workflows/ci.yml)
+[![Deploy](https://github.com/GeracaoBezerra/PokeBox/actions/workflows/deploy.yml/badge.svg)](https://github.com/GeracaoBezerra/PokeBox/actions/workflows/deploy.yml)
+
+| | Endereço |
+|---|---|
+| App | https://poke-box-gt.vercel.app |
+| API | https://pokebox-api.onrender.com |
+| Documentação da API (Swagger) | https://pokebox-api.onrender.com/docs |
+| Board | https://github.com/orgs/GeracaoBezerra/projects/1 |
+
+## Para a avaliação
+
+Onde está cada critério do projeto final:
+
+| Critério | Onde ver |
+|---|---|
+| POO e SOLID no código | [`docs/arquitetura.md`](docs/arquitetura.md): diagramas, tabela SOLID com arquivos, padrões de projeto e pontos fracos |
+| Docker Compose | [Como rodar](#como-rodar) e [`docs/processo.md`](docs/processo.md#docker-compose) |
+| Pirâmide de testes | [Testes](#testes): unidade, integração, front e E2E, com cobertura mínima na CI |
+| CI/CD | [Deploy](#deploy) e [`docs/processo.md`](docs/processo.md#github-actions) |
+| Logs, traces e performance | [Logs e saúde da API](#logs-e-saúde-da-api), [Traces](#traces) e [Performance e segurança](#performance-e-segurança) |
+| Decisões técnicas e o que ficou de fora | [`docs/decisoes/`](docs/decisoes/README.md) |
+| Uso de IA | [`docs/ia.md`](docs/ia.md) |
+| Organização do time | [`docs/processo.md`](docs/processo.md): board, branches, revisão de PR e proteção das branches |
+| Limitações e próximos passos | [Limitações, dívidas e próximos passos](#limitações-dívidas-e-próximos-passos) |
+
+Números da bancada final (23/11, [#60](https://github.com/GeracaoBezerra/PokeBox/issues/60)): 927 testes de unidade e 173 de integração no backend, com 98,3% das linhas cobertas; 364 testes no front (68% das linhas); 11 testes E2E. O roteiro manual passou inteiro, com duas falhas pequenas que viraram as issues #228 e #229.
+
 ## Sumário
 
+- [Para a avaliação](#para-a-avaliação)
 - [Stack](#stack)
+- [Arquitetura](#arquitetura)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Como rodar](#como-rodar)
 - [Usuários de teste (seed)](#usuários-de-teste-seed)
@@ -24,6 +54,8 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 - [Performance e segurança](#performance-e-segurança)
 - [API](#api)
 - [Regras de negócio](#regras-de-negócio)
+- [Telas do front](#telas-do-front)
+- [Limitações, dívidas e próximos passos](#limitações-dívidas-e-próximos-passos)
 - [Status do projeto](#status-do-projeto)
 - [Como contribuir](#como-contribuir)
 
@@ -38,6 +70,18 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 | Testes | Jest com ts-jest (backend), Vitest com jsdom, Testing Library e MSW (frontend), Cypress com Testing Library (E2E) |
 | Documentação da API | Swagger em `/docs` |
 | Infra | Docker Compose (modo dev e modo produção), GitHub Actions (CI e deploy), Render (API), Neon (banco), Vercel (front) |
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+  U[Navegador] --> F[Front React<br/>Vercel]
+  F -->|HTTPS + JSON| B[API Express<br/>Render]
+  B --> D[(PostgreSQL<br/>Neon)]
+  B --> T[TCGdex<br/>API pública de cartas]
+```
+
+No backend, cada requisição passa por routes → controllers → services → repositories, e as regras de negócio puras ficam em `utils/*Rules.ts`. Diagrama das camadas, POO, SOLID com exemplos e padrões de projeto: [`docs/arquitetura.md`](docs/arquitetura.md).
 
 ## Estrutura do repositório
 
@@ -68,6 +112,7 @@ O PokeBox é um projeto de estudo, sem ligação com a The Pokémon Company, Nin
 │       └── docs/          especificação do Swagger
 ├── frontend/              app React (Vite), Dockerfile (dev, build, prod com nginx), nginx.conf e vercel.json
 ├── e2e/                   testes E2E com Cypress (package.json próprio, reset do banco e login rápido)
+├── docs/                  arquitetura (POO, SOLID, padrões), decisões técnicas (decisoes/), processo do time e uso de IA
 ├── .github/workflows/     ci.yml (testes), e2e.yml (Cypress), deploy.yml (testes, depois Render e Vercel) e catalog-sync.yml (catálogo da busca, toda segunda)
 ├── docker-compose.yml     banco, backend e frontend em modo desenvolvimento
 ├── docker-compose.prod.yml o que muda no modo produção local
@@ -94,14 +139,16 @@ O backend segue as camadas **routes → controllers → services → repositorie
 
 | Padrão | Onde | Para quê |
 |---|---|---|
-| Decorator | `src/cards/catalog/`: `MemoryCachedCatalog` → `InFlightDedupCatalog` → `DbCachedCatalog` → `TcgdexClient` | cada camada acrescenta um comportamento (memória por 1 h, junta pedidos iguais, cópia no banco atualizada por trás depois de 24 h, HTTP) sem mexer nas outras |
-| Unit of Work | `PrismaUnitOfWorkFactory` em `src/repositories/` | ofertas e trocas recebem coleção, anúncios, ofertas, trocas e wishlist já dentro da mesma transação (RN-07) |
+| Decorator | `src/cards/catalog/`: `LocalFirstCatalog` → `MemoryCachedCatalog` → `InFlightDedupCatalog` → `DbCachedCatalog` → `TcgdexClient` | cada camada acrescenta um comportamento (banco primeiro, memória por 1 h, junta pedidos iguais, cópia no banco atualizada por trás depois de 24 h, HTTP) sem mexer nas outras |
+| Unit of Work | `PrismaUnitOfWorkFactory` em `src/repositories/` | ofertas, trocas e a desativação da conta recebem coleção, anúncios, ofertas, trocas e wishlist já dentro da mesma transação (RN-07) |
 | Repository | `repositories/<Nome>Repository.ts` + `Prisma<Nome>Repository.ts` | o service conhece a interface, não o Prisma |
 | Chain of Responsibility | `src/errors/translators/` | o tratador de erros tenta cada tradutor em ordem; erro novo = tradutor novo, sem mexer no tratador |
 | Strategy | `PasswordHasher` (bcrypt) e `TokenSigner` (JWT) em `src/security/` | o `AuthService` não depende da biblioteca |
 | Plano B (fallback) | `src/cards/search/`: `LocalCatalogFinder` → `SmartCardFinder` | os dois implementam `CardFinder`. A busca vai ao banco, com ou sem nome e com qualquer filtro (#158); só passa a vez para a busca na TCGdex num idioma ainda não sincronizado, ou com filtro de tipo, raridade ou categoria antes de o sync gravar esses dados. Na frente do catálogo, o `LocalFirstCatalog` responde a lista de sets e os valores dos filtros pelo banco. O `CardService` não sabe qual respondeu |
 
 Com `USE_MOCK=true`, o módulo de cartas troca a pilha da TCGdex pelo `MockCatalog`.
+
+SOLID princípio por princípio, com arquivos e os pontos fracos que ficaram: [`docs/arquitetura.md`](docs/arquitetura.md).
 
 ## Como rodar
 
@@ -290,6 +337,15 @@ O `/docs` chama a API no mesmo endereço em que foi aberto, então funciona em q
 
 ## Testes
 
+| Andar da pirâmide | Ferramenta | Quantidade (23/11) | Comando |
+|---|---|---|---|
+| E2E | Cypress | 11 | `make e2e` |
+| Front | Vitest + Testing Library + MSW | 364 | `cd frontend && npm test` |
+| Integração (backend) | Jest + Supertest + PostgreSQL real | 173 | `make test-int` |
+| Unidade (backend) | Jest | 927 | `cd backend && npm test` |
+
+Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 68% no front (mínimo de 40%). Por que cada ferramenta: [decisão 0009](docs/decisoes/0009-testes.md). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](docs/ia.md).
+
 No backend são dois andares da pirâmide de testes, com comandos separados (o front tem os dele, em [Testes do front](#testes-do-front)):
 
 | Tipo | Onde | O que testa | Precisa de banco |
@@ -318,7 +374,7 @@ Como funcionam os testes de integração:
 - A RN-07 tem um teste próprio (`tradeRollback.int.test.ts`): ele força um erro no meio da conclusão de uma troca (segunda confirmação) e no meio do aceite da oferta (a troca nascendo) e confere que quantidades, reservas, confirmações, oferta e anúncio ficaram iguais.
 - A integridade da coleção (#213) tem um teste por caminho (`tradeConservation.int.test.ts`): concluir, recusar e cancelar depois de confirmar, aceite que falha, duas trocas no mesmo anúncio (uma conclui e a outra cancela: a quantidade volta ao anúncio), anúncio que fecha de verdade e anúncios de quem ofertou. Em cada um, o total de cada carta somando todas as coleções não muda, desistir deixa cada coleção (quantidade e reserva) igual ao início, concluir muda só as cartas da troca, e ao fim valem os dois invariantes: reserva de cada item = soma das trocas abertas que o usam, e anunciado + reservado ≤ quantidade.
 
-O que a integração cobre (170 testes, um arquivo por área):
+O que a integração cobre (173 testes, um arquivo por área):
 
 | Arquivo | Casos |
 |---|---|
@@ -382,12 +438,12 @@ Roda os mesmos testes do `npm test` medindo a cobertura com o `@vitest/coverage-
 
 | Métrica | Medido | Mínimo exigido |
 |---|---|---|
-| Linhas | 42,7% | 40% |
-| Comandos | 43,0% | 41% |
-| Funções | 37,7% | 35% |
-| Ramos (if/else) | 38,0% | 35% |
+| Linhas | 68,0% | 40% |
+| Comandos | 67,1% | 41% |
+| Funções | 63,2% | 35% |
+| Ramos (if/else) | 64,4% | 35% |
 
-Números de 19/11/2026, com 266 testes. O mínimo segue a mesma regra do backend: o valor medido menos uns 2 pontos, arredondado para baixo, para uma mudança pequena não quebrar a CI. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
+Números de 23/11/2026, com 364 testes. O mínimo foi definido em 19/11 pela mesma regra do backend (o valor medido na época, 266 testes e 42,7% das linhas, menos uns 2 pontos) e pode subir. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
 
 ### Cobertura
 
@@ -403,12 +459,12 @@ Entram na conta os arquivos `.ts` de `backend/src`. Ficam de fora os testes, o c
 
 | Métrica | Só unidade | Unidade + integração | Mínimo exigido |
 |---|---|---|---|
-| Linhas | 86,1% | 97,8% | 95% |
-| Comandos | 85,0% | 96,3% | 94% |
-| Funções | 75,7% | 97,5% | 95% |
-| Ramos (if/else) | 79,1% | 88,1% | 86% |
+| Linhas | 83,5% | 98,3% | 95% |
+| Comandos | 81,8% | 96,8% | 94% |
+| Funções | 73,3% | 97,8% | 95% |
+| Ramos (if/else) | 76,5% | 89,9% | 86% |
 
-Números de 15/11/2026, medidos na CI, com 682 testes de unidade e 95 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. A cobertura do front tem a tabela dela em [Cobertura do front](#cobertura-do-front).
+Números de 23/11/2026, com 927 testes de unidade e 173 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. A cobertura do front tem a tabela dela em [Cobertura do front](#cobertura-do-front).
 
 A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 
@@ -461,6 +517,16 @@ Na CI, o workflow `E2E` (`.github/workflows/e2e.yml`) roda em toda PR para `deve
 A página da carta e o "adicionar à coleção/wishlist" dependem da TCGdex num banco novo como o da CI (o seed não preenche `CardCache` nem `CatalogCard`): no E2E, isso é o `colecao.cy.js` e a parte "adicionar" do `wishlist.cy.js`. Os runners do GitHub têm internet. Nesses dois testes, a primeira conferência espera até 15 s (a API pode levar até 8 s esperando a TCGdex, e o Cypress espera 4 s por padrão), e o `retries` cobre uma falha passageira. O teste de remover da wishlist confere um item a menos do que havia, sem depender de quantos itens o seed põe na wishlist do ash. Login, rota privada, a lista da coleção, marketplace, anúncio, oferta, troca, remover da wishlist e moderação usam só o banco. Os testes não usam o painel de filtros do marketplace, que também chama a TCGdex.
 
 ## Deploy
+
+```mermaid
+flowchart LR
+  PR[PR para a develop] --> CI["ci.yml<br/>testes, cobertura, lint, build"]
+  CI -->|verde + revisão| D[develop]
+  D -->|PR de release| M[main]
+  M --> CD["deploy.yml<br/>roda o CI de novo"]
+  CD --> R["API no Render<br/>(deploy hook)"]
+  R -->|/health com o commit novo| V[Front na Vercel]
+```
 
 | Peça | Onde | Como chega lá |
 |---|---|---|
@@ -799,6 +865,23 @@ A documentação completa, com exemplos de corpo e resposta, está no **Swagger 
 | **RN-11** Coleção limpa a wishlist | Carta que entra na coleção sai da wishlist da pessoa, na mesma transação: vale ao adicionar (`POST /collection`), ao receber numa troca concluída (`POST /trades/:id/accept`) e quando um item zerado volta a ter quantidade (`PATCH /collection/:id`). Como a wishlist não tem variante, qualquer condição ou acabamento conta. |
 | **RN-12** Wishlist só do que falta | Carta que você já tem na coleção (quantidade maior que 0, em qualquer variante, pública ou privada) não entra na wishlist (**409**). Item zerado não conta. Junto com a RN-11, a wishlist guarda só o que a pessoa ainda não tem. |
 
+Onde ver cada regra:
+
+| Regra | Backend | Tela | Como demonstrar |
+|---|---|---|---|
+| RN-01 | `CollectionService`, tabela `Card` | Detalhe da carta e botão Tenho no catálogo | O `ash` adiciona a mesma carta duas vezes: `Card` continua com uma linha e a quantidade soma |
+| RN-02 | `utils/collectionRules.ts` | Minha coleção | Com o token da `misty`, `PATCH /collection/<item do ash>` → 403 |
+| RN-03 | `utils/collectionRules.ts`, CHECK no banco | Minha coleção | Quantidade -1 → 400; `UPDATE` direto no SQL com valor negativo é barrado pela CHECK |
+| RN-04 | `WishlistService` | Wishlist (`/procuro`) | A `misty` vê "1 colecionador tem esta carta" no Charizard e "Ninguém tem ainda" no Pineco |
+| RN-05 | `utils/listingRules.ts`, `ListingService` | Minha coleção (Anunciar), Meus anúncios | Anunciar mais do que o disponível → erro "Quantidade acima do que você tem" |
+| RN-06 | `utils/offerRules.ts`, `OfferService` | Detalhe do anúncio, Propostas | Ofertar no próprio anúncio não mostra o formulário; oferta repetida → 409 |
+| RN-07 | `TradeService`, `utils/tradeRules.ts`, Unit of Work | Trocas | `brock` confirma a troca do Venusaur (a `erika` já confirmou) e as cartas mudam de dono nas duas coleções |
+| RN-08 | `TradeOpener`, `SELECT ... FOR UPDATE` | Trocas, Minha coleção (coluna Reservada) | O Dialga do `brock` aparece com Reservada 1 e sem o botão Apagar |
+| RN-09 | `DbCachedCatalog`, tabela `Card` | Coleção e wishlist mostram nome, imagem e preço | Com a TCGdex fora do ar, coleção e detalhe de carta continuam respondendo |
+| RN-10 | `ProfileService` | Perfil público (`/u/:username`) | `/u/ash` não mostra o Furret (privado); `/u/dawn` mostra "Nenhuma carta pública." |
+| RN-11 | `CollectionService`, `TradeService` | Wishlist (Já consegui), catálogo (Tenho) | A `misty` adiciona à coleção uma carta da wishlist e ela sai da wishlist |
+| RN-12 | `utils/wishlistRules.ts` | Detalhe da carta, catálogo (Quero) | A `misty` não consegue pôr na wishlist o Mew ex que já tem (botão desligado; API → 409) |
+
 Outras regras que já valem:
 
 - **Variante da carta:** cada item tem `finish` (`NORMAL`, `HOLO`, `REVERSE`) e `firstEdition`. Só aceita combinações que a carta realmente tem na TCGdex (senão **422**).
@@ -817,25 +900,9 @@ O enunciado previa anúncios de venda e de troca. **O time decidiu que o PokeBox
 - a oferta diz **quais cartas da coleção** o proponente dá em troca;
 - a RN-05 vira "só anuncia o que tem disponível para troca".
 
-### Limitações conhecidas
+## Telas do front
 
-- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte leva cerca de 2 minutos (a imagem sobe e roda o `prisma migrate deploy` antes de atender). Para isso não acontecer durante a avaliação, um monitor externo gratuito (UptimeRobot) chama `GET /health` a cada 5 minutos e avisa por e-mail se a API cair. Antes isso era um workflow agendado no GitHub Actions, a cada 10 minutos; ele foi removido porque o GitHub atrasa e descarta agendamentos quando a fila está cheia, e na prática rodou 1 vez em 5 horas. Não custa nada: um serviço ligado o mês todo cabe nas 750 h grátis do Render (não criar outro serviço grátis na mesma conta) e o `/health` não consulta o banco, então o Neon continua dormindo. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
-- Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time. O login e o cadastro param depois de 20 tentativas sem sucesso para o mesmo e-mail em 15 minutos.
-
-- Não há prazo para confirmar o recebimento: uma troca em andamento segura as cartas reservadas até as duas partes confirmarem ou alguém desistir (o dono recusa ou quem ofertou cancela). Também não dá para desfazer uma confirmação; quem mudou de ideia desiste da troca.
-- Uma troca recusada ou cancelada não gera outra troca a partir da mesma oferta: é preciso fazer uma oferta nova. A quantidade volta só para anúncio ainda aberto; anúncio fechado ou bloqueado no meio-tempo não reabre.
-- Trocas abertas criadas antes da #213 não têm o registro de quanto tiraram de cada anúncio: se caírem, só a reserva volta (os anúncios delas já estavam fechados).
-- Conta com troca em andamento não pode ser desativada (409); é preciso concluir ou cancelar antes.
-
-## MVP do front (PR rascunho, não mergear)
-
-A branch `feat/mvp-front` liga as telas do front a **todas** as rotas da API, sem firula, para demonstrar o app ponta a ponta e servir de referência para as telas do board (#22 a #27). Ela inclui a tela de perfil da #50 ligada à API.
-
-```bash
-cd frontend && npm install && npm run dev
-```
-
-Abra `http://localhost:5173`, entre com um usuário do seed e use o menu: Cards (catálogo), Marketplace, Coleção, Wishlist, Anúncios, Propostas, Trocas e Meu perfil. Para mostrar uma troca, use duas janelas (uma normal e uma anônima), uma com o `ash` e outra com a `misty`. Os erros aparecem perto de onde a pessoa está, com a mensagem da API e sem o código HTTP, por exemplo "Você já tem uma oferta aberta neste anúncio" (veja "Avisos e erros" abaixo).
+Todas as telas conversam com a API. Para mostrar uma troca, use duas janelas (uma normal e uma anônima), uma com o `ash` e outra com a `misty`.
 
 As chamadas ficam em `frontend/src/api/` (axios com interceptores em `http.js`, uma função por rota).
 
@@ -874,16 +941,77 @@ As páginas (`frontend/src/pages/`) só buscam os dados e montam a tela; cada bl
 - **Mensagens da busca no catálogo (#161):** o catálogo usa o campo `search` que o `GET /cards` devolve (`searchCards` passou a repassá-lo). Quando o backend descarta palavras e mesmo assim acha cartas, aparece embaixo do resumo o aviso "Não achamos tudo que você digitou (pipi). Mostrando resultados para “charizard” em Base Set, Base Set 2.", numa região `role="status"` para o leitor de tela; com a lista vazia (por exemplo, palavra que só não achou nada por causa de um filtro) o aviso não aparece e quem fala é o estado sem resultado. Sem palavras ignoradas, o resumo cita os sets reconhecidos ("Resultados para “charizard” em Base Set"); só o nome do set vira "Cartas de Base Set, Base Set 2". Nome do set com palavra que não existe (`base xyz`) também avisa: "Não achamos tudo que você digitou (xyz). Mostrando as cartas de Base Set." (#214). O sem resultado mostra o termo ("Nenhuma carta encontrada para “pipipopo”"), o botão "Limpar busca" (volta para "Todas as cartas") e o "Limpar filtros" quando há filtro, e não mostra "Anterior/Próxima"; numa página além da última (`/catalogo?name=pikachu&page=999`) oferece "Voltar para a primeira página".
 - **Quero e Tenho no catálogo (#162):** embaixo de cada carta do `/catalogo` há dois botões, fora do link da imagem (clicar neles não abre a carta). **Quero** (coração) liga e desliga a carta na wishlist, com `aria-pressed` e o coração preenchido quando ela está lá; para quem já tem a carta na coleção ele fica desabilitado ("Você já tem esta carta"), porque a API não deixa (409). **Tenho** (+, ou ✓ se você já tem) abre um modal com o formulário de adicionar à coleção, com a carta já escolhida e só os acabamentos que ela tem; ao adicionar, o modal fecha, aparece o toast e, se a carta estava na wishlist, o coração fica vazio e desabilitado (a API tira da wishlist sozinha). Esc ou "Fechar" fecham sem adicionar, e o foco volta para o botão "Tenho". A wishlist e a coleção são carregadas uma vez ao abrir o catálogo (logado) e de novo depois de cada mudança. As duas consultas são independentes (`Promise.allSettled`, no hook `useMinhasCartas`): se uma falha, o catálogo mostra o aviso com "Tentar de novo" e guarda a que deu certo; se já havia um estado anterior, os botões continuam com ele, e se nunca carregou, "Quero" e "Tenho" ficam desligados em vez de fingir que a wishlist está vazia. Deslogado, os botões aparecem e levam ao login, que volta para a mesma busca. A carta vai com o idioma do catálogo (`lang`). A home continua sem botões. Os componentes são o `AcoesRapidas` (só os botões, reaproveitável) e o `ConfirmModal`, que agora mostra só o botão de fechar quando não recebe `onConfirmar`; o `CartaCard` e o `GradeCartas` ganharam a prop `acoes`.
 - **Perfil público (#173):** o `/u/:username` não tem mais o campo "Ver perfil de" (o componente `BuscaPerfil` saiu; para achar alguém, digite `@usuario` na busca do topo). O cabeçalho mostra nome, `@username`, "no PokeBox desde" e "N anúncios ativos" (link para `/marketplace?username=...`; "100+" quando há mais de 100, e nada quando não há anúncio). As cartas anunciadas ganham o selo "Para troca", que leva ao anúncio; se os anúncios não carregarem, a coleção aparece sem os selos. A coleção tem busca por nome da carta ou do set e filtro de tipo, feitos pela API, com 24 cartas por página e tudo na URL (`/u/ash?q=pikachu&type=Lightning&page=2`); tipo ou página inválidos caem no padrão, busca sem palavra de 2 letras mostra a dica e não vai para a API, e mudar a busca ou o tipo volta para a página 1. Sem cartas aparece "Nenhuma carta pública."; com filtro, "Nenhuma carta com esses filtros" e "Limpar filtros". Busca com mais de 50 caracteres (o limite da API) mostra a dica "A busca aceita até 50 caracteres..." e não vai para a API, e o perfil continua na tela. Perfil que não existe, conta desativada ou nome fora do formato (404, ou 400 do `username`) mostram "Colecionador não encontrado" com link para o marketplace; um 400 de filtro (qualquer outro campo) mostra "Filtro inválido" com "Limpar filtros" e mantém o campo de busca para corrigir; API fora do ar continua no aviso com "Tentar de novo". A leitura da URL e o cruzamento com os anúncios ficam em `utils/perfilPublico.js`.
+- **Página 404 (#83, em partes):** endereço que não existe mostra a página "Página não encontrada." com header e rodapé e os links "Ir para a página inicial" e "Explorar o catálogo" (`frontend/src/pages/notFound.jsx`, rota `*`).
+- **Rodapé (#81, em partes):** o ícone do GitHub leva ao repositório do projeto.
 - **Header (#79, em partes):** logado, o botão da conta mostra "Olá, <primeiro nome>" no desktop (com o `username` quando não há nome); no celular fica só o ícone. O leitor de tela lê "Olá, <nome>. Menu do usuário".
+
+## Limitações, dívidas e próximos passos
+
+### Limitações conhecidas
+
+- No plano gratuito do Render, a API dorme depois de 15 minutos sem uso, e a primeira chamada seguinte leva cerca de 2 minutos (a imagem sobe e roda o `prisma migrate deploy` antes de atender). Para isso não acontecer durante a avaliação, um monitor externo gratuito (UptimeRobot) chama `GET /health` a cada 5 minutos e avisa por e-mail se a API cair. Antes isso era um workflow agendado no GitHub Actions, a cada 10 minutos; ele foi removido porque o GitHub atrasa e descarta agendamentos quando a fila está cheia, e na prática rodou 1 vez em 5 horas. Não custa nada: um serviço ligado o mês todo cabe nas 750 h grátis do Render (não criar outro serviço grátis na mesma conta) e o `/health` não consulta o banco, então o Neon continua dormindo. O cache de cartas em memória some quando ela dorme; o cache no banco continua.
+- Em produção, nenhuma senha do seed é pública. A do `ash` e da `misty` (`SEED_DEMO_PASSWORD`) é passada a quem for avaliar fora do GitHub; a do `admin` (`SEED_ADMIN_PASSWORD`) fica só com o time. O login e o cadastro param depois de 20 tentativas sem sucesso para o mesmo e-mail em 15 minutos.
+- Neon gratuito: 0,5 GB e só 6 horas de histórico para restaurar o banco.
+- As contas de Vercel, Render e Neon estão em nome de membros do time.
+- Token JWT no `localStorage`: um script injetado na página (XSS) poderia lê-lo. Não há refresh token: a sessão vale 1 dia ([decisão 0011](docs/decisoes/0011-autenticacao.md)).
+- O limite de tentativas de login é por IP + e-mail. A mesma senha testada em muitos e-mails não é barrada.
+- Não há prazo para confirmar o recebimento: uma troca em andamento segura as cartas reservadas até as duas partes confirmarem ou alguém desistir. Uma confirmação não pode ser desfeita.
+- Uma troca recusada ou cancelada não gera outra troca a partir da mesma oferta: é preciso fazer uma oferta nova. A quantidade volta só para anúncio ainda aberto.
+- Trocas abertas criadas antes da #213 não têm o registro de quanto tiraram de cada anúncio: se caírem, só a reserva volta.
+- Conta com troca em andamento não pode ser desativada (409).
+- Cerca de 21% das cartas da TCGdex não têm imagem; elas aparecem com uma imagem de reserva.
+- Idiomas fora do catálogo local (`en` e `pt`) ainda dependem da TCGdex. O sync completo do catálogo leva de 26 min a algumas horas, conforme a máquina e a TCGdex.
+- O Swagger é escrito à mão (`backend/src/docs/swagger.ts`) e pode ficar desatualizado se uma rota mudar sem atualizar o arquivo.
+
+### Dívidas técnicas
+
+Issues abertas na entrega:
+
+| Issue | O que falta |
+|---|---|
+| [#228](https://github.com/GeracaoBezerra/PokeBox/issues/228) | Desativar a conta leva ao login em vez da home |
+| [#229](https://github.com/GeracaoBezerra/PokeBox/issues/229) | Preview da Vercel pede login da Vercel e fica fora do CORS da API |
+| [#79](https://github.com/GeracaoBezerra/PokeBox/issues/79) | Header: link ativo, menu da conta completo e área privada escondida para quem não entrou |
+| [#81](https://github.com/GeracaoBezerra/PokeBox/issues/81) | Botões da home ("Ver marketplace", "Ver expansões", "Começar minha coleção" logado) e links do rodapé sem destino |
+| [#83](https://github.com/GeracaoBezerra/PokeBox/issues/83) | Carregamento sem piscar, 404 de carta e anúncio, voltar à origem depois do cadastro, carregar as telas sob demanda |
+| [#84](https://github.com/GeracaoBezerra/PokeBox/issues/84) | Minha coleção no padrão das outras telas, com adicionar carta na própria página e filtros |
+| [#85](https://github.com/GeracaoBezerra/PokeBox/issues/85) | Meus anúncios com "Novo anúncio" e abas por status |
+| [#230](https://github.com/GeracaoBezerra/PokeBox/issues/230) | Trocas no padrão visual das outras telas |
+| [#93](https://github.com/GeracaoBezerra/PokeBox/issues/93) | Acessibilidade e celular: rótulos nas tabelas e tabelas que viram cards |
+| [#231](https://github.com/GeracaoBezerra/PokeBox/issues/231) | Painel de filtros ocupando melhor a largura da tela |
+| [#235](https://github.com/GeracaoBezerra/PokeBox/issues/235) | Filtros mostrando só as opções que existem na lista |
+
+Outras dívidas, sem issue:
+
+- Refresh token com cookie `httpOnly` no lugar do JWT no `localStorage`.
+- `make test-int` falha depois de um `docker compose down`, porque o container do banco de teste fica preso à rede antiga. Contorno: `docker compose --profile test up -d --force-recreate tcg-db-test`.
+- O build do front gera um arquivo JavaScript acima de 500 kB (carregar as telas sob demanda resolve; está na #83).
+- Pontos de arquitetura listados em [`docs/arquitetura.md`](docs/arquitetura.md#pontos-fracos-conhecidos).
+
+### Próximos passos
+
+- Buscar colecionadores por nome ([#232](https://github.com/GeracaoBezerra/PokeBox/issues/232)).
+- Página "Sobre o PokeBox" com esta documentação dentro do app ([#233](https://github.com/GeracaoBezerra/PokeBox/issues/233)).
+- Anúncio em formato de leilão, quando várias pessoas querem a mesma carta ([#234](https://github.com/GeracaoBezerra/PokeBox/issues/234)).
+- Chat entre colecionadores e notificações em tempo real.
+- Tratamento melhor das cartas sem imagem na TCGdex.
+- Guardar no banco o resultado das buscas que ainda vão à TCGdex, para sobreviver ao reinício da API.
+- Redis para o cache se a API tiver mais de uma instância, e paginação por cursor nas listas longas.
 
 ## Status do projeto
 
+Foto de 24/11/2026.
+
 | Parte | Situação |
 |---|---|
-| Backend | ✅ todas as rotas em produção (autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas e admin), com testes de unidade e de integração na CI |
-| Deploy | ✅ API no Render, banco no Neon e front na Vercel, com deploy automático a cada release |
-| Frontend | 🟡 todas as telas existem e conversam com a API (home, login, cadastro, catálogo, detalhe da carta, marketplace, detalhe do anúncio, coleção, wishlist, meus anúncios, propostas, trocas, perfil e perfil público); o pacotão da PR #195 trouxe modal de confirmação, toasts e mensagens amigáveis, erro embaixo do campo, sessão expirada sem recarregar, listas paginadas com filtros na URL, abas acessíveis, selo de pendências, oferta com busca e resumo, busca geral no topo, Quero e Tenho no catálogo, português como idioma padrão e perfil público com busca; em andamento: o resto do acabamento das telas |
-| Testes do front | ✅ Vitest (#179), com 364 testes rodando na CI (funções puras, `AuthService`, `http` com MSW, componentes, hooks, rota privada e páginas com a API simulada), cobertura com mínimo na CI (#180) e E2E com Cypress, com reset do banco, login rápido e workflow na CI (#181), cobrindo os fluxos de autenticação, coleção, wishlist, anúncio, troca e moderação (#182) |
+| Backend | ✅ Todas as rotas em produção: autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas em 3 passos e moderação |
+| Frontend | 🟡 Todas as telas funcionam e conversam com a API. Coleção, Meus anúncios e Trocas ainda estão no layout do MVP (#84, #85, #230), e há botões e links sem destino na home e no rodapé (#81) |
+| Testes | ✅ 927 de unidade e 173 de integração no backend (98,3% das linhas), 364 no front e 11 E2E, todos na CI |
+| Deploy | ✅ API no Render, banco no Neon e front na Vercel, publicados a cada release pela `main` |
+| Observabilidade | ✅ Logs com `x-request-id`, traces no Jaeger (local) e no Grafana Cloud (produção) |
+| Bancada final (#60) | ✅ Roteiro manual completo em 23/11; duas falhas pequenas viraram #228 e #229 |
+
+O que falta está em [Limitações, dívidas e próximos passos](#limitações-dívidas-e-próximos-passos).
 
 Tarefas e responsáveis: [board do projeto](https://github.com/orgs/GeracaoBezerra/projects/1).
 

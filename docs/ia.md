@@ -1,6 +1,34 @@
 # Uso de IA no PokeBox
 
-Registro de onde a IA ajudou, com o que foi pedido, o que saiu e o que precisou ser corrigido. A documentação completa da avaliação está na #113.
+Registro de onde a IA ajudou, com o que foi pedido, o que saiu e o que precisou ser corrigido.
+
+## Visão geral
+
+A ferramenta principal foi o Claude Code (modelos Claude Opus), rodando dentro do repositório com acesso ao código, ao terminal, ao Docker e ao GitHub CLI. A IA entrou em todas as etapas, sempre com uma pessoa do time decidindo e revisando.
+
+| Etapa | Como a IA ajudou | Evidência |
+|---|---|---|
+| Planejamento | Transformar o enunciado e o feedback da apresentação do MVP em issues, com dependências e prioridade (P0, P1, P2) para caber no prazo. Antes de codar, uma sessão de perguntas para fechar as decisões em aberto | Issues como #60, #113, #180, #181 e #213; decisões registradas em [`docs/decisoes/`](decisoes/README.md) |
+| Descrição das tarefas | Cada issue sai com o que o colega precisa para começar sozinho: contexto, arquivos envolvidos, o que fazer, como testar, fora do escopo e "pronto quando". Para quem está aprendendo, as issues também trazem "O que pesquisar" (links e termos) e "Ferramentas e por quê" | 67 issues com "O que pesquisar" e 37 com "Ferramentas e por quê" (ex.: #113, #106, #181) |
+| Apoio ao time | Revisões com tom didático, explicando o porquê de cada ajuste; um guia do backend e das regras para quem começou no Node (`backend/docs/guia-backend.md`); quando um colega travava, a IA lia a branch dele e apontava o que faltava | Comentários de revisão nas PRs da Débora (#151, #200, #206, #208, #209) e do Eduardo (#50, #143, #205) |
+| Acompanhamento do projeto | Comparar o board com o Git (branch sem PR, card parado, issue fechada com PR aberta), resumir o status e propor a próxima tarefa | Divergências corrigidas no board (ex.: #214 e #215 movidas para Done em 23/11) |
+| Execução | Implementar a issue a partir do plano, com um commit por issue e o README atualizado junto | 242 commits com `Co-Authored-By: Claude`; 75 de 101 PRs com "Generated with Claude Code" |
+| Testes | Escrever testes de unidade, integração, front e E2E e provar que eles pegam erro quebrando o código de propósito | Seções abaixo (#106, #179, #180, #181, #182) |
+| Revisão de PR | Rodar a PR de um colega do zero (lint, build, testes, Docker, teste à mão), simular o merge e escrever um comentário único com o que mudar | Comentários de revisão em 12 PRs de colegas (ex.: #143, #205, #206) e commits `(revisão #221)` |
+| Performance | Medir antes e depois (autocannon, `EXPLAIN`) e propor índices, compressão e cache | #112 e #78 |
+| Deploy e diagnóstico | Montar o pipeline, diagnosticar CORS, variável da Vercel e o agendamento do GitHub que não rodava | #103, #105, commit `569c713` |
+| Bancada final | Rodar o roteiro da #60 do zero: testes automáticos, scripts contra a API, testes de tela com Cypress e produção | Resultado no topo da #60; bugs #228 e #229 |
+| Documentação | Rascunho do README, do Swagger, do `backend/docs/db.md` e destes documentos, revisados pelo time | 45 commits `docs` |
+
+Como o time conferia o que a IA entregava:
+
+- Nada entra sem a CI verde (testes, cobertura mínima, lint e build).
+- Teste novo só vale se falhar quando a regra é quebrada de propósito.
+- A pessoa que pediu a tarefa testa à mão antes de abrir a PR, e um colega revisa.
+- Os erros da IA ficam registrados nas tabelas abaixo.
+
+O que aprendemos: a IA acerta rápido o que está escrito na issue e erra quando supõe um contrato sem conferir (nome de campo, enum, formato da resposta). Por isso as issues passaram a trazer o contrato e o "como testar", e os testes rodam antes de qualquer conclusão.
+
 
 ## Testes de integração (#106)
 
