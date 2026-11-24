@@ -29,6 +29,19 @@ Como o time conferia o que a IA entregava:
 
 O que aprendemos: a IA acerta rápido o que está escrito na issue e erra quando supõe um contrato sem conferir (nome de campo, enum, formato da resposta). Por isso as issues passaram a trazer o contrato e o "como testar", e os testes rodam antes de qualquer conclusão.
 
+## Skills usadas
+
+Skill é um roteiro de trabalho que o Claude Code carrega quando a tarefa pede: em vez de explicar o passo a passo a cada conversa, o time escreve uma vez e reaproveita.
+
+| Skill | Para quê | Onde apareceu |
+|---|---|---|
+| `revisar-pr` (criada pelo time) | Revisar a PR de um colega do jeito do projeto: ler o contexto (requisitos, decisões, a issue ligada) antes do diff, rodar lint, build e testes, investigar o log da CI que falhou, simular o merge com a `develop`, testar numa cópia separada do repositório e entregar um rascunho de comentário único, em português e com tom didático. Postar ou aprovar só com o pedido da pessoa | Revisões das PRs da Débora e do Eduardo (ex.: #143, #205, #206) e das PRs do próprio Patrick antes do merge (ex.: #221) |
+| Grilling | Sessão de perguntas antes de codar: monta a árvore de decisões em aberto, pergunta em rodadas, sempre com uma recomendação, e só começa quando tudo está decidido. As respostas vão para o registro de decisões | Desde o começo do projeto: modelo da coleção e das variantes (#9, #10, #11, #43), header e login (#46), regras das trocas e da reserva (#63), cache das cartas (#65), pacotão do front (#195), troca em 3 passos (#213), wishlist (#24), documentação (#113) e o segundo pacotão do front (#79, #81, #83, #84, #85, #93, #228, #230) |
+| Humanizer | Revisar o texto da documentação para ficar direto e sem marcas de texto gerado por máquina | README e arquivos de `docs/` (#113) |
+| PDF | Gerar o PDF da documentação da avaliação e o do guia do backend a partir do Markdown, com diagramas | `guia-backend.pdf` e o PDF da avaliação (#113) |
+
+A skill `revisar-pr` fica na máquina de quem revisa (`.claude/skills/revisar-pr/`), fora do repositório, porque cita arquivos locais de acompanhamento.
+
 
 ## Registro por entrega
 

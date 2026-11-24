@@ -4,14 +4,14 @@ Por que cada ferramenta: [decisão sobre testes](decisoes/0009-testes.md).
 
 ## Visão geral
 
-| Andar da pirâmide | Ferramenta | Quantidade (23/11) | Comando |
+| Andar da pirâmide | Ferramenta | Quantidade (24/11) | Comando |
 |---|---|---|---|
 | E2E | Cypress | 11 | `make e2e` |
-| Front | Vitest + Testing Library + MSW | 364 | `cd frontend && npm test` |
-| Integração (backend) | Jest + Supertest + PostgreSQL real | 173 | `make test-int` |
-| Unidade (backend) | Jest | 927 | `cd backend && npm test` |
+| Front | Vitest + Testing Library + MSW | 479 | `cd frontend && npm test` |
+| Integração (backend) | Jest + Supertest + PostgreSQL real | 182 | `make test-int` |
+| Unidade (backend) | Jest | 942 | `cd backend && npm test` |
 
-Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 68% no front (mínimo de 40%). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](ia.md).
+Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 83,5% no front (mínimo de 40%). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](ia.md).
 
 ## Backend
 
@@ -43,7 +43,7 @@ Como funcionam os testes de integração:
 - A RN-07 tem um teste próprio (`tradeRollback.int.test.ts`): ele força um erro no meio da conclusão de uma troca (segunda confirmação) e no meio do aceite da oferta (a troca nascendo) e confere que quantidades, reservas, confirmações, oferta e anúncio ficaram iguais.
 - A integridade da coleção (#213) tem um teste por caminho (`tradeConservation.int.test.ts`): concluir, recusar e cancelar depois de confirmar, aceite que falha, duas trocas no mesmo anúncio (uma conclui e a outra cancela: a quantidade volta ao anúncio), anúncio que fecha de verdade e anúncios de quem ofertou. Em cada um, o total de cada carta somando todas as coleções não muda, desistir deixa cada coleção (quantidade e reserva) igual ao início, concluir muda só as cartas da troca, e ao fim valem os dois invariantes: reserva de cada item = soma das trocas abertas que o usam, e anunciado + reservado ≤ quantidade.
 
-O que a integração cobre (173 testes, um arquivo por área):
+O que a integração cobre (182 testes, um arquivo por área):
 
 | Arquivo | Casos |
 |---|---|
@@ -112,12 +112,12 @@ Roda os mesmos testes do `npm test` medindo a cobertura com o `@vitest/coverage-
 
 | Métrica | Medido | Mínimo exigido |
 |---|---|---|
-| Linhas | 68,0% | 40% |
-| Comandos | 67,1% | 41% |
-| Funções | 63,2% | 35% |
-| Ramos (if/else) | 64,4% | 35% |
+| Linhas | 83,5% | 40% |
+| Comandos | 81,2% | 41% |
+| Funções | 77,0% | 35% |
+| Ramos (if/else) | 76,6% | 35% |
 
-Números de 23/11/2026, com 364 testes. O mínimo foi definido em 19/11 pela mesma regra do backend (o valor medido na época, 266 testes e 42,7% das linhas, menos uns 2 pontos) e pode subir. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
+Números de 24/11/2026, com 479 testes. O mínimo foi definido em 19/11 pela mesma regra do backend (o valor medido na época, 266 testes e 42,7% das linhas, menos uns 2 pontos) e pode subir. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
 
 ## Cobertura
 
@@ -133,12 +133,12 @@ Entram na conta os arquivos `.ts` de `backend/src`. Ficam de fora os testes, o c
 
 | Métrica | Só unidade | Unidade + integração | Mínimo exigido |
 |---|---|---|---|
-| Linhas | 83,5% | 98,3% | 95% |
-| Comandos | 81,8% | 96,8% | 94% |
-| Funções | 73,3% | 97,8% | 95% |
-| Ramos (if/else) | 76,5% | 89,9% | 86% |
+| Linhas | 83,8% | 98,3% | 95% |
+| Comandos | 82,1% | 96,8% | 94% |
+| Funções | 73,7% | 97,8% | 95% |
+| Ramos (if/else) | 76,8% | 90,1% | 86% |
 
-Números de 23/11/2026, com 927 testes de unidade e 173 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. A cobertura do front tem a tabela dela em [Cobertura do front](#cobertura-do-front).
+Números de 24/11/2026, com 942 testes de unidade e 182 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. A cobertura do front tem a tabela dela em [Cobertura do front](#cobertura-do-front).
 
 A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 

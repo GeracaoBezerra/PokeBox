@@ -135,14 +135,14 @@ O seed roda sozinho na primeira subida, pode rodar de novo sem duplicar nada (`m
 
 ## Testes
 
-| Andar da pirâmide | Ferramenta | Quantidade (23/11) | Comando |
+| Andar da pirâmide | Ferramenta | Quantidade (24/11) | Comando |
 |---|---|---|---|
 | E2E | Cypress | 11 | `make e2e` |
-| Front | Vitest + Testing Library + MSW | 364 | `cd frontend && npm test` |
-| Integração (backend) | Jest + Supertest + PostgreSQL real | 173 | `make test-int` |
-| Unidade (backend) | Jest | 927 | `cd backend && npm test` |
+| Front | Vitest + Testing Library + MSW | 479 | `cd frontend && npm test` |
+| Integração (backend) | Jest + Supertest + PostgreSQL real | 182 | `make test-int` |
+| Unidade (backend) | Jest | 942 | `cd backend && npm test` |
 
-Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 68% no front (mínimo de 40%). Por que cada ferramenta: [decisão sobre testes](docs/decisoes/0009-testes.md). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](docs/ia.md).
+Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 83,5% no front (mínimo de 40%). Por que cada ferramenta: [decisão sobre testes](docs/decisoes/0009-testes.md). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](docs/ia.md).
 
 Como rodar cada tipo, o que cada arquivo cobre e a cobertura por métrica: [`docs/testes.md`](docs/testes.md).
 
@@ -261,7 +261,7 @@ Foto de 24/11/2026.
 |---|---|
 | Backend | ✅ Todas as rotas em produção: autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas em 3 passos e moderação |
 | Frontend | ✅ Todas as telas funcionam, conversam com a API e seguem o mesmo padrão visual (coleção, meus anúncios e trocas entraram no padrão novo com #84, #85 e #230) |
-| Testes | ✅ 927 de unidade e 173 de integração no backend (98,3% das linhas), 364 no front e 11 E2E, todos na CI |
+| Testes | ✅ 942 de unidade e 182 de integração no backend (98,3% das linhas), 479 no front (83,5% das linhas) e 11 E2E, todos na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, publicados a cada release pela `main` |
 | Observabilidade | ✅ Logs com `x-request-id`, traces no Jaeger (local) e no Grafana Cloud (produção) |
 | Bancada final (#60) | ✅ Roteiro manual completo em 23/11; duas falhas pequenas viraram #228 e #229 |
