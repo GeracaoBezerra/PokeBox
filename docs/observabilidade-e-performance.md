@@ -154,6 +154,29 @@ Medido com `EXPLAIN ANALYZE` no banco local com o catálogo inteiro (23.912 cart
 
 Pela API, na máquina local: `GET /cards?name=charizard base` responde em 5 a 10 ms. Antes da #157, a busca de `pikachu` em `lang=pt` ainda ia à TCGdex e levou 2 s na primeira chamada; hoje `en` e `pt` saem do banco, e só um idioma não sincronizado vai à TCGdex. Detalhes do índice em [`backend/docs/db.md`](../backend/docs/db.md#índice-de-trigramas-da-busca-78).
 
+### Teste de carga em produção (24/11)
+
+Um script simulou usuários navegando no site em produção (Render e Neon), cada um repetindo o caminho de quem usa o app (home, catálogo, busca, detalhe da carta, marketplace, anúncio, coleção, wishlist, propostas, trocas e perfil público) com 1 a 3 s entre um clique e outro. Só leitura, com uma checagem do `/health/ready` a cada 5 s.
+
+Navegando, com os logins feitos antes, um de cada vez:
+
+| Usuários ao mesmo tempo | Requisições | Erros | p50 | p95 | Máximo |
+|---|---|---|---|---|---|
+| 5 | 100 | 0 | 0,2 s | 0,6 s | 0,7 s |
+| 20 | 498 | 0 | 0,2 s | 0,5 s | 1,4 s |
+| 50 | 1.517 | 0 | 0,6 s | 2,1 s | 3,9 s |
+
+O banco não falhou em nenhuma checagem (máximo de 0,9 s). As rotas mais lentas com 50 usuários foram `GET /listings` e `GET /offers/me` (p95 de 2,5 s e 2,4 s).
+
+Com cada usuário fazendo login ao entrar (20 logins em poucos segundos), a API ficou lenta: o login teve p50 de 16,5 s, 4 de 25 passaram de 30 s, e as outras rotas chegaram a mais de 20 s no mesmo intervalo. O teste parou sozinho pela regra de segurança (p95 acima de 10 s), e a API voltou ao normal logo depois.
+
+A causa é o bcrypt. A senha é conferida com custo 12 (`backend/src/modules/auth.module.ts`), e cada conferência ocupa a CPU pequena do plano gratuito do Render por cerca de 2 s. Os logins entram em fila e o resto da API espera a CPU. O banco não é o gargalo.
+
+Como melhorar, se o uso crescer:
+
+- Baixar o custo para 10 (o mínimo recomendado para bcrypt) deixa cada login umas 4 vezes mais rápido. As senhas já gravadas continuam no custo 12; para elas ganharem velocidade, a API precisaria recalcular o hash no próximo login.
+- Um plano pago do Render, com mais CPU, resolve sem mexer no código.
+
 ### Decisões que ficaram como estão
 
 - **O `requireAuth` consulta o banco a cada requisição.** Medido: o `GET /auth/admin-check` (JWT mais a busca do usuário pela chave) responde em 1,36 ms de média, contra 0,02 ms do `/health`. Confiar só no JWT economizaria essa consulta, mas uma conta desativada ou suspensa continuaria entrando até o token vencer (1 dia). Mantido: 1,3 ms é pouco para perder o bloqueio imediato.
