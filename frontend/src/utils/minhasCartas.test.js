@@ -23,6 +23,14 @@ describe("indexarMinhasCartas", () => {
     expect(comUnidade.has("base1-2")).toBe(true);
   });
 
+  it("guarda todas as versões de cada carta", () => {
+    const resultado = indexarMinhasCartas([], [
+      { id: "c1", cardId: "base1-4", finish: "NORMAL" },
+      { id: "c2", cardId: "base1-4", finish: "HOLO" },
+    ]);
+    expect(resultado.versoes.get("base1-4").map((item) => item.id)).toEqual(["c1", "c2"]);
+  });
+
   it("sem listas (sem login), nada está marcado", () => {
     const { naWishlist, tenho } = indexarMinhasCartas();
     expect(naWishlist.size).toBe(0);

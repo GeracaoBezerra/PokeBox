@@ -4,12 +4,15 @@ import { SearchX } from "lucide-react";
 import { getCardFilters, searchCards } from "../api/cards";
 import { mensagemAmigavel } from "../api/mensagens";
 import { addToWishlist, removeFromWishlist } from "../api/wishlist";
+import { removeCollectionItem, updateCollectionItem } from "../api/collection";
 import { useSession } from "../auth/useSession";
 import AcoesRapidas from "../components/AcoesRapidas/AcoesRapidas";
 import AdicionarNaColecao from "../components/AdicionarNaColecao/AdicionarNaColecao";
 import Atualizando from "../components/Atualizando/Atualizando";
 import Aviso from "../components/Aviso/Aviso";
-import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import ModalColecao from "../components/ModalColecao/ModalColecao";
+import EditarItemColecao from "../components/EditarItemColecao/EditarItemColecao";
+import estilosEdicao from "../components/EditarItemColecao/EditarItemColecao.module.css";
 import FiltrosCatalogo from "../components/FiltrosCatalogo/FiltrosCatalogo";
 import GradeCartas from "../components/GradeCartas/GradeCartas";
 import Paginacao from "../components/Paginacao/Paginacao";
@@ -18,9 +21,11 @@ import { useAcao } from "../hooks/useAcao";
 import { useCarregar } from "../hooks/useCarregar";
 import { useMinhasCartas } from "../hooks/useMinhasCartas";
 import { useToast } from "../hooks/useToast";
+import { useConfirmacao } from "../hooks/useConfirmacao";
+import { motivoDeNaoApagar } from "../utils/colecao";
 import s from "../styles/vitrine.module.css";
 import { IDIOMAS, IDIOMA_PADRAO, linkBuscaNaReserva } from "../utils/idioma";
-import { CATEGORIAS, TIPOS } from "../utils/rotulos";
+import { CATEGORIAS, TIPOS, variante } from "../utils/rotulos";
 
 const CAMPOS_FILTRO = ["category", "type", "rarity", "set"];
 const VAZIOS = Object.fromEntries(CAMPOS_FILTRO.map((campo) => [campo, ""]));
@@ -56,7 +61,7 @@ function rotuloDoSelo(campo, valor, opcoes) {
   }
 }
 
-function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, onPrecisaLogin, onTenho, onMudou }) {
+function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, onPrecisaLogin, onTenho, onEditar, onMudou }) {
   const toast = useToast();
   const { ocupado, executar } = useAcao();
   const itemWishlist = minhas?.naWishlist.get(carta.id);
@@ -85,6 +90,7 @@ function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, onPrecisaLogin
       bloqueado={logado && !minhas}
       onQuero={alternarWishlist}
       onTenho={() => (logado ? onTenho(carta) : onPrecisaLogin())}
+      onEditar={() => onEditar(carta)}
     />
   );
 }
@@ -121,7 +127,9 @@ export default function CatalogPage() {
   const session = useSession();
   const navigate = useNavigate();
   const location = useLocation();
-  const [cartaTenho, setCartaTenho] = useState(null);
+  const [acaoColecao, setAcaoColecao] = useState(null);
+  const { pedir } = useConfirmacao();
+  const { executar: executarRemocao, ocupado: removendo } = useAcao();
   const minhasCartas = useMinhasCartas(session);
 
   function pedirLogin() {
@@ -137,14 +145,15 @@ export default function CatalogPage() {
         minhas={minhasCartas.minhas}
         atualizando={Boolean(session) && minhasCartas.carregando}
         onPrecisaLogin={pedirLogin}
-        onTenho={setCartaTenho}
+        onTenho={(c) => setAcaoColecao({ tipo: "adicionar", carta: c })}
+        onEditar={(c) => setAcaoColecao({ tipo: "editar", carta: c })}
         onMudou={minhasCartas.recarregar}
       />
     );
   }
 
   function adicionouNaColecao() {
-    setCartaTenho(null);
+    setAcaoColecao(null);
     minhasCartas.recarregar();
   }
 
@@ -319,14 +328,39 @@ export default function CatalogPage() {
           )}
         </section>
       </div>
-      <ConfirmModal
-        aberto={Boolean(cartaTenho)}
-        titulo={cartaTenho ? `Adicionar ${cartaTenho.name} à coleção` : ""}
-        textoCancelar="Fechar"
-        onCancelar={() => setCartaTenho(null)}
-      >
-        {cartaTenho && <AdicionarNaColecao carta={cartaTenho} lang={lang} onAdicionado={adicionouNaColecao} />}
-      </ConfirmModal>
+      <ModalColecao aberto={Boolean(acaoColecao)} titulo={acaoColecao ? `${acaoColecao.tipo === "editar" ? "Editar" : "Adicionar"} ${acaoColecao.carta.name} à coleção` : "Coleção"} larga onFechar={() => setAcaoColecao(null)}>
+        {acaoColecao?.tipo === "adicionar" && <AdicionarNaColecao carta={acaoColecao.carta} lang={lang} onAdicionado={adicionouNaColecao} />}
+        {acaoColecao?.tipo === "editar" && (() => {
+          const cartaEditando = acaoColecao.carta;
+          const versoes = minhasCartas.minhas?.versoes.get(cartaEditando.id) ?? [];
+          async function remover(item) {
+            const comHistorico = item.deleteBlockedBy === "LISTING_HISTORY";
+            const motivo = motivoDeNaoApagar(item.deleteBlockedBy);
+            if (motivo && !comHistorico) return;
+            const confirmou = await pedir({ titulo: comHistorico ? "Tirar carta da coleção?" : "Remover carta da coleção?", mensagem: comHistorico ? `${cartaEditando.name} ficará com quantidade zero e sairá do seu perfil público. O histórico de anúncios será mantido.` : `${cartaEditando.name} será removida da sua coleção.`, textoConfirmar: comHistorico ? "Tirar da coleção" : "Remover", perigo: true });
+            if (!confirmou) return;
+            const { ok } = await executarRemocao(
+              () => comHistorico ? updateCollectionItem(item.id, { quantity: 0 }) : removeCollectionItem(item.id),
+              comHistorico ? `${cartaEditando.name} saiu da coleção.` : `${cartaEditando.name} removida da coleção.`
+            );
+            if (ok) { setAcaoColecao(null); minhasCartas.recarregar(); }
+          }
+          function adicionarOutraVersao() {
+            setAcaoColecao({ tipo: "adicionar", carta: cartaEditando });
+          }
+          return <>
+            <div className={estilosEdicao.listaVersoes}>
+              {versoes.map((item) => (
+                <section className={estilosEdicao.versao} key={item.id} aria-label={`Versão ${variante(item)}`}>
+                  {versoes.length > 1 && <h3>{variante(item)} · {item.condition}</h3>}
+                  <EditarItemColecao item={item} onSalvo={() => { setAcaoColecao(null); minhasCartas.recarregar(); }} onRemover={() => remover(item)} ocupadoExtra={removendo || Boolean(motivoDeNaoApagar(item.deleteBlockedBy) && item.deleteBlockedBy !== "LISTING_HISTORY")} />
+                </section>
+              ))}
+            </div>
+            <div className={estilosEdicao.acoes}><button className={estilosEdicao.acaoSecundaria} type="button" onClick={adicionarOutraVersao} disabled={removendo}>Adicionar outra versão</button></div>
+          </>;
+        })()}
+      </ModalColecao>
     </div>
   );
 }

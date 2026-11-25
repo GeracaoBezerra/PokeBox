@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http as rota, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
@@ -32,8 +32,8 @@ function apiDoCatalogo(responder) {
   return pedidos;
 }
 
-function renderizar(endereco) {
-  return renderWithProviders(<CatalogPage />, { rota: endereco, service: criarSessaoFalsa(null) });
+function renderizar(endereco, user = null) {
+  return renderWithProviders(<CatalogPage />, { rota: endereco, service: criarSessaoFalsa(user) });
 }
 
 const pagina = (items, hasNextPage = false) => ({ data: items, pagination: { page: 1, limit: 24, hasNextPage } });
@@ -182,5 +182,29 @@ describe("Catálogo: recarregar sem piscar", () => {
 
     expect(await screen.findByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Charizard/ })).toBeInTheDocument();
+  });
+});
+
+describe("Catálogo: ações da coleção", () => {
+  it("mostra cada versão com seus controles e permite iniciar a adição de outra no mesmo modal", async () => {
+    apiDoCatalogo(() => pagina([charizard]));
+    const versoes = [
+      { id: "c1", cardId: charizard.id, card: charizard, finish: "NORMAL", firstEdition: false, condition: "NEAR_MINT", quantity: 2, isPublic: true, deleteBlockedBy: null },
+      { id: "c2", cardId: charizard.id, card: charizard, finish: "HOLO", firstEdition: true, condition: "GOOD", quantity: 1, isPublic: false, deleteBlockedBy: null },
+    ];
+    server.use(
+      rota.get(url("/wishlist"), () => HttpResponse.json({ success: true, data: { items: [] } })),
+      rota.get(url("/collection"), () => HttpResponse.json({ success: true, data: { items: versoes } })),
+      rota.get(url(`/cards/${charizard.id}`), () => HttpResponse.json({ success: true, data: { card: { ...charizard, variants: { normal: true, holo: true, firstEdition: true } } } })),
+    );
+    renderizar("/catalogo", { username: "ash" });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Editar Charizard" }));
+    const dialog = screen.getByRole("dialog", { name: "Editar Charizard à coleção" });
+    expect(within(dialog).getAllByRole("button", { name: "Salvar alterações" })).toHaveLength(2);
+    expect(within(dialog).getAllByRole("button", { name: "Remover versão" })).toHaveLength(2);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Adicionar outra versão" }));
+    expect(await screen.findByRole("dialog", { name: "Adicionar Charizard à coleção" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Adicionar à coleção" })).toBeInTheDocument();
   });
 });

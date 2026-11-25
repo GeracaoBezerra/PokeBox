@@ -8,7 +8,7 @@ import Aviso from "../Aviso/Aviso";
 import ErroCampo from "../ErroCampo/ErroCampo";
 import e from "./EditarItemColecao.module.css";
 
-export default function EditarItemColecao({ item, onSalvo }) {
+export default function EditarItemColecao({ item, onSalvo, onRemover, onAdicionarVersao, ocupadoExtra = false }) {
   const [form, setForm] = useState({ quantity: item.quantity, condition: item.condition, isPublic: item.isPublic });
   const { erro, ocupado, executar } = useAcao();
   const idErro = useId();
@@ -63,9 +63,13 @@ export default function EditarItemColecao({ item, onSalvo }) {
           Visível no meu perfil público
         </label>
       </div>
-      <button className={s.botao} type="submit" disabled={ocupado || !valida || Object.keys(mudancas).length === 0}>
-        {ocupado ? "Salvando…" : "Salvar"}
-      </button>
+      <div className={e.acoes}>
+        <button className={s.botao} type="submit" disabled={ocupado || !valida || Object.keys(mudancas).length === 0}>
+          {ocupado ? "Salvando…" : "Salvar alterações"}
+        </button>
+        {onRemover && <button className={e.remover} type="button" onClick={onRemover} disabled={ocupado || ocupadoExtra}>Remover versão</button>}
+        {onAdicionarVersao && <button className={e.acaoSecundaria} type="button" onClick={onAdicionarVersao} disabled={ocupado || ocupadoExtra}>Adicionar outra versão</button>}
+      </div>
       <Aviso erro={erro} />
     </form>
   );

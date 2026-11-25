@@ -24,6 +24,8 @@
     color var(--tempo-rapido);
 }
 
+.largo { width: 100%; }
+
 .botao:hover:not(:disabled) {
   border-color: var(--acento);
   color: var(--acento);
@@ -32,6 +34,18 @@
 .botao[aria-pressed="true"] {
   color: var(--acento);
   border-color: var(--acento);
+}
+
+.botao.removerWishlist,
+.botao.removerWishlist[aria-pressed="true"] {
+  color: var(--erro);
+  border-color: var(--erro);
+}
+
+.botao.removerWishlist:hover:not(:disabled) {
+  color: var(--erro);
+  border-color: var(--erro);
+  background: var(--erro-fundo);
 }
 
 .botao:disabled {

@@ -1,15 +1,16 @@
-import { Check, Heart, Plus } from "lucide-react";
+import { Check, Heart, Plus, Trash2 } from "lucide-react";
 import styles from "./AcoesRapidas.module.css";
 
-export default function AcoesRapidas({ nome, naWishlist = false, tenho = false, ocupado = false, bloqueado = false, onQuero, onTenho }) {
-  const tituloQuero = tenho ? "Você já tem esta carta" : naWishlist ? `Tirar ${nome} da wishlist` : `Quero ${nome}`;
+export default function AcoesRapidas({ nome, naWishlist = false, tenho = false, ocupado = false, bloqueado = false, onQuero, onTenho, onEditar }) {
+  if (tenho) return <div className={styles.acoes}><button type="button" className={`${styles.botao} ${styles.largo}`} aria-label={`Editar ${nome}`} disabled={ocupado || bloqueado} onClick={onEditar}>Editar</button></div>;
+  const tituloQuero = tenho ? "Você já tem esta carta" : naWishlist ? `Remover ${nome} da wishlist` : `Adicionar ${nome} à wishlist`;
   const tituloTenho = tenho ? `Adicionar outra versão de ${nome} à coleção` : `Tenho ${nome}: adicionar à coleção`;
 
   return (
     <div className={styles.acoes}>
       <button
         type="button"
-        className={styles.botao}
+        className={`${styles.botao} ${naWishlist ? styles.removerWishlist : ""}`}
         aria-label={tituloQuero}
         title={tituloQuero}
         aria-pressed={naWishlist}
@@ -17,8 +18,8 @@ export default function AcoesRapidas({ nome, naWishlist = false, tenho = false, 
         disabled={tenho || ocupado || bloqueado}
         onClick={onQuero}
       >
-        <Heart size={18} aria-hidden="true" fill={naWishlist ? "currentColor" : "none"} />
-        <span aria-hidden="true">Quero</span>
+        {naWishlist ? <Trash2 size={18} aria-hidden="true" /> : <Heart size={18} aria-hidden="true" />}
+        <span aria-hidden="true">Wishlist</span>
       </button>
       <button type="button" className={styles.botao} aria-label={tituloTenho} title={tituloTenho} disabled={bloqueado} onClick={onTenho}>
         {tenho ? <Check size={18} aria-hidden="true" /> : <Plus size={18} aria-hidden="true" />}
