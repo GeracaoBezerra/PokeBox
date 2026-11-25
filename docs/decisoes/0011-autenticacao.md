@@ -16,3 +16,4 @@ Data: outubro e 15/11/2026 · PR #122
 
 - Risco conhecido: um script injetado na página (XSS) leria o token. O próximo passo é refresh token com cookie `httpOnly` (dívida técnica).
 - Sem refresh token, a sessão expira em 1 dia e a pessoa entra de novo.
+- O bcrypt no custo 12 deixa o login lento na CPU do plano gratuito do Render: cerca de 2 s por login, e uma fila longa com uns 20 logins ao mesmo tempo ([teste de carga de 24/11](../observabilidade-e-performance.md#teste-de-carga-em-produção-2411)).
