@@ -84,6 +84,7 @@ function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, onPrecisaLogin
   return (
     <AcoesRapidas
       nome={carta.name}
+      visualCatalogo
       naWishlist={Boolean(itemWishlist)}
       tenho={Boolean(minhas?.tenho.has(carta.id))}
       ocupado={ocupado || atualizando}
