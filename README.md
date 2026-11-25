@@ -204,6 +204,8 @@ Onde ver cada regra:
 
 Nos fluxos de adicionar uma carta à coleção (catálogo, wishlist e Minha coleção), o formulário reserva sua altura enquanto carrega os detalhes e exibe um skeleton acessível para evitar que o modal mude de tamanho abruptamente.
 
+No formulário, cartas com um único acabamento mostram esse valor como texto fixo; múltiplos acabamentos continuam em um seletor, e cartas sem dados de variantes mantêm as três opções padrão. A opção de 1ª edição só aparece quando disponível.
+
 No catálogo, os botões rápidos refletem a coleção e a wishlist da pessoa logada. **Quero** passa a mostrar **Na wishlist** quando aplicável; quem já tem a carta vê apenas **Editar**. O modal padrão da coleção mostra cada versão com seus controles de edição e remoção, além da ação para adicionar outra versão. A ação **Tenho** abre o mesmo modal em modo de adição. Ao adicionar à coleção, a API remove a carta da wishlist e informa isso na notificação.
 
 ### Adaptação: só trocas

@@ -228,7 +228,7 @@ describe("Página Minha coleção", () => {
     const dialogo = within(screen.getByRole("dialog", { name: "Adicionar carta" }));
     await userEvent.type(dialogo.getByRole("searchbox", { name: "Buscar cartas" }), "pika{Enter}");
     await userEvent.click(await dialogo.findByRole("button", { name: "Escolher Pikachu" }));
-    expect(await dialogo.findByRole("checkbox", { name: /1ª edição/ })).toBeDisabled();
+    expect(dialogo.queryByRole("checkbox", { name: /1ª edição/ })).not.toBeInTheDocument();
     await userEvent.click(dialogo.getByRole("button", { name: "Adicionar à coleção" }));
 
     expect(
@@ -285,12 +285,12 @@ describe("Página Minha coleção", () => {
     await userEvent.type(quantidade, "0");
 
     expect(dialogo.getByText("A quantidade mínima é 1.")).toBeInTheDocument();
-    expect(dialogo.getByRole("button", { name: "Salvar" })).toBeDisabled();
+    expect(dialogo.getByRole("button", { name: "Salvar alterações" })).toBeDisabled();
 
     await userEvent.clear(quantidade);
     await userEvent.type(quantidade, "5");
     await userEvent.selectOptions(dialogo.getByRole("combobox", { name: "Condição" }), "MINT");
-    await userEvent.click(dialogo.getByRole("button", { name: "Salvar" }));
+    await userEvent.click(dialogo.getByRole("button", { name: "Salvar alterações" }));
 
     expect(await screen.findByText("Item atualizado.")).toBeInTheDocument();
     expect(mudancas).toEqual([{ id: "58", quantity: 5, condition: "MINT" }]);
