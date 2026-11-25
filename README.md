@@ -202,6 +202,8 @@ Onde ver cada regra:
 | RN-11 | `CollectionService`, `TradeService` | Wishlist (Já consegui), catálogo (Tenho) | A `misty` adiciona à coleção uma carta da wishlist e ela sai da wishlist |
 | RN-12 | `utils/wishlistRules.ts` | Detalhe da carta, catálogo (Quero) | A `misty` não consegue pôr na wishlist o Mew ex que já tem (botão desligado; API → 409) |
 
+Nos fluxos de adicionar uma carta à coleção (catálogo, wishlist e Minha coleção), o formulário reserva sua altura enquanto carrega os detalhes e exibe um skeleton acessível para evitar que o modal mude de tamanho abruptamente.
+
 No catálogo, os botões rápidos refletem a coleção e a wishlist da pessoa logada. **Quero** passa a mostrar **Na wishlist** quando aplicável; quem já tem a carta vê apenas **Editar**. O modal padrão da coleção mostra cada versão com seus controles de edição e remoção, além da ação para adicionar outra versão. A ação **Tenho** abre o mesmo modal em modo de adição. Ao adicionar à coleção, a API remove a carta da wishlist e informa isso na notificação.
 
 ### Adaptação: só trocas
