@@ -1,19 +1,23 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import ErroCampo from "../ErroCampo/ErroCampo";
+import ResultadosColecionadores from "./ResultadosColecionadores";
 import { contextoDaBusca, destinoDaBusca, ehBuscaDePerfil, termoDaUrl } from "../../utils/buscaGeral";
 import styles from "./header.module.css";
 
 export default function BuscaGeral() {
   const { pathname, search } = useLocation();
   const navigate = useNavigate();
-  const erroId = useId();
+  const inputRef = useRef(null);
+  const resultadosId = useId();
   const contexto = contextoDaBusca(pathname);
   const valor = termoDaUrl(pathname, search);
   const [texto, setTexto] = useState(valor);
   const [anterior, setAnterior] = useState({ valor, pathname });
-  const [erro, setErro] = useState("");
+  const [aberto, setAberto] = useState(false);
+  const perfil = ehBuscaDePerfil(texto);
+  const rotulo = perfil ? "Buscar colecionadores" : contexto.rotulo;
+  const termoPerfil = texto.trim().slice(1).trim();
   const localRef = useRef({ pathname, search });
 
   useEffect(() => {
@@ -24,7 +28,7 @@ export default function BuscaGeral() {
     const trocouDePagina = pathname !== anterior.pathname;
     setAnterior({ valor, pathname });
     if (trocouDePagina || valor !== texto.trim()) setTexto(valor);
-    setErro("");
+    setAberto(false);
   }
 
   useEffect(() => {
@@ -38,39 +42,60 @@ export default function BuscaGeral() {
 
   function enviar(evento) {
     evento.preventDefault();
-    const destino = destinoDaBusca(pathname, search, texto);
-    if (destino.erro) {
-      setErro(destino.erro);
+    if (perfil) {
+      setAberto(true);
       return;
     }
-    navigate(destino.url);
+    navigate(destinoDaBusca(pathname, search, texto).url);
   }
 
   function digitar(evento) {
-    setTexto(evento.target.value);
-    setErro("");
+    const valorDigitado = evento.target.value;
+    setTexto(ehBuscaDePerfil(valorDigitado) ? valorDigitado : valorDigitado.slice(0, 50));
+    setAberto(true);
   }
 
   return (
-    <form className={styles.buscaContainer} role="search" aria-label={contexto.rotulo} onSubmit={enviar}>
+    <form
+      className={styles.buscaContainer}
+      role="search"
+      aria-label={rotulo}
+      onSubmit={enviar}
+      onBlur={(evento) => {
+        if (!evento.currentTarget.contains(evento.relatedTarget)) setAberto(false);
+      }}
+      onKeyDown={(evento) => {
+        if (evento.key === "Escape" && aberto && perfil) {
+          evento.preventDefault();
+          inputRef.current.focus();
+          setAberto(false);
+        }
+      }}
+    >
       <span className={styles.buscaCampo}>
         <Search className={styles.iconeBusca} size={18} aria-hidden="true" />
         <input
           type="search"
-          maxLength={50}
+          ref={inputRef}
+          maxLength={51}
           placeholder={contexto.placeholder}
           value={texto}
           onChange={digitar}
+          onFocus={() => setAberto(true)}
+          onClick={() => setAberto(true)}
           className={styles.inputBusca}
-          aria-label={contexto.rotulo}
-          aria-invalid={erro ? true : undefined}
-          aria-describedby={erro ? erroId : undefined}
+          aria-label={rotulo}
+          aria-controls={perfil && aberto ? resultadosId : undefined}
         />
       </span>
-      {erro && (
-        <div className={styles.buscaErro}>
-          <ErroCampo id={erroId} mensagem={erro} />
-        </div>
+      {perfil && aberto && (
+        <ResultadosColecionadores
+          key={termoPerfil}
+          id={resultadosId}
+          termo={termoPerfil}
+          campoRef={inputRef}
+          aoEscolher={() => setAberto(false)}
+        />
       )}
     </form>
   );

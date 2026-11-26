@@ -1082,6 +1082,61 @@ export const swaggerSpec = {
         },
       },
     },
+    "/users": {
+      get: {
+        tags: ["Users"],
+        summary: "Buscar colecionadores por nome ou username",
+        description: "Busca pública por trecho, ignorando acentos e caixa. Inclui contas ACTIVE e PENDING_VERIFICATION sem exclusão, conforme a regra de conta utilizável do produto. Contas inativas, suspensas ou excluídas não aparecem. O username exato aparece primeiro, seguido da ordem de nome e username.",
+        security: [],
+        parameters: [
+          {
+            name: "q",
+            in: "query",
+            required: true,
+            description: "Trecho do nome ou username, sem o @ do header.",
+            schema: { type: "string", minLength: 1, maxLength: 50, example: "ash" },
+          },
+          ...optionalPageParams,
+        ],
+        responses: {
+          200: {
+            description: "Página de colecionadores. Uma busca sem resultados retorna items vazio.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["success", "data", "pagination"],
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    data: {
+                      type: "object",
+                      required: ["items"],
+                      properties: {
+                        items: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            required: ["name", "username"],
+                            additionalProperties: false,
+                            properties: {
+                              name: { type: "string", example: "Ash Ketchum" },
+                              username: { type: "string", example: "ash" },
+                            },
+                          },
+                        },
+                      },
+                    },
+                    pagination: paginationBlock,
+                  },
+                },
+              },
+            },
+          },
+          400: errorResponse("Termo ou paginação inválidos", "ApiValidationError"),
+          500: errorResponse("Erro interno"),
+        },
+      },
+    },
     "/users/{username}/collection": {
       get: {
         tags: ["Users"],

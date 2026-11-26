@@ -1,6 +1,7 @@
 import type { Prisma } from '../generated/prisma/index.js';
 import type { UserLookup } from '../middlewares/AuthMiddleware.js';
 import type { AuthUser } from '../types/auth.js';
+import type { PageWindow } from '../utils/pagination.js';
 
 export const publicUserFields = {
   id: true,
@@ -44,6 +45,7 @@ export type UserWithCredentials = Prisma.UserGetPayload<{ select: typeof credent
 export type ExistingUser = Prisma.UserGetPayload<{ select: typeof existingUserFields }>;
 
 export type PublicProfileUser = Prisma.UserGetPayload<{ select: typeof publicProfileFields }>;
+export type CollectorSummary = Pick<PublicProfileUser, 'username' | 'name'>;
 
 export interface NewUser {
   username: string;
@@ -57,6 +59,7 @@ export type UserProfileChanges = Partial<
 >;
 
 export interface UserRepository extends UserLookup {
+  searchCollectors(term: string, window: PageWindow): Promise<CollectorSummary[]>;
   findByEmail(email: string): Promise<UserWithCredentials | null>;
   findByEmailOrUsername(email: string, username: string): Promise<ExistingUser | null>;
   findPublicByUsername(username: string): Promise<PublicProfileUser | null>;

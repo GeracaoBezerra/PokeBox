@@ -179,6 +179,12 @@ Detalhes e números: [`docs/observabilidade-e-performance.md`](docs/observabilid
 
 ## API
 
+Para encontrar um colecionador, digite `@` e parte do nome ou username na busca do topo, mesmo sem login. Por exemplo, `@ketch` encontra Ash Ketchum no seed. Selecione o nome para abrir o perfil público. O header exibe cinco resultados por vez e permite carregar mais.
+
+Se a conexão cair ao carregar mais resultados, os perfis já encontrados continuam disponíveis. **Tentar de novo** repete a página que falhou. Alterar o termo ou fechar a lista cancela a requisição em andamento no navegador.
+
+A rota pública `GET /users?q=ketch&page=1&limit=5` ignora caixa e acentos. Cada resultado contém apenas `name` e `username` de uma conta ativa ou pendente de verificação. Contas inativas, suspensas ou excluídas não aparecem. O username exato aparece primeiro. A resposta inclui `pagination.hasNextPage`.
+
 Todas as rotas estão no Swagger (`/docs` da API, [produção](https://pokebox-api.onrender.com/docs)). Toda resposta segue `{ success: true, data }` ou `{ success: false, error, details }`. Lista das rotas, códigos de status e paginação: [`docs/api.md`](docs/api.md).
 
 ## Regras de negócio
@@ -249,7 +255,6 @@ Outras dívidas, sem issue:
 
 ### Próximos passos
 
-- Buscar colecionadores por nome ([#232](https://github.com/GeracaoBezerra/PokeBox/issues/232)).
 - Anúncio em formato de leilão, quando várias pessoas querem a mesma carta ([#234](https://github.com/GeracaoBezerra/PokeBox/issues/234)).
 - Chat entre colecionadores e notificações em tempo real.
 - Tratamento melhor das cartas sem imagem na TCGdex.

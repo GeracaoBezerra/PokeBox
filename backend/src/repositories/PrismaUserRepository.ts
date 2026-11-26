@@ -1,11 +1,13 @@
 import type { Db } from '../lib/prisma.js';
 import type { AuthUser } from '../types/auth.js';
+import type { PageWindow } from '../utils/pagination.js';
 import {
   credentialUserFields,
   existingUserFields,
   profileUserFields,
   publicProfileFields,
   publicUserFields,
+  type CollectorSummary,
   type ExistingUser,
   type NewUser,
   type PublicProfileUser,
@@ -17,6 +19,20 @@ import {
 
 export class PrismaUserRepository implements UserRepository {
   constructor(private readonly db: Db) {}
+
+  searchCollectors(term: string, { skip, take }: PageWindow) {
+    // O CHECK user_username_format_check já garante username ASCII em minúsculas.
+    return this.db.$queryRaw<CollectorSummary[]>`
+      WITH search AS MATERIALIZED (SELECT lower(unaccent(${term}::text)) AS needle)
+      SELECT username, name
+      FROM "User" CROSS JOIN search
+      WHERE "accountStatus" IN ('ACTIVE', 'PENDING_VERIFICATION') AND "deletedAt" IS NULL
+        AND needle <> ''
+        AND (strpos(username, needle) > 0 OR strpos(lower(unaccent(name)), needle) > 0)
+      ORDER BY (username = needle) DESC, lower(unaccent(name)), username
+      LIMIT ${take} OFFSET ${skip}
+    `;
+  }
 
   findById(id: string): Promise<AuthUser | null> {
     return this.db.user.findUnique({ where: { id }, select: profileUserFields });

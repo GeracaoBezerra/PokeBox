@@ -59,14 +59,4 @@ describe("destinoDaBusca", () => {
   it("no detalhe do anúncio, volta para o marketplace com a busca", () => {
     expect(destinoDaBusca("/marketplace/abc", "", "ultra ball")).toEqual({ url: "/marketplace?q=ultra+ball" });
   });
-
-  it("@usuario abre o perfil", () => {
-    expect(destinoDaBusca("/", "", "@ash")).toEqual({ url: "/u/ash" });
-    expect(destinoDaBusca("/catalogo", "?name=x", "@Misty")).toEqual({ url: "/u/misty" });
-  });
-
-  it("@ com nome inválido devolve o erro", () => {
-    expect(destinoDaBusca("/", "", "@a")).toEqual({ erro: "Nome de usuário inválido" });
-    expect(destinoDaBusca("/", "", "@")).toEqual({ erro: "Nome de usuário inválido" });
-  });
 });
