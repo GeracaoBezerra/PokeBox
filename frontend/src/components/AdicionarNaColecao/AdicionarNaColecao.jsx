@@ -12,7 +12,7 @@ export default function AdicionarNaColecao({ carta, lang, onAdicionado, mensagem
     `${carta.id}|${lang ?? ""}`
   );
   if (detalhe.carregando) return (
-    <div className={s.carregando} role="status" aria-label="Carregando detalhes da carta" aria-busy="true">
+    <div role="status" aria-label="Carregando detalhes da carta" aria-busy="true">
       <span className={s.srOnly}>Carregando detalhes da carta…</span>
       <div className={d.formulario} aria-hidden="true">
         <p className={d.suave}>Escolha a versão e o estado da carta que você tem.</p>
@@ -23,20 +23,22 @@ export default function AdicionarNaColecao({ carta, lang, onAdicionado, mensagem
               <span className={`${s.brilho} ${s.controle}`} />
             </div>
           ))}
-          <div>
+          <div className={d.quantidadeAdicao}>
             <div className={d.campo}>
-              <span className={`${s.textoEsqueleto} ${s.rotulo} ${s.rotuloCurto}`}>Quantidade</span>
+              <span className={`${s.textoEsqueleto} ${s.rotulo}`}>Quantidade</span>
               <span className={`${s.brilho} ${s.controle}`} />
             </div>
           </div>
-          {[["edicao", "1ª edição (indisponível)"], ["publico", "Visível no meu perfil público"]].map(([key, label]) => (
-            <div className={d.checkbox} key={key}>
-              <span className={`${s.brilho} ${s.marcador}`} />
-              <span className={`${s.textoEsqueleto} ${s.rotuloCheckbox}`}>{label}</span>
-            </div>
-          ))}
+          <div className={d.opcoesAdicao}>
+            {["Visível no meu perfil público", "1ª edição"].map((label) => (
+              <div className={d.checkbox} key={label}>
+                <span className={`${s.brilho} ${s.marcador}`} />
+                <span className={s.textoEsqueleto}>{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <button className={`${d.botao} ${s.botao}`} type="button" tabIndex={-1}><span className={s.textoBotao}>Adicionar à coleção</span></button>
+        <span className={`${d.botao} ${s.botao}`}><span className={s.textoBotao}>Adicionar à coleção</span></span>
       </div>
     </div>
   );

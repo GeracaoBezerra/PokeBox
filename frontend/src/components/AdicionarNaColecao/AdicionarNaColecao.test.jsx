@@ -27,7 +27,7 @@ describe("AdicionarNaColecao", () => {
     const carregando = screen.getByRole("status", { name: "Carregando detalhes da carta" });
     expect(carregando).toHaveAttribute("aria-busy", "true");
     expect(carregando).toHaveTextContent("Carregando detalhes da carta");
-    expect(carregando).toHaveClass(/carregando/);
+    expect(carregando.querySelector("button")).toBeNull();
     expect(container.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1);
 
     liberar();

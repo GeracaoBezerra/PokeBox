@@ -41,14 +41,21 @@ describe("FormColecao: acabamento e edição", () => {
     expect(screen.getByRole("checkbox", { name: "1ª edição" })).toBeEnabled();
   });
 
-  it("sem informação de variantes mantém os três acabamentos no select e oculta 1ª edição", () => {
-    renderWithProviders(<FormColecao card={{ ...carta, variants: {} }} lang="pt" onAdicionado={() => {}} />);
+  it.each([{}, { normal: false, holo: false, reverse: false, firstEdition: false }])(
+    "sem informação de variantes mantém os três acabamentos e permite cadastrar 1ª edição (%j)",
+    async (variants) => {
+      const requisicoes = [];
+      responderAdicao(requisicoes);
+      renderWithProviders(<FormColecao card={{ ...carta, variants }} lang="pt" onAdicionado={() => {}} />);
 
-    expect(screen.getByRole("combobox", { name: "Acabamento" })).toBeInTheDocument();
-    const acabamento = screen.getByRole("combobox", { name: "Acabamento" });
-    expect(Array.from(acabamento.options, (option) => option.textContent)).toEqual(["Normal", "Holo", "Reverse"]);
-    expect(screen.queryByRole("checkbox", { name: /1ª edição/ })).not.toBeInTheDocument();
-  });
+      const acabamento = screen.getByRole("combobox", { name: "Acabamento" });
+      expect(Array.from(acabamento.options, (option) => option.textContent)).toEqual(["Normal", "Holo", "Reverse"]);
+      await userEvent.click(screen.getByRole("checkbox", { name: "1ª edição" }));
+      await userEvent.click(screen.getByRole("button", { name: "Adicionar à coleção" }));
+      expect(await screen.findByRole("status")).toHaveTextContent("Carta adicionada à coleção.");
+      expect(requisicoes[0]).toMatchObject({ firstEdition: true });
+    },
+  );
 
   it("oculta a opção de 1ª edição quando a carta não tem essa variante", () => {
     renderWithProviders(<FormColecao card={{ ...carta, variants: { normal: true } }} lang="pt" onAdicionado={() => {}} />);
