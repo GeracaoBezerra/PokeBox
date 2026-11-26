@@ -202,13 +202,13 @@ Onde ver cada regra:
 | RN-09 | `DbCachedCatalog`, tabela `Card` | Coleção e wishlist mostram nome, imagem e preço | Com a TCGdex fora do ar, coleção e detalhe de carta continuam respondendo |
 | RN-10 | `ProfileService` | Perfil público (`/u/:username`) | `/u/ash` não mostra o Furret (privado); `/u/dawn` mostra "Nenhuma carta pública." |
 | RN-11 | `CollectionService`, `TradeService` | Wishlist (Já consegui), catálogo (Tenho) | A `misty` adiciona à coleção uma carta da wishlist e ela sai da wishlist |
-| RN-12 | `utils/wishlistRules.ts` | Detalhe da carta, catálogo (Quero) | A `misty` não consegue pôr na wishlist o Mew ex que já tem (botão desligado; API → 409) |
+| RN-12 | `WishlistService` | Detalhe da carta e catálogo | No catálogo, o Mew ex que a `misty` possui mostra apenas **Editar**. Uma tentativa de adicioná-lo à wishlist pela API retorna **409**. |
 
 Nos fluxos de adicionar uma carta à coleção (catálogo, wishlist e Minha coleção), o formulário reserva sua altura enquanto carrega os detalhes e exibe um skeleton acessível para evitar que o modal mude de tamanho abruptamente.
 
-No formulário, cartas com um único acabamento mostram esse valor como texto fixo; múltiplos acabamentos continuam em um seletor, e cartas sem dados de variantes mantêm as três opções padrão. A opção de 1ª edição só aparece quando disponível.
+No formulário, cartas com um único acabamento mostram esse valor como texto fixo. Múltiplos acabamentos continuam em um seletor. Sem dados de variantes, o formulário mantém os três acabamentos e permite marcar 1ª edição, conforme a regra da API. Com variantes conhecidas, a opção de 1ª edição só aparece se a carta tiver essa versão.
 
-No catálogo, os botões rápidos refletem a coleção e a wishlist da pessoa logada. **Quero** passa a mostrar **Na wishlist** quando aplicável; quem já tem a carta vê apenas **Editar**. O modal padrão da coleção mostra cada versão com seus controles de edição e remoção, além da ação para adicionar outra versão. A ação **Tenho** abre o mesmo modal em modo de adição. Ao adicionar à coleção, a API remove a carta da wishlist e informa isso na notificação.
+No catálogo, o botão **Wishlist** mostra um coração para adicionar uma carta. Quando ela já está na wishlist, o mesmo botão fica vermelho e mostra uma lixeira para removê-la. Quem já tem a carta na coleção vê apenas **Editar**. O modal da coleção mostra cada versão com seus controles de edição e remoção, além da ação para adicionar outra versão. **Tenho** abre o mesmo modal em modo de adição. Ao adicionar à coleção, a API remove a carta da wishlist e informa isso na notificação.
 
 ### Adaptação: só trocas
 

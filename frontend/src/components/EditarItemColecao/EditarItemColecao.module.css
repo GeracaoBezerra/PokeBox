@@ -5,6 +5,6 @@
 .acoes button.remover { color: var(--erro); border-color: var(--erro); background: var(--erro-fundo); }
 .acoes button.remover:hover:not(:disabled) { border-color: var(--erro); background: color-mix(in srgb, var(--erro) 22%, var(--superficie)); color: var(--erro); }
 .acaoSecundaria:disabled, .remover:disabled { opacity: .5; cursor: not-allowed; }
-.listaVersoes { display: grid; gap: var(--esp-24); margin-bottom: var(--esp-24); }
+.listaVersoes { display: grid; gap: var(--esp-24); min-width: 0; margin: 0 0 var(--esp-24); padding: 0; border: 0; }
 .versao { padding-bottom: var(--esp-24); border-bottom: 1px solid var(--borda-suave); }
 .versao h3 { margin: 0 0 var(--esp-12); color: var(--texto); font-size: var(--fs-md); }

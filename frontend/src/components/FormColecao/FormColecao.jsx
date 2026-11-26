@@ -20,10 +20,9 @@ function acabamentosDisponiveis(variants = {}) {
 const MENSAGEM_PADRAO = () => "Carta adicionada à coleção.";
 
 export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSAGEM_PADRAO }) {
-  const acabamentos = acabamentosDisponiveis(card.variants);
-  const possuiAcabamentos = Object.keys(ACABAMENTO_DA_VARIANTE).some((chave) => card.variants?.[chave]);
-  const possuiPrimeiraEdicao = Boolean(card.variants?.firstEdition);
-  const selecionarAcabamento = !possuiAcabamentos || acabamentos.length > 1;
+  const variantes = card.variants ?? {};
+  const acabamentos = acabamentosDisponiveis(variantes);
+  const podeMarcarPrimeiraEdicao = variantes.firstEdition || !Object.values(variantes).some(Boolean);
   const [form, setForm] = useState({
     finish: acabamentos[0],
     firstEdition: false,
@@ -42,6 +41,7 @@ export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSA
 
   async function enviar(evento) {
     evento.preventDefault();
+    if (ocupado) return;
     const quantidade = Number(form.quantity);
     const { ok, resultado } = await executar(() => addToCollection({ cardId: card.id, ...form, quantity: quantidade, lang }));
     if (!ok) return;
@@ -53,7 +53,7 @@ export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSA
     <form className={s.formulario} onSubmit={enviar}>
       <p className={s.suave}>Escolha a versão e o estado da carta que você tem.</p>
       <div className={s.campos}>
-        {selecionarAcabamento ? (
+        {acabamentos.length > 1 ? (
           <label className={s.campo}>
             Acabamento
             <select value={form.finish} onChange={(e) => alterar("finish", e.target.value)}>
@@ -80,7 +80,7 @@ export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSA
             ))}
           </select>
         </label>
-        <div>
+        <div className={s.quantidadeAdicao}>
           <label className={s.campo}>
             Quantidade
             <input
@@ -95,18 +95,18 @@ export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSA
           </label>
           <ErroCampo id={idErroQuantidade} mensagem={erroQuantidade} />
         </div>
-        {possuiPrimeiraEdicao ? (
+        <div className={s.opcoesAdicao}>
           <label className={s.checkbox}>
-            <input type="checkbox" checked={form.firstEdition} onChange={(e) => alterar("firstEdition", e.target.checked)} />
-            1ª edição
+            <input type="checkbox" checked={form.isPublic} onChange={(e) => alterar("isPublic", e.target.checked)} />
+            Visível no meu perfil público
           </label>
-        ) : (
-          <span className={s.checkboxReserva} aria-hidden="true" />
-        )}
-        <label className={s.checkbox}>
-          <input type="checkbox" checked={form.isPublic} onChange={(e) => alterar("isPublic", e.target.checked)} />
-          Visível no meu perfil público
-        </label>
+          {podeMarcarPrimeiraEdicao && (
+            <label className={s.checkbox}>
+              <input type="checkbox" checked={form.firstEdition} onChange={(e) => alterar("firstEdition", e.target.checked)} />
+              1ª edição
+            </label>
+          )}
+        </div>
       </div>
       <button className={s.botao} type="submit" disabled={ocupado}>
         {ocupado ? "Adicionando…" : "Adicionar à coleção"}

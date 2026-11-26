@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http as rota, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
@@ -200,11 +200,98 @@ describe("Catálogo: ações da coleção", () => {
     renderizar("/catalogo", { username: "ash" });
 
     await userEvent.click(await screen.findByRole("button", { name: "Editar Charizard" }));
-    const dialog = screen.getByRole("dialog", { name: "Editar Charizard à coleção" });
+    const dialog = screen.getByRole("dialog", { name: "Editar Charizard" });
     expect(within(dialog).getAllByRole("button", { name: "Salvar alterações" })).toHaveLength(2);
     expect(within(dialog).getAllByRole("button", { name: "Remover versão" })).toHaveLength(2);
     await userEvent.click(within(dialog).getByRole("button", { name: "Adicionar outra versão" }));
     expect(await screen.findByRole("dialog", { name: "Adicionar Charizard à coleção" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Adicionar à coleção" })).toBeInTheDocument();
+  });
+
+  it("zera uma versão com histórico de anúncios ao confirmar a retirada", async () => {
+    apiDoCatalogo(() => pagina([charizard]));
+    const versao = {
+      id: "versao-com-historico",
+      cardId: charizard.id,
+      card: charizard,
+      finish: "HOLO",
+      firstEdition: false,
+      condition: "NEAR_MINT",
+      quantity: 1,
+      isPublic: true,
+      deleteBlockedBy: "LISTING_HISTORY",
+    };
+    const alteracoes = [];
+    server.use(
+      rota.get(url("/wishlist"), () => HttpResponse.json({ data: { items: [] } })),
+      rota.get(url("/collection"), () => HttpResponse.json({ data: { items: [versao] } })),
+      rota.patch(url(`/collection/${versao.id}`), async ({ request }) => {
+        alteracoes.push(await request.json());
+        versao.quantity = 0;
+        return HttpResponse.json({ data: { item: versao } });
+      }),
+    );
+    renderizar("/catalogo", { username: "ash" });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Editar Charizard" }));
+    const edicao = screen.getByRole("dialog", { name: "Editar Charizard" });
+    await userEvent.click(within(edicao).getByRole("button", { name: "Remover versão" }));
+    const confirmacao = await screen.findByRole("dialog", { name: "Tirar carta da coleção?" });
+    expect(within(confirmacao).getByText(/histórico de anúncios será mantido/)).toBeInTheDocument();
+    await userEvent.click(within(confirmacao).getByRole("button", { name: "Tirar da coleção" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar Charizard" })).not.toBeInTheDocument());
+    expect(alteracoes).toEqual([{ quantity: 0 }]);
+    const editar = screen.getByRole("button", { name: "Editar Charizard" });
+    await waitFor(() => expect(editar).toBeEnabled());
+    await userEvent.click(editar);
+    const quantidade = within(screen.getByRole("dialog", { name: "Editar Charizard" })).getByRole("spinbutton", { name: "Quantidade" });
+    expect(quantidade).toHaveValue(0);
+    expect(quantidade).toHaveAttribute("min", "0");
+  });
+
+  it("bloqueia outras ações enquanto salva, mesmo se a pessoa fechar o modal", async () => {
+    apiDoCatalogo(() => pagina([charizard]));
+    const item = {
+      id: "versao-em-edicao",
+      cardId: charizard.id,
+      card: charizard,
+      finish: "NORMAL",
+      firstEdition: false,
+      condition: "NEAR_MINT",
+      quantity: 1,
+      isPublic: true,
+      deleteBlockedBy: null,
+    };
+    let liberar;
+    const espera = new Promise((resolve) => { liberar = resolve; });
+    server.use(
+      rota.get(url("/wishlist"), () => HttpResponse.json({ data: { items: [] } })),
+      rota.get(url("/collection"), () => HttpResponse.json({ data: { items: [item] } })),
+      rota.patch(url(`/collection/${item.id}`), async () => {
+        await espera;
+        item.quantity = 2;
+        return HttpResponse.json({ data: { item } });
+      }),
+    );
+    renderizar("/catalogo", { username: "ash" });
+
+    const editar = await screen.findByRole("button", { name: "Editar Charizard" });
+    await userEvent.click(editar);
+    const modal = within(screen.getByRole("dialog", { name: "Editar Charizard" }));
+    const quantidade = modal.getByRole("spinbutton", { name: "Quantidade" });
+    await userEvent.clear(quantidade);
+    await userEvent.type(quantidade, "2");
+    await userEvent.click(modal.getByRole("button", { name: "Salvar alterações" }));
+    expect(modal.getByRole("button", { name: "Remover versão" })).toBeDisabled();
+    expect(modal.getByRole("button", { name: "Adicionar outra versão" })).toBeDisabled();
+
+    await userEvent.click(modal.getByRole("button", { name: "Fechar" }));
+    expect(editar).toBeDisabled();
+    liberar();
+
+    expect(await screen.findByText("Item atualizado.")).toBeInTheDocument();
+    await waitFor(() => expect(editar).toBeEnabled());
+    expect(screen.queryByRole("dialog", { name: "Editar Charizard" })).not.toBeInTheDocument();
   });
 });

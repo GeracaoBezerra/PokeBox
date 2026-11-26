@@ -232,8 +232,11 @@
 .valorFixo { display: flex; align-items: center; min-height: var(--altura-controle); box-sizing: border-box; padding: var(--esp-8) var(--esp-12); background: var(--superficie-funda); border: 1px solid var(--borda); border-radius: var(--raio-botao); color: var(--texto); }
 .campo [aria-invalid="true"] { border-color: var(--erro); }
 .checkbox { display: flex; align-items: center; gap: var(--esp-8); min-height: var(--alvo-min); font-size: var(--fs-sm); color: var(--texto-suave); }
-.checkboxReserva { min-height: var(--alvo-min); }
 .checkbox input { accent-color: var(--acento); width: var(--esp-16); height: var(--esp-16); }
+.quantidadeAdicao,
+.opcoesAdicao { grid-column: 1 / -1; }
+.opcoesAdicao { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--esp-8); align-items: center; }
+.opcoesAdicao .checkbox input { flex-shrink: 0; }
 
 .secao { margin-top: var(--esp-64); scroll-margin-top: var(--esp-32); }
 .cabecalho { display: grid; gap: var(--esp-8); margin-bottom: var(--esp-24); }
