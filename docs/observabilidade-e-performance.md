@@ -75,6 +75,26 @@ Configuração:
 
 Sem essas variáveis, a API roda sem traces. Os traces saem em lotes a cada poucos segundos e, ao desligar, a API espera o último lote ser enviado.
 
+### Painel do Grafana Cloud (produção)
+
+No Grafana Cloud, um painel junta num lugar só as métricas, os traces e os logs que a API em produção manda pela mesma conexão OTLP, filtrados pelo serviço `pokebox-backend`. Os prints abaixo são de 26/11/2026, com o período dos últimos 2 dias. O tráfego é baixo porque o app não tem uso real fora da avaliação.
+
+**Requisições.** No topo, o resumo do momento: requisições por segundo, erros 5xx, tempo p95 da API e da TCGdex, falhas da TCGdex e traces no período. Embaixo, as requisições e o tempo p95 por rota, e as respostas por status (200, 304, 401, 404). O `GET /cards` aparece como a rota mais lenta, perto de 2 s no p95.
+
+![Painel do Grafana: requisições, erros e tempo por rota](img/observabilidade/grafana-1-requisicoes.png)
+
+**TCGdex e banco.** O tempo e o resultado das chamadas à TCGdex: os gráficos ficaram vazios, porque a API não chamou a TCGdex no período. Do PostgreSQL no Neon: o tempo p95 de cada tipo de consulta (`SELECT` perto de 350 ms em média), as consultas por segundo e as conexões do pool.
+
+![Painel do Grafana: chamadas à TCGdex e banco no Neon](img/observabilidade/grafana-2-tcgdex-e-banco.png)
+
+**Node.js e traces.** O atraso e o uso do event loop (p99 perto de 11 ms e uso abaixo de 8%: a API não fica travada). Embaixo, as requisições lentas ou com erro, com o link para o trace de cada uma (a mais lenta foi um `GET /cards/:id` de 2,95 s), e os traces do aceite de troca (`trade.accept`), sem nenhum no período.
+
+![Painel do Grafana: event loop do Node e traces das requisições lentas](img/observabilidade/grafana-3-node-e-traces.png)
+
+**Logs.** As linhas de log da API, com o `req_id` de cada requisição, o status e o tempo de resposta. O mesmo `req_id` volta no cabeçalho `x-request-id`, então dá para ir de uma resposta ao log dela.
+
+![Painel do Grafana: logs da API com o req_id](img/observabilidade/grafana-4-logs.png)
+
 ## Performance e segurança
 
 ### O que já existia

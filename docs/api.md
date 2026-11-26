@@ -71,7 +71,7 @@ Em `GET /listings`, `wishlist=true` filtra pela wishlist da sessão antes de pag
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /listings?q=&cardId=&username=&condition=&finish=&firstEdition=&setId=&type=&rarity=&sort=&page=&limit=` | | anúncios ativos e, no fim (depois de todos os ativos, inclusive entre páginas), os **Em troca** (`IN_TRADE`), com `hasNextPage`. A ordenação vale dentro de cada grupo. `q` busca por palavras no nome da carta ou do set (`charizard base` acha o Charizard do Base Set). Os filtros se somam e não diferenciam maiúscula (`type=fire`, `rarity=rare`, `condition=near_mint`); `sort` é `recent` (padrão), `oldest` ou `name`. Valor inválido → **400** com `details` |
+| `GET /listings?q=&cardId=&username=&condition=&finish=&firstEdition=&setId=&type=&rarity=&wishlist=&includeWishlist=&sort=&page=&limit=` | | anúncios ativos e, no fim (depois de todos os ativos, inclusive entre páginas), os **Em troca** (`IN_TRADE`), com `hasNextPage`. A ordenação vale dentro de cada grupo. `q` busca por palavras no nome da carta ou do set (`charizard base` acha o Charizard do Base Set). Os filtros se somam e não diferenciam maiúscula (`type=fire`, `rarity=rare`, `condition=near_mint`); `sort` é `recent` (padrão), `oldest` ou `name`. Valor inválido → **400** com `details` |
 | `GET /listings/me?page=&limit=` | 🔒 | meus anúncios, em qualquer status, mais novos primeiro. Paginação opcional |
 | `GET /listings/:id` | 🔓 | detalhe; ativo e Em troca aparecem para todos (Em troca sem nenhum dado da negociação); pausado, fechado ou bloqueado só para o dono e para o ADMIN |
 | `POST /listings` | 🔒 | anuncia um item da minha coleção: `collectionItemId`, `quantity`, `description?` |

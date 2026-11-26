@@ -133,18 +133,20 @@ Itens de coleção contados depois das trocas que o seed faz:
 
 O `admin` é um usuário como os outros, com a moderação a mais: no detalhe de um anúncio ele vê o bloco "Moderação" com **Bloquear** (o anúncio some do marketplace e o dono não consegue reativar) e, num anúncio bloqueado, **Desbloquear** (volta como pausado para o dono). Ele abre anúncios em qualquer situação, mas não mexe na quantidade nem na descrição deles, não vê ofertas nem trocas de outras pessoas e não altera a coleção de ninguém. Nada impede o admin de ter coleção e trocar cartas; no seed ele só não tem cartas. No `/perfil`, ele tem o selo "Administrador" e o botão "Testar acesso de ADMIN" (`GET /auth/admin-check`).
 
+O seed também cria 15 perfis para testar a busca de colecionadores (`ana_`, `julia_` e `joao_`, cinco de cada, com três cartas públicas cada um e a senha `SEED_DEMO_PASSWORD`). Em um banco que já existe, `docker compose exec -T tcg-backend npm run db:seed -- -- --search-profiles` carrega só esses perfis ([`backend/docs/db.md`](backend/docs/db.md)).
+
 O seed roda sozinho na primeira subida, pode rodar de novo sem duplicar nada (`make seed`) e funciona sem internet. O que ele cria e como testar pelo Swagger: [`docs/desenvolvimento.md`](docs/desenvolvimento.md#seed).
 
 ## Testes
 
-| Andar da pirâmide | Ferramenta | Quantidade (24/11) | Comando |
+| Andar da pirâmide | Ferramenta | Quantidade (26/11) | Comando |
 |---|---|---|---|
 | E2E | Cypress | 11 | `make e2e` |
-| Front | Vitest + Testing Library + MSW | 490 | `cd frontend && npm test` |
-| Integração (backend) | Jest + Supertest + PostgreSQL real | 182 | `make test-int` |
-| Unidade (backend) | Jest | 942 | `cd backend && npm test` |
+| Front | Vitest + Testing Library + MSW | 519 | `cd frontend && npm test` |
+| Integração (backend) | Jest + Supertest + PostgreSQL real | 195 | `make test-int` |
+| Unidade (backend) | Jest | 948 | `cd backend && npm test` |
 
-Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 83,7% no front (mínimo de 40%). Por que cada ferramenta: [decisão sobre testes](docs/decisoes/0009-testes.md). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](docs/ia.md).
+Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 87,0% no front (mínimo de 40%). Por que cada ferramenta: [decisão sobre testes](docs/decisoes/0009-testes.md). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](docs/ia.md).
 
 Como rodar cada tipo, o que cada arquivo cobre e a cobertura por métrica: [`docs/testes.md`](docs/testes.md).
 
@@ -175,23 +177,19 @@ O deploy só sai com os testes verdes, a API sobe primeiro e o front só é publ
 - Traces com OpenTelemetry: Jaeger local (`make traces`) e Grafana Cloud em produção.
 - Performance: gzip, helmet, índices, paginação, `Cache-Control` e limite de tentativas no login, com medições antes e depois.
 
+Em produção, um painel no Grafana Cloud junta métricas, traces e logs da API (prints de todas as partes em [`docs/observabilidade-e-performance.md`](docs/observabilidade-e-performance.md#painel-do-grafana-cloud-produção)):
+
+![Painel do Grafana Cloud com as requisições da API em produção](docs/img/observabilidade/grafana-1-requisicoes.png)
+
 Detalhes e números: [`docs/observabilidade-e-performance.md`](docs/observabilidade-e-performance.md).
 
 ## API
 
-Para encontrar um colecionador, digite `@` e parte do nome ou username na busca do topo, mesmo sem login. Por exemplo, `@ketch` encontra Ash Ketchum no seed. Selecione o nome para abrir o perfil público. O header exibe cinco resultados por vez e permite carregar mais.
-
-Enter com `@ash` abre a lista de resultados. Para abrir o perfil, selecione o resultado com clique ou use Tab e Enter no link.
-
-Se a conexão cair ao carregar mais resultados, os perfis já encontrados continuam disponíveis. **Tentar de novo** repete a página que falhou. Alterar o termo ou fechar a lista cancela a requisição em andamento no navegador.
-
-A rota pública `GET /users?q=ketch&page=1&limit=5` ignora caixa e acentos. Cada resultado contém apenas `name` e `username` de uma conta ativa ou pendente de verificação. Contas inativas, suspensas ou excluídas não aparecem. O username exato aparece primeiro. A resposta inclui `pagination.hasNextPage`.
+Busca de colecionadores (#232): a rota pública `GET /users?q=` procura por parte do nome ou do username, sem diferenciar maiúsculas nem acentos, e devolve só `name` e `username`. No app, basta digitar `@` e parte do nome na busca do topo (`@ketch` encontra Ash Ketchum no seed). Como a tela funciona: [`docs/front.md`](docs/front.md).
 
 Todas as rotas estão no Swagger (`/docs` da API, [produção](https://pokebox-api.onrender.com/docs)). Toda resposta segue `{ success: true, data }` ou `{ success: false, error, details }`. Lista das rotas, códigos de status e paginação: [`docs/api.md`](docs/api.md).
 
 ## Regras de negócio
-
-Em **Minha coleção**, tipo, expansão, condição e acabamento vêm dos itens da pessoa. **Visibilidade** sempre oferece públicas e privadas, só públicas e só privadas. Na **Wishlist**, tipo, expansão e raridade vêm das cartas salvas. As duas telas carregam as opções da lista inteira e as reaproveitam ao buscar e paginar. Na coleção, itens com quantidade zero entram nas opções quando **Mostrar zerados** está ativo. No **Marketplace**, o checkbox no topo restringe os anúncios às cartas da wishlist antes da paginação. O selo nos cards usa apenas as cartas da página atual.
 
 RN-01 a RN-12: como cada uma funciona em [`docs/regras.md`](docs/regras.md).
 
@@ -212,11 +210,7 @@ Onde ver cada regra:
 | RN-11 | `CollectionService`, `TradeService` | Wishlist (Já consegui), catálogo (Tenho) | A `misty` adiciona à coleção uma carta da wishlist e ela sai da wishlist |
 | RN-12 | `WishlistService` | Detalhe da carta e catálogo | No catálogo, o Mew ex que a `misty` possui mostra apenas **Editar**. Uma tentativa de adicioná-lo à wishlist pela API retorna **409**. |
 
-Nos fluxos de adicionar uma carta à coleção (catálogo, wishlist e Minha coleção), o formulário reserva sua altura enquanto carrega os detalhes e exibe um skeleton acessível para evitar que o modal mude de tamanho abruptamente.
-
-No formulário, cartas com um único acabamento mostram esse valor como texto fixo. Múltiplos acabamentos continuam em um seletor. Sem dados de variantes, o formulário mantém os três acabamentos e permite marcar 1ª edição, conforme a regra da API. Com variantes conhecidas, a opção de 1ª edição só aparece se a carta tiver essa versão.
-
-No catálogo, o botão **Wishlist** mostra um coração para adicionar uma carta. Quando ela já está na wishlist, o mesmo botão fica vermelho e mostra uma lixeira para removê-la. Quem já tem a carta na coleção vê apenas **Editar**. O modal da coleção mostra cada versão com seus controles de edição e remoção, além da ação para adicionar outra versão. **Tenho** abre o mesmo modal em modo de adição. Ao adicionar à coleção, a API remove a carta da wishlist e informa isso na notificação.
+Os filtros da coleção e da wishlist mostram só as opções que existem na lista da pessoa, e o marketplace filtra pelas cartas da wishlist antes de paginar (#235). No catálogo, os botões de cada carta mudam conforme ela já está na wishlist ou na coleção (#244, #245). Como cada tela se comporta: [`docs/front.md`](docs/front.md).
 
 ### Adaptação: só trocas
 
@@ -252,8 +246,10 @@ Issues abertas na entrega:
 | Issue | O que falta |
 |---|---|
 | [#229](https://github.com/GeracaoBezerra/PokeBox/issues/229) | Preview da Vercel pede login da Vercel e fica fora do CORS da API |
-| [#231](https://github.com/GeracaoBezerra/PokeBox/issues/231) | Painel de filtros ocupando melhor a largura da tela |
-| [#235](https://github.com/GeracaoBezerra/PokeBox/issues/235) | Filtros mostrando só as opções que existem na lista |
+| [#251](https://github.com/GeracaoBezerra/PokeBox/issues/251) | No celular, o ícone do botão Wishlist do catálogo fica espremido até quase sumir |
+| [#252](https://github.com/GeracaoBezerra/PokeBox/issues/252) | Verificação de e-mail: toda conta nasce com `accountStatus = PENDING_VERIFICATION` e `emailVerified = false`, mas não há e-mail de ativação, então nada muda esse status. O login e o perfil público aceitam conta pendente |
+| [#253](https://github.com/GeracaoBezerra/PokeBox/issues/253) | Recuperação de senha: quem esquece a senha perde o acesso à conta. A ideia é um e-mail com link para definir uma senha nova |
+| [#254](https://github.com/GeracaoBezerra/PokeBox/issues/254) | Força da senha: o cadastro aceita qualquer senha de 8 a 72 caracteres, mesmo fraca. Foi proposital, para facilitar a criação de usuários nos testes; a senha é guardada com bcrypt |
 
 Outras dívidas, sem issue:
 
@@ -261,25 +257,26 @@ Outras dívidas, sem issue:
 - Os modais do front fecham com Esc mesmo durante um envio; a resposta ainda chega e a lista recarrega, mas a pessoa não vê o resultado no modal.
 - Refresh token com cookie `httpOnly` no lugar do JWT no `localStorage`.
 - `make test-int` falha depois de um `docker compose down`, porque o container do banco de teste fica preso à rede antiga. Contorno: `docker compose --profile test up -d --force-recreate tcg-db-test`.
+- Painel de filtros ocupando melhor a largura da tela, encostado à esquerda (sugestão do Abel). A [#231](https://github.com/GeracaoBezerra/PokeBox/issues/231) foi fechada sem essa mudança no layout.
 - Pontos de arquitetura listados em [`docs/arquitetura.md`](docs/arquitetura.md#pontos-fracos-conhecidos).
 
 ### Próximos passos
 
 - Anúncio em formato de leilão, quando várias pessoas querem a mesma carta ([#234](https://github.com/GeracaoBezerra/PokeBox/issues/234)).
-- Chat entre colecionadores e notificações em tempo real.
+- Marketplace no estilo da OLX, ideia do professor na apresentação: chat entre quem anuncia e quem quer trocar, notificações, anúncio com fotos da carta real e cidade, e reputação depois das trocas ([#255](https://github.com/GeracaoBezerra/PokeBox/issues/255)).
 - Tratamento melhor das cartas sem imagem na TCGdex.
 - Guardar no banco o resultado das buscas que ainda vão à TCGdex, para sobreviver ao reinício da API.
 - Redis para o cache se a API tiver mais de uma instância, e paginação por cursor nas listas longas.
 
 ## Status do projeto
 
-Foto de 24/11/2026.
+Foto de 26/11/2026.
 
 | Parte | Situação |
 |---|---|
-| Backend | ✅ Todas as rotas em produção: autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, anúncios, ofertas, trocas em 3 passos e moderação |
-| Frontend | ✅ Todas as telas funcionam, conversam com a API e seguem o mesmo padrão visual (coleção, meus anúncios e trocas entraram no padrão novo com #84, #85 e #230). A página Sobre (`/sobre`) resume esta documentação dentro do app (#233) |
-| Testes | ✅ 942 de unidade e 182 de integração no backend (98,3% das linhas), 490 no front (83,7% das linhas) e 11 E2E, todos na CI |
+| Backend | ✅ Todas as rotas em produção: autenticação, cartas e catálogo local em `en` e `pt`, coleção, wishlist, perfil, busca de colecionadores, anúncios, ofertas, trocas em 3 passos e moderação. Coleção e wishlist devolvem as opções de filtro da própria lista (#235) |
+| Frontend | ✅ Todas as telas funcionam, conversam com a API e seguem o mesmo padrão visual (coleção, meus anúncios e trocas entraram no padrão novo com #84, #85 e #230). A página Sobre (`/sobre`) resume esta documentação dentro do app (#233). Depois da apresentação: filtros sob medida (#235), botões do catálogo conforme o que a pessoa já tem (#244 a #247) e busca de colecionadores com `@` no topo (#232) |
+| Testes | ✅ 948 de unidade e 195 de integração no backend (98,3% das linhas), 519 no front (87,0% das linhas) e 11 E2E, todos na CI |
 | Deploy | ✅ API no Render, banco no Neon e front na Vercel, publicados a cada release pela `main` |
 | Observabilidade | ✅ Logs com `x-request-id`, traces no Jaeger (local) e no Grafana Cloud (produção) |
 | Bancada final (#60) | ✅ Roteiro manual completo em 23/11; duas falhas pequenas viraram #228 (corrigida) e #229. Repetida em 24/11 nas telas do segundo pacotão do front: 95 passos OK, nenhuma falha |
@@ -312,7 +309,7 @@ Respostas e erros da API seguem o contrato `{ success, data }` / `{ success: fal
 
 | Arquivo | O que tem |
 |---|---|
-| [`docs/PokeBox-documentacao.pdf`](docs/PokeBox-documentacao.pdf) | Toda a documentação da avaliação num PDF só (28 páginas, com sumário e diagramas), para ler ou imprimir |
+| [`docs/PokeBox-documentacao.pdf`](docs/PokeBox-documentacao.pdf) | Toda a documentação da avaliação num PDF só (32 páginas, com sumário e diagramas), para ler ou imprimir |
 | [`docs/arquitetura.md`](docs/arquitetura.md) | Camadas, POO, SOLID, padrões de projeto e pontos fracos |
 | [`docs/decisoes/`](docs/decisoes/README.md) | Decisões técnicas e o que ficou de fora |
 | [`docs/processo.md`](docs/processo.md) | Board, branches, revisão de PR, workflows e Docker |
