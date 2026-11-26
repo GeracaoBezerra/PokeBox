@@ -1,6 +1,6 @@
 import request from 'supertest';
 
-import { acceptedOffer, addItem, bearer, createListing, makeOffer, PROFESSOR_OAK } from './support/flows.js';
+import { acceptedOffer, addItem, bearer, CHARIZARD, createListing, makeOffer, PROFESSOR_OAK } from './support/flows.js';
 import { loginSeedUser, registerUser, startTestApp, type TestApp } from './support/testApp.js';
 
 let ctx: TestApp;
@@ -141,6 +141,24 @@ describe('GET /listings (marketplace, #76)', () => {
     ]);
   });
 
+  test('wishlist é da sessão, filtra antes de paginar e só devolve selos da página', async () => {
+    const viewer = await registerUser(ctx.app);
+    const other = await registerUser(ctx.app);
+    await request(ctx.app).post('/wishlist').set(bearer(viewer)).send({ cardId: PROFESSOR_OAK }).expect(201);
+    await request(ctx.app).post('/wishlist').set(bearer(other)).send({ cardId: CHARIZARD }).expect(201);
+
+    await search({ wishlist: 'true' }).expect(401);
+    await search({ includeWishlist: 'true' }).expect(401);
+    const primeira = await search({ includeWishlist: 'true', sort: 'name', limit: '1' }).set(bearer(viewer)).expect(200);
+    expect(cardIds(primeira)).toEqual([CHARIZARD]);
+    expect(primeira.body.data.wishlistCardIds).toEqual([]);
+    const filtrada = await search({ wishlist: 'true', includeWishlist: 'true', sort: 'name', limit: '1' })
+      .set(bearer(viewer)).expect(200);
+    expect(cardIds(filtrada)).toEqual([PROFESSOR_OAK]);
+    expect(filtrada.body.data.wishlistCardIds).toEqual([PROFESSOR_OAK]);
+    expect(filtrada.body.pagination.hasNextPage).toBe(false);
+  });
+
   test('valor inválido → 400 com details', async () => {
     const res = await search({ condition: 'NOVA' });
 
@@ -171,8 +189,8 @@ describe('anúncio Em troca', () => {
     );
 
     const all = await request(ctx.app).get('/listings').query({ username: owner.username });
-    const first = await request(ctx.app).get('/listings').query({ username: owner.username, limit: 1 });
-    const second = await request(ctx.app).get('/listings').query({ username: owner.username, limit: 1, page: 2 });
+    const first = await request(ctx.app).get('/listings').query({ username: owner.username, sort: 'oldest', limit: 1 });
+    const second = await request(ctx.app).get('/listings').query({ username: owner.username, sort: 'oldest', limit: 1, page: 2 });
 
     expect(all.body.data.items.map((l: { id: string; status: string }) => [l.id, l.status])).toEqual([
       [active.id, 'ACTIVE'],

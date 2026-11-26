@@ -3,7 +3,7 @@ import { parametrosDaPagina } from "./parametros";
 
 export async function listListings(opcoes = {}) {
   const body = await http.get("/listings", { params: parametrosDaPagina(opcoes) });
-  return { items: body.data.items, pagination: body.pagination };
+  return { items: body.data.items, wishlistCardIds: body.data.wishlistCardIds, pagination: body.pagination };
 }
 
 export async function listMyListings(opcoes) {

@@ -1,5 +1,6 @@
 import type { CardImage, MarketPrice } from '../cards/types.js';
 import type { ListingStatus } from '../generated/prisma/index.js';
+import { normalizeCardTypes } from './cardTypes.js';
 
 export interface MarketPriceFields {
   marketPrice: number | null;
@@ -102,10 +103,10 @@ export function toCardRecord(card: CardRecordSource, now = new Date()): CardReco
     setSeries: card.set.series ?? null,
     releaseDate: card.set.releaseDate ? new Date(card.set.releaseDate) : null,
     number: card.number,
-    rarity: card.rarity ?? null,
+    rarity: card.rarity?.trim() || null,
     imageUrl: card.image?.small ?? null,
     category: card.category ?? null,
-    types: card.types ?? [],
+    types: normalizeCardTypes(card.types ?? []),
     hp: card.hp ?? null,
     stage: card.stage ?? null,
     illustrator: card.illustrator ?? null,

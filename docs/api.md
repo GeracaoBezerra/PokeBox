@@ -15,6 +15,8 @@ Todas as respostas seguem o mesmo formato:
 
 **Paginação opcional nas listas (#77).** `GET /collection`, `GET /wishlist`, `GET /users/:username/collection`, `GET /listings/me`, `GET /offers/me` e `GET /trades/me` respondem como sempre quando não recebem nenhum parâmetro novo: a lista inteira, no mesmo formato. Qualquer parâmetro novo (`page`, `limit`, um filtro, `sort` ou `side`) liga a paginação, mesmo sem `page` (aí vem a página 1). A resposta paginada é igual à do `GET /listings`: `{ "success": true, "data": { "items": [] }, "pagination": { "page": 1, "limit": 20, "hasNextPage": false } }`, sem total. `limit` padrão 20, máximo 100 (acima disso → **400** com `details`). Sem `sort`, a ordem é a de antes, com uma exceção: em `GET /offers/me` e `GET /trades/me`, as recebidas sem `status` trazem as pendentes primeiro, paginadas ou não (#199); o `id` desempata para nenhum item repetir ou sumir entre as páginas.
 
+Em `GET /collection` e `GET /wishlist`, a resposta paginada inclui `data.filters` por padrão. Use `includeFilters=false` para pedir apenas os itens quando já tiver as opções. O parâmetro sozinho não ativa a paginação. As rotas `/collection/filters` e `/wishlist/filters` permitem carregar as opções separadamente.
+
 ### Saúde
 
 | Rota | | O que faz |
@@ -47,6 +49,7 @@ Todas as respostas seguem o mesmo formato:
 |---|---|---|
 | `GET /collection?q=&condition=&finish=&isPublic=&withZero=&setId=&type=&sort=&page=&limit=` | 🔒 | minha coleção, com `available` (quantidade menos reservada), pelo nome da carta. `q` busca por palavras no nome da carta ou do set; `isPublic=false` traz só os privados; `withZero=false` esconde os itens com quantidade 0 (sem o filtro eles vêm); `sort` é `name` (padrão) ou `recent` (entrada mais nova primeiro). Paginação opcional. Cada item traz `deleteBlockedBy`, o motivo de o `DELETE` recusar o item, na mesma ordem das checagens dele (#84): `RESERVED` (unidades reservadas numa troca), `OPEN_LISTING` (anúncio ativo, pausado ou em troca), `LISTING_HISTORY` (já foi anunciado e todos os anúncios terminaram; dá para zerar a quantidade), `OPEN_OFFER` (está numa oferta aguardando resposta ou aceita sem troca) ou `null` (pode apagar) |
 | `GET /collection/summary` | 🔒 | totais da minha coleção inteira, sem filtros (#84): `{ totalUnits, distinctCards, listedItems }`. `totalUnits` soma as quantidades; `distinctCards` conta as cartas diferentes com quantidade maior que 0 (variantes da mesma carta contam uma vez); `listedItems` conta os itens com pelo menos um anúncio aberto (ativo, pausado ou em troca) |
+| `GET /collection/filters?withZero=false` | 🔒 | opções da coleção inteira em `data` com `types`, `sets` (objetos com `id` e `name`), `conditions` e `finishes`. `withZero=false` exclui itens com quantidade zero |
 | `POST /collection` | 🔒 | adiciona carta: `cardId`, `quantity`, `finish`, `firstEdition`, `condition?`, `isPublic?`, `lang?`. `lang` é o idioma em que a carta foi vista no catálogo (padrão `en`, aceita os mesmos idiomas de `GET /cards`, inclusive `pt-br`), para achar cartas que só existem em outro idioma (#163). A carta é buscada primeiro em inglês, para ficar gravada em inglês para todo mundo; o `lang` só é usado quando ela não existe em inglês (ex.: sets japoneses). Idioma fora da lista → 400. `cardId` só aceita letras, números, ponto e hífen, como em `GET /cards/:id` (`%`, `_`, `/` → 400). Se a carta estava na sua wishlist, ela sai (RN-11) e a resposta traz `removedFromWishlist: true` |
 | `PATCH /collection/:id` | 🔒 | muda `quantity`, `condition` ou `isPublic`. A condição não muda enquanto o item está num anúncio aberto, numa oferta aberta ou aceita ou numa troca aberta (**409**) |
 | `DELETE /collection/:id` | 🔒 | remove o item (não remove se tiver reserva ou se já foi anunciado; nesse caso, zere a quantidade) |
@@ -56,11 +59,14 @@ Todas as respostas seguem o mesmo formato:
 
 | Rota | | O que faz |
 |---|---|---|
-| `GET /wishlist?q=&type=&rarity=&sort=&page=&limit=` | 🔒 | minha wishlist, com `opportunities` em cada carta (paginada, calculado só para os itens da página). Paginação opcional |
+| `GET /wishlist?q=&type=&rarity=&setId=&sort=&page=&limit=` | 🔒 | minha wishlist, com `opportunities` em cada carta (paginada, calculado só para os itens da página). `setId` filtra pela expansão. Paginação opcional |
+| `GET /wishlist/filters` | 🔒 | opções da wishlist inteira em `data` com `types`, `sets` (objetos com `id` e `name`) e `rarities` |
 | `POST /wishlist` | 🔒 | adiciona carta (`cardId`, `lang?` com padrão `en`, os dois com as mesmas regras de `POST /collection`). Carta que você já tem na coleção → **409** (RN-12) |
 | `DELETE /wishlist/:id` | 🔒 | remove |
 
 ### Anúncios de troca
+
+Em `GET /listings`, `wishlist=true` filtra pela wishlist da sessão antes de paginar. `includeWishlist=true` inclui `data.wishlistCardIds` com os IDs das cartas salvas que aparecem na página atual. Ambos exigem autenticação e devolvem `401` sem sessão válida.
 
 | Rota | | O que faz |
 |---|---|---|

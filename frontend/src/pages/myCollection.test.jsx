@@ -8,8 +8,14 @@ import { server } from "../test/server";
 import MyCollectionPage from "./myCollection";
 
 const url = (caminho) => `${CONFIG.apiBaseUrl}${caminho}`;
+const filtrosDisponiveis = {
+  types: ["Fire"],
+  sets: [{ id: "base1", name: "Base Set" }],
+  conditions: ["NEAR_MINT"],
+  finishes: ["NORMAL"],
+};
 const lista = (items, pagination = { page: 1, limit: 24, hasNextPage: false }) =>
-  HttpResponse.json({ success: true, data: { items }, pagination });
+  HttpResponse.json({ success: true, data: { items, filters: filtrosDisponiveis }, pagination });
 
 function item(id, nome, extra = {}) {
   return {
@@ -36,10 +42,13 @@ function servidor({ pagina = () => lista([pikachu]), resumo = { totalUnits: 2, d
   server.use(
     rota.get(url("/collection"), ({ request }) => {
       const params = new URL(request.url).searchParams;
+      expect(params.get("includeFilters")).toBe("false");
+      params.delete("includeFilters");
       pedidos.push(Object.fromEntries(params));
       return pagina(params, pedidos.length);
     }),
     rota.get(url("/listings/me"), () => HttpResponse.json({ success: true, data: { items: anuncios } })),
+    rota.get(url("/collection/filters"), () => HttpResponse.json({ success: true, data: filtrosDisponiveis })),
     rota.get(url("/collection/summary"), () => {
       resumos.push(1);
       return HttpResponse.json({ success: true, data: typeof resumo === "function" ? resumo(resumos.length) : resumo });
@@ -82,6 +91,26 @@ describe("Página Minha coleção", () => {
     expect(pedidos).toEqual([{ withZero: "false", page: "1", limit: "24" }]);
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Grade" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("adapta os filtros à coleção, oferece todas as visibilidades e mantém o painel sem resultados", async () => {
+    const { pedidos } = servidor({ pagina: (params) => lista(params.has("setId") ? [] : [pikachu]) });
+    renderizar();
+
+    const painel = painelDesktop();
+    expect(await painel.findByRole("radio", { name: "Fogo" })).toBeInTheDocument();
+    expect(painel.queryByRole("radio", { name: "Água" })).not.toBeInTheDocument();
+    expect(painel.getByRole("radio", { name: "Near Mint" })).toBeInTheDocument();
+    const visibilidade = within(painel.getByRole("group", { name: "Visibilidade" }));
+    expect(visibilidade.getByRole("radio", { name: "Públicas e privadas" })).toBeChecked();
+    expect(visibilidade.getByRole("radio", { name: "Só públicas" })).toBeEnabled();
+    expect(visibilidade.getByRole("radio", { name: "Só privadas" })).toBeEnabled();
+    await userEvent.selectOptions(painel.getByRole("combobox", { name: "Expansão" }), "base1");
+
+    expect(await screen.findByRole("heading", { name: "Nenhuma carta da coleção bate com esses filtros" })).toBeInTheDocument();
+    expect(pedidos.at(-1)).toMatchObject({ setId: "base1", page: "1" });
+    expect(painel.getByRole("combobox", { name: "Expansão" })).toHaveValue("base1");
+    expect(painel.getByRole("radio", { name: "Fogo" })).toBeInTheDocument();
   });
 
   it("lê filtros, ordem e página da URL, mostra os selos e tira um filtro pelo selo", async () => {

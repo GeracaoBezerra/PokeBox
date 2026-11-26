@@ -2,6 +2,7 @@ import type { CardCondition, CardFinish, Prisma } from '../generated/prisma/inde
 import type { Db } from '../lib/prisma.js';
 import { OPEN_STATUSES } from '../utils/listingRules.js';
 import type { ItemSort } from '../utils/itemSort.js';
+import { cardFilterFields } from '../utils/listFilterOptions.js';
 import type { CardFilters } from '../utils/listingSearch.js';
 import type { PageWindow } from '../utils/pagination.js';
 
@@ -20,6 +21,14 @@ export const collectionItemWithUsage = {
 } satisfies Prisma.CollectionItemInclude;
 
 export type CollectionItemWithUsage = Prisma.CollectionItemGetPayload<{ include: typeof collectionItemWithUsage }>;
+
+export const collectionFilterFields = {
+  condition: true,
+  finish: true,
+  card: { select: cardFilterFields },
+} satisfies Prisma.CollectionItemSelect;
+
+export type CollectionFilterRow = Prisma.CollectionItemGetPayload<{ select: typeof collectionFilterFields }>;
 
 export interface CollectionSummary {
   totalUnits: number;
@@ -81,6 +90,7 @@ export interface CardOwner {
 
 export interface CollectionRepository {
   findManyByUser(userId: string, options?: CollectionFilters & Partial<PageWindow>): Promise<CollectionItemWithUsage[]>;
+  findFilterRows(userId: string, withZero?: boolean): Promise<CollectionFilterRow[]>;
   summarizeByUser(userId: string): Promise<CollectionSummary>;
   findPublicByUser(
     userId: string,

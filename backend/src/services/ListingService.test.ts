@@ -60,6 +60,7 @@ const lockedItem: LockedCollectionItem = {
 function setup() {
   const listings = {
     findActive: jest.fn<ListingStore['findActive']>(async () => [listing]),
+    findWishlistCardIds: jest.fn<ListingStore['findWishlistCardIds']>(async () => []),
     findByOwner: jest.fn<ListingStore['findByOwner']>(async () => [listing]),
     findById: jest.fn<ListingStore['findById']>(async () => listing),
     sumOpenByItem: jest.fn<ListingStore['sumOpenByItem']>(async () => 0),
@@ -224,6 +225,18 @@ describe('leituras', () => {
     expect(listings.findActive).toHaveBeenCalledWith({ sort: 'recent', q: 'charizard', withInTrade: true, skip: 2, take: 3 });
     expect(result.items).toHaveLength(2);
     expect(result.hasNextPage).toBe(true);
+  });
+
+  it('busca os selos apenas para os IDs da página entregue', async () => {
+    const { service, listings } = setup();
+    const extra = { ...listing, collectionItem: { ...listing.collectionItem, cardId: 'outside-page' } };
+    listings.findActive.mockResolvedValueOnce([listing, extra]);
+    listings.findWishlistCardIds.mockResolvedValueOnce([listing.collectionItem.cardId]);
+
+    const result = await service.list({ page: 1, limit: 1, sort: 'recent', includeWishlist: true }, 'viewer');
+
+    expect(listings.findWishlistCardIds).toHaveBeenCalledWith('viewer', [listing.collectionItem.cardId]);
+    expect(result).toMatchObject({ hasNextPage: true, wishlistCardIds: [listing.collectionItem.cardId] });
   });
 
   it('listMine sem paginação busca todos os anúncios do dono', async () => {

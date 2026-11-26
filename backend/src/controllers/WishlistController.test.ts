@@ -9,11 +9,13 @@ import { WishlistController, type WishlistActions } from './WishlistController.j
 const misty = { id: 'u-misty', username: 'misty' } as AuthUser;
 const ITEM_ID = 'f323730d-c965-42b2-b3f4-a059e009dfe7';
 const item = { id: ITEM_ID, cardId: 'base1-4', opportunities: 1 } as WishlistItemView;
+const filters = { types: ['Fire' as const], sets: [{ id: 'base1', name: 'Base Set' }], rarities: ['Rare'] };
 
 function setup() {
   const wishlist = {
     list: jest.fn<WishlistActions['list']>(async () => [item]),
-    listPage: jest.fn<WishlistActions['listPage']>(async () => ({ items: [item], hasNextPage: false })),
+    listPage: jest.fn<WishlistActions['listPage']>(async () => ({ items: [item], hasNextPage: false, filters })),
+    filterOptions: jest.fn<WishlistActions['filterOptions']>(async () => filters),
     add: jest.fn<WishlistActions['add']>(async () => item),
     remove: jest.fn<WishlistActions['remove']>(async () => undefined),
   } satisfies WishlistActions;
@@ -47,10 +49,10 @@ describe('WishlistController', () => {
 
     await controller.list(request({ query: { type: 'fire', page: '2', limit: '5' } }), res as unknown as Response, next);
 
-    expect(wishlist.listPage).toHaveBeenCalledWith('u-misty', { type: 'Fire' }, { page: 2, limit: 5 });
+    expect(wishlist.listPage).toHaveBeenCalledWith('u-misty', { type: 'Fire' }, { page: 2, limit: 5 }, undefined);
     expect(res.json).toHaveBeenCalledWith({
       success: true,
-      data: { items: [item] },
+      data: { items: [item], filters },
       pagination: { page: 2, limit: 5, hasNextPage: false },
     });
   });

@@ -22,6 +22,11 @@ const charizard = {
 const now = new Date('2026-11-05T12:00:00Z');
 
 describe('toCardRecord', () => {
+  it('canoniza tipos dos snapshots fora do catálogo e limpa espaços da raridade', () => {
+    expect(toCardRecord({ ...charizard, types: ['Água', 'water', 'Feu', 'Fogo'], rarity: ' Rare ' }))
+      .toMatchObject({ types: ['Water', 'Fire'], rarity: 'Rare' });
+  });
+
   it('converte a ficha da carta na linha da tabela Card', () => {
     expect(toCardRecord(charizard, now)).toEqual({
       id: 'base1-4',

@@ -1,7 +1,7 @@
 import s from "../../styles/vitrine.module.css";
 import { CATEGORIAS, TIPOS } from "../../utils/rotulos";
 import Aviso from "../Aviso/Aviso";
-import PainelFiltros, { GrupoFiltro, GruposCarregando } from "../PainelFiltros/PainelFiltros";
+import PainelFiltros, { GrupoFiltro, GruposCarregando, SeletorExpansao } from "../PainelFiltros/PainelFiltros";
 
 const comRotulos = (valores, rotulos = {}) => valores.map((valor) => [valor, rotulos[valor] ?? valor]);
 
@@ -41,17 +41,7 @@ export default function FiltrosCatalogo({ opcoes, filtros, onAlterar, onLimpar, 
                 opcoes={comRotulos(dados.rarities)}
                 onAlterar={(valor) => alterar("rarity", valor)}
               />
-              <label className={s.campo}>
-                Expansão
-                <select value={valores.set} onChange={(e) => alterar("set", e.target.value)}>
-                  <option value="">Todas as expansões</option>
-                  {dados.sets.map((set) => (
-                    <option key={set.id} value={set.id}>
-                      {set.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SeletorExpansao valor={valores.set} expansoes={dados.sets} onAlterar={(valor) => alterar("set", valor)} />
               <p className={s.ajuda}>Selecione uma opção por grupo. Os filtros são combinados na busca.</p>
             </>
           )}

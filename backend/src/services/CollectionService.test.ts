@@ -86,6 +86,7 @@ const locked: LockedCollectionItem = {
 function setup() {
   const collection = {
     findManyByUser: jest.fn<CollectionStore['findManyByUser']>(async () => [listedRow]),
+    findFilterRows: jest.fn<CollectionStore['findFilterRows']>(async () => []),
     summarizeByUser: jest.fn<CollectionStore['summarizeByUser']>(async () => ({
       totalUnits: 0,
       distinctCards: 0,
@@ -162,6 +163,15 @@ describe('CollectionService.summary', () => {
 });
 
 describe('CollectionService.listPage', () => {
+  it('pula a consulta da lista inteira quando o cliente já tem as opções', async () => {
+    const { collection, service } = setup();
+
+    const result = await service.listPage(USER_ID, {}, { page: 1, limit: 20 }, false);
+
+    expect(collection.findFilterRows).not.toHaveBeenCalled();
+    expect(result).not.toHaveProperty('filters');
+  });
+
   it('pede uma linha a mais com os filtros e corta no limite', async () => {
     const { collection, service } = setup();
     collection.findManyByUser.mockResolvedValue([listedRow, { ...listedRow, id: 'item-2' }, { ...listedRow, id: 'item-3' }]);
@@ -181,6 +191,31 @@ describe('CollectionService.listPage', () => {
 
     expect(result).toMatchObject({ hasNextPage: false });
     expect(result.items).toHaveLength(1);
+  });
+
+  it('devolve as opções da coleção mesmo se a página filtrada estiver vazia', async () => {
+    const { collection, service } = setup();
+    collection.findManyByUser.mockResolvedValue([]);
+    const row = {
+      condition: 'NEAR_MINT' as const,
+      finish: 'NORMAL' as const,
+      card: { types: ['Water'], rarity: null, setId: 'base1', setName: 'Base Set' },
+    };
+    collection.findFilterRows.mockResolvedValue([row, row]);
+
+    const result = await service.listPage(USER_ID, { type: 'Fire', withZero: false }, { page: 2, limit: 1 });
+
+    expect(collection.findFilterRows).toHaveBeenCalledWith(USER_ID, false);
+    expect(result).toEqual({
+      items: [],
+      hasNextPage: false,
+      filters: {
+        types: ['Water'],
+        sets: [{ id: 'base1', name: 'Base Set' }],
+        conditions: ['NEAR_MINT'],
+        finishes: ['NORMAL'],
+      },
+    });
   });
 });
 

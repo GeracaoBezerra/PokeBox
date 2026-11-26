@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export function useCarregar(carregar, chave = "") {
+export function useCarregar(carregar, chave = "", { descartarDadosAntigosEmErro = false } = {}) {
   const carregarRef = useRef(carregar);
   const [versao, setVersao] = useState(0);
   const [estado, setEstado] = useState({ dados: null, erro: null, chave: null, versao: -1 });
@@ -17,11 +17,16 @@ export function useCarregar(carregar, chave = "") {
     carregarRef
       .current()
       .then((dados) => ativo && setEstado({ dados, erro: null, chave, versao }))
-      .catch((erro) => ativo && setEstado((atual) => ({ ...atual, erro, chave, versao })));
+      .catch((erro) => ativo && setEstado((atual) => ({
+        dados: descartarDadosAntigosEmErro && atual.chave !== chave ? null : atual.dados,
+        erro,
+        chave,
+        versao,
+      })));
     return () => {
       ativo = false;
     };
-  }, [chave, versao]);
+  }, [chave, versao, descartarDadosAntigosEmErro]);
 
   const recarregar = useCallback(() => setVersao((v) => v + 1), []);
 

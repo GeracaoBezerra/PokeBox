@@ -14,7 +14,10 @@ export function createListingRoutes(
 ): Router {
   const router = Router();
 
-  router.get('/', controller.list);
+  router.get('/', (req, res, next) => {
+    if (req.query.wishlist === 'true' || req.query.includeWishlist === 'true') return auth.requireAuth(req, res, next);
+    next();
+  }, controller.list);
   router.get('/me', auth.requireAuth, controller.listMine);
   router.get('/:id', auth.optionalAuth, controller.getById);
   router.post('/', auth.requireAuth, controller.create);
