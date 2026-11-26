@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { cardLangSchema } from '../middlewares/validateCardParams.js';
 import { CARD_ID_PATTERN } from '../utils/cardId.js';
 import { toPageRequest } from '../utils/pagination.js';
-import { itemSortFilter, qFilter, rarityFilter, typeFilter } from './cardFilters.schema.js';
+import { booleanFilter, itemSortFilter, qFilter, rarityFilter, setIdFilter, typeFilter } from './cardFilters.schema.js';
 import { optionalPaginationQuery } from './pagination.schema.js';
 
 export const addWishlistItemSchema = z
@@ -18,10 +18,12 @@ export const listWishlistQuerySchema = z
     q: qFilter.optional(),
     type: typeFilter.optional(),
     rarity: rarityFilter.optional(),
+    setId: setIdFilter.optional(),
     sort: itemSortFilter.optional(),
+    includeFilters: booleanFilter('includeFilters').optional(),
     ...optionalPaginationQuery,
   })
-  .transform((query) => toPageRequest(query));
+  .transform(({ includeFilters, ...query }) => ({ ...toPageRequest(query), includeFilters }));
 
 export const wishlistItemIdSchema = z.object({ id: z.uuid() });
 

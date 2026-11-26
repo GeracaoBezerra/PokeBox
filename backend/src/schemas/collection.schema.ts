@@ -49,9 +49,14 @@ export const listCollectionQuerySchema = z
     setId: setIdFilter.optional(),
     type: typeFilter.optional(),
     sort: itemSortFilter.optional(),
+    includeFilters: booleanFilter('includeFilters').optional(),
     ...optionalPaginationQuery,
   })
-  .transform((query) => toPageRequest(query));
+  .transform(({ includeFilters, ...query }) => ({ ...toPageRequest(query), includeFilters }));
+
+export const collectionFilterOptionsQuerySchema = z.object({
+  withZero: booleanFilter('withZero').optional(),
+});
 
 export const listPublicCollectionQuerySchema = z
   .object({

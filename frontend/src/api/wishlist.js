@@ -7,12 +7,17 @@ export async function listWishlist(opcoes) {
     return body.data.items;
   }
   const body = await http.get("/wishlist", { params: parametrosDaPagina(opcoes) });
-  return { items: body.data.items, pagination: body.pagination };
+  return { items: body.data.items, filters: body.data.filters, pagination: body.pagination };
 }
 
 export async function addToWishlist(cardId, lang) {
   const body = await http.post("/wishlist", { cardId, lang });
   return body.data.item;
+}
+
+export async function getWishlistFilters() {
+  const body = await http.get("/wishlist/filters");
+  return body.data;
 }
 
 export async function removeFromWishlist(id) {

@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http as rota, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
@@ -8,7 +8,13 @@ import { server } from "../test/server";
 import WishlistPage from "./wishlist";
 
 const url = (caminho) => `${CONFIG.apiBaseUrl}${caminho}`;
-const lista = (items, pagination) => HttpResponse.json({ success: true, data: { items }, pagination });
+const filtrosDisponiveis = {
+  types: ["Fire", "Lightning"],
+  rarities: ["Rare", "Rare Holo"],
+  sets: [{ id: "base1", name: "Base Set" }],
+};
+const lista = (items, pagination) =>
+  HttpResponse.json({ success: true, data: { items, filters: filtrosDisponiveis }, pagination });
 
 const pikachu = {
   id: "item-1",
@@ -42,17 +48,22 @@ const charizard = {
 
 const resultado = ({ card }) => ({ ...card, set: { name: card.setName } });
 
-function servidor({ pagina = () => lista([pikachu]), inteira = [], colecao = [] } = {}) {
+function servidor({ pagina = () => lista([pikachu]), inteira = [], colecao = [], aoPedirFiltros = () => {} } = {}) {
   const pedidos = [];
   server.use(
     rota.get(url("/wishlist"), ({ request }) => {
       const params = new URL(request.url).searchParams;
       if (!params.has("page")) return HttpResponse.json({ success: true, data: { items: inteira } });
+      expect(params.get("includeFilters")).toBe("false");
+      params.delete("includeFilters");
       pedidos.push(Object.fromEntries(params));
       return pagina(params);
     }),
     rota.get(url("/collection"), () => HttpResponse.json({ success: true, data: { items: colecao } })),
-    rota.get(url("/cards/filters"), () => HttpResponse.json({ success: true, data: { rarities: ["Common", "Rare"] } })),
+    rota.get(url("/wishlist/filters"), () => {
+      aoPedirFiltros();
+      return HttpResponse.json({ success: true, data: filtrosDisponiveis });
+    }),
   );
   return pedidos;
 }
@@ -104,6 +115,35 @@ describe("Página da wishlist", () => {
     expect(pedidos).toEqual([{ page: "1", limit: "23" }]);
     expect(screen.getByRole("combobox", { name: "Ordenar por" })).toHaveValue("");
     expect(screen.queryByRole("button", { name: "Próxima" })).not.toBeInTheDocument();
+  });
+
+  it("usa os tipos, raridades e expansões da wishlist no painel e aplica a expansão escolhida", async () => {
+    const cargas = [];
+    const pedidos = servidor({ aoPedirFiltros: () => cargas.push(1) });
+    renderizar();
+
+    const painel = painelDesktop();
+    const tipos = within(await painel.findByRole("group", { name: "Tipo" }));
+    expect(tipos.getByRole("radio", { name: "Fogo" })).toBeInTheDocument();
+    expect(tipos.queryByRole("radio", { name: "Água" })).not.toBeInTheDocument();
+    expect(painel.getByRole("radio", { name: "Rare Holo" })).toBeInTheDocument();
+    expect(painel.queryByRole("radio", { name: "Common" })).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(painel.getByRole("combobox", { name: "Expansão" }), "base1");
+    expect(await screen.findByRole("button", { name: "Remover filtro Expansão: Base Set" })).toBeInTheDocument();
+    await waitFor(() => expect(pedidos.at(-1)).toMatchObject({ setId: "base1", page: "1" }));
+    expect(cargas).toHaveLength(1);
+  });
+
+  it("indica expansão indisponível na URL e permite limpar o filtro no painel", async () => {
+    const pedidos = servidor();
+    renderizar("/procuro?setId=antigo");
+
+    const painel = painelDesktop();
+    const limpar = await painel.findByRole("button", { name: "Limpar filtro Expansão" });
+    expect(painel.getByRole("option", { name: "antigo (indisponível)" })).toHaveProperty("disabled", true);
+    await userEvent.click(limpar);
+    await waitFor(() => expect(pedidos.at(-1)).not.toHaveProperty("setId"));
   });
 
   it("só remove depois de confirmar e atualiza a lista sem recarregar", async () => {
@@ -185,6 +225,38 @@ describe("Página da wishlist", () => {
     expect(buscas).toEqual([{ lang: "en", termo: "mew" }]);
     expect(adicoes).toEqual([{ cardId: "basep-8", lang: "en" }]);
     expect(pedidos).toHaveLength(1);
+  });
+
+  it("atualiza a paginação ao adicionar a vigésima quarta carta", async () => {
+    let adicionou = false;
+    const itens = Array.from({ length: 23 }, (_, i) => ({
+      ...pikachu,
+      id: `item-${i}`,
+      cardId: `base1-${i}`,
+      card: { ...pikachu.card, id: `base1-${i}`, name: `Carta ${i}` },
+    }));
+    servidor({ pagina: (params) => lista(
+      params.get("page") === "2" ? [mew] : itens,
+      { hasNextPage: adicionou && params.get("page") === "1" },
+    ) });
+    server.use(
+      rota.get(url("/cards"), () => HttpResponse.json({ data: [resultado(mew)] })),
+      rota.post(url("/wishlist"), () => {
+        adicionou = true;
+        return HttpResponse.json({ data: { item: mew } }, { status: 201 });
+      }),
+    );
+    renderizar();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Adicionar carta à wishlist" }));
+    const dialogo = within(screen.getByRole("dialog", { name: "Adicionar à wishlist" }));
+    await userEvent.type(dialogo.getByRole("searchbox", { name: "Buscar cartas" }), "mew{Enter}");
+    await userEvent.click(await dialogo.findByRole("button", { name: "Adicionar Mew à wishlist" }));
+
+    const proxima = await screen.findByRole("button", { name: "Próxima" });
+    expect(screen.getAllByRole("link", { name: "Procurar anúncios" })).toHaveLength(23);
+    await userEvent.click(proxima);
+    expect(await screen.findByRole("heading", { name: "Mew" })).toBeInTheDocument();
   });
 
   it("no modal, marca Na wishlist o que está em outra página e Você já tem o que tem unidade na coleção", async () => {

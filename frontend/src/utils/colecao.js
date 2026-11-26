@@ -14,7 +14,7 @@ export const VISIBILIDADES = {
   false: "Só privadas",
 };
 
-export const CAMPOS_FILTRO_COLECAO = ["q", "type", "condition", "finish", "isPublic", "zerados"];
+export const CAMPOS_FILTRO_COLECAO = ["q", "type", "setId", "condition", "finish", "isPublic", "zerados"];
 
 const MOTIVOS = {
   RESERVED: "Está numa troca em andamento",
@@ -29,6 +29,8 @@ function escolher(valor, opcoes) {
 export function filtrosDaColecao(params) {
   const q = params.get("q") ?? "";
   const type = escolher(params.get("type") ?? "", TIPOS);
+  const setIdPedido = params.get("setId") ?? "";
+  const setId = /^[a-z\d.-]{1,30}$/i.test(setIdPedido) ? setIdPedido : "";
   const condition = escolher(params.get("condition") ?? "", CONDICOES);
   const finish = escolher(params.get("finish") ?? "", ACABAMENTOS);
   const isPublic = escolher(params.get("isPublic") ?? "", VISIBILIDADES);
@@ -40,11 +42,11 @@ export function filtrosDaColecao(params) {
   const buscaCurta = q !== "" && !temPalavra(q);
   const buscaLonga = q.trim().length > LIMITE_BUSCA;
   const qApi = buscaCurta || buscaLonga ? "" : q.trim();
-  return { q, type, condition, finish, isPublic, zerados, sort, visao, page, buscaCurta, buscaLonga, qApi };
+  return { q, type, setId, condition, finish, isPublic, zerados, sort, visao, page, buscaCurta, buscaLonga, qApi };
 }
 
-export function filtrosDaApi({ qApi, type, condition, finish, isPublic, zerados, sort }) {
-  return { q: qApi, type, condition, finish, isPublic, sort, withZero: zerados ? "" : "false" };
+export function filtrosDaApi({ qApi, type, setId, condition, finish, isPublic, zerados, sort }) {
+  return { q: qApi, type, setId, condition, finish, isPublic, sort, withZero: zerados ? "" : "false" };
 }
 
 export function rotuloDoSeloColecao(campo, valor) {
@@ -53,6 +55,8 @@ export function rotuloDoSeloColecao(campo, valor) {
       return `Nome: ${valor}`;
     case "type":
       return `Tipo: ${TIPOS[valor] ?? valor}`;
+    case "setId":
+      return `Expansão: ${valor}`;
     case "condition":
       return `Condição: ${CONDICOES[valor] ?? valor}`;
     case "finish":

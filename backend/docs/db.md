@@ -158,6 +158,9 @@ O `npm run catalog:sync` (`backend/scripts/sync-catalog.ts`) preenche a tabela: 
 | `20261119120000_trade_item_card_ranking` | índice de `TradeItem.cardId` usado pelo ranking de cartas mais trocadas (#92) |
 | `20261120194650_troca_redonda` | troca redonda (#213): `IN_TRADE` em `ListingStatus`, enum `OfferCancelReason` e `Offer.cancelReason`, `Trade.proposerConfirmedAt` e `recipientConfirmedAt`, tabela `TradeListingHold`. Escrito à mão no fim: as trocas `ACCEPTED` que já existem recebem as duas confirmações com a data de conclusão; `listing_quantity_check` passa a aceitar 0 fora de `ACTIVE`; CHECKs `trade_accepted_confirmed_check`, `trade_listing_hold_quantity_check` e `offer_cancel_reason_check` |
 | `20261121015726_oferta_guarda_cartas` | oferta guarda as cartas (#217): `OfferItem` ganha `cardId`, `condition`, `finish` e `firstEdition` (padrão `false`), preenchidos à mão a partir do item da coleção; `collectionItemId` fica opcional com FK `SET NULL`; FK `RESTRICT` para `Card` e índice em `OfferItem.cardId` |
+| `20261126190000_normalize_saved_card_filters` | #235: converte os tipos reconhecidos em `Card.types` para os nomes usados nos filtros (por exemplo, `Fogo` vira `Fire`), elimina tipos duplicados e apara `Card.rarity`, convertendo valores vazios em `NULL`. Altera apenas dados de `Card`, sem mudança de schema. |
+
+A normalização de `Card` roda com `prisma migrate deploy` na subida da API. Depois da aplicação, reverter o código sozinho não restaura os tipos localizados, duplicatas ou espaços originais. Recuperar os valores exatos exige um backup ou snapshot anterior à migração.
 
 Nova tabela ou coluna: altere o `schema.prisma`, rode `npx prisma migrate dev --name <descricao>` e atualize este arquivo no mesmo PR.
 

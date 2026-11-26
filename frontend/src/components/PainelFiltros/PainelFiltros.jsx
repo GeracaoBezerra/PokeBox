@@ -2,8 +2,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import s from "../../styles/vitrine.module.css";
 
-export function GrupoFiltro({ titulo, valor, opcoes, todas = "Todas as opções", onAlterar }) {
+export function GrupoFiltro({ titulo, valor, opcoes, todas = "Todas as opções", rotuloAtual = valor, onAlterar }) {
   const nome = useId();
+  const indisponivel = valor && !opcoes.some(([codigo]) => codigo === valor);
   return (
     <fieldset className={s.grupo}>
       <legend>{titulo}</legend>
@@ -11,6 +12,12 @@ export function GrupoFiltro({ titulo, valor, opcoes, todas = "Todas as opções"
         <label>
           <input type="radio" name={nome} checked={!valor} onChange={() => onAlterar("")} /> {todas}
         </label>
+        {indisponivel && (
+          <label>
+            <input type="radio" name={nome} value={valor} checked disabled />
+            {rotuloAtual} (indisponível)
+          </label>
+        )}
         {opcoes.map(([codigo, rotulo]) => (
           <label key={codigo}>
             <input type="radio" name={nome} value={codigo} checked={valor === codigo} onChange={() => onAlterar(codigo)} />
@@ -18,7 +25,33 @@ export function GrupoFiltro({ titulo, valor, opcoes, todas = "Todas as opções"
           </label>
         ))}
       </div>
+      {indisponivel && <LimparSelecao titulo={titulo} onAlterar={onAlterar} />}
     </fieldset>
+  );
+}
+
+function LimparSelecao({ titulo, onAlterar }) {
+  return (
+    <button type="button" className={s.limpar} onClick={() => onAlterar("")} aria-label={`Limpar filtro ${titulo}`}>
+      Limpar
+    </button>
+  );
+}
+
+export function SeletorExpansao({ valor, expansoes, rotuloAtual = valor, onAlterar }) {
+  const indisponivel = valor && !expansoes.some(({ id }) => id === valor);
+  return (
+    <div>
+      <label className={s.campo}>
+        Expansão
+        <select value={valor} onChange={(evento) => onAlterar(evento.target.value)}>
+          <option value="">Todas as expansões</option>
+          {indisponivel && <option value={valor} disabled>{rotuloAtual} (indisponível)</option>}
+          {expansoes.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+        </select>
+      </label>
+      {indisponivel && <LimparSelecao titulo="Expansão" onAlterar={onAlterar} />}
+    </div>
   );
 }
 

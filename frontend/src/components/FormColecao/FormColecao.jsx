@@ -20,7 +20,9 @@ function acabamentosDisponiveis(variants = {}) {
 const MENSAGEM_PADRAO = () => "Carta adicionada à coleção.";
 
 export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSAGEM_PADRAO }) {
-  const acabamentos = acabamentosDisponiveis(card.variants);
+  const variantes = card.variants ?? {};
+  const acabamentos = acabamentosDisponiveis(variantes);
+  const podeMarcarPrimeiraEdicao = variantes.firstEdition || !Object.values(variantes).some(Boolean);
   const [form, setForm] = useState({
     finish: acabamentos[0],
     firstEdition: false,
@@ -39,6 +41,7 @@ export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSA
 
   async function enviar(evento) {
     evento.preventDefault();
+    if (ocupado) return;
     const quantidade = Number(form.quantity);
     const { ok, resultado } = await executar(() => addToCollection({ cardId: card.id, ...form, quantity: quantidade, lang }));
     if (!ok) return;
@@ -50,16 +53,23 @@ export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSA
     <form className={s.formulario} onSubmit={enviar}>
       <p className={s.suave}>Escolha a versão e o estado da carta que você tem.</p>
       <div className={s.campos}>
-        <label className={s.campo}>
-          Acabamento
-          <select value={form.finish} onChange={(e) => alterar("finish", e.target.value)}>
-            {acabamentos.map((finish) => (
-              <option key={finish} value={finish}>
-                {variante({ finish, firstEdition: false })}
-              </option>
-            ))}
-          </select>
-        </label>
+        {acabamentos.length > 1 ? (
+          <label className={s.campo}>
+            Acabamento
+            <select value={form.finish} onChange={(e) => alterar("finish", e.target.value)}>
+              {acabamentos.map((finish) => (
+                <option key={finish} value={finish}>
+                  {variante({ finish, firstEdition: false })}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <div className={s.campo}>
+            Acabamento
+            <span className={s.valorFixo}>{variante({ finish: acabamentos[0], firstEdition: false })}</span>
+          </div>
+        )}
         <label className={s.campo}>
           Condição
           <select value={form.condition} onChange={(e) => alterar("condition", e.target.value)}>
@@ -70,7 +80,7 @@ export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSA
             ))}
           </select>
         </label>
-        <div>
+        <div className={s.quantidadeAdicao}>
           <label className={s.campo}>
             Quantidade
             <input
@@ -85,19 +95,18 @@ export default function FormColecao({ card, lang, onAdicionado, mensagem = MENSA
           </label>
           <ErroCampo id={idErroQuantidade} mensagem={erroQuantidade} />
         </div>
-        <label className={s.checkbox}>
-          <input
-            type="checkbox"
-            checked={form.firstEdition}
-            disabled={!card.variants?.firstEdition && Object.values(card.variants ?? {}).some(Boolean)}
-            onChange={(e) => alterar("firstEdition", e.target.checked)}
-          />
-          1ª edição{!card.variants?.firstEdition && Object.values(card.variants ?? {}).some(Boolean) ? " (indisponível)" : ""}
-        </label>
-        <label className={s.checkbox}>
-          <input type="checkbox" checked={form.isPublic} onChange={(e) => alterar("isPublic", e.target.checked)} />
-          Visível no meu perfil público
-        </label>
+        <div className={s.opcoesAdicao}>
+          <label className={s.checkbox}>
+            <input type="checkbox" checked={form.isPublic} onChange={(e) => alterar("isPublic", e.target.checked)} />
+            Visível no meu perfil público
+          </label>
+          {podeMarcarPrimeiraEdicao && (
+            <label className={s.checkbox}>
+              <input type="checkbox" checked={form.firstEdition} onChange={(e) => alterar("firstEdition", e.target.checked)} />
+              1ª edição
+            </label>
+          )}
+        </div>
       </div>
       <button className={s.botao} type="submit" disabled={ocupado}>
         {ocupado ? "Adicionando…" : "Adicionar à coleção"}

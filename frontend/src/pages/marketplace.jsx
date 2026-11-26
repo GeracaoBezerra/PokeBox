@@ -2,7 +2,6 @@ import { useSearchParams } from "react-router-dom";
 import { SearchX } from "lucide-react";
 import { getCardFilters } from "../api/cards";
 import { listListings } from "../api/listings";
-import { listWishlist } from "../api/wishlist";
 import { useSession } from "../auth/useSession";
 import Atualizando from "../components/Atualizando/Atualizando";
 import Aviso from "../components/Aviso/Aviso";
@@ -13,6 +12,7 @@ import Paginacao from "../components/Paginacao/Paginacao";
 import SelosFiltro from "../components/SelosFiltro/SelosFiltro";
 import { useCarregar } from "../hooks/useCarregar";
 import s from "../styles/vitrine.module.css";
+import { LIMITE_BUSCA } from "../utils/busca";
 import { temPalavra, usernameValido } from "../utils/filtrosMarketplace";
 import { ACABAMENTOS, CONDICOES, ORDENACOES, TIPOS } from "../utils/rotulos";
 
@@ -55,11 +55,15 @@ function rotuloDoSelo(campo, valor, nomeDaCarta) {
 }
 
 export default function MarketplacePage() {
-  const [params, setParams] = useSearchParams();
   const sessao = useSession();
+  return <VitrineMarketplace key={sessao?.user?.username ?? ""} sessao={sessao} />;
+}
+
+function VitrineMarketplace({ sessao }) {
+  const [params, setParams] = useSearchParams();
   const meuUsername = sessao?.user?.username;
 
-  const q = params.get("q") ?? "";
+  const q = (params.get("q") ?? "").trim();
   const sortPedido = params.get("sort") ?? "";
   const sort = sortPedido !== "recent" && Object.hasOwn(ORDENACOES, sortPedido) ? sortPedido : "";
   const paginaPedida = Number(params.get("page") ?? 1);
@@ -70,23 +74,24 @@ export default function MarketplacePage() {
       return [campo, valorValido(campo, valor) ? valor : ""];
     })
   );
-  const buscaCurta = q !== "" && !temPalavra(q);
+  const soWishlist = filtros.wishlist === "1" && Boolean(sessao);
+  const buscaLonga = q.length > LIMITE_BUSCA;
+  const buscaCurta = !buscaLonga && q !== "" && !temPalavra(q);
+  const qApi = buscaCurta || buscaLonga ? "" : q;
   const filtrosApi = semVazios({
     ...filtros,
-    wishlist: "",
-    q: buscaCurta ? "" : q,
+    wishlist: soWishlist ? "true" : "",
+    includeWishlist: meuUsername ? "true" : "",
+    q: qApi,
     sort,
   });
   const { dados, erro, carregando, recarregar } = useCarregar(
     () => listListings({ ...filtrosApi, page, limit: 24 }),
-    JSON.stringify({ ...filtrosApi, page })
+    JSON.stringify({ ...filtrosApi, page, usuario: meuUsername }),
+    { descartarDadosAntigosEmErro: true },
   );
 
   const raridades = useCarregar(async () => (await getCardFilters("en")).rarities ?? [], "en");
-  const wishlist = useCarregar(
-    async () => (meuUsername ? new Set((await listWishlist()).map((item) => item.cardId)) : null),
-    meuUsername ?? ""
-  );
 
   function atualizar(mudancas, reiniciarPagina = true) {
     const novos = new URLSearchParams(params);
@@ -102,19 +107,14 @@ export default function MarketplacePage() {
     atualizar(VAZIOS);
   }
 
-  const idsWishlist = sessao ? wishlist.dados : null;
-  const querWishlist = filtros.wishlist === "1" && Boolean(sessao);
-  const esperandoWishlist = querWishlist && wishlist.carregando;
-  const erroWishlist = querWishlist ? wishlist.erro : null;
-  const soWishlist = querWishlist && Boolean(idsWishlist);
-  const mostrarCarregando = carregando || esperandoWishlist;
-  const primeiraCarga = mostrarCarregando && !dados;
+  const idsWishlist = meuUsername ? new Set(dados?.wishlistCardIds) : null;
+  const primeiraCarga = carregando && !dados;
   const nomeDaCarta = dados?.items.find((anuncio) => anuncio.card.id === filtros.cardId)?.card.name;
   const selos = CAMPOS_FILTRO.filter((campo) => filtros[campo] && (campo !== "wishlist" || sessao)).map((campo) => ({
     campo,
     rotulo: rotuloDoSelo(campo, filtros[campo], nomeDaCarta),
   }));
-  const anuncios = (dados?.items ?? []).filter((anuncio) => !soWishlist || idsWishlist.has(anuncio.card.id));
+  const anuncios = dados?.items ?? [];
   const painel = Object.fromEntries(CAMPOS_PAINEL.map((campo) => [campo, filtros[campo]]));
 
   return (
@@ -146,7 +146,7 @@ export default function MarketplacePage() {
         <section className={s.resultados} aria-label="Anúncios do marketplace">
           <div className={s.resumo} role="status">
             <p>
-              {q && !buscaCurta ? (
+              {qApi ? (
                 <>
                   Resultados para <strong>“{q}”</strong>
                 </>
@@ -155,25 +155,20 @@ export default function MarketplacePage() {
               )}
             </p>
             <span>
-              {mostrarCarregando
+              {carregando
                 ? "Buscando anúncios…"
-                : dados && !erroWishlist
+                : dados
                   ? `${anuncios.length} ${anuncios.length === 1 ? "anúncio" : "anúncios"} nesta página`
                   : ""}
             </span>
           </div>
           {buscaCurta && <p className={s.dica}>Digite pelo menos 2 letras ou números para buscar pelo nome.</p>}
+          {buscaLonga && <p className={s.dica}>A busca aceita até {LIMITE_BUSCA} caracteres.</p>}
           <SelosFiltro selos={selos} onRemover={(campo) => atualizar({ [campo]: "" })} onLimpar={limparFiltros} />
           <Aviso erro={erro} onTentarDeNovo={recarregar} />
-          {!erro && erroWishlist && (
-            <Aviso
-              erro={{ ...erroWishlist, message: `Não foi possível carregar sua wishlist. ${erroWishlist.message}` }}
-              onTentarDeNovo={wishlist.recarregar}
-            />
-          )}
           {primeiraCarga && <GradeCartas carregando total={24} variante="catalogo" />}
-          {!primeiraCarga && !erroWishlist && dados && (
-            <Atualizando atualizando={mostrarCarregando}>
+          {!primeiraCarga && dados && (
+            <Atualizando atualizando={carregando}>
               {anuncios.length ? (
                 <GradeCartas variante="catalogo">
                   {anuncios.map((anuncio) => (
@@ -191,8 +186,8 @@ export default function MarketplacePage() {
                   <SearchX size={32} aria-hidden="true" />
                   <h2>Nenhum anúncio encontrado</h2>
                   <p>
-                    {soWishlist && dados.items.length > 0
-                      ? "Nenhuma carta da sua wishlist nesta página. Tente a próxima."
+                    {soWishlist
+                      ? "Nenhum anúncio de cartas da sua wishlist corresponde aos filtros."
                       : "Tente outro nome ou ajuste os filtros para ampliar a busca."}
                   </p>
                   {selos.length > 0 && (
@@ -206,6 +201,7 @@ export default function MarketplacePage() {
                 <Paginacao
                   pagina={page}
                   temProxima={dados.pagination?.hasNextPage}
+                  carregando={carregando}
                   onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
                 />
               )}

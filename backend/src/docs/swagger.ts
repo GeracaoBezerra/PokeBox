@@ -126,7 +126,7 @@ const listingResponse = (description: string) => ({
   },
 });
 
-const listingListResponse = (description: string, withPagination: boolean) => ({
+const listingListResponse = (description: string, withPagination: boolean, supportsWishlist = false) => ({
   description,
   content: {
     "application/json": {
@@ -141,6 +141,13 @@ const listingListResponse = (description: string, withPagination: boolean) => ({
                 type: "array",
                 items: { $ref: "#/components/schemas/Listing" },
               },
+              ...(supportsWishlist && {
+                wishlistCardIds: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Cartas da página presentes na wishlist, com includeWishlist=true",
+                },
+              }),
             },
           },
           ...(withPagination && {
@@ -167,6 +174,43 @@ const offerCancelReasons = Object.values(OfferCancelReason);
 const tradeStatuses = Object.values(TradeStatus);
 
 const optionalPaginationNote = `Paginação opcional (#77): sem nenhum dos parâmetros abaixo, responde a lista inteira como antes, sem o bloco pagination. Qualquer um deles (page, limit, filtro ou sort) ativa a paginação: no máximo limit itens (padrão ${DEFAULT_PAGE_LIMIT}, máximo ${MAX_PAGE_LIMIT}) e o bloco pagination, sem total.`;
+
+const booleanQuery = (name: string, description: string) => ({
+  name, description, in: "query", required: false, schema: { type: "string", enum: ["true", "false"] },
+});
+const withZeroParam = booleanQuery("withZero", "false esconde os itens com quantidade 0. Por padrão, eles vêm.");
+const includeFiltersParam = booleanQuery("includeFilters", "false omite data.filters em respostas paginadas. Não ativa a paginação por si só.");
+const setIdParam = {
+  name: "setId",
+  in: "query",
+  required: false,
+  description: "Só cartas desta expansão (id exato)",
+  schema: { type: "string", pattern: "^[a-zA-Z0-9.\\-]+$", maxLength: 30, example: "base1" },
+};
+const stringList = { type: "array", items: { type: "string" } };
+const savedCardFilterProperties = {
+  types: stringList,
+  sets: {
+    type: "array",
+    items: { type: "object", properties: { id: { type: "string" }, name: { type: "string" } } },
+  },
+};
+const collectionFilters = {
+  type: "object",
+  properties: { ...savedCardFilterProperties, conditions: stringList, finishes: stringList },
+};
+const wishlistFilters = {
+  type: "object",
+  properties: { ...savedCardFilterProperties, rarities: stringList },
+};
+const filterOptionsResponse = (data: typeof collectionFilters | typeof wishlistFilters) => ({
+  description: "Opções encontradas na lista da pessoa",
+  content: {
+    "application/json": {
+      schema: { type: "object", properties: { success: { type: "boolean" }, data } },
+    },
+  },
+});
 
 const paginationBlock = {
   type: "object",
@@ -943,20 +987,9 @@ export const swaggerSpec = {
             description: "Só os itens públicos (true) ou só os privados (false)",
             schema: { type: "string", enum: ["true", "false"] },
           },
-          {
-            name: "withZero",
-            in: "query",
-            required: false,
-            description: "false esconde os itens com quantidade 0. Sem o filtro (ou com true), eles vêm",
-            schema: { type: "string", enum: ["true", "false"] },
-          },
-          {
-            name: "setId",
-            in: "query",
-            required: false,
-            description: "Só cartas deste set (id exato)",
-            schema: { type: "string", pattern: "^[a-zA-Z0-9.\\-]+$", maxLength: 30, example: "base1" },
-          },
+          withZeroParam,
+          setIdParam,
+          includeFiltersParam,
           cardTypeParam,
           itemSortParam,
           ...optionalPageParams,
@@ -977,6 +1010,7 @@ export const swaggerSpec = {
                           type: "array",
                           items: { $ref: "#/components/schemas/OwnCollectionItem" },
                         },
+                        filters: collectionFilters,
                       },
                     },
                     pagination: paginationBlock,
@@ -1010,6 +1044,19 @@ export const swaggerSpec = {
           422: errorResponse("A carta não existe nesse finish ou em 1ª edição"),
           ...authErrors,
           ...tcgdexErrors,
+        },
+      },
+    },
+    "/collection/filters": {
+      get: {
+        tags: ["Collection"],
+        summary: "Opções de filtro da coleção inteira",
+        security: [{ bearerAuth: [] }],
+        parameters: [withZeroParam],
+        responses: {
+          200: filterOptionsResponse(collectionFilters),
+          400: errorResponse("withZero inválido", "ApiValidationError"),
+          ...authErrors,
         },
       },
     },
@@ -1197,6 +1244,8 @@ export const swaggerSpec = {
         parameters: [
           cardQueryParam,
           cardTypeParam,
+          setIdParam,
+          includeFiltersParam,
           {
             name: "rarity",
             in: "query",
@@ -1223,6 +1272,7 @@ export const swaggerSpec = {
                           type: "array",
                           items: { $ref: "#/components/schemas/WishlistItem" },
                         },
+                        filters: wishlistFilters,
                       },
                     },
                     pagination: paginationBlock,
@@ -1277,6 +1327,14 @@ export const swaggerSpec = {
         },
       },
     },
+    "/wishlist/filters": {
+      get: {
+        tags: ["Wishlist"],
+        summary: "Opções de filtro da wishlist inteira",
+        security: [{ bearerAuth: [] }],
+        responses: { 200: filterOptionsResponse(wishlistFilters), ...authErrors },
+      },
+    },
     "/wishlist/{id}": {
       delete: {
         tags: ["Wishlist"],
@@ -1299,8 +1357,10 @@ export const swaggerSpec = {
         summary: "Vitrine de anúncios",
         description:
           "Anúncios ACTIVE e, no fim da lista, os IN_TRADE (Em troca: todas as unidades estão numa troca em andamento; não recebem oferta). A ordenação pedida vale dentro de cada grupo e a paginação segue a lista inteira. Não precisa de login. Donos com conta apagada, suspensa ou inativa não aparecem. Os filtros se somam (E). Exemplos: `?q=charizard`, `?q=charizard base`, `?type=Fire&condition=NEAR_MINT&sort=name`.",
-        security: [],
+        security: [{}, { bearerAuth: [] }],
         parameters: [
+          booleanQuery("wishlist", "true filtra os anúncios pela wishlist da sessão antes de paginar. Exige login."),
+          booleanQuery("includeWishlist", "true inclui wishlistCardIds para as cartas da página atual. Exige login."),
           {
             name: "cardId",
             in: "query",
@@ -1394,8 +1454,9 @@ export const swaggerSpec = {
           },
         ],
         responses: {
-          200: listingListResponse("Anúncios ativos", true),
+          200: listingListResponse("Anúncios ativos", true, true),
           400: errorResponse("Filtro ou paginação inválidos", "ApiValidationError"),
+          401: errorResponse("Sessão exigida para wishlist=true ou includeWishlist=true"),
           500: errorResponse("Erro interno"),
         },
       },

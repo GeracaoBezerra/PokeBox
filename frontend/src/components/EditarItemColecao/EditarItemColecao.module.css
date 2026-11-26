@@ -1,1 +1,10 @@
 .formulario.formulario { padding: 0; }
+.acoes { display: flex; align-items: center; flex-wrap: wrap; gap: var(--esp-8); }
+.acaoSecundaria, .remover { min-height: var(--alvo-min); padding: 0 var(--esp-12); border: 1px solid var(--borda); border-radius: var(--raio-botao); background: var(--superficie); color: var(--texto); font: inherit; cursor: pointer; transition: border-color var(--tempo-rapido), color var(--tempo-rapido); }
+.acaoSecundaria:hover:not(:disabled) { border-color: var(--acento); color: var(--acento); }
+.acoes button.remover { color: var(--erro); border-color: var(--erro); background: var(--erro-fundo); }
+.acoes button.remover:hover:not(:disabled) { border-color: var(--erro); background: color-mix(in srgb, var(--erro) 22%, var(--superficie)); color: var(--erro); }
+.acaoSecundaria:disabled, .remover:disabled { opacity: .5; cursor: not-allowed; }
+.listaVersoes { display: grid; gap: var(--esp-24); min-width: 0; margin: 0 0 var(--esp-24); padding: 0; border: 0; }
+.versao { padding-bottom: var(--esp-24); border-bottom: 1px solid var(--borda-suave); }
+.versao h3 { margin: 0 0 var(--esp-12); color: var(--texto); font-size: var(--fs-md); }

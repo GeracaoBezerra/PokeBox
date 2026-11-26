@@ -295,6 +295,21 @@ describe('GET /collection: deleteBlockedBy e withZero', () => {
     expect(all.body.data.items).toHaveLength(2);
   });
 
+  test('opções da coleção consideram o usuário e o estado de Mostrar zerados', async () => {
+    const user = await registerUser(ctx.app);
+    const other = await registerUser(ctx.app);
+    await addItem(ctx.app, user, { finish: 'HOLO' });
+    const zeroed = await addItem(ctx.app, user, { cardId: CARD_OUTSIDE_SEED.id, finish: 'NORMAL' });
+    await request(ctx.app).patch(`/collection/${zeroed.id}`).set(bearer(user)).send({ quantity: 0 }).expect(200);
+    await addItem(ctx.app, other, { cardId: 'base1-2', finish: 'HOLO' });
+
+    await request(ctx.app).get('/collection/filters').expect(401);
+    const comZeros = await request(ctx.app).get('/collection/filters?withZero=true').set(bearer(user)).expect(200);
+    const semZeros = await request(ctx.app).get('/collection/filters?withZero=false').set(bearer(user)).expect(200);
+    expect(comZeros.body.data).toMatchObject({ types: ['Fire', 'Psychic'], finishes: ['HOLO', 'NORMAL'] });
+    expect(semZeros.body.data).toMatchObject({ types: ['Fire'], finishes: ['HOLO'] });
+  });
+
   test('o perfil público não expõe deleteBlockedBy', async () => {
     const user = await registerUser(ctx.app);
     await addItem(ctx.app, user);

@@ -53,6 +53,8 @@ export const listListingsQuerySchema = z.object({
   setId: setIdFilter.optional(),
   type: typeFilter.optional(),
   rarity: rarityFilter.optional(),
+  wishlist: booleanFilter('wishlist').optional(),
+  includeWishlist: booleanFilter('includeWishlist').optional(),
   sort: z.enum(LISTING_SORTS, { message: `sort deve ser um de: ${LISTING_SORTS.join(', ')}` }).default('recent'),
   ...paginationQuery,
 });

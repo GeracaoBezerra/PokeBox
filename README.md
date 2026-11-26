@@ -189,6 +189,8 @@ Todas as rotas estão no Swagger (`/docs` da API, [produção](https://pokebox-a
 
 ## Regras de negócio
 
+Em **Minha coleção**, tipo, expansão, condição e acabamento vêm dos itens da pessoa. **Visibilidade** sempre oferece públicas e privadas, só públicas e só privadas. Na **Wishlist**, tipo, expansão e raridade vêm das cartas salvas. As duas telas carregam as opções da lista inteira e as reaproveitam ao buscar e paginar. Na coleção, itens com quantidade zero entram nas opções quando **Mostrar zerados** está ativo. No **Marketplace**, o checkbox no topo restringe os anúncios às cartas da wishlist antes da paginação. O selo nos cards usa apenas as cartas da página atual.
+
 RN-01 a RN-12: como cada uma funciona em [`docs/regras.md`](docs/regras.md).
 
 Onde ver cada regra:
@@ -206,7 +208,13 @@ Onde ver cada regra:
 | RN-09 | `DbCachedCatalog`, tabela `Card` | Coleção e wishlist mostram nome, imagem e preço | Com a TCGdex fora do ar, coleção e detalhe de carta continuam respondendo |
 | RN-10 | `ProfileService` | Perfil público (`/u/:username`) | `/u/ash` não mostra o Furret (privado); `/u/dawn` mostra "Nenhuma carta pública." |
 | RN-11 | `CollectionService`, `TradeService` | Wishlist (Já consegui), catálogo (Tenho) | A `misty` adiciona à coleção uma carta da wishlist e ela sai da wishlist |
-| RN-12 | `utils/wishlistRules.ts` | Detalhe da carta, catálogo (Quero) | A `misty` não consegue pôr na wishlist o Mew ex que já tem (botão desligado; API → 409) |
+| RN-12 | `WishlistService` | Detalhe da carta e catálogo | No catálogo, o Mew ex que a `misty` possui mostra apenas **Editar**. Uma tentativa de adicioná-lo à wishlist pela API retorna **409**. |
+
+Nos fluxos de adicionar uma carta à coleção (catálogo, wishlist e Minha coleção), o formulário reserva sua altura enquanto carrega os detalhes e exibe um skeleton acessível para evitar que o modal mude de tamanho abruptamente.
+
+No formulário, cartas com um único acabamento mostram esse valor como texto fixo. Múltiplos acabamentos continuam em um seletor. Sem dados de variantes, o formulário mantém os três acabamentos e permite marcar 1ª edição, conforme a regra da API. Com variantes conhecidas, a opção de 1ª edição só aparece se a carta tiver essa versão.
+
+No catálogo, o botão **Wishlist** mostra um coração para adicionar uma carta. Quando ela já está na wishlist, o mesmo botão fica vermelho e mostra uma lixeira para removê-la. Quem já tem a carta na coleção vê apenas **Editar**. O modal da coleção mostra cada versão com seus controles de edição e remoção, além da ação para adicionar outra versão. **Tenho** abre o mesmo modal em modo de adição. Ao adicionar à coleção, a API remove a carta da wishlist e informa isso na notificação.
 
 ### Adaptação: só trocas
 

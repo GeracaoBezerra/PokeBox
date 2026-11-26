@@ -26,6 +26,21 @@ export default function FiltrosMarketplace({ filtros, raridades, logado, onAlter
     >
       {(valores, alterar, noModal) => (
         <>
+          {logado && (
+            <fieldset className={s.grupo}>
+              <legend>Wishlist</legend>
+              <div className={s.opcoes}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={valores.wishlist === "1"}
+                    onChange={(e) => alterar("wishlist", e.target.checked ? "1" : "")}
+                  />
+                  Mostrar somente cartas da minha wishlist
+                </label>
+              </div>
+            </fieldset>
+          )}
           <GrupoFiltro
             titulo="Condição"
             valor={valores.condition}
@@ -74,21 +89,6 @@ export default function FiltrosMarketplace({ filtros, raridades, logado, onAlter
               }}
             />
           </fieldset>
-          {logado && (
-            <fieldset className={s.grupo}>
-              <legend>Wishlist</legend>
-              <div className={s.opcoes}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={valores.wishlist === "1"}
-                    onChange={(e) => alterar("wishlist", e.target.checked ? "1" : "")}
-                  />
-                  Só cartas da minha wishlist (nesta página)
-                </label>
-              </div>
-            </fieldset>
-          )}
         </>
       )}
     </PainelFiltros>

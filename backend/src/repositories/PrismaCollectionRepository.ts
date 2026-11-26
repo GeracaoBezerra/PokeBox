@@ -4,6 +4,7 @@ import { itemOrderBy } from '../utils/itemSort.js';
 import { cardWhere } from '../utils/listingSearch.js';
 import type { PageWindow } from '../utils/pagination.js';
 import {
+  collectionFilterFields,
   collectionItemWithCard,
   collectionItemWithUsage,
   listedItemWhere,
@@ -40,6 +41,13 @@ export class PrismaCollectionRepository implements CollectionRepository {
       orderBy: itemOrderBy(sort),
       skip,
       take,
+    });
+  }
+
+  findFilterRows(userId: string, withZero?: boolean) {
+    return this.db.collectionItem.findMany({
+      where: { userId, quantity: withZero === false ? { gt: 0 } : undefined },
+      select: collectionFilterFields,
     });
   }
 
