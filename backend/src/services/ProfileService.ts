@@ -9,7 +9,7 @@ import { isPublicProfileVisible } from '../utils/accountStatus.js';
 import { toPublicCollectionItem, type PublicCollectionItem } from '../utils/collectionRules.js';
 import { toPage, toSkipTake, type PageParams } from '../utils/pagination.js';
 
-export type PublicProfileLookup = Pick<UserRepository, 'findPublicByUsername'>;
+export type PublicProfileLookup = Pick<UserRepository, 'findPublicByUsername' | 'searchCollectors'>;
 
 export interface PublicCollection {
   user: { username: string; name: string; createdAt: Date };
@@ -25,6 +25,11 @@ export class ProfileService {
     private readonly users: PublicProfileLookup,
     private readonly collection: PublicCollectionReader,
   ) {}
+
+  async searchCollectors(term: string, page: PageParams) {
+    const rows = await this.users.searchCollectors(term, toSkipTake(page));
+    return toPage(rows, page);
+  }
 
   async getPublicCollection(username: string): Promise<PublicCollection> {
     const user = await this.findVisibleUser(username);

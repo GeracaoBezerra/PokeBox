@@ -4,6 +4,7 @@ import { CONFIG } from "../config";
 import { server } from "../test/server";
 import { getPublicCollection, listCollection } from "./collection";
 import { listMyOffers } from "./offers";
+import { searchCollectors } from "./users";
 
 const url = (caminho) => `${CONFIG.apiBaseUrl}${caminho}`;
 
@@ -20,6 +21,18 @@ function responderCom(caminho, montar) {
 }
 
 describe("funções de lista", () => {
+  it.each([
+    { name: "Ash", username: "" },
+    { name: "Ash", username: "../ash" },
+    { name: " ", username: "ash" },
+    null,
+  ])("recusa perfis inválidos antes de gerar um link: %j", async (perfil) => {
+    responderCom("/users", () => ({
+      data: { items: [perfil] }, pagination: { hasNextPage: false },
+    }));
+    await expect(searchCollectors("ash", 1, 5)).rejects.toMatchObject({ status: 502 });
+  });
+
   it("sem parâmetro, a coleção vem inteira como antes", async () => {
     const pedidos = responderCom("/collection", () => ({ success: true, data: { items: [{ id: "a" }] } }));
 

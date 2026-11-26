@@ -1,13 +1,19 @@
 import type { RequestHandler } from 'express';
 
 import { listPublicCollectionQuerySchema } from '../schemas/collection.schema.js';
-import { usernameParamSchema } from '../schemas/user.schema.js';
+import { searchCollectorsQuerySchema, usernameParamSchema } from '../schemas/user.schema.js';
 import type { ProfileService } from '../services/ProfileService.js';
 
-export type ProfileActions = Pick<ProfileService, 'getPublicCollection' | 'getPublicCollectionPage'>;
+export type ProfileActions = Pick<ProfileService, 'getPublicCollection' | 'getPublicCollectionPage' | 'searchCollectors'>;
 
 export class ProfileController {
   constructor(private readonly profiles: ProfileActions) {}
+
+  searchCollectors: RequestHandler = async (req, res) => {
+    const { q, ...page } = searchCollectorsQuerySchema.parse(req.query);
+    const { items, hasNextPage } = await this.profiles.searchCollectors(q, page);
+    res.json({ success: true, data: { items }, pagination: { ...page, hasNextPage } });
+  };
 
   publicCollection: RequestHandler = async (req, res) => {
     const { username } = usernameParamSchema.parse(req.params);

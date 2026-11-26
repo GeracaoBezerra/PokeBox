@@ -48,7 +48,7 @@ describe("useListaPaginada", () => {
     await waitFor(() => expect(result.current.itens).toHaveLength(2));
     rerender({ chave: "b" });
     await waitFor(() => expect(result.current.itens).toEqual([{ id: "p1" }]));
-    expect(buscar.mock.calls.at(-1)).toEqual([1]);
+    expect(buscar).toHaveBeenLastCalledWith(1, expect.any(AbortSignal));
   });
 
   it("atualizarCarregadas busca de novo todas as páginas abertas sem duplicar e mantém os itens enquanto busca", async () => {

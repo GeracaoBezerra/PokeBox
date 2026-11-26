@@ -69,10 +69,6 @@
   font-size: var(--fs-sm);
 }
 
-.inputBusca[aria-invalid="true"] {
-  border-color: var(--erro);
-}
-
 .inputBusca::placeholder {
   color: var(--texto-suave);
 }
@@ -89,10 +85,60 @@
   display: block;
 }
 
-.buscaErro {
+.resultadosColecionadores {
   position: absolute;
-  top: 100%;
-  left: 0;
+  top: calc(100% + var(--esp-4));
+  inset-inline: 0;
+  z-index: 10;
+  max-height: min(55vh, 24rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--esp-8);
+  background-color: var(--superficie);
+  color: var(--texto);
+  border: var(--borda-painel);
+  border-radius: var(--raio-botao);
+  box-shadow: var(--sombra-sm);
+}
+
+.resultadosColecionadores p {
+  margin: var(--esp-8);
+}
+
+.listaColecionadores {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.listaColecionadores a {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-12);
+  padding: var(--esp-8);
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--raio-botao);
+  overflow-wrap: anywhere;
+}
+
+.listaColecionadores a:hover, .listaColecionadores a:focus-visible {
+  background-color: var(--superficie-hover);
+}
+
+.listaColecionadores small {
+  display: block;
+  color: var(--texto-suave);
+}
+
+.resultadosColecionadores button {
+  width: 100%;
+  min-height: var(--alvo-min);
+  background-color: var(--fundo);
+  color: var(--texto);
+  border: var(--borda-painel);
+  border-radius: var(--raio-botao);
+  cursor: pointer;
 }
 
 /* Perfil e botão do menu */
@@ -236,10 +282,6 @@
     order: 1;
     flex-basis: 100%;
     max-width: none;
-  }
-
-  .buscaErro {
-    position: static;
   }
 
   .botaoMenu {

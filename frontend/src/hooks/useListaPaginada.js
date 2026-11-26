@@ -14,15 +14,16 @@ export function useListaPaginada(buscar, chave = "") {
   });
 
   useEffect(() => {
-    let ativo = true;
+    const controlador = new AbortController();
+    const { signal } = controlador;
     const buscarPagina = buscarRef.current;
     async function carregar() {
       const itens = [];
       let pagina = alvo.de;
       try {
         for (;; pagina++) {
-          const resposta = await buscarPagina(pagina);
-          if (!ativo) return;
+          const resposta = await buscarPagina(pagina, signal);
+          if (signal.aborted) return;
           itens.push(...(resposta?.items ?? []));
           const temMais = Boolean(resposta?.pagination?.hasNextPage);
           if (!temMais || pagina === alvo.ate) {
@@ -34,13 +35,13 @@ export function useListaPaginada(buscar, chave = "") {
           }
         }
       } catch (erro) {
-        if (ativo) setEstado((anterior) => ({
+        if (!signal.aborted) setEstado((anterior) => ({
           ...(anterior.alvo?.chave === alvo.chave ? anterior : VAZIA), alvo, erro,
         }));
       }
     }
     carregar();
-    return () => { ativo = false; };
+    return () => controlador.abort();
   }, [alvo]);
 
   const atual = estado.alvo?.chave === chave ? estado : VAZIA;
