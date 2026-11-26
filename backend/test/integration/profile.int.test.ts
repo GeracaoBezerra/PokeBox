@@ -40,7 +40,8 @@ describe('GET /users', () => {
       pagination: { page: 1, limit: 2, hasNextPage: true },
     });
     expect((await search(2)).body).toEqual({
-      success: true, data: { items: [{ username: 'bia', name: 'Ipê Rosa' }] },
+      success: true,
+      data: { items: [{ username: 'bia', name: 'Ipê Rosa' }, { username: 'ipependente', name: 'Teste' }] },
       pagination: { page: 2, limit: 2, hasNextPage: false },
     });
     expect((await search(3)).body.data.items).toEqual([]);

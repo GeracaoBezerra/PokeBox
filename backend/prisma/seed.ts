@@ -151,11 +151,11 @@ const searchCollection: SeedCollectionItem[] = searchProfiles.flatMap(([username
   cardIds.map((cardId) => {
     const holo = ['base1-4', 'base1-2', 'swsh4-44', 'sv08-057', 'base1-16', 'base1-15', 'base1-10'].includes(cardId);
     return {
-    key: `${username}-${cardId}`, username, cardId,
-    condition: 'NEAR_MINT',
-    finish: holo ? 'HOLO' : 'NORMAL',
-    firstEdition: ['base1-4', 'base1-2', 'base1-16', 'base1-15', 'base1-10'].includes(cardId),
-    quantity: 1, isPublic: true,
+      key: `${username}-${cardId}`, username, cardId,
+      condition: 'NEAR_MINT',
+      finish: holo ? 'HOLO' : 'NORMAL',
+      firstEdition: ['base1-4', 'base1-2', 'base1-16', 'base1-15', 'base1-10'].includes(cardId),
+      quantity: 1, isPublic: true,
     };
   }),
 );

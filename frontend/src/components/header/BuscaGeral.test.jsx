@@ -25,6 +25,22 @@ function renderizar(inicio) {
 const esperar = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("BuscaGeral", () => {
+  it("Enter com username exato mantém a lista até a pessoa escolher o perfil", async () => {
+    const pessoa = userEvent.setup();
+    server.use(http.get(`${CONFIG.apiBaseUrl}/users`, () => HttpResponse.json({
+      data: { items: [{ name: "Ash Ketchum", username: "ash" }] },
+      pagination: { hasNextPage: false },
+    })));
+    renderizar("/");
+    await pessoa.type(screen.getByRole("searchbox"), "@ash{Enter}");
+    const perfil = await screen.findByRole("link", { name: "Ash Ketchum @ash" });
+    expect(screen.getByLabelText("endereço")).toHaveTextContent(/^\/$/);
+    await pessoa.tab();
+    expect(perfil).toHaveFocus();
+    await pessoa.keyboard("{Enter}");
+    expect(screen.getByLabelText("endereço")).toHaveTextContent("/u/ash");
+  });
+
   it("pesquisa por @ sem sair do marketplace e abre só o perfil escolhido, inclusive na segunda página", async () => {
     const pessoa = userEvent.setup();
     const pedidos = [];

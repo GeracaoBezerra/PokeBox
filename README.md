@@ -181,6 +181,8 @@ Detalhes e números: [`docs/observabilidade-e-performance.md`](docs/observabilid
 
 Para encontrar um colecionador, digite `@` e parte do nome ou username na busca do topo, mesmo sem login. Por exemplo, `@ketch` encontra Ash Ketchum no seed. Selecione o nome para abrir o perfil público. O header exibe cinco resultados por vez e permite carregar mais.
 
+Enter com `@ash` abre a lista de resultados. Para abrir o perfil, selecione o resultado com clique ou use Tab e Enter no link.
+
 Se a conexão cair ao carregar mais resultados, os perfis já encontrados continuam disponíveis. **Tentar de novo** repete a página que falhou. Alterar o termo ou fechar a lista cancela a requisição em andamento no navegador.
 
 A rota pública `GET /users?q=ketch&page=1&limit=5` ignora caixa e acentos. Cada resultado contém apenas `name` e `username` de uma conta ativa ou pendente de verificação. Contas inativas, suspensas ou excluídas não aparecem. O username exato aparece primeiro. A resposta inclui `pagination.hasNextPage`.

@@ -1,5 +1,6 @@
 import type { Db } from '../lib/prisma.js';
 import type { AuthUser } from '../types/auth.js';
+import { USABLE_STATUSES } from '../utils/accountStatus.js';
 import type { PageWindow } from '../utils/pagination.js';
 import {
   credentialUserFields,
@@ -26,7 +27,7 @@ export class PrismaUserRepository implements UserRepository {
       WITH search AS MATERIALIZED (SELECT lower(unaccent(${term}::text)) AS needle)
       SELECT username, name
       FROM "User" CROSS JOIN search
-      WHERE "accountStatus" IN ('ACTIVE', 'PENDING_VERIFICATION') AND "deletedAt" IS NULL
+      WHERE "accountStatus" = ANY(${USABLE_STATUSES}::"AccountStatus"[]) AND "deletedAt" IS NULL
         AND needle <> ''
         AND (strpos(username, needle) > 0 OR strpos(lower(unaccent(name)), needle) > 0)
       ORDER BY (username = needle) DESC, lower(unaccent(name)), username
