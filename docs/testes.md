@@ -4,14 +4,14 @@ Por que cada ferramenta: [decisão sobre testes](decisoes/0009-testes.md).
 
 ## Visão geral
 
-| Andar da pirâmide | Ferramenta | Quantidade (24/11) | Comando |
+| Andar da pirâmide | Ferramenta | Quantidade (26/11) | Comando |
 |---|---|---|---|
 | E2E | Cypress | 11 | `make e2e` |
-| Front | Vitest + Testing Library + MSW | 490 | `cd frontend && npm test` |
-| Integração (backend) | Jest + Supertest + PostgreSQL real | 182 | `make test-int` |
-| Unidade (backend) | Jest | 942 | `cd backend && npm test` |
+| Front | Vitest + Testing Library + MSW | 519 | `cd frontend && npm test` |
+| Integração (backend) | Jest + Supertest + PostgreSQL real | 195 | `make test-int` |
+| Unidade (backend) | Jest | 948 | `cd backend && npm test` |
 
-Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 83,7% no front (mínimo de 40%). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](ia.md).
+Cobertura: 98,3% das linhas no backend (mínimo de 95% na CI) e 87,0% no front (mínimo de 40%). Como a IA ajudou a escrever e conferir os testes: [`docs/ia.md`](ia.md).
 
 ## Backend
 
@@ -91,7 +91,7 @@ npm test
 | "Mais desejadas" da home com a API simulada | `src/components/GridCartas/GridCartas.test.jsx` | com o MSW: ranking em português vazio mostra o de inglês, com as cartas e o "Ver todas" em `lang=en`; com cartas em português, não busca em inglês; erro no português mostra o aviso e não busca em inglês |
 | Página com a API simulada | `src/pages/wishlist.test.jsx`, `src/pages/myOffers.test.jsx`, `src/pages/listing.test.jsx`, `src/pages/publicPerfil.test.jsx`, `src/pages/catalog.test.jsx` | a wishlist (`/procuro`) inteira com o MSW e os mesmos providers do app (`renderWithProviders`): lista vazia com o card de adicionar, itens com expansão, colecionadores, preço de referência e "Procurar anúncios", a primeira página pedida com 23 cartas, remover só depois de confirmar no modal e a lista se atualiza sem recarregar, remoção que falha mostra o erro e a lista continua igual, o modal de adicionar busca no idioma escolhido, marca a carta que já está na wishlist (mesmo em outra página) e "Você já tem" para carta com unidade na coleção, e adiciona sem recarregar; "Já consegui" leva a carta para a coleção e tira da lista, e cai para o inglês quando a carta não existe em português; filtros, ordem e página lidos da URL, selos que tiram o filtro, busca, tipo, raridade e ordem pelo painel, busca de uma letra que não vai para a API, filtro sem resultado com "Limpar filtros", paginação com o card de adicionar em todas as páginas, volta à página anterior quando a última carta da página sai, remover ou Já consegui com 25 cartas (duas páginas) traz a carta 24 para a página 1 e a 25 fica na página 2, adicionar com filtro recarrega a página; API fora do ar mostra o aviso e o "Tentar de novo" carrega a lista; Propostas mantém os cartões na tela enquanto atualiza depois de recusar e tira só a oferta que saiu do filtro, e a galeria abre num diálogo com todas as cartas de um lado; Aceitar diz no modal que a troca nasce e reserva as cartas, chama o PATCH e leva para `/trocas?aba=recebidas&status=PROPOSED`, e o aceite que falha (422) mostra a mensagem da API; oferta que virou troca (`tradeId`) mostra "Virou troca" e "Ver troca", sem Recusar nem Cancelar, e com a troca concluída (`tradeStatus`) mostra "Troca concluída" e leva às trocas concluídas; oferta em espera (`onHold`) não deixa aceitar e diz por quê, e quem ofertou ainda pode cancelar; oferta cancelada mostra o motivo (`cancelReason`); oferta recusada continua mostrando as cartas oferecidas; o anúncio com oferta aberta esconde o formulário, e o anúncio em troca mostra o selo e o aviso sem formulário, mas quem tem oferta em espera nele continua vendo "Você já fez uma oferta aqui"; o perfil público com a coleção vinda do MSW: busca longa demais na URL não vai para a API e o perfil aparece; 400 de filtro mostra "Filtro inválido" com o campo de busca; 404 e username inválido mostram "Colecionador não encontrado"; o catálogo avisa as palavras ignoradas da busca (e o aviso some quando a nova busca não ignora nada, ou quando a lista vem vazia), mostra "Cartas de ..." para só o nome do set e avisa a palavra ignorada junto com o nome do set (#214), e o sem resultado tem o termo, "Limpar busca", "Limpar filtros" com filtro, sem paginação, e "Voltar para a primeira página" numa página vazia além da primeira |
 | Componente | `src/components/Aviso/Aviso.test.jsx`, `src/components/AcoesAnuncio/AcoesAnuncio.test.jsx`, `src/components/header/BuscaGeral.test.jsx`, `src/components/ConfirmModal/ConfirmModal.test.jsx`, `src/components/ConfirmacaoProvider/ConfirmacaoProvider.test.jsx`, `src/components/ToastProvider/ToastProvider.test.jsx`, `src/components/ErroCampo/ErroCampo.test.jsx`, `src/components/ImagemCarta/ImagemCarta.test.jsx`, `src/components/SessaoExpirada/SessaoExpirada.test.jsx`, `src/components/Abas/Abas.test.jsx`, `src/components/CartaoTroca/CartaoTroca.test.jsx`, `src/components/CartaAnuncio/CartaAnuncio.test.jsx`, `src/components/Perfil/Perfil.test.jsx` | o componente renderizado com a Testing Library, procurado pelo papel e pelo texto, como a pessoa vê; o modal de confirmação abre com o texto certo, confirmar devolve `true`, cancelar e Esc devolvem `false`; o toast aparece na região viva certa, some sozinho, fecha no X, e o `useAcao` dispara o toast de sucesso; a mensagem do `ErroCampo` vira a descrição acessível do campo; carta sem imagem, ou com imagem que falha, mostra o placeholder com a descrição, e uma imagem nova tenta carregar de novo; o aviso de sessão expirada mostra o toast e leva ao login guardando a página de origem; as `Abas` têm os papéis ARIA, o Tab para só na aba ativa e as setas, Home e End trocam de aba; a busca do topo descarta o rascunho ao trocar de página e só pesquisa sozinha na página de resultados; fechar um anúncio (com o PATCH no MSW) avisa o selo de pendências e pausar não, e o anúncio em troca pode ser pausado ou fechado; o cartão da troca nos três estados de confirmação (ninguém, você, o outro), "Confirmar recebimento" com o resumo no modal chamando `POST /trades/:id/accept`, a segunda confirmação concluindo, e Recusar troca e Cancelar troca depois de ter confirmado; o selo "Em troca" no cartão do marketplace; o resumo de trocas do perfil contando as que esperam a sua confirmação e o 409 ao desativar a conta com troca aberta |
-| Componente | `src/components/AcoesRapidas/AcoesRapidas.test.jsx` | os botões Quero e Tenho do catálogo (#162): chamam a ação, o Quero fica pressionado com a carta na wishlist e desligado para quem já tem a carta ou enquanto a wishlist atualiza, e o bloqueio desliga os dois |
+| Componente | `src/components/AcoesRapidas/AcoesRapidas.test.jsx` | os botões do catálogo (#162, #244): Wishlist e Tenho chamam a ação, o botão da wishlist fica pressionado (lixeira) com a carta na wishlist e desligado enquanto a wishlist atualiza, quem já tem a carta vê só Editar, e o bloqueio desliga os botões |
 
 Como está montado:
 
@@ -112,12 +112,12 @@ Roda os mesmos testes do `npm test` medindo a cobertura com o `@vitest/coverage-
 
 | Métrica | Medido | Mínimo exigido |
 |---|---|---|
-| Linhas | 83,7% | 40% |
-| Comandos | 81,5% | 41% |
-| Funções | 77,3% | 35% |
-| Ramos (if/else) | 76,8% | 35% |
+| Linhas | 87,0% | 40% |
+| Comandos | 84,8% | 41% |
+| Funções | 81,2% | 35% |
+| Ramos (if/else) | 81,6% | 35% |
 
-Números de 24/11/2026, com 490 testes. O mínimo foi definido em 19/11 pela mesma regra do backend (o valor medido na época, 266 testes e 42,7% das linhas, menos uns 2 pontos) e pode subir. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
+Números de 26/11/2026, com 519 testes. O mínimo foi definido em 19/11 pela mesma regra do backend (o valor medido na época, 266 testes e 42,7% das linhas, menos uns 2 pontos) e pode subir. Ele fica em `frontend/vite.config.js` (`test.coverage.thresholds`); abaixo dele, o `npm run test:coverage` termina com erro e a CI fica vermelha. A cobertura do front é mais baixa que a do backend porque a maioria das páginas ainda não tem teste próprio (as testadas mostram o padrão para as outras); quem acrescentar testes pode subir o mínimo.
 
 ## Cobertura
 
@@ -133,12 +133,12 @@ Entram na conta os arquivos `.ts` de `backend/src`. Ficam de fora os testes, o c
 
 | Métrica | Só unidade | Unidade + integração | Mínimo exigido |
 |---|---|---|---|
-| Linhas | 83,8% | 98,3% | 95% |
-| Comandos | 82,1% | 96,8% | 94% |
-| Funções | 73,7% | 97,8% | 95% |
-| Ramos (if/else) | 76,8% | 90,1% | 86% |
+| Linhas | 83,5% | 98,3% | 95% |
+| Comandos | 81,9% | 96,8% | 94% |
+| Funções | 73,6% | 97,8% | 95% |
+| Ramos (if/else) | 76,0% | 90,3% | 86% |
 
-Números de 24/11/2026, com 942 testes de unidade e 182 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. A cobertura do front tem a tabela dela em [Cobertura do front](#cobertura-do-front).
+Números de 26/11/2026, com 948 testes de unidade e 195 de integração. O mínimo é o valor medido menos uns 2 pontos, para uma mudança pequena não quebrar a CI. Abaixo dele, o `npm run test:coverage` termina com erro, a CI fica vermelha e o deploy não sai. A meta é manter os números e subir o mínimo dos ramos aos poucos; 100% não é meta, porque incentiva teste que só pinta linha. A cobertura do front tem a tabela dela em [Cobertura do front](#cobertura-do-front).
 
 A CI (GitHub Actions, `.github/workflows/ci.yml`) roda em toda PR para `develop` e `main` e em todo push na `develop`:
 
