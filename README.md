@@ -177,6 +177,10 @@ O deploy só sai com os testes verdes, a API sobe primeiro e o front só é publ
 - Traces com OpenTelemetry: Jaeger local (`make traces`) e Grafana Cloud em produção.
 - Performance: gzip, helmet, índices, paginação, `Cache-Control` e limite de tentativas no login, com medições antes e depois.
 
+Em produção, um painel no Grafana Cloud junta métricas, traces e logs da API (prints de todas as partes em [`docs/observabilidade-e-performance.md`](docs/observabilidade-e-performance.md#painel-do-grafana-cloud-produção)):
+
+![Painel do Grafana Cloud com as requisições da API em produção](docs/img/observabilidade/grafana-1-requisicoes.png)
+
 Detalhes e números: [`docs/observabilidade-e-performance.md`](docs/observabilidade-e-performance.md).
 
 ## API
@@ -305,7 +309,7 @@ Respostas e erros da API seguem o contrato `{ success, data }` / `{ success: fal
 
 | Arquivo | O que tem |
 |---|---|
-| [`docs/PokeBox-documentacao.pdf`](docs/PokeBox-documentacao.pdf) | Toda a documentação da avaliação num PDF só (30 páginas, com sumário e diagramas), para ler ou imprimir |
+| [`docs/PokeBox-documentacao.pdf`](docs/PokeBox-documentacao.pdf) | Toda a documentação da avaliação num PDF só (32 páginas, com sumário e diagramas), para ler ou imprimir |
 | [`docs/arquitetura.md`](docs/arquitetura.md) | Camadas, POO, SOLID, padrões de projeto e pontos fracos |
 | [`docs/decisoes/`](docs/decisoes/README.md) | Decisões técnicas e o que ficou de fora |
 | [`docs/processo.md`](docs/processo.md) | Board, branches, revisão de PR, workflows e Docker |
