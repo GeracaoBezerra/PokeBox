@@ -37,6 +37,25 @@ describe('POST, GET e DELETE /wishlist', () => {
     expect(res.status).toBe(409);
   });
 
+  test('opções da wishlist são privadas e removem valores sem cartas', async () => {
+    const user = await registerUser(ctx.app);
+    const other = await registerUser(ctx.app);
+    const item = await request(ctx.app).post('/wishlist').set(bearer(user)).send({ cardId: BLASTOISE }).expect(201);
+    await request(ctx.app).post('/wishlist').set(bearer(other)).send({ cardId: CHARIZARD }).expect(201);
+
+    await request(ctx.app).get('/wishlist/filters').expect(401);
+    const options = await request(ctx.app).get('/wishlist/filters').set(bearer(user)).expect(200);
+    expect(options.body.data.types).toEqual(['Water']);
+
+    const page = await request(ctx.app).get('/wishlist?includeFilters=false&limit=1').set(bearer(user)).expect(200);
+    expect(page.body.data).not.toHaveProperty('filters');
+    expect(page.body.data.items).toHaveLength(1);
+
+    await request(ctx.app).delete(`/wishlist/${item.body.data.item.id}`).set(bearer(user)).expect(204);
+    const empty = await request(ctx.app).get('/wishlist/filters').set(bearer(user)).expect(200);
+    expect(empty.body.data).toEqual({ types: [], rarities: [], sets: [] });
+  });
+
   test('RN-04: opportunities conta outro colecionador com a carta pública, e não conta a privada', async () => {
     const wisher = await registerUser(ctx.app);
     await request(ctx.app).post('/wishlist').set(bearer(wisher)).send({ cardId: BLASTOISE }).expect(201);

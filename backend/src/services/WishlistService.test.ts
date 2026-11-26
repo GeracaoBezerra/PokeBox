@@ -29,6 +29,7 @@ const savedItem: WishlistItemWithCard = {
 function setup() {
   const wishlist = {
     findManyByUser: jest.fn<WishlistStore['findManyByUser']>(async () => []),
+    findFilterCards: jest.fn<WishlistStore['findFilterCards']>(async () => []),
     findById: jest.fn<WishlistStore['findById']>(async () => null),
     create: jest.fn<WishlistStore['create']>(async () => savedItem),
     remove: jest.fn<WishlistStore['remove']>(async () => undefined),
@@ -74,11 +75,24 @@ describe('WishlistService.list', () => {
 });
 
 describe('WishlistService.listPage', () => {
+  it('pula a consulta das opções quando o cliente já as carregou', async () => {
+    const { wishlist, service } = setup();
+
+    const result = await service.listPage(USER_ID, {}, { page: 1, limit: 20 }, false);
+
+    expect(wishlist.findFilterCards).not.toHaveBeenCalled();
+    expect(result).not.toHaveProperty('filters');
+  });
+
   it('pede skip/take com os filtros e calcula oportunidades só dos itens da página', async () => {
     const { wishlist, collection, service } = setup();
     const second = { ...savedItem, id: 'wish-2', cardId: 'base1-4', card: { ...storedCard, id: 'base1-4' } };
     const extra = { ...savedItem, id: 'wish-3', cardId: 'base1-9', card: { ...storedCard, id: 'base1-9' } };
     wishlist.findManyByUser.mockResolvedValue([savedItem, second, extra]);
+    wishlist.findFilterCards.mockResolvedValue([
+      { types: ['Fire'], rarity: 'Rare', setId: 'base1', setName: 'Base Set' },
+      { types: ['Water'], rarity: null, setId: 'base1', setName: 'Base Set' },
+    ]);
     collection.findOwnersOfCards.mockResolvedValue([{ cardId: 'base1-4', userId: 'ash' }]);
 
     const result = await service.listPage(USER_ID, { type: 'Fire', sort: 'recent' }, { page: 1, limit: 2 });
@@ -87,12 +101,22 @@ describe('WishlistService.listPage', () => {
     expect(collection.findOwnersOfCards).toHaveBeenCalledWith(['base1-2', 'base1-4'], USER_ID);
     expect(result.items.map((item) => item.opportunities)).toEqual([0, 1]);
     expect(result.hasNextPage).toBe(true);
+    expect(wishlist.findFilterCards).toHaveBeenCalledWith(USER_ID);
+    expect(result.filters).toEqual({
+      types: ['Fire', 'Water'],
+      rarities: ['Rare'],
+      sets: [{ id: 'base1', name: 'Base Set' }],
+    });
   });
 
   it('página vazia não consulta donos', async () => {
     const { collection, service } = setup();
 
-    expect(await service.listPage(USER_ID, {}, { page: 5, limit: 20 })).toEqual({ items: [], hasNextPage: false });
+    expect(await service.listPage(USER_ID, {}, { page: 5, limit: 20 })).toEqual({
+      items: [],
+      hasNextPage: false,
+      filters: { types: [], rarities: [], sets: [] },
+    });
     expect(collection.findOwnersOfCards).not.toHaveBeenCalled();
   });
 });

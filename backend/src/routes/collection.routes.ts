@@ -12,6 +12,7 @@ export function createCollectionRoutes(
   router.use(auth.requireAuth);
 
   router.get('/', controller.list);
+  router.get('/filters', controller.filters);
   router.get('/summary', controller.summary);
   router.post('/', controller.add);
   router.patch('/:id', controller.update);

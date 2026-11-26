@@ -17,11 +17,13 @@ export class ListingController {
 
   list: RequestHandler = async (req, res) => {
     const query = listListingsQuerySchema.parse(req.query);
-    const { items, hasNextPage } = await this.listings.list(query);
+    const userId = query.wishlist || query.includeWishlist ? currentUser(req).id : undefined;
+    const { items, hasNextPage, wishlistCardIds } = await this.listings.list(query, userId);
+    if (userId) res.set('Cache-Control', 'private, no-store');
 
     res.status(200).json({
       success: true,
-      data: { items },
+      data: { items, wishlistCardIds },
       pagination: { page: query.page, limit: query.limit, hasNextPage },
     });
   };

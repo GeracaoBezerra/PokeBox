@@ -9,6 +9,7 @@ export function createWishlistRoutes(auth: Pick<AuthMiddleware, 'requireAuth'>, 
   router.use(auth.requireAuth);
 
   router.get('/', controller.list);
+  router.get('/filters', controller.filters);
   router.post('/', controller.add);
   router.delete('/:id', controller.remove);
 

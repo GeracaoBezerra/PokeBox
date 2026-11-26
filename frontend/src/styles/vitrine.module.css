@@ -36,7 +36,14 @@
 .conteudoFiltros { display: grid; gap: var(--esp-24); }
 .grupo { border: 0; border-top: 1px solid var(--borda-suave); margin: 0; padding: var(--esp-16) 0 0; min-width: 0; }
 .grupo legend { padding-right: var(--esp-12); color: var(--texto); font-size: var(--fs-sm); font-weight: var(--peso-semi); }
-.opcoes { display: grid; max-height: 240px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--borda) transparent; }
+.opcoes {
+  display: grid;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-inline-start: calc(var(--foco-largura) + var(--foco-offset));
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda) transparent;
+}
 .opcoes label { display: flex; align-items: center; gap: var(--esp-12); min-height: var(--alvo-min); font-size: var(--fs-sm); color: var(--texto-suave); cursor: pointer; padding-right: var(--esp-8); overflow-wrap: anywhere; }
 .opcoes label:has(input:checked) { color: var(--texto); }
 .opcoes input { width: var(--esp-16); height: var(--esp-16); flex-shrink: 0; accent-color: var(--acento); }

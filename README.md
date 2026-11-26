@@ -183,6 +183,8 @@ Todas as rotas estão no Swagger (`/docs` da API, [produção](https://pokebox-a
 
 ## Regras de negócio
 
+Em **Minha coleção**, tipo, expansão, condição e acabamento vêm dos itens da pessoa. **Visibilidade** sempre oferece públicas e privadas, só públicas e só privadas. Na **Wishlist**, tipo, expansão e raridade vêm das cartas salvas. As duas telas carregam as opções da lista inteira e as reaproveitam ao buscar e paginar. Na coleção, itens com quantidade zero entram nas opções quando **Mostrar zerados** está ativo. No **Marketplace**, o checkbox no topo restringe os anúncios às cartas da wishlist antes da paginação. O selo nos cards usa apenas as cartas da página atual.
+
 RN-01 a RN-12: como cada uma funciona em [`docs/regras.md`](docs/regras.md).
 
 Onde ver cada regra:

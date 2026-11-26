@@ -11,11 +11,13 @@ const ITEM_ID = 'f323730d-c965-42b2-b3f4-a059e009dfe7';
 const item = { id: ITEM_ID, quantity: 1, available: 1 } as CollectionItemView;
 const ownItem = { ...item, deleteBlockedBy: null } as OwnCollectionItemView;
 const summary = { totalUnits: 3, distinctCards: 2, listedItems: 1 };
+const filters = { types: ['Fire' as const], sets: [], conditions: [], finishes: [] };
 
 function setup() {
   const collection = {
     list: jest.fn<CollectionActions['list']>(async () => [ownItem]),
-    listPage: jest.fn<CollectionActions['listPage']>(async () => ({ items: [ownItem], hasNextPage: true })),
+    listPage: jest.fn<CollectionActions['listPage']>(async () => ({ items: [ownItem], hasNextPage: true, filters })),
+    filterOptions: jest.fn<CollectionActions['filterOptions']>(async () => filters),
     summary: jest.fn<CollectionActions['summary']>(async () => summary),
     add: jest.fn<CollectionActions['add']>(async () => ({ item, removedFromWishlist: true })),
     update: jest.fn<CollectionActions['update']>(async () => item),
@@ -56,10 +58,11 @@ describe('CollectionController', () => {
       'u-ash',
       { q: 'charizard', isPublic: false },
       { page: 1, limit: 20 },
+      undefined,
     );
     expect(res.json).toHaveBeenCalledWith({
       success: true,
-      data: { items: [ownItem] },
+      data: { items: [ownItem], filters },
       pagination: { page: 1, limit: 20, hasNextPage: true },
     });
   });
@@ -69,7 +72,7 @@ describe('CollectionController', () => {
 
     await controller.list(request({ query: { withZero: 'false' } }), res as unknown as Response, next);
 
-    expect(collection.listPage).toHaveBeenCalledWith('u-ash', { withZero: false }, { page: 1, limit: 20 });
+    expect(collection.listPage).toHaveBeenCalledWith('u-ash', { withZero: false }, { page: 1, limit: 20 }, undefined);
   });
 
   it('summary responde 200 com os totais do usuário', async () => {

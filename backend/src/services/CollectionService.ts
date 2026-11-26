@@ -11,6 +11,7 @@ import type { TransactionRunner } from '../repositories/TransactionRunner.js';
 import type { WishlistRemover } from '../repositories/WishlistRepository.js';
 import type { CreateCollectionItemInput, UpdateCollectionItemInput } from '../schemas/collection.schema.js';
 import { toCardRecord } from '../utils/cardRecord.js';
+import { cardFilterOptions } from '../utils/listFilterOptions.js';
 import { toPage, toSkipTake, type Page, type PageParams } from '../utils/pagination.js';
 import {
   assertConditionChangeable,
@@ -42,7 +43,7 @@ export interface ItemOfferCounter {
 
 export type CollectionStore = Pick<
   CollectionRepository,
-  'findManyByUser' | 'summarizeByUser' | 'findById' | 'addOrIncrement' | 'lockById' | 'update' | 'remove'
+  'findManyByUser' | 'findFilterRows' | 'summarizeByUser' | 'findById' | 'addOrIncrement' | 'lockById' | 'update' | 'remove'
 >;
 
 export interface CollectionServiceDeps {
@@ -58,6 +59,10 @@ export interface CollectionServiceDeps {
 export type CollectionItemView = CollectionItemResponse<CollectionItemWithCard>;
 
 export type OwnCollectionItemView = OwnCollectionItem<CollectionItemWithUsage>;
+type CollectionFilterOptions = Pick<ReturnType<typeof cardFilterOptions>, 'types' | 'sets'> & {
+  conditions: string[];
+  finishes: string[];
+};
 
 export interface AddedCollectionItem {
   item: CollectionItemView;
@@ -74,11 +79,29 @@ export class CollectionService {
     return items.map((item) => toOwnCollectionItem(item));
   }
 
-  async listPage(userId: string, filters: CollectionFilters, page: PageParams): Promise<Page<OwnCollectionItemView>> {
-    const rows = await this.deps.collection.findManyByUser(userId, { ...filters, ...toSkipTake(page) });
+  async listPage(
+    userId: string,
+    filters: CollectionFilters,
+    page: PageParams,
+    includeFilters = true,
+  ): Promise<Page<OwnCollectionItemView> & { filters?: CollectionFilterOptions }> {
+    const [rows, options] = await Promise.all([
+      this.deps.collection.findManyByUser(userId, { ...filters, ...toSkipTake(page) }),
+      includeFilters ? this.filterOptions(userId, filters.withZero) : undefined,
+    ]);
     const { items, hasNextPage } = toPage(rows, page);
+    return { items: items.map((item) => toOwnCollectionItem(item)), hasNextPage, ...(options && { filters: options }) };
+  }
 
-    return { items: items.map((item) => toOwnCollectionItem(item)), hasNextPage };
+  async filterOptions(userId: string, withZero?: boolean): Promise<CollectionFilterOptions> {
+    const filterRows = await this.deps.collection.findFilterRows(userId, withZero);
+    const { types, sets } = cardFilterOptions(filterRows.map(({ card }) => card));
+    return {
+      types,
+      sets,
+      conditions: [...new Set(filterRows.map(({ condition }) => condition))].sort(),
+      finishes: [...new Set(filterRows.map(({ finish }) => finish))].sort(),
+    };
   }
 
   summary(userId: string): Promise<CollectionSummary> {

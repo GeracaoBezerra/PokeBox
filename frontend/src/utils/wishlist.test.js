@@ -9,6 +9,7 @@ describe("filtrosDaWishlist", () => {
       q: "",
       type: "",
       rarity: "",
+      setId: "",
       sort: "",
       page: 1,
       buscaCurta: false,

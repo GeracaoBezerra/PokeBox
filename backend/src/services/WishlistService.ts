@@ -6,17 +6,19 @@ import { ConflictError } from '../errors/domainErrors.js';
 import type { AddWishlistItemInput } from '../schemas/wishlist.schema.js';
 import { toCardRecord } from '../utils/cardRecord.js';
 import { assertOwner } from '../utils/collectionRules.js';
+import { cardFilterOptions } from '../utils/listFilterOptions.js';
 import { toPage, toSkipTake, type Page, type PageParams } from '../utils/pagination.js';
 import { countOwnersByCard, toWishlistItemResponse, type WishlistItemResponse } from '../utils/wishlistRules.js';
 import type { CardFetcher } from './CardService.js';
 
 export type WishlistCollectionReader = CollectionOwnersReader & CollectionQuantityReader;
 
-export type WishlistStore = Pick<WishlistRepository, 'findManyByUser' | 'findById' | 'create' | 'remove'>;
+export type WishlistStore = Pick<WishlistRepository, 'findManyByUser' | 'findFilterCards' | 'findById' | 'create' | 'remove'>;
 
 export type CardWriter = Pick<CardRepository, 'upsertCard'>;
 
 export type WishlistItemView = WishlistItemResponse<WishlistItemWithCard['card']>;
+type WishlistFilterOptions = ReturnType<typeof cardFilterOptions>;
 
 export class WishlistService {
   constructor(
@@ -31,11 +33,23 @@ export class WishlistService {
     return this.withOpportunities(items, userId);
   }
 
-  async listPage(userId: string, filters: WishlistFilters, page: PageParams): Promise<Page<WishlistItemView>> {
-    const rows = await this.wishlist.findManyByUser(userId, { ...filters, ...toSkipTake(page) });
+  async listPage(
+    userId: string,
+    filters: WishlistFilters,
+    page: PageParams,
+    includeFilters = true,
+  ): Promise<Page<WishlistItemView> & { filters?: WishlistFilterOptions }> {
+    const [rows, options] = await Promise.all([
+      this.wishlist.findManyByUser(userId, { ...filters, ...toSkipTake(page) }),
+      includeFilters ? this.filterOptions(userId) : undefined,
+    ]);
     const { items, hasNextPage } = toPage(rows, page);
 
-    return { items: await this.withOpportunities(items, userId), hasNextPage };
+    return { items: await this.withOpportunities(items, userId), hasNextPage, ...(options && { filters: options }) };
+  }
+
+  async filterOptions(userId: string): Promise<WishlistFilterOptions> {
+    return cardFilterOptions(await this.wishlist.findFilterCards(userId));
   }
 
   async add(userId: string, input: AddWishlistItemInput): Promise<WishlistItemView> {
