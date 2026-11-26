@@ -9,7 +9,8 @@ import AcoesRapidas from "../components/AcoesRapidas/AcoesRapidas";
 import AdicionarNaColecao from "../components/AdicionarNaColecao/AdicionarNaColecao";
 import Atualizando from "../components/Atualizando/Atualizando";
 import Aviso from "../components/Aviso/Aviso";
-import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import ModalColecao from "../components/ModalColecao/ModalColecao";
+import EditarVersoesColecao from "../components/EditarVersoesColecao/EditarVersoesColecao";
 import FiltrosCatalogo from "../components/FiltrosCatalogo/FiltrosCatalogo";
 import GradeCartas from "../components/GradeCartas/GradeCartas";
 import Paginacao from "../components/Paginacao/Paginacao";
@@ -56,7 +57,7 @@ function rotuloDoSelo(campo, valor, opcoes) {
   }
 }
 
-function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, onPrecisaLogin, onTenho, onMudou }) {
+function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, edicaoOcupada, onPrecisaLogin, onTenho, onEditar, onMudou }) {
   const toast = useToast();
   const { ocupado, executar } = useAcao();
   const itemWishlist = minhas?.naWishlist.get(carta.id);
@@ -82,9 +83,10 @@ function AcoesDaCarta({ carta, lang, logado, minhas, atualizando, onPrecisaLogin
       naWishlist={Boolean(itemWishlist)}
       tenho={Boolean(minhas?.tenho.has(carta.id))}
       ocupado={ocupado || atualizando}
-      bloqueado={logado && !minhas}
+      bloqueado={logado && (!minhas || edicaoOcupada)}
       onQuero={alternarWishlist}
       onTenho={() => (logado ? onTenho(carta) : onPrecisaLogin())}
+      onEditar={() => onEditar(carta)}
     />
   );
 }
@@ -121,8 +123,13 @@ export default function CatalogPage() {
   const session = useSession();
   const navigate = useNavigate();
   const location = useLocation();
-  const [cartaTenho, setCartaTenho] = useState(null);
+  const [acaoColecao, setAcaoColecao] = useState(null);
+  const [edicaoOcupada, setEdicaoOcupada] = useState(false);
   const minhasCartas = useMinhasCartas(session);
+  const cartaDaColecao = acaoColecao?.carta;
+  let tituloColecao = "Coleção";
+  if (acaoColecao?.tipo === "editar") tituloColecao = `Editar ${cartaDaColecao.name}`;
+  if (acaoColecao?.tipo === "adicionar") tituloColecao = `Adicionar ${cartaDaColecao.name} à coleção`;
 
   function pedirLogin() {
     navigate("/login", { state: { de: location.pathname + location.search } });
@@ -136,15 +143,17 @@ export default function CatalogPage() {
         logado={Boolean(session)}
         minhas={minhasCartas.minhas}
         atualizando={Boolean(session) && minhasCartas.carregando}
+        edicaoOcupada={edicaoOcupada}
         onPrecisaLogin={pedirLogin}
-        onTenho={setCartaTenho}
+        onTenho={(c) => setAcaoColecao({ tipo: "adicionar", carta: c })}
+        onEditar={(c) => setAcaoColecao({ tipo: "editar", carta: c })}
         onMudou={minhasCartas.recarregar}
       />
     );
   }
 
-  function adicionouNaColecao() {
-    setCartaTenho(null);
+  function concluiuAcaoColecao() {
+    setAcaoColecao((atual) => atual === acaoColecao ? null : atual);
     minhasCartas.recarregar();
   }
 
@@ -319,14 +328,24 @@ export default function CatalogPage() {
           )}
         </section>
       </div>
-      <ConfirmModal
-        aberto={Boolean(cartaTenho)}
-        titulo={cartaTenho ? `Adicionar ${cartaTenho.name} à coleção` : ""}
-        textoCancelar="Fechar"
-        onCancelar={() => setCartaTenho(null)}
+      <ModalColecao
+        aberto={Boolean(acaoColecao)}
+        titulo={tituloColecao}
+        larga
+        onFechar={() => setAcaoColecao(null)}
       >
-        {cartaTenho && <AdicionarNaColecao carta={cartaTenho} lang={lang} onAdicionado={adicionouNaColecao} />}
-      </ConfirmModal>
+        {acaoColecao?.tipo === "adicionar" && <AdicionarNaColecao carta={cartaDaColecao} lang={lang} onAdicionado={concluiuAcaoColecao} />}
+        {acaoColecao?.tipo === "editar" && (
+          <EditarVersoesColecao
+            carta={cartaDaColecao}
+            versoes={minhasCartas.minhas?.versoes.get(cartaDaColecao.id) ?? []}
+            emAndamento={edicaoOcupada}
+            onEmAndamento={setEdicaoOcupada}
+            onMudou={concluiuAcaoColecao}
+            onAdicionarVersao={() => setAcaoColecao({ tipo: "adicionar", carta: cartaDaColecao })}
+          />
+        )}
+      </ModalColecao>
     </div>
   );
 }

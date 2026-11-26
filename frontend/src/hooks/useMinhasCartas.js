@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { listCollection } from "../api/collection";
 import { listWishlist } from "../api/wishlist";
 import { indexarMinhasCartas, juntarMinhasCartas } from "../utils/minhasCartas";
@@ -16,10 +16,12 @@ export function useMinhasCartas(session) {
     return juntas;
   }, chave);
   const atuais = session && dados?.chave === chave ? dados : null;
-  const conhecidas = Boolean(atuais?.wishlist && atuais?.colecao);
+  const minhas = useMemo(() => (
+    atuais?.wishlist && atuais?.colecao ? indexarMinhasCartas(atuais.wishlist, atuais.colecao) : null
+  ), [atuais]);
 
   return {
-    minhas: conhecidas ? indexarMinhasCartas(atuais.wishlist, atuais.colecao) : null,
+    minhas,
     erro: atuais?.erro ?? null,
     carregando,
     recarregar,
