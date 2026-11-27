@@ -20,7 +20,7 @@ import type { ListingChangeApplier } from './ListingChangeApplier.js';
 
 export type ListingStore = Pick<
   ListingRepository,
-  'findActive' | 'findByOwner' | 'findById' | 'sumOpenByItem' | 'create'
+  'findActive' | 'findWishlistCardIds' | 'findByOwner' | 'findById' | 'sumOpenByItem' | 'create'
 >;
 
 export type ListingChanger = Pick<ListingChangeApplier, 'apply'>;
@@ -43,11 +43,26 @@ const ITEM_NOT_FOUND = 'Item da coleção não encontrado';
 export class ListingService {
   constructor(private readonly deps: ListingServiceDeps) {}
 
-  async list({ page, limit, ...filters }: ListListingsQuery): Promise<ListingPage> {
-    const rows = await this.deps.listings.findActive({ ...filters, withInTrade: true, ...toSkipTake({ page, limit }) });
+  async list(
+    { page, limit, wishlist, includeWishlist, ...filters }: ListListingsQuery,
+    userId?: string,
+  ): Promise<ListingPage & { wishlistCardIds?: string[] }> {
+    const rows = await this.deps.listings.findActive({
+      ...filters,
+      ...(wishlist && userId ? { wishlistUserId: userId } : {}),
+      withInTrade: true,
+      ...toSkipTake({ page, limit }),
+    });
     const { items, hasNextPage } = toPage(rows, { page, limit });
 
-    return { items: items.map((listing) => toListingResponse(listing)), hasNextPage };
+    const result = { items: items.map((listing) => toListingResponse(listing)), hasNextPage };
+    if (!includeWishlist || !userId) return result;
+
+    const cardIds = [...new Set(items.map(({ collectionItem }) => collectionItem.cardId))];
+    const wishlistCardIds = wishlist || !cardIds.length
+      ? cardIds
+      : await this.deps.listings.findWishlistCardIds(userId, cardIds);
+    return { ...result, wishlistCardIds };
   }
 
   async listByCard(cardId: string): Promise<ListingView[]> {

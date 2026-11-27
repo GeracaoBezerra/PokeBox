@@ -9,7 +9,7 @@ export const ORDENACOES_WISHLIST = {
   recent: "Mais recentes",
 };
 
-export const CAMPOS_FILTRO_WISHLIST = ["q", "type", "rarity"];
+export const CAMPOS_FILTRO_WISHLIST = ["q", "type", "rarity", "setId"];
 
 export function filtrosDaWishlist(params) {
   const q = params.get("q") ?? "";
@@ -17,13 +17,15 @@ export function filtrosDaWishlist(params) {
   const type = Object.hasOwn(TIPOS, tipoPedido) ? tipoPedido : "";
   const raridadePedida = (params.get("rarity") ?? "").trim();
   const rarity = raridadePedida.length <= LIMITE_BUSCA ? raridadePedida : "";
+  const setIdPedido = params.get("setId") ?? "";
+  const setId = /^[a-z\d.-]{1,30}$/i.test(setIdPedido) ? setIdPedido : "";
   const sort = params.get("sort") === "recent" ? "recent" : "";
   const paginaPedida = Number(params.get("page") ?? 1);
   const page = Number.isInteger(paginaPedida) && paginaPedida > 0 ? paginaPedida : 1;
   const buscaCurta = q !== "" && !temPalavra(q);
   const buscaLonga = q.trim().length > LIMITE_BUSCA;
   const qApi = buscaCurta || buscaLonga ? "" : q.trim();
-  return { q, type, rarity, sort, page, buscaCurta, buscaLonga, qApi };
+  return { q, type, rarity, setId, sort, page, buscaCurta, buscaLonga, qApi };
 }
 
 export function textoColecionadores(quantidade) {
@@ -39,6 +41,8 @@ export function rotuloDoSeloWishlist(campo, valor) {
       return `Tipo: ${TIPOS[valor] ?? valor}`;
     case "rarity":
       return `Raridade: ${valor}`;
+    case "setId":
+      return `Expansão: ${valor}`;
     default:
       return valor;
   }

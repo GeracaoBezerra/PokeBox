@@ -31,6 +31,7 @@ const item = {
 
 function setup(user: PublicProfileUser | null = ash) {
   const users = {
+    searchCollectors: jest.fn<PublicProfileLookup['searchCollectors']>(),
     findPublicByUsername: jest.fn<PublicProfileLookup['findPublicByUsername']>(async () => user),
   } satisfies PublicProfileLookup;
   const collection = {
@@ -39,6 +40,16 @@ function setup(user: PublicProfileUser | null = ash) {
 
   return { users, collection, service: new ProfileService(users, collection) };
 }
+
+it('busca uma linha extra para saber se há outra página de colecionadores', async () => {
+  const { users, service } = setup();
+  const collector = { username: 'ash', name: 'Ash Ketchum' };
+  users.searchCollectors.mockResolvedValue([collector, { name: 'Ashley', username: 'ashley' }]);
+  await expect(service.searchCollectors('ash', { page: 2, limit: 1 })).resolves.toEqual({
+    items: [collector], hasNextPage: true,
+  });
+  expect(users.searchCollectors).toHaveBeenCalledWith('ash', { skip: 1, take: 2 });
+});
 
 describe('ProfileService.getPublicCollection (RN-10)', () => {
   it('devolve o usuário e só os campos públicos dos itens públicos', async () => {

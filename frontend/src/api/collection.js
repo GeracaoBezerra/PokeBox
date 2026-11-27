@@ -7,11 +7,16 @@ export async function listCollection(opcoes) {
     return body.data.items;
   }
   const body = await http.get("/collection", { params: parametrosDaPagina(opcoes) });
-  return { items: body.data.items, pagination: body.pagination };
+  return { items: body.data.items, filters: body.data.filters, pagination: body.pagination };
 }
 
 export async function getCollectionSummary() {
   const body = await http.get("/collection/summary");
+  return body.data;
+}
+
+export async function getCollectionFilters(withZero) {
+  const body = await http.get("/collection/filters", { params: { withZero: String(withZero) } });
   return body.data;
 }
 

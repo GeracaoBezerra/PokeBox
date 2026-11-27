@@ -2,8 +2,7 @@ import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { SearchX } from "lucide-react";
-import { getCardFilters } from "../api/cards";
-import { listWishlist, removeFromWishlist } from "../api/wishlist";
+import { getWishlistFilters, listWishlist, removeFromWishlist } from "../api/wishlist";
 import AdicionarNaColecao from "../components/AdicionarNaColecao/AdicionarNaColecao";
 import AdicionarWishlist from "../components/AdicionarWishlist/AdicionarWishlist";
 import Aviso from "../components/Aviso/Aviso";
@@ -44,13 +43,14 @@ async function animarSaida(elemento) {
 
 export default function WishlistPage() {
   const [params, setParams] = useSearchParams();
-  const { q, type, rarity, sort, page, buscaCurta, buscaLonga, qApi } = filtrosDaWishlist(params);
-  const filtrosApi = { q: qApi, type, rarity, sort };
+  const { q, type, rarity, setId, sort, page, buscaCurta, buscaLonga, qApi } = filtrosDaWishlist(params);
+  const filtrosApi = { q: qApi, type, rarity, setId, sort };
   const { dados, erro, carregando: buscando, recarregando, recarregar } = useCarregar(
-    () => listWishlist({ ...filtrosApi, page, limit: POR_PAGINA }),
+    () => listWishlist({ ...filtrosApi, page, limit: POR_PAGINA, includeFilters: "false" }),
     JSON.stringify({ ...filtrosApi, page }),
+    { descartarDadosAntigosEmErro: true },
   );
-  const raridades = useCarregar(async () => (await getCardFilters("en")).rarities ?? [], "en");
+  const opcoes = useCarregar(getWishlistFilters);
   const [local, setLocal] = useState({ base: null, itens: null });
   const itens = dados ? (local.base === dados ? local.itens : dados.items) : null;
   const carregando = buscando && !(recarregando && itens);
@@ -60,13 +60,16 @@ export default function WishlistPage() {
   const grade = useRef(null);
   const adicionar = useRef(null);
 
-  const painel = { q, type, rarity };
+  const painel = { q, type, rarity, setId };
+  const temFiltro = Boolean(qApi || type || rarity || setId);
+  const temProxima = Boolean(dados?.pagination?.hasNextPage);
+  const listaCompleta = page === 1 && !temProxima && !temFiltro;
+  const filtrosDisponiveis = opcoes.dados;
+  const nomeDoSet = filtrosDisponiveis?.sets?.find((set) => set.id === setId)?.name ?? setId;
   const selos = CAMPOS_FILTRO_WISHLIST.filter((campo) => painel[campo]).map((campo) => ({
     campo,
-    rotulo: rotuloDoSeloWishlist(campo, painel[campo]),
+    rotulo: rotuloDoSeloWishlist(campo, campo === "setId" ? nomeDoSet : painel[campo]),
   }));
-  const temFiltro = Boolean(qApi || type || rarity);
-  const temProxima = Boolean(dados?.pagination?.hasNextPage);
   const vazia = Boolean(itens) && itens.length === 0;
   const paginaVazia = vazia && page > 1;
   const semResultado = vazia && temFiltro && !paginaVazia;
@@ -111,6 +114,7 @@ export default function WishlistPage() {
   }
 
   async function tirarDaGrade(item, elemento) {
+    opcoes.recarregar();
     if (page > 1 && itens.every((atual) => atual.id === item.id)) {
       atualizar({ page: page - 1 }, false);
       return;
@@ -119,7 +123,7 @@ export default function WishlistPage() {
     const foco = document.activeElement;
     if (elemento?.contains(foco) || foco === document.body) adicionar.current?.focus();
     atualizarGrade((atuais) => atuais.filter((atual) => atual.id !== item.id));
-    if (temProxima) recarregar();
+    if (!listaCompleta) recarregar();
   }
 
   async function remover(item, elemento) {
@@ -143,12 +147,15 @@ export default function WishlistPage() {
   }
 
   function adicionou(item) {
+    opcoes.recarregar();
     if (temFiltro || sort || page > 1 || temProxima) {
       recarregar();
       return;
     }
     atualizarGrade((atuais) => [item, ...atuais.filter((atual) => atual.id !== item.id)]
-      .sort((a, b) => porNome.compare(a.card.name, b.card.name)));
+      .sort((a, b) => porNome.compare(a.card.name, b.card.name))
+      .slice(0, POR_PAGINA));
+    if (itens.length >= POR_PAGINA) recarregar();
   }
 
   return (
@@ -170,7 +177,10 @@ export default function WishlistPage() {
       <div className={s.layout}>
         <FiltrosWishlist
           filtros={painel}
-          raridades={raridades}
+          filtrosDisponiveis={filtrosDisponiveis}
+          carregando={opcoes.primeiraCarga}
+          erro={opcoes.erro}
+          onTentarDeNovo={opcoes.recarregar}
           onAlterar={(campo, valor) => atualizar({ [campo]: valor })}
           onLimpar={limparFiltros}
           onAplicar={atualizar}
@@ -241,7 +251,12 @@ export default function WishlistPage() {
                 ))}
               </GradeCartas>
               {(page > 1 || temProxima) && (
-                <Paginacao pagina={page} temProxima={temProxima} onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)} />
+                <Paginacao
+                  pagina={page}
+                  temProxima={temProxima}
+                  carregando={buscando}
+                  onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
+                />
               )}
             </>
           )}

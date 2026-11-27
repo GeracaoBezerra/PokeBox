@@ -16,6 +16,7 @@ export const listingInclude = {
 export type ListingWithItem = Prisma.ListingGetPayload<{ include: typeof listingInclude }>;
 
 export interface ActiveListingFilters {
+  wishlistUserId?: string;
   cardId?: string;
   username?: string;
   q?: string;
@@ -53,6 +54,7 @@ export interface ListingChanges {
 
 export interface ListingRepository {
   findActive(filters: ActiveListingFilters): Promise<ListingWithItem[]>;
+  findWishlistCardIds(userId: string, cardIds: string[]): Promise<string[]>;
   findByOwner(userId: string, window?: Partial<PageWindow>): Promise<ListingWithItem[]>;
   findById(id: string, db?: Db): Promise<ListingWithItem | null>;
   findOpenByItem(collectionItemId: string, db?: Db): Promise<OpenListing[]>;

@@ -133,6 +133,20 @@ describe("useCarregar", () => {
     expect(carregar).toHaveBeenCalledTimes(2);
   });
 
+  it("se a nova chave falhar, não mostra os dados anteriores como resultado dela", async () => {
+    const carregar = vi.fn().mockResolvedValueOnce(["pikachu"]).mockRejectedValueOnce(new Error("falhou"));
+    const { result, rerender } = renderHook(
+      ({ chave }) => useCarregar(carregar, chave, { descartarDadosAntigosEmErro: true }),
+      { initialProps: { chave: "todos" } },
+    );
+    await waitFor(() => expect(result.current.dados).toEqual(["pikachu"]));
+
+    rerender({ chave: "fogo" });
+    await waitFor(() => expect(result.current.erro).not.toBeNull());
+
+    expect(result.current.dados).toBeNull();
+  });
+
   it("usa a função carregar mais recente na troca de chave", async () => {
     const { result, rerender } = renderHook(({ chave }) => useCarregar(() => Promise.resolve(`dados de ${chave}`), chave), {
       initialProps: { chave: "ash" },

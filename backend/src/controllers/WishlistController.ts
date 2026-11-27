@@ -4,14 +4,14 @@ import { addWishlistItemSchema, listWishlistQuerySchema, wishlistItemIdSchema } 
 import type { WishlistService } from '../services/WishlistService.js';
 import { currentUser } from '../utils/currentUser.js';
 
-export type WishlistActions = Pick<WishlistService, 'list' | 'listPage' | 'add' | 'remove'>;
+export type WishlistActions = Pick<WishlistService, 'list' | 'listPage' | 'filterOptions' | 'add' | 'remove'>;
 
 export class WishlistController {
   constructor(private readonly wishlist: WishlistActions) {}
 
   list: RequestHandler = async (req, res) => {
     const userId = currentUser(req).id;
-    const { filters, page } = listWishlistQuerySchema.parse(req.query);
+    const { filters, page, includeFilters } = listWishlistQuerySchema.parse(req.query);
 
     if (!page) {
       const items = await this.wishlist.list(userId);
@@ -19,8 +19,13 @@ export class WishlistController {
       return;
     }
 
-    const { items, hasNextPage } = await this.wishlist.listPage(userId, filters, page);
-    res.status(200).json({ success: true, data: { items }, pagination: { ...page, hasNextPage } });
+    const { items, hasNextPage, filters: allFilters } = await this.wishlist.listPage(userId, filters, page, includeFilters);
+    res.status(200).json({ success: true, data: { items, filters: allFilters }, pagination: { ...page, hasNextPage } });
+  };
+
+  filters: RequestHandler = async (req, res) => {
+    const filters = await this.wishlist.filterOptions(currentUser(req).id);
+    res.set('Cache-Control', 'private, no-store').json({ success: true, data: filters });
   };
 
   add: RequestHandler = async (req, res) => {

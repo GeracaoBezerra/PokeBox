@@ -12,6 +12,7 @@ const data: PublicCollection = {
 
 function setup() {
   const profiles = {
+    searchCollectors: jest.fn<ProfileActions['searchCollectors']>(),
     getPublicCollection: jest.fn<ProfileActions['getPublicCollection']>(async () => data),
     getPublicCollectionPage: jest.fn<ProfileActions['getPublicCollectionPage']>(async () => ({
       ...data,

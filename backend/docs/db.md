@@ -158,6 +158,9 @@ O `npm run catalog:sync` (`backend/scripts/sync-catalog.ts`) preenche a tabela: 
 | `20261119120000_trade_item_card_ranking` | índice de `TradeItem.cardId` usado pelo ranking de cartas mais trocadas (#92) |
 | `20261120194650_troca_redonda` | troca redonda (#213): `IN_TRADE` em `ListingStatus`, enum `OfferCancelReason` e `Offer.cancelReason`, `Trade.proposerConfirmedAt` e `recipientConfirmedAt`, tabela `TradeListingHold`. Escrito à mão no fim: as trocas `ACCEPTED` que já existem recebem as duas confirmações com a data de conclusão; `listing_quantity_check` passa a aceitar 0 fora de `ACTIVE`; CHECKs `trade_accepted_confirmed_check`, `trade_listing_hold_quantity_check` e `offer_cancel_reason_check` |
 | `20261121015726_oferta_guarda_cartas` | oferta guarda as cartas (#217): `OfferItem` ganha `cardId`, `condition`, `finish` e `firstEdition` (padrão `false`), preenchidos à mão a partir do item da coleção; `collectionItemId` fica opcional com FK `SET NULL`; FK `RESTRICT` para `Card` e índice em `OfferItem.cardId` |
+| `20261126190000_normalize_saved_card_filters` | #235: converte os tipos reconhecidos em `Card.types` para os nomes usados nos filtros (por exemplo, `Fogo` vira `Fire`), elimina tipos duplicados e apara `Card.rarity`, convertendo valores vazios em `NULL`. Altera apenas dados de `Card`, sem mudança de schema. |
+
+A normalização de `Card` roda com `prisma migrate deploy` na subida da API. Depois da aplicação, reverter o código sozinho não restaura os tipos localizados, duplicatas ou espaços originais. Recuperar os valores exatos exige um backup ou snapshot anterior à migração.
 
 Nova tabela ou coluna: altere o `schema.prisma`, rode `npx prisma migrate dev --name <descricao>` e atualize este arquivo no mesmo PR.
 
@@ -186,10 +189,14 @@ Cria:
 
 Senhas pelo `.env`: `SEED_ADMIN_PASSWORD` para o `admin` e `SEED_DEMO_PASSWORD` para os demais (obrigatórias, 8 a 72 caracteres, diferentes entre si; rodar o seed de novo aplica os valores atuais). Rodar de novo também volta nome, cidade, estado e situação da conta de cada usuário para os valores do seed.
 
+O seed normal também inclui 15 perfis ativos para testar a busca de colecionadores. São cinco variações para Ana, Júlia e João, com usernames iniciados por `ana_`, `julia_` e `joao_`. Cada perfil recebe três cartas públicas, totalizando 45 cartas distintas entre esses perfis. Eles usam `SEED_DEMO_PASSWORD`.
+
+Para carregar apenas esses perfis, suas cartas e itens de coleção, execute `npm run db:seed -- -- --search-profiles` dentro de `backend`. O comando usa os mesmos usernames e chaves do seed completo. Novas execuções atualizam os dados das contas e preservam os itens de coleção já existentes.
+
 | Tabela | O que o seed cria |
 |---|---|
 | `Card` | 87 cartas reais de 22 coleções (Base Set a Surging Sparks): 65 Pokémon, 12 Treinador, 10 Energia, todas com imagem |
-| `CollectionItem` | 111 itens (20 privados), de 10 a 20 por usuário (o `admin` não tem coleção), com quantidade maior que 1 e variantes holo, reverse e 1ª edição; as trocas concluídas criam mais 10 (121 no total) |
+| `CollectionItem` | 156 itens (20 privados): 111 dos perfis originais, de 10 a 20 por usuário (o `admin` não tem coleção), com quantidade maior que 1 e variantes holo, reverse e 1ª edição, mais 45 públicos dos 15 perfis de busca; as trocas concluídas criam mais 10 (166 no total) |
 | `WishlistItem` | 44 itens, de 1 a 7 por usuário, nenhum de carta que a pessoa já tem (RN-12); vários cruzam com cartas e anúncios de outros usuários, e alguns só têm dono desativado (0 oportunidades). Alguns repetem a mesma carta para o ranking de mais desejadas (#92): Umbreon VMAX `swsh7-215` em 7 wishlists de contas ativas, Charizard `base1-4` em 6, Charizard ex `sv03.5-199` em 5 e Blastoise `base1-2` em 4. As 3 do `lance` (desativado) não contam |
 | `Listing` | 30 anúncios com `createdAt` espalhado em 45 dias: 19 `ACTIVE` (18 na vitrine, o do `lance` some), 2 `IN_TRADE` (Venusaur da erika e Double Turbo da cynthia, no fim da vitrine), 2 `PAUSED`, 1 `BLOCKED`, 6 `CLOSED` (2 fechados pelo dono e 4 pelas trocas concluídas, com quantidade 0) |
 | `Offer` | 16 ofertas: 6 `PROPOSED` (1 em espera: a do gary no Venusaur da erika, que está em troca), 6 `ACCEPTED` (todas viraram troca), 2 `REJECTED`, 2 `CANCELED`. Nenhuma oferta aceita sem troca |

@@ -125,7 +125,43 @@ type UsersByUsername = Record<string, User>;
 type ItemsByKey = Record<string, CollectionItem>;
 type ListingsByItem = Record<string, Listing>;
 
+const searchProfiles = [
+  ['ana_clara', 'Ana Clara', 'base1-58', 'base1-44', 'base1-46'],
+  ['ana_lara', 'Ana Lara', 'base1-63', 'base1-88', 'base1-91'],
+  ['ana_laura', 'Ana Laura', 'base1-96', 'base1-98', 'base1-102'],
+  ['ana_luisa', 'Ana Luísa', 'base2-51', 'base2-60', 'neo1-96'],
+  ['ana_lucia', 'Ana Lúcia', 'xy1-41', 'xy1-97', 'xy1-140'],
+  ['julia_lima', 'Júlia Lima', 'sm1-9', 'sm1-61', 'sm1-80'],
+  ['julia_lins', 'Júlia Lins', 'sm1-129', 'swsh3-136', 'swsh4-25'],
+  ['julia_linhares', 'Júlia Linhares', 'swsh7-125', 'swsh9-151', 'sv01-001'],
+  ['julia_lisboa', 'Júlia Lisboa', 'sv01-166', 'sv01-181', 'sv01-196'],
+  ['julia_lira', 'Júlia Lira', 'sv02-185', 'sv03-130', 'sv03.5-001'],
+  ['joao_viana', 'João Viana', 'sv03.5-004', 'sv03.5-007', 'sv03.5-025'],
+  ['joao_vieira', 'João Vieira', 'sv03.5-054', 'sv03.5-129', 'sv03.5-133'],
+  ['joao_vilela', 'João Vilela', 'sv03.5-143', 'sv04-171', 'base1-4'],
+  ['joao_vilar', 'João Vilar', 'base1-2', 'swsh4-44', 'sv08-057'],
+  ['joao_vidal', 'João Vidal', 'base1-16', 'base1-15', 'base1-10'],
+] as const;
+
+const searchUsers: SeedUser[] = searchProfiles.map(([username, name]) => ({
+  username, name, email: `${username}@pokebox.dev`, role: 'USER',
+}));
+
+const searchCollection: SeedCollectionItem[] = searchProfiles.flatMap(([username, , ...cardIds]) =>
+  cardIds.map((cardId) => {
+    const holo = ['base1-4', 'base1-2', 'swsh4-44', 'sv08-057', 'base1-16', 'base1-15', 'base1-10'].includes(cardId);
+    return {
+      key: `${username}-${cardId}`, username, cardId,
+      condition: 'NEAR_MINT',
+      finish: holo ? 'HOLO' : 'NORMAL',
+      firstEdition: ['base1-4', 'base1-2', 'base1-16', 'base1-15', 'base1-10'].includes(cardId),
+      quantity: 1, isPublic: true,
+    };
+  }),
+);
+
 const users: SeedUser[] = [
+  ...searchUsers,
   { username: 'admin', name: 'Admin PokeBox', email: 'admin@pokebox.dev', role: 'ADMIN' },
   { username: 'ash', name: 'Ash Ketchum', email: 'ash@pokebox.dev', role: 'USER', city: 'São Paulo', state: 'SP' },
   { username: 'misty', name: 'Misty Waterflower', email: 'misty@pokebox.dev', role: 'USER', city: 'Rio de Janeiro', state: 'RJ' },
@@ -146,6 +182,7 @@ const users: SeedUser[] = [
 ];
 
 const collection: SeedCollectionItem[] = [
+  ...searchCollection,
   { key: 'ash-charizard', username: 'ash', cardId: 'base1-4', condition: 'NEAR_MINT', finish: 'HOLO', firstEdition: true, quantity: 1 },
   { key: 'ash-pikachu-base', username: 'ash', cardId: 'base1-58', condition: 'GOOD', finish: 'NORMAL', quantity: 3 },
   { key: 'ash-pikachu-151', username: 'ash', cardId: 'sv03.5-025', condition: 'NEAR_MINT', finish: 'NORMAL', quantity: 2 },
@@ -555,12 +592,12 @@ function validateSeedData(cards: SeedCard[], catalogPt: CatalogData) {
   }
 }
 
-async function seedUsers() {
+async function seedUsers(entries = users) {
   const adminHash = await bcrypt.hash(env.SEED_ADMIN_PASSWORD, SALT_ROUNDS);
   const demoHash = await bcrypt.hash(env.SEED_DEMO_PASSWORD, SALT_ROUNDS);
   const byUsername: UsersByUsername = {};
 
-  for (const { accountStatus = 'ACTIVE', city = null, state = null, ...user } of users) {
+  for (const { accountStatus = 'ACTIVE', city = null, state = null, ...user } of entries) {
     const passwordHash = user.role === 'ADMIN' ? adminHash : demoHash;
     const existing = await prisma.user.findUnique({ where: { username: user.username }, select: { deletedAt: true } });
     const deletedAt = accountStatus === 'ACTIVE' ? null : (existing?.deletedAt ?? new Date());
@@ -650,10 +687,10 @@ async function seedCatalog(cards: SeedCard[], catalogPt: CatalogData) {
   await saveCatalog('pt', catalogPt);
 }
 
-async function seedCollection(byUsername: UsersByUsername) {
+async function seedCollection(byUsername: UsersByUsername, entries = collection) {
   const items: ItemsByKey = {};
 
-  for (const { key, username, cardId, condition, finish, firstEdition = false, quantity, isPublic = true } of collection) {
+  for (const { key, username, cardId, condition, finish, firstEdition = false, quantity, isPublic = true } of entries) {
     const userId = byUsername[username].id;
     items[key] = await prisma.collectionItem.upsert({
       where: { userId_cardId_condition_finish_firstEdition: { userId, cardId, condition, finish, firstEdition } },
@@ -851,6 +888,15 @@ async function main() {
   const cards = await loadCards();
   const catalogPt = await loadCatalogPt();
   validateSeedData(cards, catalogPt);
+
+  if (process.argv.includes('--search-profiles')) {
+    const byUsername = await seedUsers(searchUsers);
+    const cardIds = new Set(searchCollection.map(({ cardId }) => cardId));
+    await seedCards(cards.filter(({ id }) => cardIds.has(id)));
+    await seedCollection(byUsername, searchCollection);
+    console.log(`Seed de busca: ${searchUsers.length} perfis e ${searchCollection.length} itens públicos.`);
+    return;
+  }
 
   const byUsername = await seedUsers();
   await seedCards(cards);

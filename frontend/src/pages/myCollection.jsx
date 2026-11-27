@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { LayoutGrid, List, Plus, SearchX } from "lucide-react";
-import { getCollectionSummary, listCollection, removeCollectionItem, updateCollectionItem } from "../api/collection";
+import { getCollectionFilters, getCollectionSummary, listCollection, removeCollectionItem, updateCollectionItem } from "../api/collection";
 import { createListing, listMyListings } from "../api/listings";
 import { errosPorCampo } from "../api/mensagens";
 import { useSession } from "../auth/useSession";
@@ -67,12 +67,14 @@ export default function MyCollectionPage() {
   const session = useSession();
   const [params, setParams] = useSearchParams();
   const filtros = filtrosDaColecao(params);
-  const { q, type, condition, finish, isPublic, zerados, sort, visao, page, buscaCurta, buscaLonga, qApi } = filtros;
+  const { q, type, setId, condition, finish, isPublic, zerados, sort, visao, page, buscaCurta, buscaLonga, qApi } = filtros;
   const filtrosApi = filtrosDaApi(filtros);
   const lista = useCarregar(
-    () => listCollection({ ...filtrosApi, page, limit: POR_PAGINA }),
+    () => listCollection({ ...filtrosApi, page, limit: POR_PAGINA, includeFilters: "false" }),
     JSON.stringify({ ...filtrosApi, page }),
+    { descartarDadosAntigosEmErro: true },
   );
+  const opcoes = useCarregar(() => getCollectionFilters(Boolean(zerados)), zerados, { descartarDadosAntigosEmErro: true });
   const resumo = useCarregar(getCollectionSummary);
   const anuncios = useCarregar(() => listMyListings());
   const acao = useAcao();
@@ -83,12 +85,14 @@ export default function MyCollectionPage() {
 
   const itensDaPagina = lista.dados?.items ?? null;
   const itens = itensDaPagina && comLivre(itensDaPagina, anuncios.dados ?? []).map((item) => (anuncios.dados ? item : { ...item, livre: 0 }));
-  const painel = { q, type, condition, finish, isPublic, zerados };
+  const painel = { q, type, setId, condition, finish, isPublic, zerados };
+  const filtrosDisponiveis = opcoes.dados;
+  const nomeDoSet = filtrosDisponiveis?.sets?.find((set) => set.id === setId)?.name ?? setId;
   const selos = CAMPOS_FILTRO_COLECAO.filter((campo) => painel[campo]).map((campo) => ({
     campo,
-    rotulo: rotuloDoSeloColecao(campo, painel[campo]),
+    rotulo: rotuloDoSeloColecao(campo, campo === "setId" ? nomeDoSet : painel[campo]),
   }));
-  const temFiltro = Boolean(qApi || type || condition || finish || isPublic);
+  const temFiltro = Boolean(qApi || type || setId || condition || finish || isPublic);
   const temProxima = Boolean(lista.dados?.pagination?.hasNextPage);
   const vazia = Boolean(itens) && itens.length === 0;
   const paginaVazia = vazia && page > 1;
@@ -111,12 +115,14 @@ export default function MyCollectionPage() {
 
   function mudou() {
     lista.recarregar();
+    opcoes.recarregar();
     resumo.recarregar();
     anuncios.recarregar();
   }
 
   function saiuItem() {
     resumo.recarregar();
+    opcoes.recarregar();
     if (page > 1 && itens?.length === 1) atualizar({ page: page - 1 }, false);
     else lista.recarregar();
   }
@@ -208,6 +214,10 @@ export default function MyCollectionPage() {
       <div className={s.layout}>
         <FiltrosColecao
           filtros={painel}
+          filtrosDisponiveis={filtrosDisponiveis}
+          carregando={opcoes.primeiraCarga}
+          erro={opcoes.erro}
+          onTentarDeNovo={opcoes.recarregar}
           onAlterar={(campo, valor) => atualizar({ [campo]: valor })}
           onLimpar={limparFiltros}
           onAplicar={atualizar}
@@ -296,7 +306,12 @@ export default function MyCollectionPage() {
           )}
 
           {!lista.primeiraCarga && (page > 1 || temProxima) && !paginaVazia && (
-            <Paginacao pagina={page} temProxima={temProxima} onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)} />
+            <Paginacao
+              pagina={page}
+              temProxima={temProxima}
+              carregando={lista.carregando}
+              onIrPara={(novaPagina) => atualizar({ page: novaPagina }, false)}
+            />
           )}
         </section>
       </div>

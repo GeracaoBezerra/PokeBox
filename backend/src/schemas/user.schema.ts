@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import { paginationQuery } from './pagination.schema.js';
+
+export const searchCollectorsQuerySchema = z.object({
+  q: z.string().trim().min(1).max(50).regex(/^[^\0]+$/, 'Texto de busca inválido'),
+  ...paginationQuery,
+});
 
 export const usernameRule = z
   .string()

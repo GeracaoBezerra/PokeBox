@@ -1,5 +1,3 @@
-import { usernameValido } from "./filtrosMarketplace";
-
 const CONTEXTOS = {
   catalogo: {
     caminho: "/catalogo",
@@ -33,11 +31,6 @@ export function ehBuscaDePerfil(texto) {
 
 export function destinoDaBusca(pathname, search, texto) {
   const termo = texto.trim();
-  if (ehBuscaDePerfil(termo)) {
-    const username = termo.slice(1).trim().toLowerCase();
-    if (!usernameValido(username)) return { erro: "Nome de usuário inválido" };
-    return { url: `/u/${username}` };
-  }
   const contexto = contextoDaBusca(pathname);
   const params = new URLSearchParams(contexto.naPaginaDeResultados ? search : "");
   if (termo) params.set(contexto.campo, termo);
